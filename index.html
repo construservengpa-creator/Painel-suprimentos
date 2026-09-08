@@ -795,7 +795,7 @@ footer.appfoot{
   .app{max-width:100%;}
   #tab-creditos tr.credito-detail-row{display:table-row !important;}
 }
-#tab-cotacoes, #tab-creditos{
+#tab-cotacoes, #tab-creditos, #tab-admin{
   --gold:var(--yellow);
   --gold-dim:var(--yellow-dim);
   --good:var(--teal);
@@ -808,31 +808,32 @@ footer.appfoot{
   padding-top:4px;
 }
 
-#tab-cotacoes *, #tab-creditos *{box-sizing:border-box;}
+#tab-cotacoes *, #tab-creditos *, #tab-admin *{box-sizing:border-box;}
 
-#tab-cotacoes .section, #tab-creditos .section{margin-bottom:36px;}
-#tab-cotacoes .section-head, #tab-creditos .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
-#tab-cotacoes .section-head h2, #tab-creditos .section-head h2{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0;}
-#tab-cotacoes .section-head .eyebrow, #tab-creditos .section-head .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:600;}
+#tab-cotacoes .section, #tab-creditos .section, #tab-admin .section{margin-bottom:36px;}
+#tab-cotacoes .section-head, #tab-creditos .section-head, #tab-admin .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+#tab-cotacoes .section-head h2, #tab-creditos .section-head h2, #tab-admin .section-head h2{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0;}
+#tab-cotacoes .section-head .eyebrow, #tab-creditos .section-head .eyebrow, #tab-admin .section-head .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:600;}
 
 #tab-cotacoes input[type=date], #tab-cotacoes input[type=text], #tab-cotacoes input[type=number], #tab-cotacoes select,
-#tab-creditos input[type=date], #tab-creditos input[type=text], #tab-creditos input[type=number], #tab-creditos select{
+#tab-creditos input[type=date], #tab-creditos input[type=text], #tab-creditos input[type=number], #tab-creditos select,
+#tab-admin input[type=date], #tab-admin input[type=text], #tab-admin input[type=number], #tab-admin select{
   background:var(--surface-2);border:1px solid var(--line);color:var(--text);
   border-radius:4px;padding:8px 10px;font-family:var(--font-body);font-size:13px;
 }
-#tab-cotacoes input:focus, #tab-cotacoes select:focus, #tab-creditos input:focus, #tab-creditos select:focus{outline:none;border-color:var(--gold);}
+#tab-cotacoes input:focus, #tab-cotacoes select:focus, #tab-creditos input:focus, #tab-creditos select:focus, #tab-admin input:focus, #tab-admin select:focus{outline:none;border-color:var(--gold);}
 
-#tab-cotacoes button, #tab-creditos button{
+#tab-cotacoes button, #tab-creditos button, #tab-admin button{
   background:transparent;border:1px solid var(--gold-dim);color:var(--gold);
   border-radius:4px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;
   font-family:var(--font-body);letter-spacing:0.3px;
 }
-#tab-cotacoes button:hover, #tab-creditos button:hover{background:rgba(201,154,63,0.12);}
-#tab-cotacoes button.primary, #tab-creditos button.primary{background:var(--gold);color:#1C1405;border-color:var(--gold);}
-#tab-cotacoes button.primary:hover, #tab-creditos button.primary:hover{background:#D9AC55;}
-#tab-cotacoes button.ghost, #tab-creditos button.ghost{border-color:var(--line);color:var(--text-mut);}
-#tab-cotacoes button.danger, #tab-creditos button.danger{border-color:var(--bad);color:var(--bad);padding:4px 8px;font-size:11px;}
-#tab-cotacoes button.danger:hover, #tab-creditos button.danger:hover{background:rgba(193,97,63,0.12);}
+#tab-cotacoes button:hover, #tab-creditos button:hover, #tab-admin button:hover{background:rgba(201,154,63,0.12);}
+#tab-cotacoes button.primary, #tab-creditos button.primary, #tab-admin button.primary{background:var(--gold);color:#1C1405;border-color:var(--gold);}
+#tab-cotacoes button.primary:hover, #tab-creditos button.primary:hover, #tab-admin button.primary:hover{background:#D9AC55;}
+#tab-cotacoes button.ghost, #tab-creditos button.ghost, #tab-admin button.ghost{border-color:var(--line);color:var(--text-mut);}
+#tab-cotacoes button.danger, #tab-creditos button.danger, #tab-admin button.danger{border-color:var(--bad);color:var(--bad);padding:4px 8px;font-size:11px;}
+#tab-cotacoes button.danger:hover, #tab-creditos button.danger:hover, #tab-admin button.danger:hover{background:rgba(193,97,63,0.12);}
 
 /* dashboard ticker cards */
 #tab-cotacoes .ticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
@@ -860,28 +861,28 @@ footer.appfoot{
 #tab-cotacoes .local-tag{font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--gold);margin-bottom:8px;}
 
 /* form */
-#tab-cotacoes .form-card, #tab-creditos .form-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px;}
-#tab-cotacoes .form-grid, #tab-creditos .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px;}
-#tab-cotacoes .form-field label, #tab-creditos .form-field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-mut);margin-bottom:5px;}
+#tab-cotacoes .form-card, #tab-creditos .form-card, #tab-admin .form-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px;}
+#tab-cotacoes .form-grid, #tab-creditos .form-grid, #tab-admin .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px;}
+#tab-cotacoes .form-field label, #tab-creditos .form-field label, #tab-admin .form-field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-mut);margin-bottom:5px;}
 #tab-cotacoes .form-field input, #tab-cotacoes .form-field select, #tab-creditos .form-field input, #tab-creditos .form-field select{width:100%;}
 
 /* table */
-#tab-cotacoes .table-wrap, #tab-creditos .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;}
-#tab-cotacoes table, #tab-creditos table{width:100%;border-collapse:collapse;font-size:13px;}
-#tab-cotacoes thead th, #tab-creditos thead th{background:var(--surface-2);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-mut);border-bottom:1px solid var(--line);}
-#tab-cotacoes tbody td, #tab-creditos tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:12.5px;}
-#tab-cotacoes tbody td.txt, #tab-creditos tbody td.txt{font-family:var(--font-body);}
-#tab-cotacoes tbody tr:last-child td, #tab-creditos tbody tr:last-child td{border-bottom:none;}
-#tab-cotacoes tbody tr:hover, #tab-creditos tbody tr:hover{background:rgba(255,255,255,0.02);}
+#tab-cotacoes .table-wrap, #tab-creditos .table-wrap, #tab-admin .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+#tab-cotacoes table, #tab-creditos table, #tab-admin table{width:100%;border-collapse:collapse;font-size:13px;}
+#tab-cotacoes thead th, #tab-creditos thead th, #tab-admin thead th{background:var(--surface-2);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-mut);border-bottom:1px solid var(--line);}
+#tab-cotacoes tbody td, #tab-creditos tbody td, #tab-admin tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:12.5px;}
+#tab-cotacoes tbody td.txt, #tab-creditos tbody td.txt, #tab-admin tbody td.txt{font-family:var(--font-body);}
+#tab-cotacoes tbody tr:last-child td, #tab-creditos tbody tr:last-child td, #tab-admin tbody tr:last-child td{border-bottom:none;}
+#tab-cotacoes tbody tr:hover, #tab-creditos tbody tr:hover, #tab-admin tbody tr:hover{background:rgba(255,255,255,0.02);}
 #tab-cotacoes tbody tr.is-min td.price-cell{color:var(--good);font-weight:600;}
 
-#tab-cotacoes .toolbar, #tab-creditos .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+#tab-cotacoes .toolbar, #tab-creditos .toolbar, #tab-admin .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 #tab-cotacoes .cot-chart-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;}
 #tab-cotacoes .stat-row{display:flex;gap:22px;margin-top:14px;flex-wrap:wrap;}
 #tab-cotacoes .stat{font-size:12px;color:var(--text-mut);}
 #tab-cotacoes .stat b{display:block;font-family:var(--font-mono);font-size:16px;color:var(--text);font-weight:600;margin-top:2px;}
 
-#tab-cotacoes .count-badge, #tab-creditos .count-badge{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:3px 10px;font-size:11px;color:var(--text-mut);font-family:var(--font-mono);}
+#tab-cotacoes .count-badge, #tab-creditos .count-badge, #tab-admin .count-badge{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:3px 10px;font-size:11px;color:var(--text-mut);font-family:var(--font-mono);}
 
 #tab-cotacoes .cot-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:28px;}
 #tab-cotacoes .cot-tab-btn{background:transparent;border:1px solid transparent;border-bottom:none;color:var(--text-mut);border-radius:4px 4px 0 0;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);letter-spacing:0.2px;margin-bottom:-1px;}
@@ -1702,6 +1703,27 @@ footer.appfoot{
         </div>
         <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">Ao importar um arquivo .xlsx, ele é lido aqui no navegador e publicado direto na tabela do servidor (Supabase) — qualquer pessoa que abrir o painel depois disso já vê a versão nova. "Carregar dados de exemplo" só afeta a sua tela e não publica nada.</p>
       </div>
+    </div>
+
+    <div class="section admin-only">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Acesso</div>
+          <h2>Gestão de usuários</h2>
+        </div>
+        <div class="toolbar">
+          <span class="count-badge" id="usuariosCountBadge">0 usuário(s)</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Nome</th><th>Administrador</th><th>Supervisor</th><th></th></tr>
+          </thead>
+          <tbody id="usuariosTableBody"></tbody>
+        </table>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios; Supervisor pode lançar, editar e excluir créditos e vínculos, mas não gerencia usuários nem importa relatórios. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
     </div>
   </section>
 
@@ -5829,6 +5851,7 @@ init();
   const cadSenha = document.getElementById('cadSenha');
   const cadSenhaConfirma = document.getElementById('cadSenhaConfirma');
   const cadMsg = document.getElementById('cadMsg');
+  let currentUserId = null;
 
   function closeAuthDropdown(){ authDropdown.classList.remove('open'); }
   function setAuthSubpanel(nome){
@@ -5851,11 +5874,12 @@ init();
 
   async function refreshAuthUI(){
     const { data: { session } } = await window.SB.auth.getSession();
+    let isAdmin = false;
     if(session && session.user){
       document.body.classList.add('is-logged');
       authLoggedOut.style.display = 'none';
       authLoggedIn.style.display = 'block';
-      let isAdmin = false;
+      currentUserId = session.user.id;
       let isSupervisor = false;
       let nome = session.user.email;
       try{
@@ -5880,7 +5904,9 @@ init();
       authLoggedOut.style.display = 'block';
       authLoggedIn.style.display = 'none';
       authToggleBtn.textContent = '👤 Entrar';
+      currentUserId = null;
     }
+    if(isAdmin) loadUsuarios(); else { const tb = document.getElementById('usuariosTableBody'); if(tb) tb.innerHTML = ''; }
     if(typeof window.refreshCreditosAposLogin === 'function') window.refreshCreditosAposLogin();
   }
 
@@ -5943,6 +5969,66 @@ init();
       setAuthSubpanel('login');
     }
   });
+
+  // Gestão de usuários: só quem já é administrador enxerga esta tabela (o
+  // botão "Salvar" some para todos os outros, e o banco também recusa a
+  // alteração via RLS mesmo que alguém tente forçar pelo console). Ninguém
+  // consegue tirar o próprio acesso de administrador por aqui — evita se
+  // trancar fora sem querer.
+  async function loadUsuarios(){
+    try{
+      const { data, error } = await window.SB.from('perfis').select('id,nome,is_admin,is_supervisor').order('nome');
+      if(error) throw error;
+      renderUsuarios(data||[]);
+    }catch(e){
+      console.error('Falha ao carregar usuários:', e);
+    }
+  }
+
+  function renderUsuarios(lista){
+    const tbody = document.getElementById('usuariosTableBody');
+    const badge = document.getElementById('usuariosCountBadge');
+    if(!tbody) return;
+    if(badge) badge.textContent = `${lista.length} usuário(s)`;
+    if(!lista.length){
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum usuário encontrado.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = lista.map(u=>{
+      const ehVoceMesmo = String(u.id)===String(currentUserId);
+      return `<tr data-usuario-row="${u.id}">
+        <td class="txt"><input type="text" class="usuario-nome" value="${esc(u.nome||'')}" style="width:100%;"></td>
+        <td><input type="checkbox" class="usuario-admin" ${u.is_admin?'checked':''} ${ehVoceMesmo?'disabled title="Você não pode remover seu próprio acesso de administrador."':''}></td>
+        <td><input type="checkbox" class="usuario-supervisor" ${u.is_supervisor?'checked':''}></td>
+        <td><button class="primary" data-salvar-usuario="${u.id}">Salvar</button> <span class="usuario-msg" style="font-size:11px;color:var(--bad);margin-left:6px;"></span></td>
+      </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll('[data-salvar-usuario]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.getAttribute('data-salvar-usuario');
+        const row = tbody.querySelector(`tr[data-usuario-row="${id}"]`);
+        const nome = row.querySelector('.usuario-nome').value.trim();
+        const isAdminChk = row.querySelector('.usuario-admin').checked;
+        const isSupervisorChk = row.querySelector('.usuario-supervisor').checked;
+        const msgEl = row.querySelector('.usuario-msg');
+        msgEl.textContent = '';
+        if(!nome){ msgEl.textContent = 'Informe um nome.'; return; }
+        try{
+          const { error } = await window.SB.from('perfis').update({ nome, is_admin: isAdminChk, is_supervisor: isSupervisorChk }).eq('id', id);
+          if(error) throw error;
+          msgEl.style.color = 'var(--good,#0ca30c)';
+          msgEl.textContent = 'Salvo!';
+          setTimeout(()=>{ msgEl.textContent=''; }, 2000);
+          if(String(id)===String(currentUserId)) await refreshAuthUI();
+        }catch(e){
+          console.error('Falha ao salvar usuário:', e);
+          msgEl.style.color = 'var(--bad)';
+          msgEl.textContent = 'Não foi possível salvar.';
+        }
+      });
+    });
+  }
 
   window.SB.auth.onAuthStateChange(()=>{ refreshAuthUI(); });
   refreshAuthUI();
