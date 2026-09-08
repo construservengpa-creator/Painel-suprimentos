@@ -147,6 +147,52 @@ h1.brand-title{
   margin:6px 0 0;
   max-width:560px;
 }
+.topbar-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.header-auth{position:relative;}
+.auth-toggle-btn{
+  background:var(--asphalt-2);border:1px solid var(--line);color:var(--text);
+  border-radius:6px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:var(--font-body);white-space:nowrap;
+}
+.auth-toggle-btn:hover{border-color:var(--yellow-dim);}
+body.is-logged .auth-toggle-btn{color:var(--yellow);}
+.auth-dropdown{
+  display:none;position:absolute;top:calc(100% + 8px);right:0;min-width:260px;
+  background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;
+  padding:16px;box-shadow:0 14px 32px rgba(0,0,0,0.45);z-index:200;
+}
+.auth-dropdown.open{display:block;}
+.auth-dropdown input{
+  display:block;width:100%;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
+  border-radius:4px;padding:8px 10px;font-size:13px;font-family:var(--font-body);margin-bottom:8px;box-sizing:border-box;
+}
+.auth-dropdown input:focus{outline:none;border-color:var(--yellow-dim);}
+.auth-dropdown button.primary{
+  width:100%;background:var(--yellow);color:#1A1E24;border:1px solid var(--yellow);
+  border-radius:4px;padding:9px 10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);
+}
+.auth-dropdown button.primary:hover{background:#ffd75c;}
+.auth-dropdown button.ghost{
+  width:100%;background:transparent;color:var(--text-dim);border:1px solid var(--line);
+  border-radius:4px;padding:9px 10px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);
+}
+.auth-subtabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--line);}
+.auth-subtab-btn{
+  flex:1;background:transparent;border:none;color:var(--text-mut);cursor:pointer;
+  padding:8px 4px;font-size:12.5px;font-weight:600;font-family:var(--font-body);border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.auth-subtab-btn.active{color:var(--yellow);border-bottom-color:var(--yellow);}
+.auth-subpanel{display:none;}
+.auth-subpanel.active{display:block;}
+.auth-feedback{font-size:11.5px;color:var(--bad);margin-top:6px;min-height:14px;}
+.auth-feedback.ok{color:var(--teal,#0ca30c);}
+.auth-whoami{color:var(--text);font-weight:600;font-size:13px;margin-bottom:10px;word-break:break-word;}
 .import-panel{
   display:flex;
   align-items:center;
@@ -568,6 +614,9 @@ select:focus,input:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;
   .brand-sub{font-size:12.5px;max-width:none;}
   header.topbar > div:last-child{width:100%;}
   header.topbar .btn{width:100%;justify-content:center;}
+  .topbar-actions{flex-direction:column;align-items:stretch;}
+  .auth-toggle-btn{width:100%;text-align:center;}
+  .auth-dropdown{left:0;right:0;min-width:0;}
   nav.tabs{margin:16px 0 18px;}
   .tab-btn{font-size:13px;padding:10px 12px;}
   .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;}
@@ -575,9 +624,6 @@ select:focus,input:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;
   .filters-bar{padding:10px 12px;gap:8px;}
   .filters-bar .field{min-width:120px;flex:1 1 120px;}
   .section-head{flex-direction:column;align-items:flex-start !important;}
-  #authBox #authLoggedOut{flex-direction:column;align-items:stretch !important;}
-  #authBox #authLoggedOut input{width:100% !important;}
-  #authBox #authLoggedIn{flex-wrap:wrap;}
   .import-panel{flex-direction:column;align-items:stretch;}
   .import-panel .file-drop,.import-panel .btn{width:100%;justify-content:center;text-align:center;}
   .form-card{padding:14px !important;}
@@ -888,7 +934,36 @@ footer.appfoot{
       <h1 class="brand-title">Painel de Acompanhamento de Compras</h1>
       <p class="brand-sub">O relatório é publicado no servidor por um administrador e fica disponível para consulta de qualquer pessoa. Preços de insumos críticos podem ser lançados por qualquer usuário logado.</p>
     </div>
-    <div>
+    <div class="topbar-actions">
+      <div class="header-auth no-print" id="headerAuth">
+        <button class="auth-toggle-btn" id="authToggleBtn">👤 Entrar</button>
+        <div class="auth-dropdown" id="authDropdown">
+          <div id="authLoggedOut">
+            <div class="auth-subtabs">
+              <button class="auth-subtab-btn active" data-authpanel="login" type="button">Entrar</button>
+              <button class="auth-subtab-btn" data-authpanel="cadastro" type="button">Criar conta</button>
+            </div>
+            <div class="auth-subpanel active" data-authsubpanel="login">
+              <input type="email" id="authEmail" placeholder="e-mail">
+              <input type="password" id="authPassword" placeholder="senha">
+              <button class="primary" id="btnLogin">Entrar</button>
+              <div class="auth-feedback" id="authMsg"></div>
+            </div>
+            <div class="auth-subpanel" data-authsubpanel="cadastro">
+              <input type="text" id="cadNome" placeholder="seu nome">
+              <input type="email" id="cadEmail" placeholder="e-mail">
+              <input type="password" id="cadSenha" placeholder="senha (mín. 6 caracteres)">
+              <input type="password" id="cadSenhaConfirma" placeholder="confirmar senha">
+              <button class="primary" id="btnCadastrar">Criar conta</button>
+              <div class="auth-feedback" id="cadMsg"></div>
+            </div>
+          </div>
+          <div id="authLoggedIn" style="display:none;">
+            <div class="auth-whoami" id="authWhoAmI"></div>
+            <button class="ghost" id="btnLogout">Sair</button>
+          </div>
+        </div>
+      </div>
       <button class="btn primary" id="btnPrint">🖨 Emitir relatório</button>
     </div>
   </header>
@@ -1579,32 +1654,9 @@ footer.appfoot{
 
   <!-- ===================== ADMINISTRAÇÃO ===================== -->
   <section class="tab-panel" id="tab-admin">
-    <div class="section">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">Acesso</div>
-          <h2>Login</h2>
-        </div>
-      </div>
-      <div class="form-card">
-        <div class="auth-box" id="authBox">
-          <div id="authLoggedOut" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input type="email" id="authEmail" placeholder="e-mail" style="width:200px;padding:7px 10px;font-size:13px;">
-            <input type="password" id="authPassword" placeholder="senha" style="width:150px;padding:7px 10px;font-size:13px;">
-            <button class="btn primary small" id="btnLogin">Entrar</button>
-            <span id="authMsg" style="color:var(--bad);"></span>
-          </div>
-          <div id="authLoggedIn" style="display:none;align-items:center;gap:10px;">
-            <span id="authWhoAmI" style="color:var(--text);font-weight:600;"></span>
-            <button class="btn ghost small" id="btnLogout">Sair</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="section anon-only">
       <div class="form-card">
-        <p class="chart-sub">Faça login acima para acessar as ferramentas de importação do relatório do Sienge.</p>
+        <p class="chart-sub">Faça login (canto superior direito) para acessar as ferramentas de importação do relatório do Sienge.</p>
       </div>
     </div>
     <div class="section logged-non-admin-only">
@@ -5764,19 +5816,45 @@ init();
 
 <script>
 (function(){
+  const authToggleBtn = document.getElementById('authToggleBtn');
+  const authDropdown = document.getElementById('authDropdown');
   const authEmail = document.getElementById('authEmail');
   const authPassword = document.getElementById('authPassword');
   const authMsg = document.getElementById('authMsg');
   const authLoggedOut = document.getElementById('authLoggedOut');
   const authLoggedIn = document.getElementById('authLoggedIn');
   const authWhoAmI = document.getElementById('authWhoAmI');
+  const cadNome = document.getElementById('cadNome');
+  const cadEmail = document.getElementById('cadEmail');
+  const cadSenha = document.getElementById('cadSenha');
+  const cadSenhaConfirma = document.getElementById('cadSenhaConfirma');
+  const cadMsg = document.getElementById('cadMsg');
+
+  function closeAuthDropdown(){ authDropdown.classList.remove('open'); }
+  function setAuthSubpanel(nome){
+    document.querySelectorAll('.auth-subtab-btn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-authpanel')===nome));
+    document.querySelectorAll('.auth-subpanel').forEach(p=>p.classList.toggle('active', p.getAttribute('data-authsubpanel')===nome));
+    authMsg.textContent = '';
+    cadMsg.textContent = '';
+  }
+
+  authToggleBtn.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    authDropdown.classList.toggle('open');
+  });
+  document.addEventListener('click', (ev)=>{
+    if(!ev.target.closest('#headerAuth')) closeAuthDropdown();
+  });
+  document.querySelectorAll('.auth-subtab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> setAuthSubpanel(btn.getAttribute('data-authpanel')));
+  });
 
   async function refreshAuthUI(){
     const { data: { session } } = await window.SB.auth.getSession();
     if(session && session.user){
       document.body.classList.add('is-logged');
       authLoggedOut.style.display = 'none';
-      authLoggedIn.style.display = 'flex';
+      authLoggedIn.style.display = 'block';
       let isAdmin = false;
       let isSupervisor = false;
       let nome = session.user.email;
@@ -5794,12 +5872,14 @@ init();
       document.body.classList.toggle('is-supervisor', isSupervisor);
       const papel = isAdmin ? ' (admin)' : (isSupervisor ? ' (supervisor)' : '');
       authWhoAmI.textContent = `${nome}${papel}`;
+      authToggleBtn.textContent = `👤 ${nome}${papel}`;
     } else {
       document.body.classList.remove('is-logged');
       document.body.classList.remove('is-admin');
       document.body.classList.remove('is-supervisor');
-      authLoggedOut.style.display = 'flex';
+      authLoggedOut.style.display = 'block';
       authLoggedIn.style.display = 'none';
+      authToggleBtn.textContent = '👤 Entrar';
     }
     if(typeof window.refreshCreditosAposLogin === 'function') window.refreshCreditosAposLogin();
   }
@@ -5813,11 +5893,55 @@ init();
     if(error){ authMsg.textContent = 'Login inválido.'; return; }
     authPassword.value = '';
     await refreshAuthUI();
+    closeAuthDropdown();
   });
 
   document.getElementById('btnLogout').addEventListener('click', async ()=>{
     await window.SB.auth.signOut();
     await refreshAuthUI();
+    closeAuthDropdown();
+  });
+
+  // Cadastro de usuário direto pelo site: cria a conta no Supabase Auth e,
+  // se já vier com sessão ativa (confirmação de e-mail desativada neste
+  // projeto), a linha em "perfis" também é criada na hora, como usuário
+  // comum (sem admin/supervisor — isso continua sendo definido manualmente
+  // por um administrador). Se o projeto exigir confirmação por e-mail, o
+  // cadastro é criado mas a pessoa só consegue entrar depois de confirmar.
+  document.getElementById('btnCadastrar').addEventListener('click', async ()=>{
+    cadMsg.textContent = '';
+    cadMsg.classList.remove('ok');
+    const nome = cadNome.value.trim();
+    const email = cadEmail.value.trim();
+    const senha = cadSenha.value;
+    const confirma = cadSenhaConfirma.value;
+    if(!nome || !email || !senha || !confirma){ cadMsg.textContent = 'Preencha todos os campos.'; return; }
+    if(senha.length < 6){ cadMsg.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+    if(senha !== confirma){ cadMsg.textContent = 'As senhas não coincidem.'; return; }
+
+    const { data, error } = await window.SB.auth.signUp({
+      email, password: senha, options: { data: { nome } }
+    });
+    if(error){
+      cadMsg.textContent = error.message && error.message.toLowerCase().includes('already registered')
+        ? 'Já existe uma conta com esse e-mail.'
+        : 'Não foi possível criar a conta. Tente novamente.';
+      return;
+    }
+    if(data && data.user){
+      try{ await window.SB.from('perfis').insert({ id: data.user.id, nome, is_admin: false, is_supervisor: false }); }catch(e){ /* perfil pode já existir ou sessão ainda não ativa */ }
+    }
+    cadNome.value = ''; cadEmail.value = ''; cadSenha.value = ''; cadSenhaConfirma.value = '';
+    if(data && data.session){
+      cadMsg.textContent = 'Conta criada! Você já está logado.';
+      cadMsg.classList.add('ok');
+      await refreshAuthUI();
+      setTimeout(closeAuthDropdown, 1200);
+    } else {
+      cadMsg.textContent = 'Conta criada! Verifique seu e-mail para confirmar antes de entrar.';
+      cadMsg.classList.add('ok');
+      setAuthSubpanel('login');
+    }
   });
 
   window.SB.auth.onAuthStateChange(()=>{ refreshAuthUI(); });
