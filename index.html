@@ -193,6 +193,12 @@ body.is-logged .auth-toggle-btn{color:var(--yellow);}
 .auth-feedback{font-size:11.5px;color:var(--bad);margin-top:6px;min-height:14px;}
 .auth-feedback.ok{color:var(--teal,#0ca30c);}
 .auth-whoami{color:var(--text);font-weight:600;font-size:13px;margin-bottom:10px;word-break:break-word;}
+.link-btn{
+  display:block;width:100%;background:none;border:none;color:var(--text-mut);
+  font-size:11.5px;text-decoration:underline;cursor:pointer;padding:8px 0 0;font-family:var(--font-body);
+}
+.link-btn:hover{color:var(--text);}
+.auth-hint{font-size:11.5px;color:var(--text-dim);margin:0 0 10px;line-height:1.5;}
 .import-panel{
   display:flex;
   align-items:center;
@@ -948,6 +954,7 @@ footer.appfoot{
               <input type="email" id="authEmail" placeholder="e-mail">
               <input type="password" id="authPassword" placeholder="senha">
               <button class="primary" id="btnLogin">Entrar</button>
+              <button class="link-btn" id="btnAbrirRecuperar" type="button">Esqueci minha senha</button>
               <div class="auth-feedback" id="authMsg"></div>
             </div>
             <div class="auth-subpanel" data-authsubpanel="cadastro">
@@ -958,6 +965,20 @@ footer.appfoot{
               <button class="primary" id="btnCadastrar">Criar conta</button>
               <div class="auth-feedback" id="cadMsg"></div>
             </div>
+            <div class="auth-subpanel" data-authsubpanel="recuperar">
+              <p class="auth-hint">Informe o e-mail da sua conta — vamos enviar um link para redefinir a senha.</p>
+              <input type="email" id="recEmail" placeholder="e-mail">
+              <button class="primary" id="btnRecuperar">Enviar link de redefinição</button>
+              <button class="link-btn" id="btnVoltarLogin" type="button">Voltar para o login</button>
+              <div class="auth-feedback" id="recMsg"></div>
+            </div>
+          </div>
+          <div id="authNovaSenha" style="display:none;">
+            <p class="auth-hint">Você clicou em um link de redefinição de senha. Escolha uma nova senha para sua conta.</p>
+            <input type="password" id="novaSenha" placeholder="nova senha (mín. 6 caracteres)">
+            <input type="password" id="novaSenhaConfirma" placeholder="confirmar nova senha">
+            <button class="primary" id="btnSalvarNovaSenha">Salvar nova senha</button>
+            <div class="auth-feedback" id="novaSenhaMsg"></div>
           </div>
           <div id="authLoggedIn" style="display:none;">
             <div class="auth-whoami" id="authWhoAmI"></div>
@@ -980,7 +1001,7 @@ footer.appfoot{
     </div>
     <button class="tab-btn" data-tab="prazoinsumos">Entrega Insumos Críticos <span class="count-pill" id="countPrazoInsumos">0</span></button>
     <button class="tab-btn" data-tab="cotacoes">Cotação de Insumos Críticos</button>
-    <button class="tab-btn" data-tab="creditos">Controle de Crédito</button>
+    <button class="tab-btn gestor-credito-only" data-tab="creditos">Controle de Crédito</button>
     <button class="tab-btn" data-tab="admin">🔐 Administração</button>
   </nav>
 
@@ -5851,14 +5872,22 @@ init();
   const cadSenha = document.getElementById('cadSenha');
   const cadSenhaConfirma = document.getElementById('cadSenhaConfirma');
   const cadMsg = document.getElementById('cadMsg');
+  const recEmail = document.getElementById('recEmail');
+  const recMsg = document.getElementById('recMsg');
+  const authNovaSenha = document.getElementById('authNovaSenha');
+  const novaSenha = document.getElementById('novaSenha');
+  const novaSenhaConfirma = document.getElementById('novaSenhaConfirma');
+  const novaSenhaMsg = document.getElementById('novaSenhaMsg');
   let currentUserId = null;
 
   function closeAuthDropdown(){ authDropdown.classList.remove('open'); }
   function setAuthSubpanel(nome){
     document.querySelectorAll('.auth-subtab-btn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-authpanel')===nome));
     document.querySelectorAll('.auth-subpanel').forEach(p=>p.classList.toggle('active', p.getAttribute('data-authsubpanel')===nome));
+    document.querySelector('.auth-subtabs').style.display = (nome==='recuperar') ? 'none' : 'flex';
     authMsg.textContent = '';
     cadMsg.textContent = '';
+    recMsg.textContent = '';
   }
 
   authToggleBtn.addEventListener('click', (ev)=>{
@@ -5870,6 +5899,47 @@ init();
   });
   document.querySelectorAll('.auth-subtab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> setAuthSubpanel(btn.getAttribute('data-authpanel')));
+  });
+  document.getElementById('btnAbrirRecuperar').addEventListener('click', ()=> setAuthSubpanel('recuperar'));
+  document.getElementById('btnVoltarLogin').addEventListener('click', ()=> setAuthSubpanel('login'));
+
+  // Recuperação de senha: envia um e-mail com link de redefinição, usando a
+  // própria URL da página como retorno (já cadastrada em Authentication →
+  // URL Configuration no Supabase). Ao clicar no link, a pessoa volta pra
+  // cá com uma sessão temporária de recuperação — o evento
+  // PASSWORD_RECOVERY (mais abaixo) detecta isso e abre a tela de nova senha.
+  document.getElementById('btnRecuperar').addEventListener('click', async ()=>{
+    recMsg.textContent = '';
+    recMsg.classList.remove('ok');
+    const email = recEmail.value.trim();
+    if(!email){ recMsg.textContent = 'Informe seu e-mail.'; return; }
+    const { error } = await window.SB.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if(error){ recMsg.textContent = 'Não foi possível enviar o link. Tente novamente.'; return; }
+    recMsg.classList.add('ok');
+    recMsg.textContent = 'Link enviado! Verifique seu e-mail (e o spam) para redefinir a senha.';
+    recEmail.value = '';
+  });
+
+  document.getElementById('btnSalvarNovaSenha').addEventListener('click', async ()=>{
+    novaSenhaMsg.textContent = '';
+    novaSenhaMsg.classList.remove('ok');
+    const senha = novaSenha.value;
+    const confirma = novaSenhaConfirma.value;
+    if(!senha || !confirma){ novaSenhaMsg.textContent = 'Preencha os dois campos.'; return; }
+    if(senha.length < 6){ novaSenhaMsg.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+    if(senha !== confirma){ novaSenhaMsg.textContent = 'As senhas não coincidem.'; return; }
+    const { error } = await window.SB.auth.updateUser({ password: senha });
+    if(error){ novaSenhaMsg.textContent = 'Não foi possível salvar a nova senha. Peça um novo link.'; return; }
+    novaSenha.value = ''; novaSenhaConfirma.value = '';
+    novaSenhaMsg.classList.add('ok');
+    novaSenhaMsg.textContent = 'Senha atualizada! Você já está logado.';
+    setTimeout(async ()=>{
+      authNovaSenha.style.display = 'none';
+      authLoggedOut.style.display = 'block';
+      await refreshAuthUI();
+    }, 1500);
   });
 
   async function refreshAuthUI(){
@@ -5916,7 +5986,13 @@ init();
     const password = authPassword.value;
     if(!email || !password){ authMsg.textContent = 'Informe e-mail e senha.'; return; }
     const { error } = await window.SB.auth.signInWithPassword({ email, password });
-    if(error){ authMsg.textContent = 'Login inválido.'; return; }
+    if(error){
+      const msg = (error.message||'').toLowerCase();
+      authMsg.textContent = msg.includes('confirm')
+        ? 'E-mail ainda não confirmado. Verifique a caixa de entrada (e o spam) do e-mail cadastrado antes de entrar.'
+        : 'Login inválido.';
+      return;
+    }
     authPassword.value = '';
     await refreshAuthUI();
     closeAuthDropdown();
@@ -6030,7 +6106,16 @@ init();
     });
   }
 
-  window.SB.auth.onAuthStateChange(()=>{ refreshAuthUI(); });
+  window.SB.auth.onAuthStateChange((event)=>{
+    if(event === 'PASSWORD_RECOVERY'){
+      authDropdown.classList.add('open');
+      authLoggedOut.style.display = 'none';
+      authLoggedIn.style.display = 'none';
+      authNovaSenha.style.display = 'block';
+      return;
+    }
+    refreshAuthUI();
+  });
   refreshAuthUI();
 })();
 </script>
