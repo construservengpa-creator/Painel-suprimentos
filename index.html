@@ -744,11 +744,12 @@ footer.appfoot{
 }
 
 @media print{
-  .import-panel,nav.tabs,.filters-bar,.btn{display:none !important;}
+  .import-panel,nav.tabs,.filters-bar,.btn,.no-print{display:none !important;}
   body{background:#fff;color:#000;}
   .app{max-width:100%;}
+  #tab-creditos tr.credito-detail-row{display:table-row !important;}
 }
-#tab-cotacoes{
+#tab-cotacoes, #tab-creditos{
   --gold:var(--yellow);
   --gold-dim:var(--yellow-dim);
   --good:var(--teal);
@@ -761,30 +762,31 @@ footer.appfoot{
   padding-top:4px;
 }
 
-#tab-cotacoes *{box-sizing:border-box;}
+#tab-cotacoes *, #tab-creditos *{box-sizing:border-box;}
 
 #tab-cotacoes .section, #tab-creditos .section{margin-bottom:36px;}
 #tab-cotacoes .section-head, #tab-creditos .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
 #tab-cotacoes .section-head h2, #tab-creditos .section-head h2{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0;}
 #tab-cotacoes .section-head .eyebrow, #tab-creditos .section-head .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:600;}
 
-#tab-cotacoes input[type=date], #tab-cotacoes input[type=text], #tab-cotacoes input[type=number], #tab-cotacoes select{
+#tab-cotacoes input[type=date], #tab-cotacoes input[type=text], #tab-cotacoes input[type=number], #tab-cotacoes select,
+#tab-creditos input[type=date], #tab-creditos input[type=text], #tab-creditos input[type=number], #tab-creditos select{
   background:var(--surface-2);border:1px solid var(--line);color:var(--text);
   border-radius:4px;padding:8px 10px;font-family:var(--font-body);font-size:13px;
 }
-#tab-cotacoes input:focus, #tab-cotacoes select:focus{outline:none;border-color:var(--gold);}
+#tab-cotacoes input:focus, #tab-cotacoes select:focus, #tab-creditos input:focus, #tab-creditos select:focus{outline:none;border-color:var(--gold);}
 
-#tab-cotacoes button{
+#tab-cotacoes button, #tab-creditos button{
   background:transparent;border:1px solid var(--gold-dim);color:var(--gold);
   border-radius:4px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;
   font-family:var(--font-body);letter-spacing:0.3px;
 }
-#tab-cotacoes button:hover{background:rgba(201,154,63,0.12);}
-#tab-cotacoes button.primary{background:var(--gold);color:#1C1405;border-color:var(--gold);}
-#tab-cotacoes button.primary:hover{background:#D9AC55;}
-#tab-cotacoes button.ghost{border-color:var(--line);color:var(--text-mut);}
-#tab-cotacoes button.danger{border-color:var(--bad);color:var(--bad);padding:4px 8px;font-size:11px;}
-#tab-cotacoes button.danger:hover{background:rgba(193,97,63,0.12);}
+#tab-cotacoes button:hover, #tab-creditos button:hover{background:rgba(201,154,63,0.12);}
+#tab-cotacoes button.primary, #tab-creditos button.primary{background:var(--gold);color:#1C1405;border-color:var(--gold);}
+#tab-cotacoes button.primary:hover, #tab-creditos button.primary:hover{background:#D9AC55;}
+#tab-cotacoes button.ghost, #tab-creditos button.ghost{border-color:var(--line);color:var(--text-mut);}
+#tab-cotacoes button.danger, #tab-creditos button.danger{border-color:var(--bad);color:var(--bad);padding:4px 8px;font-size:11px;}
+#tab-cotacoes button.danger:hover, #tab-creditos button.danger:hover{background:rgba(193,97,63,0.12);}
 
 /* dashboard ticker cards */
 #tab-cotacoes .ticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
@@ -855,7 +857,25 @@ footer.appfoot{
 #tab-creditos .saldo-pill{display:inline-block;padding:2px 9px;border-radius:20px;font-family:var(--font-mono);font-weight:600;font-size:12px;}
 #tab-creditos .saldo-pill.pos{background:rgba(12,163,12,0.15);color:var(--teal);}
 #tab-creditos .saldo-pill.zero{background:rgba(92,101,112,0.2);color:var(--text-mut);}
+#tab-creditos .credito-tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:28px;}
+#tab-creditos .credito-tab-btn{background:transparent;border:1px solid transparent;border-bottom:none;color:var(--text-mut);border-radius:4px 4px 0 0;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);letter-spacing:0.2px;margin-bottom:-1px;}
+#tab-creditos .credito-tab-btn:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+#tab-creditos .credito-tab-btn.active{color:var(--gold);border-color:var(--line);background:var(--surface);border-bottom:1px solid var(--surface);}
+#tab-creditos .credito-tab-panel{display:none;}
+#tab-creditos .credito-tab-panel.active{display:block;}
 #tab-creditos .empty-mini{font-size:12px;color:var(--text-faint);padding:6px 8px;}
+#tab-creditos .pedido-search-wrap{position:relative;}
+#tab-creditos .pedido-search-results{
+  display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;
+  max-height:240px;overflow-y:auto;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:4px;box-shadow:0 10px 24px rgba(0,0,0,0.4);z-index:60;
+}
+#tab-creditos .pedido-search-results.open{display:block;}
+#tab-creditos .pedido-search-item{padding:8px 10px;cursor:pointer;font-size:12.5px;border-bottom:1px solid var(--line);}
+#tab-creditos .pedido-search-item:last-child{border-bottom:none;}
+#tab-creditos .pedido-search-item:hover, #tab-creditos .pedido-search-item.active{background:rgba(201,154,63,0.12);}
+#tab-creditos .pedido-search-item b{font-family:var(--font-mono);color:var(--gold);}
+#tab-creditos .pedido-search-empty{padding:10px;font-size:12px;color:var(--text-faint);}
 
 </style>
 </head>
@@ -1398,84 +1418,161 @@ footer.appfoot{
 
   <!-- ===================== CONTROLE DE CRÉDITO ===================== -->
   <section class="tab-panel" id="tab-creditos">
-    <div class="kpi-grid" id="creditoKpiGrid"></div>
+    <div class="credito-tabs no-print" role="tablist">
+      <button class="credito-tab-btn active" data-ctab="lista" role="tab">Créditos</button>
+      <button class="credito-tab-btn gestor-credito-only" data-ctab="lancar" role="tab">Lançar Crédito</button>
+      <button class="credito-tab-btn gestor-credito-only" data-ctab="vincular" role="tab">Vincular Pedido</button>
+      <button class="credito-tab-btn gestor-credito-only" data-ctab="config" role="tab">Configurações</button>
+    </div>
 
-    <div class="filters-bar">
-      <div class="field">
-        <label>Empresa / Obra</label>
-        <select id="fCreditoObra"><option value="">Todas</option></select>
+    <!-- ---- Sub-aba: Créditos (lista, KPIs, relatório) ---- -->
+    <div class="credito-tab-panel active" data-ctab-panel="lista">
+      <div class="kpi-grid" id="creditoKpiGrid"></div>
+
+      <div class="filters-bar">
+        <div class="field">
+          <label>Empresa beneficiária</label>
+          <select id="fCreditoBeneficiaria"><option value="">Todas</option></select>
+        </div>
+        <div class="field">
+          <label>Empresa devedora</label>
+          <select id="fCreditoEmpresa"><option value="">Todas</option></select>
+        </div>
+        <div class="field">
+          <label>Obra do devedor</label>
+          <select id="fCreditoObra"><option value="">Todas</option></select>
+        </div>
+        <div class="field">
+          <label>Saldo</label>
+          <select id="fCreditoSaldo">
+            <option value="">Todos</option>
+            <option value="com-saldo">Com saldo disponível</option>
+            <option value="zerado">Sem saldo (zerado)</option>
+          </select>
+        </div>
       </div>
-      <div class="field">
-        <label>Saldo</label>
-        <select id="fCreditoSaldo">
-          <option value="">Todos</option>
-          <option value="com-saldo">Com saldo disponível</option>
-          <option value="zerado">Sem saldo (zerado)</option>
-        </select>
+
+      <div class="anon-only" style="font-size:11.5px;color:var(--text-faint);margin:-10px 0 24px;">Faça login (canto superior direito) para ver os detalhes de créditos e, se for administrador ou supervisor, lançar, editar ou excluir registros.</div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Base completa</div>
+            <h2>Créditos lançados</h2>
+          </div>
+          <div class="toolbar">
+            <span class="count-badge" id="creditoCountBadge">0 créditos</span>
+            <button class="ghost no-print" id="credito-btnExportExcel">⬇ Exportar Excel</button>
+            <button class="ghost no-print" id="credito-btnPrint">🖨 Relatório</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th class="no-print"></th><th>Empresa beneficiária</th><th>Empresa devedora</th><th>Obra do devedor</th><th>Valor total</th><th>Abatido</th><th>Saldo</th><th>Disponível a partir de</th><th>Descrição</th><th class="no-print"></th></tr>
+            </thead>
+            <tbody id="creditoTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <div class="section gestor-credito-only">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">Novo lançamento</div>
-          <h2>Lançar crédito</h2>
+    <!-- ---- Sub-aba: Lançar Crédito ---- -->
+    <div class="credito-tab-panel" data-ctab-panel="lancar">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Novo lançamento</div>
+            <h2 id="credito-formTitle">Lançar crédito</h2>
+          </div>
         </div>
-      </div>
-      <div class="form-card">
-        <div class="form-grid">
-          <div class="form-field"><label>Empresa / Obra</label><input type="text" id="credito-fObra" placeholder="Ex.: 203 - Contrato 1 - ES-162 - Lote 1 - Capixaba" list="credito-dlObra"></div>
-          <div class="form-field"><label>Valor do crédito (R$)</label><input type="number" id="credito-fValor" step="0.01" min="0" placeholder="0,00"></div>
-          <div class="form-field"><label>Data de disponibilidade</label><input type="date" id="credito-fData"></div>
-          <div class="form-field"><label>Descrição</label><input type="text" id="credito-fDescricao" placeholder="Ex.: Crédito por devolução de material"></div>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="form-field"><label>Empresa beneficiária (credora)</label><input type="text" id="credito-fBeneficiaria" placeholder="Ex.: AMETA Engenharia Ltda" list="credito-dlBeneficiaria"></div>
+            <div class="form-field"><label>Empresa devedora</label><input type="text" id="credito-fEmpresa" placeholder="Ex.: AMETA Construções Ltda" list="credito-dlEmpresa"></div>
+            <div class="form-field"><label>Obra vinculada ao devedor</label><select id="credito-fObra"><option value="">Selecione...</option></select></div>
+            <div class="form-field"><label>Valor do crédito (R$)</label><input type="number" id="credito-fValor" step="0.01" min="0" placeholder="0,00"></div>
+            <div class="form-field"><label>Data de disponibilidade</label><input type="date" id="credito-fData"></div>
+            <div class="form-field"><label>Descrição</label><input type="text" id="credito-fDescricao" placeholder="Ex.: Crédito por devolução de material"></div>
+          </div>
+          <datalist id="credito-dlBeneficiaria"></datalist>
+          <datalist id="credito-dlEmpresa"></datalist>
+          <button class="primary" id="credito-btnAdd">Lançar crédito</button>
+          <button class="ghost" id="credito-btnCancelEdit" style="display:none;">Cancelar edição</button>
+          <span id="credito-formMsg" style="margin-left:10px;font-size:12px;color:var(--bad);"></span>
         </div>
-        <datalist id="credito-dlObra"></datalist>
-        <button class="primary" id="credito-btnAdd">Lançar crédito</button>
-        <span id="credito-formMsg" style="margin-left:10px;font-size:12px;color:var(--bad);"></span>
-      </div>
-    </div>
-    <div class="logged-non-gestor-only" style="font-size:11.5px;color:var(--text-faint);margin:-10px 0 24px;">Somente administradores e supervisores podem lançar crédito ou vincular pedidos.</div>
-    <div class="anon-only" style="font-size:11.5px;color:var(--text-faint);margin:-10px 0 24px;">Faça login (canto superior direito) para ver os detalhes de créditos e, se for administrador ou supervisor, lançar novos créditos.</div>
-
-    <div class="section gestor-credito-only">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">Abatimento</div>
-          <h2>Vincular pedido de compra a um crédito</h2>
-        </div>
-      </div>
-      <div class="form-card">
-        <div class="form-grid">
-          <div class="form-field"><label>Crédito</label><select id="vinculo-fCredito"></select></div>
-          <div class="form-field"><label>Pedido de compra</label><input type="text" id="vinculo-fPedido" placeholder="Digite ou selecione o nº do pedido" list="vinculo-dlPedido"></div>
-          <div class="form-field"><label>Valor a abater (R$)</label><input type="number" id="vinculo-fValor" step="0.01" min="0" placeholder="0,00"></div>
-          <div class="form-field"><label>Data do vínculo</label><input type="date" id="vinculo-fData"></div>
-          <div class="form-field"><label>Observação (opcional)</label><input type="text" id="vinculo-fObs" placeholder="Ex.: referente à NF 12345"></div>
-        </div>
-        <datalist id="vinculo-dlPedido"></datalist>
-        <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;">O pedido de compra é o mesmo importado do Sienge no Painel de Suprimentos — não existe valor monetário do pedido nessa base, por isso o valor a abater é digitado manualmente por quem faz o vínculo.</div>
-        <button class="primary" id="vinculo-btnAdd">Vincular</button>
-        <span id="vinculo-formMsg" style="margin-left:10px;font-size:12px;color:var(--bad);"></span>
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">Base completa</div>
-          <h2>Créditos lançados</h2>
+    <!-- ---- Sub-aba: Vincular Pedido ---- -->
+    <div class="credito-tab-panel" data-ctab-panel="vincular">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Abatimento</div>
+            <h2 id="vinculo-formTitle">Vincular pedido de compra a um crédito</h2>
+          </div>
         </div>
-        <div class="toolbar">
-          <span class="count-badge" id="creditoCountBadge">0 créditos</span>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="form-field"><label>Crédito</label><select id="vinculo-fCredito"></select></div>
+            <div class="form-field pedido-search-wrap"><label>Pedido de compra</label><input type="text" id="vinculo-fPedido" placeholder="Digite para pesquisar o pedido..." autocomplete="off"><div id="vinculo-fPedidoResults" class="pedido-search-results"></div></div>
+            <div class="form-field"><label>Valor a abater (R$)</label><input type="number" id="vinculo-fValor" step="0.01" min="0" placeholder="0,00"></div>
+            <div class="form-field"><label>Data do vínculo</label><input type="date" id="vinculo-fData"></div>
+            <div class="form-field"><label>Observação (opcional)</label><input type="text" id="vinculo-fObs" placeholder="Ex.: referente à NF 12345"></div>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;">O pedido de compra é o mesmo importado do Sienge no Painel de Suprimentos. Ao selecionar um pedido, se ele já tiver nota fiscal emitida, o valor a abater é sugerido automaticamente (soma das notas fiscais daquele pedido) — mas continua editável, já que pedidos sem nota emitida ainda não têm valor conhecido nessa base. Clique no campo "Pedido de compra" para ver a lista (já filtrada pela empresa do crédito selecionado, pelo código no início do nome da obra) e digite para pesquisar — só é possível vincular pedidos da mesma empresa devedora.</div>
+          <button class="primary" id="vinculo-btnAdd">Vincular</button>
+          <button class="ghost" id="vinculo-btnCancelEdit" style="display:none;">Cancelar edição</button>
+          <span id="vinculo-formMsg" style="margin-left:10px;font-size:12px;color:var(--bad);"></span>
         </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th></th><th>Empresa / Obra</th><th>Valor total</th><th>Abatido</th><th>Saldo</th><th>Disponível a partir de</th><th>Descrição</th><th></th></tr>
-          </thead>
-          <tbody id="creditoTableBody"></tbody>
-        </table>
+    </div>
+
+    <!-- ---- Sub-aba: Configurações (auditoria) ---- -->
+    <div class="credito-tab-panel" data-ctab-panel="config">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Configurações</div>
+            <h2>Auditoria de ações</h2>
+          </div>
+          <div class="toolbar">
+            <span class="count-badge" id="auditoriaCountBadge">0 registros</span>
+            <button class="ghost" id="auditoria-btnExportExcel">⬇ Exportar Excel</button>
+          </div>
+        </div>
+        <p style="font-size:11.5px;color:var(--text-faint);margin:0 0 14px;max-width:680px;line-height:1.5;">Todo lançamento, alteração ou exclusão de crédito e de vínculo fica registrado automaticamente aqui — quem fez, quando, e o que mudou. O histórico é gravado pelo próprio banco de dados e não pode ser editado ou apagado por ninguém, nem por administradores.</p>
+        <div class="filters-bar">
+          <div class="field">
+            <label>Tabela</label>
+            <select id="fAuditoriaTabela">
+              <option value="">Todas</option>
+              <option value="creditos_obra">Créditos</option>
+              <option value="creditos_vinculos">Vínculos</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Ação</label>
+            <select id="fAuditoriaOperacao">
+              <option value="">Todas</option>
+              <option value="INSERT">Lançamento</option>
+              <option value="UPDATE">Alteração</option>
+              <option value="DELETE">Exclusão</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Buscar</label>
+            <input type="text" id="fAuditoriaSearch" placeholder="usuário, obra, pedido...">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Quando</th><th>Usuário</th><th>Tabela</th><th>Ação</th><th>Detalhe</th></tr></thead>
+            <tbody id="auditoriaTableBody"></tbody>
+          </table>
+        </div>
+        <button class="ghost" id="auditoria-btnLoadMore" style="margin-top:12px;">Carregar mais</button>
       </div>
     </div>
   </section>
@@ -1610,6 +1707,12 @@ function parseNumBR(v){
   if(v===null||v===undefined||v==='') return 0;
   if(typeof v==='number') return v;
   let s=String(v).trim();
+  if(s==='') return 0;
+  // Remove qualquer coisa que não seja dígito, vírgula, ponto ou sinal de
+  // menos (ex.: prefixo de moeda "R$", espaço) antes de interpretar —
+  // "Valor da Nota" no Sienge vem como "R$ 3.450,00", e sem essa limpeza
+  // o parseFloat falhava e o valor virava 0 silenciosamente.
+  s = s.replace(/[^\d,.\-]/g,'');
   if(s==='') return 0;
   s=s.replace(/\./g,'').replace(',', '.');
   const n=parseFloat(s);
@@ -4803,24 +4906,33 @@ async function addRecord(){
 
 /* ============================================================
    CONTROLE DE CRÉDITO (créditos por empresa/obra, abatidos por
-   pedido de compra vinculado). Duas tabelas no Supabase:
-   "creditos_obra" (lançamento) e "creditos_vinculos" (cada pedido
-   de compra vinculado a um crédito, com o valor abatido).
-   Lançar crédito e vincular pedido são restritos a administradores
-   e supervisores (perfis.is_admin ou perfis.is_supervisor);
-   excluir continua só para administradores, como as demais tabelas
-   deste painel. A base do Sienge usada aqui não tem valor
-   monetário do pedido (só quantidades), então o valor a abater é
-   digitado manualmente por quem faz o vínculo — validado apenas
-   contra o saldo disponível do crédito selecionado.
+   pedido de compra vinculado). Três tabelas no Supabase:
+   "creditos_obra" (lançamento), "creditos_vinculos" (cada pedido
+   de compra vinculado a um crédito, com o valor abatido) e
+   "creditos_auditoria" (log automático, gravado por gatilho no
+   banco, de todo insert/update/delete nas duas primeiras).
+   Lançar, editar e excluir créditos/vínculos são restritos a
+   administradores e supervisores (perfis.is_admin ou
+   perfis.is_supervisor). A auditoria é só leitura para quem
+   gerencia crédito — ninguém edita ou apaga o histórico.
+   A base do Sienge usada aqui não tem valor monetário do pedido
+   (só quantidades), então o valor a abater é digitado manualmente
+   por quem faz o vínculo — validado contra o saldo disponível.
    ============================================================ */
 let creditos = [];
 let vinculosCredito = [];
+let auditoria = [];
+let perfisMap = {};
+let auditoriaLimit = 100;
+let editingCreditoId = null;
+let editingVinculoId = null;
 const creditoDetailOpen = new Set();
 
 function creditoRowFromDb(row){
   return {
     id: row.id,
+    empresaBeneficiaria: row.empresa_beneficiaria || '',
+    empresaDevedora: row.empresa_devedora || '',
     obra: row.obra,
     valorTotal: Number(row.valor_total)||0,
     dataDisponibilidade: row.data_disponibilidade,
@@ -4865,13 +4977,26 @@ async function loadVinculosCredito(){
 async function insertCredito(c){
   try{
     const { error } = await window.SB.from('creditos_obra').insert({
-      obra: c.obra, valor_total: c.valorTotal, data_disponibilidade: c.dataDisponibilidade, descricao: c.descricao || null
+      empresa_beneficiaria: c.empresaBeneficiaria, empresa_devedora: c.empresaDevedora, obra: c.obra, valor_total: c.valorTotal, data_disponibilidade: c.dataDisponibilidade, descricao: c.descricao || null
     });
     if(error) throw error;
     return true;
   }catch(e){
     console.error('Falha ao lançar crédito:', e);
     alert('Não foi possível lançar o crédito. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+async function updateCredito(id, c){
+  try{
+    const { error } = await window.SB.from('creditos_obra').update({
+      empresa_beneficiaria: c.empresaBeneficiaria, empresa_devedora: c.empresaDevedora, obra: c.obra, valor_total: c.valorTotal, data_disponibilidade: c.dataDisponibilidade, descricao: c.descricao || null
+    }).eq('id', id);
+    if(error) throw error;
+    return true;
+  }catch(e){
+    console.error('Falha ao atualizar crédito:', e);
+    alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
 }
@@ -4883,7 +5008,7 @@ async function deleteCredito(id){
     return true;
   }catch(e){
     console.error('Falha ao excluir crédito:', e);
-    alert('Não foi possível excluir — apenas administradores podem excluir créditos.');
+    alert('Não foi possível excluir. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
 }
@@ -4902,6 +5027,21 @@ async function insertVinculoCredito(v){
     return false;
   }
 }
+async function updateVinculoCredito(id, v){
+  try{
+    const { error } = await window.SB.from('creditos_vinculos').update({
+      credito_id: v.creditoId, num_pedido: v.numPedido, obra_pedido: v.obraPedido || null,
+      fornecedor: v.fornecedor || null, comprador: v.comprador || null,
+      valor_abatido: v.valorAbatido, data_vinculo: v.dataVinculo, observacao: v.observacao || null
+    }).eq('id', id);
+    if(error) throw error;
+    return true;
+  }catch(e){
+    console.error('Falha ao atualizar vínculo:', e);
+    alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
 async function deleteVinculoCredito(id){
   if(!confirm('Remover este vínculo? O valor deixa de ser abatido do crédito.')) return false;
   try{
@@ -4910,7 +5050,7 @@ async function deleteVinculoCredito(id){
     return true;
   }catch(e){
     console.error('Falha ao remover vínculo:', e);
-    alert('Não foi possível remover — apenas administradores podem remover vínculos.');
+    alert('Não foi possível remover. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
 }
@@ -4925,6 +5065,17 @@ function creditoSaldo(c){
   return c.valorTotal - creditoAbatido(c.id);
 }
 
+// Identifica a "empresa" de uma obra a partir do código no início do nome
+// (ex.: "203" em "203 - Contrato 1 - ES-162 - Lote 1 - Capixaba") — o
+// Sienge não traz um campo de empresa separado, então esse código é o que
+// usamos para garantir que um pedido só seja vinculado a um crédito da
+// mesma empresa devedora.
+function codigoObra(obraLabel){
+  if(!obraLabel) return '';
+  const m = String(obraLabel).trim().match(/^(\S+)/);
+  return m ? m[1] : '';
+}
+
 // Lista de pedidos de compra únicos, a partir da MESMA base do Sienge já
 // importada no Painel de Suprimentos (state.rows) — não existe cadastro de
 // pedidos separado para o Controle de Crédito.
@@ -4933,35 +5084,178 @@ function getPedidosUnicos(){
   (state.rows||[]).forEach(r=>{
     if(!r.numPedido) return;
     if(!map.has(r.numPedido)){
-      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'' });
+      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'', valorTotal:0, notas:[], _notasVistas:new Set() });
+    }
+    // O Sienge não traz um "valor do pedido" único, só o valor de cada nota
+    // fiscal emitida contra ele — um pedido pode ter várias linhas de
+    // insumo repetindo a mesma nota, então contamos por nota fiscal distinta
+    // (não por linha), senão o mesmo documento entraria somado várias vezes.
+    // Guardamos também o número de cada nota, não só o total, para o
+    // relatório poder apontar o documento e o valor de cada uma.
+    const p = map.get(r.numPedido);
+    const valor = parseNumBR(r.valorNota);
+    const numNota = normLabel(r.numNotaFiscal);
+    if(valor > 0){
+      const chaveNota = numNota || ('linha-'+p._notasVistas.size);
+      if(!p._notasVistas.has(chaveNota)){
+        p._notasVistas.add(chaveNota);
+        p.valorTotal += valor;
+        p.notas.push({ numero: numNota || '(sem número)', valor });
+      }
     }
   });
-  return [...map.values()].sort((a,b)=>String(a.numPedido).localeCompare(String(b.numPedido),'pt-BR',{numeric:true}));
+  return [...map.values()]
+    .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, notas:p.notas }))
+    .sort((a,b)=>String(a.numPedido).localeCompare(String(b.numPedido),'pt-BR',{numeric:true}));
 }
 
 function populateCreditoDatalists(){
-  const dlObra = document.getElementById('credito-dlObra');
-  if(dlObra) dlObra.innerHTML = uniqueSorted((state.rows||[]).map(r=>r.obraLabel)).map(o=>`<option value="${esc(o)}">`).join('');
+  // Empresa beneficiária e devedora: não vêm de nenhuma base pronta (não
+  // existe cadastro de empresas no Sienge importado aqui), então sugerimos
+  // as já usadas em créditos anteriores, mas os campos continuam aceitando
+  // texto livre.
+  const beneficiariasDisponiveis = uniqueSorted(creditos.map(c=>c.empresaBeneficiaria));
+  const dlBeneficiaria = document.getElementById('credito-dlBeneficiaria');
+  if(dlBeneficiaria) dlBeneficiaria.innerHTML = beneficiariasDisponiveis.map(e=>`<option value="${esc(e)}">`).join('');
 
-  const dlPedido = document.getElementById('vinculo-dlPedido');
-  if(dlPedido) dlPedido.innerHTML = getPedidosUnicos().map(p=>`<option value="${esc(p.numPedido)}">${esc(p.numPedido)} — ${esc(p.obra)} — ${esc(p.fornecedor)}</option>`).join('');
+  const fBeneficiaria = document.getElementById('fCreditoBeneficiaria');
+  if(fBeneficiaria){
+    const atual = fBeneficiaria.value;
+    fBeneficiaria.innerHTML = '<option value="">Todas</option>' + beneficiariasDisponiveis.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
+    if([...fBeneficiaria.options].some(o=>o.value===atual)) fBeneficiaria.value = atual;
+  }
+
+  const empresasDisponiveis = uniqueSorted(creditos.map(c=>c.empresaDevedora));
+  const dlEmpresa = document.getElementById('credito-dlEmpresa');
+  if(dlEmpresa) dlEmpresa.innerHTML = empresasDisponiveis.map(e=>`<option value="${esc(e)}">`).join('');
+
+  const fEmpresa = document.getElementById('fCreditoEmpresa');
+  if(fEmpresa){
+    const atual = fEmpresa.value;
+    fEmpresa.innerHTML = '<option value="">Todas</option>' + empresasDisponiveis.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
+    if([...fEmpresa.options].some(o=>o.value===atual)) fEmpresa.value = atual;
+  }
+
+  // Empresa/Obra: caixa de seleção (não mais texto livre), montada a partir
+  // da base do Sienge + obras já usadas em créditos antigos (garante que um
+  // crédito lançado antes de uma obra sair do relatório mais recente ainda
+  // apareça selecionado corretamente ao editar). Ao digitar a empresa
+  // devedora, as obras já usadas por ela em créditos anteriores aparecem
+  // separadas no topo, como sugestão — sem impedir escolher outra.
+  const obrasDisponiveis = uniqueSorted([...(state.rows||[]).map(r=>r.obraLabel), ...creditos.map(c=>c.obra)]);
+  const empresaDigitada = (document.getElementById('credito-fEmpresa')||{}).value || '';
+
+  const selObraForm = document.getElementById('credito-fObra');
+  if(selObraForm){
+    const atual = selObraForm.value;
+    const empresaNorm = empresaDigitada.trim().toLowerCase();
+    let html = '<option value="">Selecione...</option>';
+    if(empresaNorm){
+      const obrasDaEmpresa = new Set(
+        creditos.filter(c=>(c.empresaDevedora||'').trim().toLowerCase()===empresaNorm).map(c=>c.obra)
+      );
+      const sugeridas = obrasDisponiveis.filter(o=>obrasDaEmpresa.has(o));
+      const outras = obrasDisponiveis.filter(o=>!obrasDaEmpresa.has(o));
+      if(sugeridas.length){
+        html += `<optgroup label="Obras já usadas por ${esc(empresaDigitada.trim())}">` + sugeridas.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('') + `</optgroup>`;
+        html += `<optgroup label="Outras obras">` + outras.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('') + `</optgroup>`;
+      } else {
+        html += outras.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
+      }
+    } else {
+      html += obrasDisponiveis.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    }
+    selObraForm.innerHTML = html;
+    if([...selObraForm.options].some(o=>o.value===atual)) selObraForm.value = atual;
+  }
 
   const fObra = document.getElementById('fCreditoObra');
   if(fObra){
     const atual = fObra.value;
-    fObra.innerHTML = '<option value="">Todas</option>' + uniqueSorted(creditos.map(c=>c.obra)).map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    fObra.innerHTML = '<option value="">Todas</option>' + obrasDisponiveis.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
     if([...fObra.options].some(o=>o.value===atual)) fObra.value = atual;
   }
 
+  // Crédito no formulário de vínculo: normalmente só mostra créditos com
+  // saldo disponível; em modo de edição, soma de volta o valor já abatido
+  // pelo próprio vínculo sendo editado, senão o crédito desapareceria da
+  // lista assim que ele mesmo zerasse o saldo.
   const selCredito = document.getElementById('vinculo-fCredito');
   if(selCredito){
     const atual = selCredito.value;
-    const comSaldo = creditos.filter(c=>creditoSaldo(c) > 0.005);
-    selCredito.innerHTML = comSaldo.length
-      ? comSaldo.map(c=>`<option value="${c.id}">${esc(c.obra)} — saldo R$ ${fmtMoney(creditoSaldo(c))}</option>`).join('')
+    const vinculoEmEdicao = editingVinculoId ? vinculosCredito.find(v=>String(v.id)===String(editingVinculoId)) : null;
+    const candidatos = creditos.map(c=>{
+      let saldo = creditoSaldo(c);
+      if(vinculoEmEdicao && String(vinculoEmEdicao.creditoId)===String(c.id)) saldo += vinculoEmEdicao.valorAbatido;
+      return { c, saldo };
+    }).filter(x=>x.saldo > 0.005);
+    selCredito.innerHTML = candidatos.length
+      ? candidatos.map(x=>`<option value="${x.c.id}">${esc(x.c.obra)} — saldo R$ ${fmtMoney(x.saldo)}</option>`).join('')
       : '<option value="">Nenhum crédito com saldo disponível</option>';
     if([...selCredito.options].some(o=>o.value===atual)) selCredito.value = atual;
   }
+}
+
+// Pedido de compra: só pode ser vinculado se pertencer à mesma "empresa" do
+// crédito — como o Sienge não traz um campo de empresa, usamos o código da
+// obra (primeiro token do nome da obra, ex.: "203" em "203 - Contrato 1 -
+// ES-162 - Lote 1 - Capixaba") como identificador. Retorna só os pedidos
+// da mesma empresa do crédito selecionado no formulário de vínculo.
+function getPedidosDisponiveisParaVinculo(){
+  const selCredito = document.getElementById('vinculo-fCredito');
+  const creditoSelecionado = creditos.find(c=>String(c.id)===String(selCredito ? selCredito.value : ''));
+  let pedidos = getPedidosUnicos();
+  if(creditoSelecionado){
+    const codigo = codigoObra(creditoSelecionado.obra);
+    pedidos = pedidos.filter(p=>codigoObra(p.obra)===codigo);
+  }
+  return pedidos;
+}
+
+// Rotina de pesquisa do pedido de compra: mostra uma lista clicável abaixo
+// do campo (funciona no celular, ao contrário do <datalist> nativo, que o
+// Chrome Android não exibe). Sem texto digitado, mostra os pedidos
+// disponíveis da obra devedora; digitando, filtra por número, obra,
+// fornecedor ou comprador.
+function renderPedidoSearchResults(){
+  const input = document.getElementById('vinculo-fPedido');
+  const box = document.getElementById('vinculo-fPedidoResults');
+  if(!input || !box) return;
+  const termo = input.value.trim().toUpperCase();
+  let pedidos = getPedidosDisponiveisParaVinculo();
+  if(termo){
+    pedidos = pedidos.filter(p=>
+      String(p.numPedido).toUpperCase().includes(termo) ||
+      (p.obra||'').toUpperCase().includes(termo) ||
+      (p.fornecedor||'').toUpperCase().includes(termo) ||
+      (p.comprador||'').toUpperCase().includes(termo)
+    );
+  }
+  pedidos = pedidos.slice(0, 30);
+  if(!pedidos.length){
+    box.innerHTML = `<div class="pedido-search-empty">${termo ? 'Nenhum pedido encontrado com esse termo.' : 'Nenhum pedido disponível para a empresa deste crédito.'}</div>`;
+  } else {
+    box.innerHTML = pedidos.map(p=>`<div class="pedido-search-item" data-pedido="${esc(p.numPedido)}" data-valor="${p.valorTotal||0}"><b>${esc(p.numPedido)}</b> — ${esc(p.obra)} — ${esc(p.fornecedor)}${p.valorTotal>0 ? ` — R$ ${fmtMoney(p.valorTotal)}` : ''}</div>`).join('');
+    box.querySelectorAll('[data-pedido]').forEach(item=>{
+      item.addEventListener('mousedown', (ev)=>{
+        ev.preventDefault();
+        input.value = item.getAttribute('data-pedido');
+        const valorSugerido = Number(item.getAttribute('data-valor'))||0;
+        if(valorSugerido > 0) document.getElementById('vinculo-fValor').value = valorSugerido.toFixed(2);
+        box.classList.remove('open');
+      });
+    });
+  }
+  box.classList.add('open');
+}
+
+// Formata as notas fiscais de um pedido como texto para exibir no
+// relatório/tabela de vínculos: "NÚMERO (R$ VALOR)", separadas por vírgula
+// quando o pedido tiver mais de uma nota emitida.
+function notasDoPedidoFormatadas(numPedido){
+  const pedido = getPedidosUnicos().find(p=>p.numPedido===numPedido);
+  if(!pedido || !pedido.notas || !pedido.notas.length) return '';
+  return pedido.notas.map(n=>`${n.numero} (R$ ${fmtMoney(n.valor)})`).join(', ');
 }
 
 function toggleCreditoDetail(id){
@@ -4969,8 +5263,25 @@ function toggleCreditoDetail(id){
   renderCreditos();
 }
 
-function renderCreditoKpis(obraFiltro){
-  const lista = obraFiltro ? creditos.filter(c=>c.obra===obraFiltro) : creditos;
+function getCreditosFiltrados(){
+  const fBeneficiariaEl = document.getElementById('fCreditoBeneficiaria');
+  const fEmpresaEl = document.getElementById('fCreditoEmpresa');
+  const fObraEl = document.getElementById('fCreditoObra');
+  const fSaldoEl = document.getElementById('fCreditoSaldo');
+  const fBeneficiaria = fBeneficiariaEl ? fBeneficiariaEl.value : '';
+  const fEmpresa = fEmpresaEl ? fEmpresaEl.value : '';
+  const fObra = fObraEl ? fObraEl.value : '';
+  const fSaldo = fSaldoEl ? fSaldoEl.value : '';
+  let lista = creditos.slice();
+  if(fBeneficiaria) lista = lista.filter(c=>c.empresaBeneficiaria===fBeneficiaria);
+  if(fEmpresa) lista = lista.filter(c=>c.empresaDevedora===fEmpresa);
+  if(fObra) lista = lista.filter(c=>c.obra===fObra);
+  if(fSaldo==='com-saldo') lista = lista.filter(c=>creditoSaldo(c) > 0.005);
+  else if(fSaldo==='zerado') lista = lista.filter(c=>creditoSaldo(c) <= 0.005);
+  return lista;
+}
+
+function renderCreditoKpis(lista){
   const totalLancado = lista.reduce((s,c)=>s+c.valorTotal,0);
   const totalAbatido = lista.reduce((s,c)=>s+creditoAbatido(c.id),0);
   const saldoDisponivel = totalLancado - totalAbatido;
@@ -4988,16 +5299,8 @@ function renderCreditos(){
   if(!document.getElementById('tab-creditos')) return;
   populateCreditoDatalists();
 
-  const fObraEl = document.getElementById('fCreditoObra');
-  const fSaldoEl = document.getElementById('fCreditoSaldo');
-  const fObra = fObraEl ? fObraEl.value : '';
-  const fSaldo = fSaldoEl ? fSaldoEl.value : '';
-  renderCreditoKpis(fObra);
-
-  let lista = creditos.slice();
-  if(fObra) lista = lista.filter(c=>c.obra===fObra);
-  if(fSaldo==='com-saldo') lista = lista.filter(c=>creditoSaldo(c) > 0.005);
-  else if(fSaldo==='zerado') lista = lista.filter(c=>creditoSaldo(c) <= 0.005);
+  const lista = getCreditosFiltrados();
+  renderCreditoKpis(lista);
 
   const badge = document.getElementById('creditoCountBadge');
   if(badge) badge.textContent = `${lista.length} crédito(s)`;
@@ -5005,7 +5308,7 @@ function renderCreditos(){
   const tbody = document.getElementById('creditoTableBody');
   if(!tbody) return;
   if(!lista.length){
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum crédito lançado${fObra||fSaldo?' com esse filtro':''}.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum crédito lançado com esse filtro.</td></tr>`;
     return;
   }
 
@@ -5016,27 +5319,30 @@ function renderCreditos(){
     const isOpen = creditoDetailOpen.has(c.id);
     const vinculos = vinculosDoCredito(c.id);
     html += `<tr>
-      <td><button class="credito-toggle" data-toggle="${c.id}">${isOpen?'▾':'▸'}</button></td>
+      <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}">${isOpen?'▾':'▸'}</button></td>
+      <td class="txt">${esc(c.empresaBeneficiaria)||'—'}</td>
+      <td class="txt">${esc(c.empresaDevedora)||'—'}</td>
       <td class="txt">${esc(c.obra)}</td>
       <td>R$ ${fmtMoney(c.valorTotal)}</td>
       <td>R$ ${fmtMoney(abatido)}</td>
       <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span></td>
       <td>${c.dataDisponibilidade?fmtBRDate(c.dataDisponibilidade):'—'}</td>
       <td class="txt">${esc(c.descricao)||'—'}</td>
-      <td><button class="danger admin-only" data-del-credito="${c.id}">Excluir</button></td>
+      <td class="no-print"><button class="ghost gestor-credito-only" data-edit-credito="${c.id}">Editar</button> <button class="danger gestor-credito-only" data-del-credito="${c.id}">Excluir</button></td>
     </tr>
-    <tr class="credito-detail-row ${isOpen?'open':''}"><td colspan="8">
+    <tr class="credito-detail-row ${isOpen?'open':''}"><td colspan="10">
       ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
-          <th>Pedido</th><th>Obra</th><th>Fornecedor</th><th>Valor abatido</th><th>Data</th><th>Observação</th><th></th>
+          <th>Pedido</th><th>Obra</th><th>Fornecedor</th><th>Nota Fiscal</th><th>Valor abatido</th><th>Data</th><th>Observação</th><th class="no-print"></th>
         </tr></thead><tbody>
         ${vinculos.map(v=>`<tr>
           <td>${esc(v.numPedido)}</td>
           <td class="txt">${esc(v.obraPedido)}</td>
           <td class="txt">${esc(v.fornecedor)}</td>
+          <td class="txt">${esc(notasDoPedidoFormatadas(v.numPedido))||'—'}</td>
           <td>R$ ${fmtMoney(v.valorAbatido)}</td>
           <td>${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</td>
           <td class="txt">${esc(v.observacao)||'—'}</td>
-          <td><button class="credito-toggle admin-only" data-del-vinculo="${v.id}" title="Remover vínculo">✕</button></td>
+          <td class="no-print"><button class="credito-toggle gestor-credito-only" data-edit-vinculo="${v.id}" title="Editar vínculo">✎</button><button class="credito-toggle gestor-credito-only" data-del-vinculo="${v.id}" title="Remover vínculo">✕</button></td>
         </tr>`).join('')}
         </tbody></table>`
         : `<div class="empty-mini">Nenhum pedido vinculado a este crédito ainda.</div>`}
@@ -5047,11 +5353,17 @@ function renderCreditos(){
   tbody.querySelectorAll('[data-toggle]').forEach(btn=>{
     btn.addEventListener('click', ()=> toggleCreditoDetail(btn.getAttribute('data-toggle')));
   });
+  tbody.querySelectorAll('[data-edit-credito]').forEach(btn=>{
+    btn.addEventListener('click', ()=> startEditCredito(btn.getAttribute('data-edit-credito')));
+  });
   tbody.querySelectorAll('[data-del-credito]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const ok = await deleteCredito(btn.getAttribute('data-del-credito'));
       if(ok){ await loadCreditos(); await loadVinculosCredito(); renderCreditos(); }
     });
+  });
+  tbody.querySelectorAll('[data-edit-vinculo]').forEach(btn=>{
+    btn.addEventListener('click', ()=> startEditVinculo(btn.getAttribute('data-edit-vinculo')));
   });
   tbody.querySelectorAll('[data-del-vinculo]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -5060,26 +5372,107 @@ function renderCreditos(){
     });
   });
 }
+// Este bloco roda dentro de uma IIFE — renderCreditos fica privada por
+// padrão. O carregamento da base do Sienge (outro bloco de script) chama
+// o renderAll() do painel principal quando os dados terminam de carregar
+// (de forma assíncrona), e é ele quem precisa re-popular a seleção de
+// Obra/lista de pedidos deste formulário. Por isso expomos a função aqui.
+window.renderCreditos = renderCreditos;
+// Chamada pelo bloco de autenticação sempre que o estado de login muda
+// (login, logout, ou carregamento inicial da sessão) — como a leitura de
+// creditos_obra/creditos_vinculos exige usuário logado, é preciso buscar
+// de novo a cada mudança de sessão, não só uma vez no carregamento da página.
+window.refreshCreditosAposLogin = async function(){
+  await loadCreditos();
+  await loadVinculosCredito();
+  renderCreditos();
+};
+
+function startEditCredito(id){
+  const c = creditos.find(cc=>String(cc.id)===String(id));
+  if(!c) return;
+  editingCreditoId = id;
+  setCreditoTab('lancar');
+  populateCreditoDatalists();
+  document.getElementById('credito-fBeneficiaria').value = c.empresaBeneficiaria;
+  document.getElementById('credito-fEmpresa').value = c.empresaDevedora;
+  document.getElementById('credito-fObra').value = c.obra;
+  document.getElementById('credito-fValor').value = c.valorTotal;
+  document.getElementById('credito-fData').value = c.dataDisponibilidade;
+  document.getElementById('credito-fDescricao').value = c.descricao;
+  document.getElementById('credito-formTitle').textContent = 'Editar crédito';
+  document.getElementById('credito-btnAdd').textContent = 'Salvar alterações';
+  document.getElementById('credito-btnCancelEdit').style.display = 'inline-block';
+  document.getElementById('credito-formMsg').textContent = '';
+}
+function cancelEditCredito(){
+  editingCreditoId = null;
+  document.getElementById('credito-fBeneficiaria').value = '';
+  document.getElementById('credito-fEmpresa').value = '';
+  document.getElementById('credito-fObra').value = '';
+  document.getElementById('credito-fValor').value = '';
+  document.getElementById('credito-fData').value = todayISO();
+  document.getElementById('credito-fDescricao').value = '';
+  document.getElementById('credito-formTitle').textContent = 'Lançar crédito';
+  document.getElementById('credito-btnAdd').textContent = 'Lançar crédito';
+  document.getElementById('credito-btnCancelEdit').style.display = 'none';
+  document.getElementById('credito-formMsg').textContent = '';
+}
 
 async function addCredito(){
   const msg = document.getElementById('credito-formMsg');
   msg.textContent = '';
+  const empresaBeneficiaria = document.getElementById('credito-fBeneficiaria').value.trim();
+  const empresaDevedora = document.getElementById('credito-fEmpresa').value.trim();
   const obra = document.getElementById('credito-fObra').value.trim();
   const valor = parseFloat(document.getElementById('credito-fValor').value);
   const data = document.getElementById('credito-fData').value;
   const descricao = document.getElementById('credito-fDescricao').value.trim();
-  if(!obra || !valor || valor<=0 || !data){
-    msg.textContent = 'Preencha empresa/obra, valor (maior que zero) e data de disponibilidade.';
+  if(!empresaBeneficiaria || !empresaDevedora || !obra || !valor || valor<=0 || !data){
+    msg.textContent = 'Informe a empresa beneficiária, a empresa devedora, selecione a obra vinculada ao devedor, o valor (maior que zero) e a data de disponibilidade.';
     return;
   }
-  const ok = await insertCredito({ obra, valorTotal: valor, dataDisponibilidade: data, descricao });
+  if(empresaBeneficiaria.toLowerCase() === empresaDevedora.toLowerCase()){
+    msg.textContent = 'A empresa beneficiária e a empresa devedora não podem ser a mesma.';
+    return;
+  }
+  const payload = { empresaBeneficiaria, empresaDevedora, obra, valorTotal: valor, dataDisponibilidade: data, descricao };
+  const ok = editingCreditoId ? await updateCredito(editingCreditoId, payload) : await insertCredito(payload);
   if(ok){
-    document.getElementById('credito-fObra').value = '';
-    document.getElementById('credito-fValor').value = '';
-    document.getElementById('credito-fDescricao').value = '';
+    cancelEditCredito();
     await loadCreditos();
     renderCreditos();
   }
+}
+
+function startEditVinculo(id){
+  const v = vinculosCredito.find(vv=>String(vv.id)===String(id));
+  if(!v) return;
+  editingVinculoId = id;
+  setCreditoTab('vincular');
+  document.getElementById('vinculo-fCredito').value = v.creditoId;
+  populateCreditoDatalists();
+  document.getElementById('vinculo-fCredito').value = v.creditoId;
+  document.getElementById('vinculo-fPedido').value = v.numPedido;
+  document.getElementById('vinculo-fValor').value = v.valorAbatido;
+  document.getElementById('vinculo-fData').value = v.dataVinculo;
+  document.getElementById('vinculo-fObs').value = v.observacao;
+  document.getElementById('vinculo-formTitle').textContent = 'Editar vínculo';
+  document.getElementById('vinculo-btnAdd').textContent = 'Salvar alterações';
+  document.getElementById('vinculo-btnCancelEdit').style.display = 'inline-block';
+  document.getElementById('vinculo-formMsg').textContent = '';
+}
+function cancelEditVinculo(){
+  editingVinculoId = null;
+  document.getElementById('vinculo-fPedido').value = '';
+  document.getElementById('vinculo-fValor').value = '';
+  document.getElementById('vinculo-fData').value = todayISO();
+  document.getElementById('vinculo-fObs').value = '';
+  document.getElementById('vinculo-formTitle').textContent = 'Vincular pedido de compra a um crédito';
+  document.getElementById('vinculo-btnAdd').textContent = 'Vincular';
+  document.getElementById('vinculo-btnCancelEdit').style.display = 'none';
+  document.getElementById('vinculo-formMsg').textContent = '';
+  populateCreditoDatalists();
 }
 
 async function addVinculoCredito(){
@@ -5091,34 +5484,190 @@ async function addVinculoCredito(){
   const data = document.getElementById('vinculo-fData').value;
   const obs = document.getElementById('vinculo-fObs').value.trim();
 
-  if(!creditoId){ msg.textContent = 'Selecione um crédito com saldo disponível.'; return; }
+  if(!creditoId){ msg.textContent = 'Selecione um crédito.'; return; }
   if(!numPedido){ msg.textContent = 'Informe o número do pedido de compra.'; return; }
   if(!valor || valor<=0){ msg.textContent = 'Informe o valor a abater (maior que zero).'; return; }
   if(!data){ msg.textContent = 'Informe a data do vínculo.'; return; }
 
   const credito = creditos.find(c=>String(c.id)===String(creditoId));
+  const pedido = getPedidosUnicos().find(p=>p.numPedido===numPedido);
+
+  if(!pedido){
+    msg.textContent = 'Este número de pedido não foi encontrado na base importada do Sienge. Selecione um pedido da lista sugerida.';
+    return;
+  }
+
   if(credito){
-    const saldo = creditoSaldo(credito);
-    if(valor > saldo + 0.005){
-      msg.textContent = `Valor maior que o saldo disponível (R$ ${fmtMoney(saldo)}).`;
+    const codigoCredito = codigoObra(credito.obra);
+    const codigoPedido = codigoObra(pedido.obra);
+    if(codigoCredito && codigoPedido && codigoCredito !== codigoPedido){
+      msg.textContent = `Este pedido é da obra "${pedido.obra}" — diferente da empresa do crédito selecionado ("${credito.obra}"). Só é possível vincular pedidos da mesma empresa devedora.`;
       return;
     }
   }
 
-  const pedido = getPedidosUnicos().find(p=>p.numPedido===numPedido);
+  if(credito){
+    let saldoDisponivel = creditoSaldo(credito);
+    if(editingVinculoId){
+      const atual = vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId));
+      if(atual && String(atual.creditoId)===String(credito.id)) saldoDisponivel += atual.valorAbatido;
+    }
+    if(valor > saldoDisponivel + 0.005){
+      msg.textContent = `Valor maior que o saldo disponível (R$ ${fmtMoney(saldoDisponivel)}).`;
+      return;
+    }
+  }
 
-  const ok = await insertVinculoCredito({
+  const payload = {
     creditoId, numPedido,
     obraPedido: pedido?pedido.obra:'', fornecedor: pedido?pedido.fornecedor:'', comprador: pedido?pedido.comprador:'',
     valorAbatido: valor, dataVinculo: data, observacao: obs
-  });
+  };
+  const ok = editingVinculoId ? await updateVinculoCredito(editingVinculoId, payload) : await insertVinculoCredito(payload);
   if(ok){
-    document.getElementById('vinculo-fPedido').value = '';
-    document.getElementById('vinculo-fValor').value = '';
-    document.getElementById('vinculo-fObs').value = '';
+    cancelEditVinculo();
     await loadVinculosCredito();
     renderCreditos();
   }
+}
+
+/* ---- Sub-abas do Controle de Crédito ---- */
+function setCreditoTab(tab){
+  document.querySelectorAll('.credito-tab-btn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-ctab')===tab));
+  document.querySelectorAll('.credito-tab-panel').forEach(p=>p.classList.toggle('active', p.getAttribute('data-ctab-panel')===tab));
+  if(tab==='config'){ loadAuditoria(auditoriaLimit).then(renderAuditoria); }
+}
+
+/* ---- Configurações: auditoria de ações ---- */
+async function loadPerfisMap(){
+  try{
+    const { data, error } = await window.SB.from('perfis').select('id,nome');
+    if(error) throw error;
+    perfisMap = {};
+    (data||[]).forEach(p=>{ perfisMap[p.id] = p.nome || p.id; });
+  }catch(e){
+    console.error('Falha ao carregar nomes de usuários para a auditoria:', e);
+  }
+}
+async function loadAuditoria(limit){
+  try{
+    const { data, error } = await window.SB.from('creditos_auditoria').select('*').order('criado_em', { ascending:false }).limit(limit||auditoriaLimit);
+    if(error) throw error;
+    auditoria = data||[];
+  }catch(e){
+    console.error('Falha ao carregar auditoria:', e);
+    auditoria = [];
+  }
+}
+function resumoAuditoria(a){
+  const novo = a.dados_novos || {};
+  const antigo = a.dados_antigos || {};
+  if(a.tabela === 'creditos_obra'){
+    if(a.operacao === 'INSERT') return `Lançou crédito de R$ ${fmtMoney(Number(novo.valor_total)||0)} — beneficiária: ${novo.empresa_beneficiaria||'—'}, devedora: ${novo.empresa_devedora||'—'} (${novo.obra||'—'})`;
+    if(a.operacao === 'DELETE') return `Excluiu crédito de R$ ${fmtMoney(Number(antigo.valor_total)||0)} — beneficiária: ${antigo.empresa_beneficiaria||'—'}, devedora: ${antigo.empresa_devedora||'—'} (${antigo.obra||'—'})`;
+    if(a.operacao === 'UPDATE'){
+      const mudou = [];
+      if(antigo.valor_total !== novo.valor_total) mudou.push(`valor de R$ ${fmtMoney(Number(antigo.valor_total)||0)} para R$ ${fmtMoney(Number(novo.valor_total)||0)}`);
+      if(antigo.empresa_beneficiaria !== novo.empresa_beneficiaria) mudou.push(`empresa beneficiária de "${antigo.empresa_beneficiaria}" para "${novo.empresa_beneficiaria}"`);
+      if(antigo.empresa_devedora !== novo.empresa_devedora) mudou.push(`empresa devedora de "${antigo.empresa_devedora}" para "${novo.empresa_devedora}"`);
+      if(antigo.obra !== novo.obra) mudou.push(`obra de "${antigo.obra}" para "${novo.obra}"`);
+      if(antigo.descricao !== novo.descricao) mudou.push('descrição');
+      if(antigo.data_disponibilidade !== novo.data_disponibilidade) mudou.push('data de disponibilidade');
+      return mudou.length ? `Alterou crédito de ${novo.obra||antigo.obra}: ${mudou.join('; ')}` : `Alterou crédito de ${novo.obra||antigo.obra}`;
+    }
+  } else if(a.tabela === 'creditos_vinculos'){
+    if(a.operacao === 'INSERT') return `Vinculou pedido ${novo.num_pedido||'—'} (R$ ${fmtMoney(Number(novo.valor_abatido)||0)})`;
+    if(a.operacao === 'DELETE') return `Removeu vínculo do pedido ${antigo.num_pedido||'—'} (R$ ${fmtMoney(Number(antigo.valor_abatido)||0)})`;
+    if(a.operacao === 'UPDATE'){
+      const mudou = [];
+      if(antigo.valor_abatido !== novo.valor_abatido) mudou.push(`valor abatido de R$ ${fmtMoney(Number(antigo.valor_abatido)||0)} para R$ ${fmtMoney(Number(novo.valor_abatido)||0)}`);
+      if(antigo.num_pedido !== novo.num_pedido) mudou.push(`pedido de ${antigo.num_pedido} para ${novo.num_pedido}`);
+      return mudou.length ? `Alterou vínculo do pedido ${novo.num_pedido||antigo.num_pedido}: ${mudou.join('; ')}` : `Alterou vínculo do pedido ${novo.num_pedido||antigo.num_pedido}`;
+    }
+  }
+  return `${a.operacao} em ${a.tabela}`;
+}
+function getAuditoriaFiltrada(){
+  const fTabela = document.getElementById('fAuditoriaTabela').value;
+  const fOp = document.getElementById('fAuditoriaOperacao').value;
+  const fSearch = (document.getElementById('fAuditoriaSearch').value||'').trim().toUpperCase();
+  let lista = auditoria.slice();
+  if(fTabela) lista = lista.filter(a=>a.tabela===fTabela);
+  if(fOp) lista = lista.filter(a=>a.operacao===fOp);
+  if(fSearch){
+    lista = lista.filter(a=>{
+      const nome = (perfisMap[a.usuario_id]||'').toUpperCase();
+      const resumo = resumoAuditoria(a).toUpperCase();
+      return nome.includes(fSearch) || resumo.includes(fSearch);
+    });
+  }
+  return lista;
+}
+async function renderAuditoria(){
+  if(!document.getElementById('tab-creditos')) return;
+  await loadPerfisMap();
+  const lista = getAuditoriaFiltrada();
+  const badge = document.getElementById('auditoriaCountBadge');
+  if(badge) badge.textContent = `${lista.length} registro(s)`;
+  const tbody = document.getElementById('auditoriaTableBody');
+  if(!tbody) return;
+  if(!lista.length){
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum registro encontrado.</td></tr>`;
+    return;
+  }
+  const acaoLabel = {INSERT:'Lançamento',UPDATE:'Alteração',DELETE:'Exclusão'};
+  tbody.innerHTML = lista.map(a=>`<tr>
+    <td>${new Date(a.criado_em).toLocaleString('pt-BR')}</td>
+    <td class="txt">${esc(perfisMap[a.usuario_id]||'—')}</td>
+    <td class="txt">${a.tabela==='creditos_obra'?'Créditos':'Vínculos'}</td>
+    <td class="txt">${esc(acaoLabel[a.operacao]||a.operacao)}</td>
+    <td class="txt">${esc(resumoAuditoria(a))}</td>
+  </tr>`).join('');
+}
+
+/* ---- Exportação para Excel (usa a biblioteca SheetJS já carregada) ---- */
+function exportCreditosExcel(){
+  const lista = getCreditosFiltrados();
+  const wsCreditos = XLSX.utils.json_to_sheet(lista.map(c=>({
+    'Empresa beneficiária': c.empresaBeneficiaria,
+    'Empresa devedora': c.empresaDevedora,
+    'Obra do devedor': c.obra,
+    'Valor total': c.valorTotal,
+    'Abatido': creditoAbatido(c.id),
+    'Saldo': creditoSaldo(c),
+    'Disponível a partir de': c.dataDisponibilidade ? fmtBRDate(c.dataDisponibilidade) : '',
+    'Descrição': c.descricao
+  })));
+  const vinculosFiltrados = vinculosCredito.filter(v=>lista.some(c=>String(c.id)===String(v.creditoId)));
+  const wsVinculos = XLSX.utils.json_to_sheet(vinculosFiltrados.map(v=>({
+    'Empresa/Obra do crédito': (creditos.find(c=>String(c.id)===String(v.creditoId))||{}).obra || v.obraPedido,
+    'Pedido': v.numPedido,
+    'Obra do pedido': v.obraPedido,
+    'Fornecedor': v.fornecedor,
+    'Comprador': v.comprador,
+    'Nota(s) fiscal(is)': notasDoPedidoFormatadas(v.numPedido),
+    'Valor abatido': v.valorAbatido,
+    'Data': v.dataVinculo ? fmtBRDate(v.dataVinculo) : '',
+    'Observação': v.observacao
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsCreditos, 'Créditos');
+  XLSX.utils.book_append_sheet(wb, wsVinculos, 'Vínculos');
+  XLSX.writeFile(wb, `controle_credito_${todayISO()}.xlsx`);
+}
+function exportAuditoriaExcel(){
+  const lista = getAuditoriaFiltrada();
+  const acaoLabel = {INSERT:'Lançamento',UPDATE:'Alteração',DELETE:'Exclusão'};
+  const ws = XLSX.utils.json_to_sheet(lista.map(a=>({
+    'Quando': new Date(a.criado_em).toLocaleString('pt-BR'),
+    'Usuário': perfisMap[a.usuario_id] || a.usuario_id || '—',
+    'Tabela': a.tabela==='creditos_obra' ? 'Créditos' : 'Vínculos',
+    'Ação': acaoLabel[a.operacao] || a.operacao,
+    'Detalhe': resumoAuditoria(a)
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Auditoria');
+  XLSX.writeFile(wb, `auditoria_credito_${todayISO()}.xlsx`);
 }
 
 async function init(){
@@ -5126,6 +5675,16 @@ async function init(){
   document.getElementById('cot-fData').value = todayISO();
   document.getElementById('credito-fData').value = todayISO();
   document.getElementById('vinculo-fData').value = todayISO();
+
+  // Espera a sessão de login terminar de carregar antes de buscar dados que
+  // exigem usuário autenticado. As demais tabelas deste painel (cotações,
+  // insumos críticos etc.) têm leitura aberta a qualquer visitante, então
+  // nunca dependeram disso — mas "creditos_obra"/"creditos_vinculos" só
+  // liberam leitura para quem está logado, e sem essa espera a consulta
+  // podia disparar antes da sessão carregar e voltar vazia silenciosamente
+  // (nem erro aparece: a política de segurança simplesmente não retorna
+  // nenhuma linha para quem "ainda não está logado" naquele instante).
+  try{ await window.SB.auth.getSession(); }catch(e){ /* segue mesmo assim */ }
 
   await loadData();
   await loadTipos();
@@ -5148,10 +5707,36 @@ async function init(){
     btn.addEventListener('click', ()=> goToTab(btn.getAttribute('data-tab')));
   });
 
+  document.getElementById('vinculo-fCredito').addEventListener('change', ()=>{ populateCreditoDatalists(); renderPedidoSearchResults(); });
+  document.getElementById('credito-fEmpresa').addEventListener('input', populateCreditoDatalists);
+  document.getElementById('vinculo-fPedido').addEventListener('input', renderPedidoSearchResults);
+  document.getElementById('vinculo-fPedido').addEventListener('focus', renderPedidoSearchResults);
+  document.addEventListener('click', (ev)=>{
+    const box = document.getElementById('vinculo-fPedidoResults');
+    if(box && !ev.target.closest('.pedido-search-wrap')) box.classList.remove('open');
+  });
   document.getElementById('credito-btnAdd').addEventListener('click', addCredito);
+  document.getElementById('credito-btnCancelEdit').addEventListener('click', cancelEditCredito);
   document.getElementById('vinculo-btnAdd').addEventListener('click', addVinculoCredito);
+  document.getElementById('vinculo-btnCancelEdit').addEventListener('click', cancelEditVinculo);
+  document.getElementById('fCreditoBeneficiaria').addEventListener('change', renderCreditos);
+  document.getElementById('fCreditoEmpresa').addEventListener('change', renderCreditos);
   document.getElementById('fCreditoObra').addEventListener('change', renderCreditos);
   document.getElementById('fCreditoSaldo').addEventListener('change', renderCreditos);
+  document.getElementById('credito-btnExportExcel').addEventListener('click', exportCreditosExcel);
+  document.getElementById('credito-btnPrint').addEventListener('click', ()=>{ setCreditoTab('lista'); window.print(); });
+  document.querySelectorAll('.credito-tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> setCreditoTab(btn.getAttribute('data-ctab')));
+  });
+  document.getElementById('fAuditoriaTabela').addEventListener('change', renderAuditoria);
+  document.getElementById('fAuditoriaOperacao').addEventListener('change', renderAuditoria);
+  document.getElementById('fAuditoriaSearch').addEventListener('input', renderAuditoria);
+  document.getElementById('auditoria-btnExportExcel').addEventListener('click', exportAuditoriaExcel);
+  document.getElementById('auditoria-btnLoadMore').addEventListener('click', async ()=>{
+    auditoriaLimit += 100;
+    await loadAuditoria(auditoriaLimit);
+    renderAuditoria();
+  });
 
   document.getElementById('cot-btnHoje').addEventListener('click', ()=>{
     document.getElementById('cot-dashDate').value = todayISO();
@@ -5216,6 +5801,7 @@ init();
       authLoggedOut.style.display = 'flex';
       authLoggedIn.style.display = 'none';
     }
+    if(typeof window.refreshCreditosAposLogin === 'function') window.refreshCreditosAposLogin();
   }
 
   document.getElementById('btnLogin').addEventListener('click', async ()=>{
