@@ -223,6 +223,13 @@ body.is-admin .section.gestor-credito-only, body.is-supervisor .section.gestor-c
 .logged-non-gestor-only{ display:block; }
 body.is-admin .logged-non-gestor-only, body.is-supervisor .logged-non-gestor-only{ display:none !important; }
 body:not(.is-logged) .logged-non-gestor-only{ display:none !important; }
+/* Cotação de Insumos Críticos: lançar preço é liberado para admin,
+   supervisor ou operador — um visitante logado (sem nenhum desses papéis)
+   só tem leitura, igual a um visitante anônimo. */
+.pode-lancar-cotacao-only{ display:none !important; }
+body.is-admin .pode-lancar-cotacao-only, body.is-supervisor .pode-lancar-cotacao-only, body.is-operador .pode-lancar-cotacao-only{ display:block !important; }
+.logged-non-lancador-only{ display:none; }
+body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador) .logged-non-lancador-only{ display:block !important; }
 .file-drop{
   position:relative;
   display:flex;
@@ -1265,7 +1272,10 @@ footer.appfoot{
     <div class="form-card anon-only">
       <p class="chart-sub">Faça login (canto superior direito) para lançar um preço. A leitura continua aberta para qualquer visitante.</p>
     </div>
-    <div class="form-card logged-only">
+    <div class="form-card logged-non-lancador-only">
+      <p class="chart-sub">Você está logado, mas seu perfil não tem permissão para lançar preços. Fale com um administrador se precisar dessa permissão.</p>
+    </div>
+    <div class="form-card pode-lancar-cotacao-only">
       <div class="form-grid">
         <div class="form-field"><label>Data</label><input type="date" id="cot-fData"></div>
         <div class="form-field"><label>Fornecedor</label><input type="text" id="cot-fFornecedor" placeholder="Ex.: Agro Silva Ltda" list="cot-dlFornecedor"></div>
@@ -1739,12 +1749,12 @@ footer.appfoot{
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Nome</th><th>Administrador</th><th>Supervisor</th><th></th></tr>
+            <tr><th>Nome</th><th>Administrador</th><th>Supervisor</th><th>Operador</th><th></th></tr>
           </thead>
           <tbody id="usuariosTableBody"></tbody>
         </table>
       </div>
-      <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios; Supervisor pode lançar, editar e excluir créditos e vínculos, mas não gerencia usuários nem importa relatórios. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
+      <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios. Supervisor pode lançar, editar e excluir créditos e vínculos. Operador pode lançar preços em Cotação de Insumos Críticos. Um usuário logado sem nenhum desses três papéis é um "visitante": só enxerga Suprimentos, Entrega de Insumos Críticos e Cotação (leitura), sem lançar nada e sem ver a aba de Controle de Crédito — é o papel padrão de quem cria a própria conta pelo site. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
     </div>
   </section>
 
@@ -5951,26 +5961,30 @@ init();
       authLoggedIn.style.display = 'block';
       currentUserId = session.user.id;
       let isSupervisor = false;
+      let isOperador = false;
       let nome = session.user.email;
       try{
-        const { data: perfil } = await window.SB.from('perfis').select('nome,is_admin,is_supervisor').eq('id', session.user.id).single();
+        const { data: perfil } = await window.SB.from('perfis').select('nome,is_admin,is_supervisor,is_operador').eq('id', session.user.id).single();
         if(perfil){
           isAdmin = !!perfil.is_admin;
           isSupervisor = !!perfil.is_supervisor;
+          isOperador = !!perfil.is_operador;
           if(perfil.nome) nome = perfil.nome;
         } else {
-          await window.SB.from('perfis').insert({ id: session.user.id, nome: session.user.email, is_admin: false, is_supervisor: false });
+          await window.SB.from('perfis').insert({ id: session.user.id, nome: session.user.email, is_admin: false, is_supervisor: false, is_operador: false });
         }
-      }catch(e){ /* tabela perfis pode não ter linha ainda; segue sem admin/supervisor */ }
+      }catch(e){ /* tabela perfis pode não ter linha ainda; segue sem papel */ }
       document.body.classList.toggle('is-admin', isAdmin);
       document.body.classList.toggle('is-supervisor', isSupervisor);
-      const papel = isAdmin ? ' (admin)' : (isSupervisor ? ' (supervisor)' : '');
+      document.body.classList.toggle('is-operador', isOperador);
+      const papel = isAdmin ? ' (admin)' : (isSupervisor ? ' (supervisor)' : (isOperador ? ' (operador)' : ' (visitante)'));
       authWhoAmI.textContent = `${nome}${papel}`;
       authToggleBtn.textContent = `👤 ${nome}${papel}`;
     } else {
       document.body.classList.remove('is-logged');
       document.body.classList.remove('is-admin');
       document.body.classList.remove('is-supervisor');
+      document.body.classList.remove('is-operador');
       authLoggedOut.style.display = 'block';
       authLoggedIn.style.display = 'none';
       authToggleBtn.textContent = '👤 Entrar';
@@ -6031,7 +6045,7 @@ init();
       return;
     }
     if(data && data.user){
-      try{ await window.SB.from('perfis').insert({ id: data.user.id, nome, is_admin: false, is_supervisor: false }); }catch(e){ /* perfil pode já existir ou sessão ainda não ativa */ }
+      try{ await window.SB.from('perfis').insert({ id: data.user.id, nome, is_admin: false, is_supervisor: false, is_operador: false }); }catch(e){ /* perfil pode já existir ou sessão ainda não ativa */ }
     }
     cadNome.value = ''; cadEmail.value = ''; cadSenha.value = ''; cadSenhaConfirma.value = '';
     if(data && data.session){
@@ -6053,7 +6067,7 @@ init();
   // trancar fora sem querer.
   async function loadUsuarios(){
     try{
-      const { data, error } = await window.SB.from('perfis').select('id,nome,is_admin,is_supervisor').order('nome');
+      const { data, error } = await window.SB.from('perfis').select('id,nome,is_admin,is_supervisor,is_operador').order('nome');
       if(error) throw error;
       renderUsuarios(data||[]);
     }catch(e){
@@ -6067,7 +6081,7 @@ init();
     if(!tbody) return;
     if(badge) badge.textContent = `${lista.length} usuário(s)`;
     if(!lista.length){
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum usuário encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum usuário encontrado.</td></tr>`;
       return;
     }
     tbody.innerHTML = lista.map(u=>{
@@ -6076,6 +6090,7 @@ init();
         <td class="txt"><input type="text" class="usuario-nome" value="${esc(u.nome||'')}" style="width:100%;"></td>
         <td><input type="checkbox" class="usuario-admin" ${u.is_admin?'checked':''} ${ehVoceMesmo?'disabled title="Você não pode remover seu próprio acesso de administrador."':''}></td>
         <td><input type="checkbox" class="usuario-supervisor" ${u.is_supervisor?'checked':''}></td>
+        <td><input type="checkbox" class="usuario-operador" ${u.is_operador?'checked':''}></td>
         <td><button class="primary" data-salvar-usuario="${u.id}">Salvar</button> <span class="usuario-msg" style="font-size:11px;color:var(--bad);margin-left:6px;"></span></td>
       </tr>`;
     }).join('');
@@ -6087,11 +6102,12 @@ init();
         const nome = row.querySelector('.usuario-nome').value.trim();
         const isAdminChk = row.querySelector('.usuario-admin').checked;
         const isSupervisorChk = row.querySelector('.usuario-supervisor').checked;
+        const isOperadorChk = row.querySelector('.usuario-operador').checked;
         const msgEl = row.querySelector('.usuario-msg');
         msgEl.textContent = '';
         if(!nome){ msgEl.textContent = 'Informe um nome.'; return; }
         try{
-          const { error } = await window.SB.from('perfis').update({ nome, is_admin: isAdminChk, is_supervisor: isSupervisorChk }).eq('id', id);
+          const { error } = await window.SB.from('perfis').update({ nome, is_admin: isAdminChk, is_supervisor: isSupervisorChk, is_operador: isOperadorChk }).eq('id', id);
           if(error) throw error;
           msgEl.style.color = 'var(--good,#0ca30c)';
           msgEl.textContent = 'Salvo!';
