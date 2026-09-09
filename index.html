@@ -717,6 +717,38 @@ table.data th .sort-arrow{
   opacity:.6;
 }
 table.data th.sortable.active .sort-arrow{opacity:1;}
+.col-filter-btn{
+  display:inline-block;margin-left:6px;font-size:10px;opacity:.45;cursor:pointer;
+  padding:2px 3px;border-radius:3px;
+}
+.col-filter-btn:hover{opacity:.9;background:rgba(255,255,255,0.08);}
+.col-filter-btn.active{opacity:1;color:var(--yellow);}
+.col-filter-dropdown{
+  display:none;position:fixed;z-index:500;width:260px;
+  background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;
+  padding:12px;box-shadow:0 14px 32px rgba(0,0,0,0.5);
+}
+.col-filter-dropdown.open{display:block;}
+.col-filter-dropdown input[type=text]{
+  width:100%;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
+  border-radius:4px;padding:7px 9px;font-size:12.5px;font-family:var(--font-body);box-sizing:border-box;margin-bottom:8px;
+}
+.col-filter-actions{display:flex;gap:8px;margin-bottom:8px;}
+.col-filter-actions button{
+  flex:1;background:transparent;border:1px solid var(--line);color:var(--text-dim);
+  border-radius:4px;padding:5px 6px;font-size:11px;cursor:pointer;font-family:var(--font-body);
+}
+.col-filter-actions button:hover{color:var(--text);border-color:var(--yellow-dim);}
+.col-filter-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 0;margin-bottom:10px;}
+.col-filter-item{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12.5px;color:var(--text);cursor:pointer;}
+.col-filter-item input{margin:0;}
+.col-filter-footer{display:flex;gap:8px;}
+.col-filter-footer button{
+  flex:1;border-radius:4px;padding:7px 8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font-body);
+}
+.col-filter-footer button.primary{background:var(--yellow);color:#1A1E24;border:1px solid var(--yellow);}
+.col-filter-footer button.primary:hover{background:#ffd75c;}
+.col-filter-footer button.ghost{background:transparent;color:var(--text-dim);border:1px solid var(--line);}
 table.data td{
   padding:10px 12px;
   border-bottom:1px solid rgba(255,255,255,.04);
@@ -940,6 +972,18 @@ footer.appfoot{
 </style>
 </head>
 <body>
+<div id="colFilterDropdown" class="col-filter-dropdown">
+  <input type="text" id="colFilterSearch" placeholder="Buscar valor...">
+  <div class="col-filter-actions">
+    <button type="button" id="colFilterSelAll">Selecionar todos</button>
+    <button type="button" id="colFilterSelNone">Limpar</button>
+  </div>
+  <div class="col-filter-list" id="colFilterList"></div>
+  <div class="col-filter-footer">
+    <button type="button" class="primary" id="colFilterApply">Aplicar</button>
+    <button type="button" class="ghost" id="colFilterCancel">Cancelar</button>
+  </div>
+</div>
 <div class="app">
 
   <header class="topbar">
@@ -1099,17 +1143,17 @@ footer.appfoot{
       <table class="data" id="tableSolic">
         <thead>
           <tr>
-            <th class="sortable" data-key="numero">Solicitação<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="obra">Obra<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="comprador">Comprador distribuído<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="insumo">Insumo<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="qtd">Qtd.<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="dataSolic">Data solicitação<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="dataChegada">Data p/ chegada à obra<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="situacao">Situação<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="prazo">Prazo<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="material">Material<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="pedido">Pedido de compra<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="numero">Solicitação<span class="sort-arrow"></span><span class="col-filter-btn" data-key="numero" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="obra">Obra<span class="sort-arrow"></span><span class="col-filter-btn" data-key="obra" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="comprador">Comprador distribuído<span class="sort-arrow"></span><span class="col-filter-btn" data-key="comprador" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="insumo">Insumo<span class="sort-arrow"></span><span class="col-filter-btn" data-key="insumo" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="qtd">Qtd.<span class="sort-arrow"></span><span class="col-filter-btn" data-key="qtd" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="dataSolic">Data solicitação<span class="sort-arrow"></span><span class="col-filter-btn" data-key="dataSolic" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="dataChegada">Data p/ chegada à obra<span class="sort-arrow"></span><span class="col-filter-btn" data-key="dataChegada" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="situacao">Situação<span class="sort-arrow"></span><span class="col-filter-btn" data-key="situacao" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="prazo">Prazo<span class="sort-arrow"></span><span class="col-filter-btn" data-key="prazo" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="material">Material<span class="sort-arrow"></span><span class="col-filter-btn" data-key="material" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="pedido">Pedido de compra<span class="sort-arrow"></span><span class="col-filter-btn" data-key="pedido" title="Filtrar">⏷</span></th>
           </tr>
         </thead>
         <tbody id="tbodySolic"></tbody>
@@ -1179,19 +1223,19 @@ footer.appfoot{
       <table class="data" id="tablePed">
         <thead>
           <tr>
-            <th class="sortable" data-key="centro">Centro de custo<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="comprador">Comprador<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="pedido">Pedido<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="insumo">Insumo<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="material">Material<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="fornecedor">Fornecedor<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="qtd">Qtd. pedida<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="entregue">Entregue<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="saldo">Saldo<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="previsao">Previsão entrega<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="situacao">Situação pedido<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="prazo">Prazo<span class="sort-arrow"></span></th>
-            <th class="sortable" data-key="atendimento">Atendimento<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="centro">Centro de custo<span class="sort-arrow"></span><span class="col-filter-btn" data-key="centro" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="comprador">Comprador<span class="sort-arrow"></span><span class="col-filter-btn" data-key="comprador" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="pedido">Pedido<span class="sort-arrow"></span><span class="col-filter-btn" data-key="pedido" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="insumo">Insumo<span class="sort-arrow"></span><span class="col-filter-btn" data-key="insumo" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="material">Material<span class="sort-arrow"></span><span class="col-filter-btn" data-key="material" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="fornecedor">Fornecedor<span class="sort-arrow"></span><span class="col-filter-btn" data-key="fornecedor" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="qtd">Qtd. pedida<span class="sort-arrow"></span><span class="col-filter-btn" data-key="qtd" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="entregue">Entregue<span class="sort-arrow"></span><span class="col-filter-btn" data-key="entregue" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="saldo">Saldo<span class="sort-arrow"></span><span class="col-filter-btn" data-key="saldo" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="previsao">Previsão entrega<span class="sort-arrow"></span><span class="col-filter-btn" data-key="previsao" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="situacao">Situação pedido<span class="sort-arrow"></span><span class="col-filter-btn" data-key="situacao" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="prazo">Prazo<span class="sort-arrow"></span><span class="col-filter-btn" data-key="prazo" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="atendimento">Atendimento<span class="sort-arrow"></span><span class="col-filter-btn" data-key="atendimento" title="Filtrar">⏷</span></th>
           </tr>
         </thead>
         <tbody id="tbodyPed"></tbody>
@@ -2980,6 +3024,12 @@ function applyPedidoAtendidoOverride(rows){
    6. FILTER OPTIONS
    ============================================================ */
 function uniqueSorted(arr){ return [...new Set(arr)].filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR')); }
+// Como uniqueSorted acima descarta valores vazios (usado nos <select> de
+// filtro, onde isso é o certo), o filtro por coluna estilo Excel precisa de
+// uma variante que preserve string vazia como uma opção própria — senão
+// linhas com aquela coluna em branco (ex.: situação, fornecedor) ficariam
+// impossíveis de filtrar corretamente.
+function uniqueSortedAll(arr){ return [...new Set(arr)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')); }
 
 function populateFilterOptions(){
   const compradoresDistrib = uniqueSorted(state.rows.map(r=>r.compradorDistribuidoLabel));
@@ -3336,6 +3386,65 @@ function setAllGroups(tbodyId, collapsed){
     }
   });
 }
+/* ============================================================
+   8-B. FILTRO POR CABEÇALHO (estilo Excel) — Solicitações e Pedidos
+   Cada coluna ordenável (data-key) ganha um ícone de filtro que abre uma
+   lista de valores únicos com checkbox. O valor considerado é o mesmo que
+   aparece na linha do item (child-row), não o valor do grupo — assim o
+   filtro por coluna se soma aos demais filtros já existentes acima da
+   tabela, todos operando ao nível da linha antes do agrupamento.
+   ============================================================ */
+const colFiltros = { solic:{}, ped:{} };
+let ultimaBaseSolic = [];
+let ultimaBasePed = [];
+
+function solicColValue(r, key){
+  switch(key){
+    case 'numero': return String(r.numSolicitacao||'(sem número)');
+    case 'obra': return r.obraLabel||'';
+    case 'comprador': return r.compradorDistribuidoLabel||'';
+    case 'insumo': return r.descricaoInsumo||'';
+    case 'qtd': return `${r.qtdSolicitada||''} ${r.unidadeMovimento||''}`.trim();
+    case 'dataSolic': return r.dSolicitacao ? fmtDate(r.dSolicitacao) : '—';
+    case 'dataChegada': return r.dChegada ? fmtDate(r.dChegada) : '—';
+    case 'situacao': return r.situacaoSolicitacao||'';
+    case 'prazo': return prazoLabel(r.solicPrazoStatus, r.dChegada);
+    case 'material': return r.materialCritico || 'Não crítico';
+    case 'pedido': return r.temPedido ? 'Com pedido' : 'Sem pedido';
+    default: return '';
+  }
+}
+function pedColValue(r, key){
+  switch(key){
+    case 'centro': return r.obraLabel||'';
+    case 'comprador': return r.compradorLabel||'';
+    case 'pedido': return String(r.numPedido||'(sem número)');
+    case 'insumo': return r.descricaoInsumo||'';
+    case 'material': return r.materialCritico || 'Não crítico';
+    case 'fornecedor': return r.fornecedor||'';
+    case 'qtd': return `${r.qtdSolicitada||''} ${r.unidadeMovimento||''}`.trim();
+    case 'entregue': return String(r.qtdEntregueNum||0);
+    case 'saldo': return String(r.saldoNum||0);
+    case 'previsao': return r.dPrevisao ? fmtDate(r.dPrevisao) : '—';
+    case 'situacao': return r.situacaoPedido||'';
+    case 'prazo': return r.statusEntregaPed==='entregue' ? 'Entregue' : prazoLabel(r.pedidoPrazoStatus, r.dPrevisao);
+    case 'atendimento': return r.pedidoParcial ? 'Atendimento parcial' : 'Completo';
+    default: return '';
+  }
+}
+function aplicarColFiltros(rows, filtros, valueFn){
+  const chaves = Object.keys(filtros);
+  if(!chaves.length) return rows;
+  return rows.filter(r => chaves.every(k => filtros[k].has(valueFn(r,k))));
+}
+function updateColFilterIcons(tableId, filtros){
+  document.querySelectorAll('#'+tableId+' thead th.sortable').forEach(th=>{
+    const key = th.getAttribute('data-key');
+    const icon = th.querySelector('.col-filter-btn');
+    if(icon) icon.classList.toggle('active', !!filtros[key]);
+  });
+}
+
 function renderCompradores(){
   const fComprador = document.getElementById('fSolicComprador').value;
   const fCentro = document.getElementById('fSolicCentro').value;
@@ -3345,6 +3454,7 @@ function renderCompradores(){
 
   let rows = state.rows.filter(r=>r.solicPendente);
   document.getElementById('countSolic').textContent = rows.length;
+  ultimaBaseSolic = rows.slice();
 
   // pedidos já gerados por nº de solicitação (considerando TODAS as linhas, não só as pendentes),
   // usado para avisar quando uma solicitação parcialmente atendida já tem pedido em outras linhas
@@ -3399,6 +3509,7 @@ function renderCompradores(){
     (r.obraLabel||'').toUpperCase().includes(fSearch)
   );
 
+  rows = aplicarColFiltros(rows, colFiltros.solic, solicColValue);
   lastSolicRows = rows.slice();
 
   const tbody = document.getElementById('tbodySolic');
@@ -3419,6 +3530,7 @@ function renderCompradores(){
   }));
   sortGroupArr(groupArr, solicSort, solicSortValue);
   updateSortHeaders('tableSolic', solicSort);
+  updateColFilterIcons('tableSolic', colFiltros.solic);
 
   let html = '';
   groupArr.forEach(g=>{
@@ -3469,6 +3581,7 @@ function renderCentros(){
   // O filtro "Status de entrega" abaixo permite restringir a um dos dois.
   let rows = state.rows.filter(r=>r.statusEntregaPed);
   document.getElementById('countPed').textContent = rows.length;
+  ultimaBasePed = rows.slice();
 
   // Os cartões de obra refletem os demais filtros ativos (comprador, material,
   // prazo, status de entrega, busca) — só não aplicam o próprio filtro de
@@ -3534,6 +3647,7 @@ function renderCentros(){
     (r.detalhe||'').toUpperCase().includes(fSearch)
   );
 
+  rows = aplicarColFiltros(rows, colFiltros.ped, pedColValue);
   lastPedRows = rows.slice();
 
   const tbody = document.getElementById('tbodyPed');
@@ -3561,6 +3675,7 @@ function renderCentros(){
   });
   sortGroupArr(groupArr, pedSort, pedSortValue);
   updateSortHeaders('tablePed', pedSort);
+  updateColFilterIcons('tablePed', colFiltros.ped);
 
   let html = '';
   groupArr.forEach(g=>{
@@ -4078,6 +4193,102 @@ wireLampFilter('lampFilterSolic','fSolicPrazo',renderCompradores);
 wireLampFilter('lampFilterPed','fPedPrazo',renderCentros);
 wireSortableHeaders('tableSolic', solicSort, renderCompradores);
 wireSortableHeaders('tablePed', pedSort, renderCentros);
+
+/* ---- Dropdown de filtro por coluna (estilo Excel), compartilhado entre
+   as tabelas de Solicitações e Pedidos ---- */
+let colFilterCtx = null; // { tabela: 'solic'|'ped', key, valueFn, baseRows, renderFn }
+
+function abrirColFilterDropdown(iconEl, tabela, key, valueFn, baseRows, renderFn){
+  const dropdown = document.getElementById('colFilterDropdown');
+  const valoresUnicos = uniqueSortedAll(baseRows.map(r=>valueFn(r,key)));
+  const filtroAtual = colFiltros[tabela][key]; // Set ou undefined (undefined = tudo marcado)
+  colFilterCtx = { tabela, key, valueFn, baseRows, renderFn };
+
+  renderColFilterList(valoresUnicos, filtroAtual);
+  document.getElementById('colFilterSearch').value = '';
+
+  const rect = iconEl.getBoundingClientRect();
+  dropdown.classList.add('open');
+  const dropRect = dropdown.getBoundingClientRect();
+  let left = rect.left;
+  if(left + dropRect.width > window.innerWidth - 8) left = window.innerWidth - dropRect.width - 8;
+  dropdown.style.top = (rect.bottom + 4) + 'px';
+  dropdown.style.left = Math.max(8,left) + 'px';
+}
+
+function renderColFilterList(valores, filtroAtual){
+  const listEl = document.getElementById('colFilterList');
+  const termo = document.getElementById('colFilterSearch').value.trim().toUpperCase();
+  const visiveis = termo ? valores.filter(v=>String(v).toUpperCase().includes(termo)) : valores;
+  if(!visiveis.length){
+    listEl.innerHTML = `<div style="font-size:11.5px;color:var(--text-faint);padding:6px 2px;">Nenhum valor encontrado.</div>`;
+    return;
+  }
+  listEl.innerHTML = visiveis.map(v=>{
+    const marcado = !filtroAtual || filtroAtual.has(v);
+    return `<label class="col-filter-item"><input type="checkbox" value="${esc(v)}" ${marcado?'checked':''}> ${esc(v)||'(vazio)'}</label>`;
+  }).join('');
+}
+
+function fecharColFilterDropdown(){
+  document.getElementById('colFilterDropdown').classList.remove('open');
+  colFilterCtx = null;
+}
+
+document.querySelectorAll('.col-filter-btn').forEach(btn=>{
+  btn.addEventListener('click', (ev)=>{
+    ev.stopPropagation();
+    const key = btn.getAttribute('data-key');
+    const tableEl = btn.closest('table');
+    if(tableEl.id === 'tableSolic'){
+      abrirColFilterDropdown(btn, 'solic', key, solicColValue, ultimaBaseSolic, renderCompradores);
+    } else if(tableEl.id === 'tablePed'){
+      abrirColFilterDropdown(btn, 'ped', key, pedColValue, ultimaBasePed, renderCentros);
+    }
+  });
+});
+
+document.getElementById('colFilterSearch').addEventListener('input', ()=>{
+  if(!colFilterCtx) return;
+  const valoresUnicos = uniqueSortedAll(colFilterCtx.baseRows.map(r=>colFilterCtx.valueFn(r,colFilterCtx.key)));
+  renderColFilterList(valoresUnicos, colFiltros[colFilterCtx.tabela][colFilterCtx.key]);
+});
+document.getElementById('colFilterSelAll').addEventListener('click', ()=>{
+  document.querySelectorAll('#colFilterList input[type=checkbox]').forEach(cb=>{ cb.checked = true; });
+});
+document.getElementById('colFilterSelNone').addEventListener('click', ()=>{
+  document.querySelectorAll('#colFilterList input[type=checkbox]').forEach(cb=>{ cb.checked = false; });
+});
+document.getElementById('colFilterCancel').addEventListener('click', fecharColFilterDropdown);
+document.getElementById('colFilterApply').addEventListener('click', ()=>{
+  if(!colFilterCtx) return;
+  const { tabela, key, valueFn, baseRows, renderFn } = colFilterCtx;
+  const termo = document.getElementById('colFilterSearch').value.trim();
+  const todosValores = uniqueSortedAll(baseRows.map(r=>valueFn(r,key)));
+  const marcadosVisiveis = new Set(
+    Array.from(document.querySelectorAll('#colFilterList input[type=checkbox]:checked')).map(cb=>cb.value)
+  );
+  // Se houve busca, os valores fora da busca mantêm o estado anterior
+  // (marcados, a menos que já estivessem filtrados fora antes).
+  const filtroAnterior = colFiltros[tabela][key];
+  const marcadosFinal = new Set(todosValores.filter(v=>{
+    const apareceuNaLista = !termo || String(v).toUpperCase().includes(termo.toUpperCase());
+    if(apareceuNaLista) return marcadosVisiveis.has(v);
+    return !filtroAnterior || filtroAnterior.has(v);
+  }));
+  if(marcadosFinal.size >= todosValores.length){
+    delete colFiltros[tabela][key];
+  } else {
+    colFiltros[tabela][key] = marcadosFinal;
+  }
+  fecharColFilterDropdown();
+  renderFn();
+});
+document.addEventListener('click', (ev)=>{
+  if(colFilterCtx && !ev.target.closest('#colFilterDropdown') && !ev.target.closest('.col-filter-btn')){
+    fecharColFilterDropdown();
+  }
+});
 
 /* ============================================================
    11. CSV EXPORT
