@@ -3364,7 +3364,9 @@ function renderCompradores(){
     byComprador[k].total++;
     byComprador[k][r.solicPrazoStatus]=(byComprador[k][r.solicPrazoStatus]||0)+1;
   });
-  const chipHtml = Object.keys(byComprador).sort((a,b)=>byComprador[b].total-byComprador[a].total).map(name=>{
+  const nomesCompradorOrdenados = Object.keys(byComprador).sort((a,b)=>byComprador[b].total-byComprador[a].total);
+  const nomesCompradorExibidos = fComprador ? nomesCompradorOrdenados.filter(n=>n===fComprador) : nomesCompradorOrdenados;
+  const chipHtml = nomesCompradorExibidos.map(name=>{
     const d=byComprador[name];
     const isActive = fComprador===name;
     return `<div class="summary-chip ${isActive?'active':''}" data-name="${esc(name)}">
@@ -3468,8 +3470,24 @@ function renderCentros(){
   let rows = state.rows.filter(r=>r.statusEntregaPed);
   document.getElementById('countPed').textContent = rows.length;
 
+  // Os cartões de obra refletem os demais filtros ativos (comprador, material,
+  // prazo, status de entrega, busca) — só não aplicam o próprio filtro de
+  // obra, já que são eles quem controlam essa seleção. Assim, com "Somente
+  // pendentes" marcado, só aparecem obras que realmente têm pendência.
+  let rowsParaCards = rows;
+  if(fComprador) rowsParaCards = rowsParaCards.filter(r=>r.compradorLabel===fComprador);
+  if(fMaterial==='critico') rowsParaCards = rowsParaCards.filter(r=>r.materialCritico);
+  else if(fMaterial) rowsParaCards = rowsParaCards.filter(r=>r.materialCritico===fMaterial);
+  if(fPrazo) rowsParaCards = rowsParaCards.filter(r=>r.pedidoPrazoStatus===fPrazo);
+  if(fStatusEntrega) rowsParaCards = rowsParaCards.filter(r=>r.statusEntregaPed===fStatusEntrega);
+  if(fSearch) rowsParaCards = rowsParaCards.filter(r=>
+    String(r.numPedido||'').toUpperCase().includes(fSearch) ||
+    (r.descricaoInsumo||'').toUpperCase().includes(fSearch) ||
+    (r.detalhe||'').toUpperCase().includes(fSearch)
+  );
+
   const byCentro = {};
-  rows.forEach(r=>{
+  rowsParaCards.forEach(r=>{
     const k=r.obraLabel;
     byCentro[k]=byCentro[k]||{total:0,atrasado:0,critico:0,pendentes:0,entregues:0};
     byCentro[k].total++;
@@ -3478,7 +3496,9 @@ function renderCentros(){
     if(r.statusEntregaPed==='pendente') byCentro[k].pendentes++;
     else byCentro[k].entregues++;
   });
-  const chipHtml = Object.keys(byCentro).sort((a,b)=>byCentro[b].total-byCentro[a].total).map(name=>{
+  const nomesCentroOrdenados = Object.keys(byCentro).sort((a,b)=>byCentro[b].total-byCentro[a].total);
+  const nomesCentroExibidos = fCentro ? nomesCentroOrdenados.filter(n=>n===fCentro) : nomesCentroOrdenados;
+  const chipHtml = nomesCentroExibidos.map(name=>{
     const d=byCentro[name];
     const isActive = fCentro===name;
     return `<div class="summary-chip ${isActive?'active':''}" data-name="${esc(name)}">
