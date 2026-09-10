@@ -1919,7 +1919,6 @@ footer.appfoot{
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <button class="btn" id="btnExportJson">&#8681; Backup (JSON)</button>
-    <label class="btn" style="margin:0;">&#8679; Importar<input type="file" id="importFile" accept=".json" style="display:none;"></label>
     <button class="btn primary" id="btnExportXlsx">&#128202; Exportar Excel</button>
     <button class="btn primary" id="btnGerarRelatorio">&#128424; Gerar Relatório</button>
   </div>
@@ -2058,22 +2057,18 @@ footer.appfoot{
   <!-- DADOS -->
   <section class="view" id="view-dados">
     <div class="note">
-      <b>Este aplicativo não salva dados automaticamente no navegador.</b> Todas as informações ficam em
-      memória enquanto a página está aberta. Para não perder o que você cadastrar:
-      <br>1) Clique em <b>“Baixar backup (JSON)”</b> sempre que terminar de editar — isso salva um arquivo no seu computador.
-      <br>2) Na próxima vez que abrir o app, clique em <b>“Importar backup (JSON)”</b> e selecione esse arquivo para continuar de onde parou.
-      <br>Use <b>“Exportar Excel”</b> a qualquer momento para gerar uma planilha .xlsx para compartilhar ou arquivar.
+      <b>Os dados deste CAP ficam salvos no banco de dados do Painel de Suprimentos (Supabase)</b>,
+      nas tabelas <code>cap_pedidos</code>, <code>cap_entregas</code> e <code>cap_devolucoes</code> —
+      compartilhados entre todas as pessoas que acessam o painel, com leitura liberada a qualquer
+      usuário logado e cadastro/edição/exclusão restritos a administradores e supervisores, igual ao
+      Controle de Crédito. Use <b>"Backup (JSON)"</b> quando quiser guardar uma cópia local, e
+      <b>"Exportar Excel"</b> para gerar uma planilha para compartilhar ou arquivar.
     </div>
     <div class="card">
-      <h2>Backup e restauração</h2>
+      <h2>Backup</h2>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn primary" id="btnExportJson2">⬇ Baixar backup (JSON)</button>
-        <label class="btn" style="margin:0;">⬆ Importar backup (JSON)
-          <input type="file" id="importFile2" accept=".json" style="display:none;">
-        </label>
         <button class="btn" id="btnExportXlsx2">📊 Exportar Excel (.xlsx)</button>
-        <button class="btn danger" id="btnResetData">↺ Restaurar dados de exemplo</button>
-        <button class="btn danger" id="btnClearData">🗑 Limpar tudo</button>
       </div>
     </div>
     <div class="card">
@@ -6937,56 +6932,228 @@ const fmtNum = n => (Number(n)||0).toLocaleString('pt-BR', {minimumFractionDigit
 const fmtR = n => (Number(n)||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const fmtDate = iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
 const todayIso = () => new Date().toISOString().slice(0,10);
-let uidCounter = 1;
-const uid = () => 'id' + (uidCounter++) + '_' + Math.floor(Math.random()*1e6);
 
-/* ============ SEED DATA (from planilha SALDO_CAP.xlsx) ============ */
-function seedData() {
-  const pedidos = [
-    { id: 'p55607', numero: '55607', fornecedor: '', qtdContratada: 400, precoTon: 6200, dataRecebimento: null },
-    { id: 'p56587', numero: '56587', fornecedor: '', qtdContratada: 500, precoTon: 6150, dataRecebimento: '2026-08-11' },
-  ];
-  const entregas = [
-    { id: uid(), data:'2026-07-30', nf:'7974', pedidoId:'p55607', qtd:38.31, local:'Benevides - PA', dataEntrega:'2026-07-24', valor:237522 },
-    { id: uid(), data:'2026-08-03', nf:'8012', pedidoId:'p55607', qtd:30.41, local:'ATL Xingu - PA', dataEntrega:'2026-08-04', valor:188542 },
-    { id: uid(), data:'2026-08-04', nf:'8017', pedidoId:'p55607', qtd:35.52, local:'Benevides - PA', dataEntrega:'2026-08-05', valor:220224 },
-    { id: uid(), data:'2026-08-06', nf:'8037', pedidoId:'p55607', qtd:38.77, local:'Portel - PA', dataEntrega:'2026-08-08', valor:240374 },
-    { id: uid(), data:'2026-08-06', nf:'8036', pedidoId:'p55607', qtd:35.36, local:'Portel - PA', dataEntrega:'2026-08-08', valor:219232 },
-    { id: uid(), data:'2026-08-06', nf:'8035', pedidoId:'p55607', qtd:38.71, local:'Portel - PA', dataEntrega:'2026-08-08', valor:240002 },
-    { id: uid(), data:'2026-08-07', nf:'8054', pedidoId:'p55607', qtd:31.67, local:'Portel - PA', dataEntrega:'2026-08-10', valor:196354 },
-    { id: uid(), data:'2026-08-07', nf:'8051', pedidoId:'p55607', qtd:32.95, local:'Portel - PA', dataEntrega:'2026-08-10', valor:204290 },
-    { id: uid(), data:'2026-08-07', nf:'8062', pedidoId:'p55607', qtd:34.20, local:'Benevides - PA', dataEntrega:'2026-08-10', valor:212040 },
-    { id: uid(), data:'2026-08-10', nf:'8071', pedidoId:'p55607', qtd:29.54, local:'ATL Xingu - PA', dataEntrega:'2026-08-12', valor:183148 },
-    { id: uid(), data:'2026-08-11', nf:'8089', pedidoId:'p56587', qtd:38.83, local:'Portel - PA', dataEntrega:'2026-08-14', valor:238804.5 },
-    { id: uid(), data:'2026-08-11', nf:'8088', pedidoId:'p56587', qtd:23.90, local:'Portel - PA', dataEntrega:'2026-08-14', valor:146985 },
-    { id: uid(), data:'2026-08-11', nf:'8087', pedidoId:'p55607', qtd:15.02, local:'Portel - PA', dataEntrega:'2026-08-14', valor:93124 },
-    { id: uid(), data:'2026-08-11', nf:'8086', pedidoId:'p56587', qtd:31.48, local:'Portel - PA', dataEntrega:'2026-08-14', valor:193602 },
-    { id: uid(), data:'2026-08-11', nf:'8084', pedidoId:'p55607', qtd:38.98, local:'Portel - PA', dataEntrega:'2026-08-14', valor:241676 },
-  ];
-  const entrega8062 = entregas.find(e => e.nf === '8062');
-  const devolucoes = [
-    { id: uid(), data:'2026-08-25', nf:'8207', pedidoId:'p55607', entregaId: entrega8062 ? entrega8062.id : null,
-      qtd:1.06, valor:6572, local:'Benevides - PA', dataDevolucao:'2026-08-25', motivo:'Devolução de venda (NF-e 8207)' },
-  ];
-  return { pedidos, entregas, devolucoes };
+/* ============ PERSISTÊNCIA (Supabase) ============
+   As três tabelas (cap_pedidos, cap_entregas, cap_devolucoes) seguem o mesmo
+   padrão de creditos_obra/creditos_vinculos deste painel: leitura liberada
+   para qualquer usuário logado, escrita (insert/update/delete) restrita a
+   admin ou supervisor via private.is_gestor_credito. Os dados ficam
+   compartilhados entre todos que acessam o Painel de Suprimentos — não é
+   mais um cache local por sessão de navegador. */
+let state = { pedidos: [], entregas: [], devolucoes: [] };
+
+function capPedidoFromDb(row) {
+  return {
+    id: row.id,
+    numero: row.numero,
+    fornecedor: row.fornecedor || '',
+    qtdContratada: Number(row.qtd_contratada) || 0,
+    precoTon: Number(row.preco_ton) || 0,
+    dataRecebimento: row.data_recebimento,
+    anexoNome: row.anexo_nome || null
+  };
+}
+function capEntregaFromDb(row) {
+  return {
+    id: row.id,
+    data: row.data,
+    nf: row.nf || '',
+    pedidoId: row.pedido_id,
+    qtd: Number(row.qtd) || 0,
+    valor: Number(row.valor) || 0,
+    local: row.local || '',
+    dataEntrega: row.data_entrega,
+    anexoNome: row.anexo_nome || null
+  };
+}
+function capDevolucaoFromDb(row) {
+  return {
+    id: row.id,
+    data: row.data,
+    nf: row.nf || '',
+    pedidoId: row.pedido_id,
+    entregaId: row.entrega_id,
+    qtd: Number(row.qtd) || 0,
+    valor: Number(row.valor) || 0,
+    local: row.local || '',
+    dataDevolucao: row.data_devolucao,
+    motivo: row.motivo || '',
+    anexoNome: row.anexo_nome || null
+  };
 }
 
-let state = seedData();
+async function loadCapPedidos() {
+  try {
+    const { data, error } = await window.SB.from('cap_pedidos').select('*').order('criado_em', { ascending: true });
+    if (error) throw error;
+    state.pedidos = (data || []).map(capPedidoFromDb);
+  } catch (e) {
+    console.error('Falha ao carregar pedidos de compra do CAP:', e);
+    state.pedidos = [];
+  }
+}
+async function loadCapEntregas() {
+  try {
+    const { data, error } = await window.SB.from('cap_entregas').select('*').order('data', { ascending: true });
+    if (error) throw error;
+    state.entregas = (data || []).map(capEntregaFromDb);
+  } catch (e) {
+    console.error('Falha ao carregar entregas do CAP:', e);
+    state.entregas = [];
+  }
+}
+async function loadCapDevolucoes() {
+  try {
+    const { data, error } = await window.SB.from('cap_devolucoes').select('*').order('data', { ascending: true });
+    if (error) throw error;
+    state.devolucoes = (data || []).map(capDevolucaoFromDb);
+  } catch (e) {
+    console.error('Falha ao carregar devoluções do CAP:', e);
+    state.devolucoes = [];
+  }
+}
+async function reloadCapData() {
+  await loadCapPedidos();
+  await loadCapEntregas();
+  await loadCapDevolucoes();
+}
+
+async function insertCapPedido(p) {
+  try {
+    const { error } = await window.SB.from('cap_pedidos').insert({
+      numero: p.numero, fornecedor: p.fornecedor || null, qtd_contratada: p.qtdContratada,
+      preco_ton: p.precoTon, data_recebimento: p.dataRecebimento || null, anexo_nome: p.anexoNome || null
+    });
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao cadastrar pedido:', e);
+    alert('Não foi possível salvar o pedido. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+async function updateCapPedido(id, p) {
+  try {
+    const { error } = await window.SB.from('cap_pedidos').update({
+      numero: p.numero, fornecedor: p.fornecedor || null, qtd_contratada: p.qtdContratada,
+      preco_ton: p.precoTon, data_recebimento: p.dataRecebimento || null, anexo_nome: p.anexoNome || null
+    }).eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao atualizar pedido:', e);
+    alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+async function deleteCapPedidoDb(id) {
+  try {
+    const { error } = await window.SB.from('cap_pedidos').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao excluir pedido:', e);
+    alert('Não foi possível excluir. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+
+async function insertCapEntrega(en) {
+  try {
+    const { error } = await window.SB.from('cap_entregas').insert({
+      data: en.data, nf: en.nf || null, pedido_id: en.pedidoId || null, qtd: en.qtd, valor: en.valor || 0,
+      local: en.local || null, data_entrega: en.dataEntrega || null, anexo_nome: en.anexoNome || null
+    });
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao cadastrar entrega:', e);
+    alert('Não foi possível salvar a entrega. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+async function updateCapEntrega(id, en) {
+  try {
+    const { error } = await window.SB.from('cap_entregas').update({
+      data: en.data, nf: en.nf || null, pedido_id: en.pedidoId || null, qtd: en.qtd, valor: en.valor || 0,
+      local: en.local || null, data_entrega: en.dataEntrega || null, anexo_nome: en.anexoNome || null
+    }).eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao atualizar entrega:', e);
+    alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+async function deleteCapEntregaDb(id) {
+  try {
+    const { error } = await window.SB.from('cap_entregas').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao excluir entrega:', e);
+    alert('Não foi possível excluir. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+
+async function insertCapDevolucao(d) {
+  try {
+    const { error } = await window.SB.from('cap_devolucoes').insert({
+      data: d.data, nf: d.nf || null, pedido_id: d.pedidoId || null, entrega_id: d.entregaId || null,
+      qtd: d.qtd, valor: d.valor || 0, local: d.local || null, data_devolucao: d.dataDevolucao || null,
+      motivo: d.motivo || null, anexo_nome: d.anexoNome || null
+    });
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao cadastrar devolução:', e);
+    alert('Não foi possível salvar a devolução. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+async function updateCapDevolucao(id, d) {
+  try {
+    const { error } = await window.SB.from('cap_devolucoes').update({
+      data: d.data, nf: d.nf || null, pedido_id: d.pedidoId || null, entrega_id: d.entregaId || null,
+      qtd: d.qtd, valor: d.valor || 0, local: d.local || null, data_devolucao: d.dataDevolucao || null,
+      motivo: d.motivo || null, anexo_nome: d.anexoNome || null
+    }).eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao atualizar devolução:', e);
+    alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
+async function deleteCapDevolucaoDb(id) {
+  try {
+    const { error } = await window.SB.from('cap_devolucoes').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao excluir devolução:', e);
+    alert('Não foi possível excluir. Verifique se você está logado como administrador ou supervisor.');
+    return false;
+  }
+}
 
 /* ============ DERIVED CALCS ============ */
-function pedidoById(id) { return state.pedidos.find(p => p.id === id); }
+function pedidoById(id) { return state.pedidos.find(p => String(p.id) === String(id)); }
 
 function entregasDoPedido(pedidoId) {
-  return state.entregas.filter(e => e.pedidoId === pedidoId);
+  return state.entregas.filter(e => String(e.pedidoId) === String(pedidoId));
 }
 
 function devolucoesDoPedido(pedidoId) {
-  return (state.devolucoes||[]).filter(d => d.pedidoId === pedidoId);
+  return (state.devolucoes||[]).filter(d => String(d.pedidoId) === String(pedidoId));
 }
 
 function devolvidoQtdDaEntrega(entregaId, ignorarDevolucaoId) {
   return (state.devolucoes||[])
-    .filter(d => d.entregaId === entregaId && d.id !== ignorarDevolucaoId)
+    .filter(d => String(d.entregaId) === String(entregaId) && String(d.id) !== String(ignorarDevolucaoId))
     .reduce((s,d) => s + Number(d.qtd||0), 0);
 }
 
@@ -7023,7 +7190,7 @@ function estoqueLedger() {
   });
   (state.devolucoes||[]).forEach(d => {
     const p = pedidoById(d.pedidoId);
-    const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+    const entOrig = d.entregaId ? state.entregas.find(e => String(e.id) === String(d.entregaId)) : null;
     events.push({
       data: d.data, tipo: 'Devolução',
       desc: `Devolução NF ${d.nf || '—'}${entOrig ? ' · estorno da NF '+entOrig.nf : ''} · ${d.local || 'sem local'}${p ? ' · Pedido '+p.numero : ''}`,
@@ -7184,7 +7351,7 @@ function getFilteredEntregas() {
   const obraF = document.getElementById('filtroObra').value;
   const buscaF = document.getElementById('filtroBusca').value.trim().toLowerCase();
   return state.entregas
-    .filter(e => !pedidoF || e.pedidoId === pedidoF)
+    .filter(e => !pedidoF || String(e.pedidoId) === String(pedidoF))
     .filter(e => !obraF || e.local === obraF)
     .filter(e => !buscaF || (e.nf||'').toLowerCase().includes(buscaF))
     .sort((a,b) => (b.data||'').localeCompare(a.data||''));
@@ -7374,7 +7541,7 @@ function renderDevolucoes() {
   }
   tbody.innerHTML = devs.map(d => {
     const p = pedidoById(d.pedidoId);
-    const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+    const entOrig = d.entregaId ? state.entregas.find(e => String(e.id) === String(d.entregaId)) : null;
     return `<tr>
       <td>${fmtDate(d.data)}</td>
       <td>${escapeHtml(d.nf||'—')}${d.anexoNome ? ` <span title="${escapeHtml(d.anexoNome)}" style="color:var(--text-faint);">📎</span>` : ''}</td>
@@ -7488,7 +7655,7 @@ function updatePedidoPreview() {
 }
 ['pedidoQtd','pedidoPreco'].forEach(id => document.getElementById(id).addEventListener('input', updatePedidoPreview));
 
-document.getElementById('btnSalvarPedido').addEventListener('click', () => {
+document.getElementById('btnSalvarPedido').addEventListener('click', async () => {
   const id = document.getElementById('pedidoEditId').value;
   const numero = document.getElementById('pedidoNumero').value.trim();
   const fornecedor = document.getElementById('pedidoFornecedor').value.trim();
@@ -7500,25 +7667,28 @@ document.getElementById('btnSalvarPedido').addEventListener('click', () => {
   if (!(qtd > 0)) { toast('Informe a quantidade contratada'); return; }
   if (!(preco > 0)) { toast('Informe o preço por tonelada'); return; }
 
-  if (id) {
-    const p = pedidoById(id);
-    Object.assign(p, { numero, fornecedor, precoTon: preco, qtdContratada: qtd, dataRecebimento, anexoNome: pedidoAnexoNomeAtual });
-    toast('Pedido atualizado');
-  } else {
-    state.pedidos.push({ id: uid(), numero, fornecedor, precoTon: preco, qtdContratada: qtd, dataRecebimento, anexoNome: pedidoAnexoNomeAtual });
-    toast('Pedido cadastrado');
-  }
+  const payload = { numero, fornecedor, precoTon: preco, qtdContratada: qtd, dataRecebimento, anexoNome: pedidoAnexoNomeAtual };
+  const btn = document.getElementById('btnSalvarPedido');
+  btn.disabled = true;
+  const ok = id ? await updateCapPedido(id, payload) : await insertCapPedido(payload);
+  btn.disabled = false;
+  if (!ok) return;
+
+  toast(id ? 'Pedido atualizado' : 'Pedido cadastrado');
   closeModal('modalPedido');
+  await reloadCapData();
   renderAll();
 });
 
-function deletePedido(id) {
+async function deletePedido(id) {
   const vinculadas = entregasDoPedido(id).length;
   const msg = vinculadas
     ? `Este pedido tem ${vinculadas} entrega(s) vinculada(s). Excluir mesmo assim? As entregas ficarão sem pedido vinculado.`
     : 'Excluir este pedido de compra?';
   if (!confirm(msg)) return;
-  state.pedidos = state.pedidos.filter(p => p.id !== id);
+  const ok = await deleteCapPedidoDb(id);
+  if (!ok) return;
+  await reloadCapData();
   renderAll();
   toast('Pedido excluído');
 }
@@ -7546,7 +7716,7 @@ function openEntregaModal(id) {
   document.getElementById('entregaAnexoReport').classList.remove('show');
   document.getElementById('entregaAnexoReport').innerHTML = '';
   if (isEdit) {
-    const e = state.entregas.find(x => x.id === id);
+    const e = state.entregas.find(x => String(x.id) === String(id));
     document.getElementById('entregaData').value = e.data || '';
     document.getElementById('entregaNf').value = e.nf || '';
     document.getElementById('entregaPedido').value = e.pedidoId || '';
@@ -7581,7 +7751,7 @@ function updateEntregaPreview() {
   if (!p) { previewEl.textContent = ''; return; }
   const s = pedidoStats(p);
   const editId = document.getElementById('entregaEditId').value;
-  const already = editId ? Number(state.entregas.find(x=>x.id===editId)?.qtd || 0) : 0;
+  const already = editId ? Number(state.entregas.find(x=>String(x.id)===String(editId))?.qtd || 0) : 0;
   const saldoDepois = s.saldoQtd + already - qtd;
   previewEl.innerHTML = `Saldo do pedido ${p.numero} após esta entrega: <b class="tabular" style="color:${saldoDepois < 0 ? 'var(--red)' : 'var(--text)'}">${fmtT(saldoDepois)}</b>`;
 }
@@ -7603,7 +7773,7 @@ document.getElementById('entregaQtd').addEventListener('input', () => {
   updateEntregaPreview();
 });
 
-document.getElementById('btnSalvarEntrega').addEventListener('click', () => {
+document.getElementById('btnSalvarEntrega').addEventListener('click', async () => {
   const id = document.getElementById('entregaEditId').value;
   const data = document.getElementById('entregaData').value;
   const nf = document.getElementById('entregaNf').value.trim();
@@ -7620,28 +7790,31 @@ document.getElementById('btnSalvarEntrega').addEventListener('click', () => {
   if (pedidoId) {
     const p = pedidoById(pedidoId);
     const s = pedidoStats(p);
-    const already = id ? Number(state.entregas.find(x=>x.id===id)?.qtd || 0) : 0;
+    const already = id ? Number(state.entregas.find(x=>String(x.id)===String(id))?.qtd || 0) : 0;
     const saldoDepois = s.saldoQtd + already - qtd;
     if (saldoDepois < -0.0001) {
       if (!confirm(`Esta entrega excede o saldo do pedido ${p.numero} em ${fmtT(Math.abs(saldoDepois))}. Salvar mesmo assim?`)) return;
     }
   }
 
-  if (id) {
-    const e = state.entregas.find(x => x.id === id);
-    Object.assign(e, { data, nf, pedidoId, qtd, valor, local, dataEntrega, anexoNome: entregaAnexoNomeAtual });
-    toast('Entrega atualizada');
-  } else {
-    state.entregas.push({ id: uid(), data, nf, pedidoId, qtd, valor, local, dataEntrega, anexoNome: entregaAnexoNomeAtual });
-    toast('Entrega cadastrada');
-  }
+  const payload = { data, nf, pedidoId, qtd, valor, local, dataEntrega, anexoNome: entregaAnexoNomeAtual };
+  const btn = document.getElementById('btnSalvarEntrega');
+  btn.disabled = true;
+  const ok = id ? await updateCapEntrega(id, payload) : await insertCapEntrega(payload);
+  btn.disabled = false;
+  if (!ok) return;
+
+  toast(id ? 'Entrega atualizada' : 'Entrega cadastrada');
   closeModal('modalEntrega');
+  await reloadCapData();
   renderAll();
 });
 
-function deleteEntrega(id) {
+async function deleteEntrega(id) {
   if (!confirm('Excluir esta entrega?')) return;
-  state.entregas = state.entregas.filter(e => e.id !== id);
+  const ok = await deleteCapEntregaDb(id);
+  if (!ok) return;
+  await reloadCapData();
   renderAll();
   toast('Entrega excluída');
 }
@@ -7670,7 +7843,7 @@ function refreshDevolucaoEntregaOptions(pedidoId, selectedId) {
   const sel = document.getElementById('devolucaoEntrega');
   const editId = document.getElementById('devolucaoEditId').value;
   const candidatas = state.entregas
-    .filter(e => !pedidoId || e.pedidoId === pedidoId)
+    .filter(e => !pedidoId || String(e.pedidoId) === String(pedidoId))
     .filter(e => {
       const jaDevolvido = devolvidoQtdDaEntrega(e.id, editId || null);
       return jaDevolvido < Number(e.qtd||0) - 0.0001;
@@ -7691,7 +7864,7 @@ function openDevolucaoModal(id, fromEntregaId) {
   document.getElementById('devolucaoAnexoReport').innerHTML = '';
 
   if (isEdit) {
-    const d = state.devolucoes.find(x => x.id === id);
+    const d = state.devolucoes.find(x => String(x.id) === String(id));
     refreshDevolucaoPedidoOptions(d.pedidoId);
     refreshDevolucaoEntregaOptions(d.pedidoId, d.entregaId);
     document.getElementById('devolucaoData').value = d.data || '';
@@ -7705,7 +7878,7 @@ function openDevolucaoModal(id, fromEntregaId) {
     document.getElementById('devolucaoAnexoStatus').textContent = devolucaoAnexoNomeAtual ? `📄 Anexo atual: ${devolucaoAnexoNomeAtual}` : '';
     document.getElementById('devolucaoAnexoStatus').className = 'attach-status';
   } else if (fromEntregaId) {
-    const e = state.entregas.find(x => x.id === fromEntregaId);
+    const e = state.entregas.find(x => String(x.id) === String(fromEntregaId));
     const disponivel = e ? Number(e.qtd||0) - devolvidoQtdDaEntrega(e.id) : 0;
     refreshDevolucaoPedidoOptions(e ? e.pedidoId : '');
     refreshDevolucaoEntregaOptions(e ? e.pedidoId : '', fromEntregaId);
@@ -7745,7 +7918,7 @@ document.getElementById('devolucaoPedido').addEventListener('change', () => {
 });
 document.getElementById('devolucaoEntrega').addEventListener('change', () => {
   const entregaId = document.getElementById('devolucaoEntrega').value;
-  const e = entregaId ? state.entregas.find(x => x.id === entregaId) : null;
+  const e = entregaId ? state.entregas.find(x => String(x.id) === String(entregaId)) : null;
   if (e) {
     const editId = document.getElementById('devolucaoEditId').value;
     const disponivel = Number(e.qtd||0) - devolvidoQtdDaEntrega(e.id, editId || null);
@@ -7768,7 +7941,7 @@ function updateDevolucaoPreview() {
   const editId = document.getElementById('devolucaoEditId').value;
 
   if (entregaId) {
-    const e = state.entregas.find(x => x.id === entregaId);
+    const e = state.entregas.find(x => String(x.id) === String(entregaId));
     const disponivel = e ? Number(e.qtd||0) - devolvidoQtdDaEntrega(entregaId, editId || null) : 0;
     const excede = qtd > disponivel + 0.0001;
     previewEl.innerHTML = `Disponível para devolução nesta entrega: <b class="tabular" style="color:${excede ? 'var(--red)' : 'var(--text)'}">${fmtT(disponivel)}</b>${excede ? ' — quantidade informada excede o disponível' : ''}`;
@@ -7785,7 +7958,7 @@ function updateDevolucaoPreview() {
   previewEl.textContent = '';
 }
 
-document.getElementById('btnSalvarDevolucao').addEventListener('click', () => {
+document.getElementById('btnSalvarDevolucao').addEventListener('click', async () => {
   const id = document.getElementById('devolucaoEditId').value;
   const data = document.getElementById('devolucaoData').value;
   const nf = document.getElementById('devolucaoNf').value.trim();
@@ -7801,28 +7974,31 @@ document.getElementById('btnSalvarDevolucao').addEventListener('click', () => {
   if (!(qtd > 0)) { toast('Informe a quantidade devolvida'); return; }
 
   if (entregaId) {
-    const e = state.entregas.find(x => x.id === entregaId);
+    const e = state.entregas.find(x => String(x.id) === String(entregaId));
     const disponivel = e ? Number(e.qtd||0) - devolvidoQtdDaEntrega(entregaId, id || null) : 0;
     if (qtd > disponivel + 0.0001) {
       if (!confirm(`Esta devolução excede a quantidade disponível da entrega NF ${e ? e.nf : ''} em ${fmtT(qtd - disponivel)}. Salvar mesmo assim?`)) return;
     }
   }
 
-  if (id) {
-    const d = state.devolucoes.find(x => x.id === id);
-    Object.assign(d, { data, nf, pedidoId, entregaId, qtd, valor, local, dataDevolucao, motivo, anexoNome: devolucaoAnexoNomeAtual });
-    toast('Devolução atualizada');
-  } else {
-    state.devolucoes.push({ id: uid(), data, nf, pedidoId, entregaId, qtd, valor, local, dataDevolucao, motivo, anexoNome: devolucaoAnexoNomeAtual });
-    toast('Devolução/estorno registrado');
-  }
+  const payload = { data, nf, pedidoId, entregaId, qtd, valor, local, dataDevolucao, motivo, anexoNome: devolucaoAnexoNomeAtual };
+  const btn = document.getElementById('btnSalvarDevolucao');
+  btn.disabled = true;
+  const ok = id ? await updateCapDevolucao(id, payload) : await insertCapDevolucao(payload);
+  btn.disabled = false;
+  if (!ok) return;
+
+  toast(id ? 'Devolução atualizada' : 'Devolução/estorno registrado');
   closeModal('modalDevolucao');
+  await reloadCapData();
   renderAll();
 });
 
-function deleteDevolucao(id) {
+async function deleteDevolucao(id) {
   if (!confirm('Excluir esta devolução/estorno? O saldo do pedido e o estoque voltarão a considerar a entrega original integralmente.')) return;
-  state.devolucoes = state.devolucoes.filter(d => d.id !== id);
+  const ok = await deleteCapDevolucaoDb(id);
+  if (!ok) return;
+  await reloadCapData();
   renderAll();
   toast('Devolução excluída');
 }
@@ -7844,44 +8020,15 @@ function downloadFile(filename, content, mime) {
 }
 
 function exportJson() {
-  const payload = { version: 2, exportedAt: new Date().toISOString(), pedidos: state.pedidos, entregas: state.entregas, devolucoes: state.devolucoes||[] };
+  // Backup manual (não é mais a fonte dos dados — apenas um snapshot para download/arquivo,
+  // já que os dados reais ficam no Supabase, compartilhados entre todos que acessam o painel).
+  const payload = { version: 3, exportedAt: new Date().toISOString(), pedidos: state.pedidos, entregas: state.entregas, devolucoes: state.devolucoes||[] };
   const stamp = todayIso();
   downloadFile(`saldo_cap_backup_${stamp}.json`, JSON.stringify(payload, null, 2), 'application/json');
   toast('Backup baixado');
 }
 document.getElementById('btnExportJson').addEventListener('click', exportJson);
 document.getElementById('btnExportJson2').addEventListener('click', exportJson);
-
-function importJsonFile(file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      if (!Array.isArray(data.pedidos) || !Array.isArray(data.entregas)) throw new Error('formato inválido');
-      state = { pedidos: data.pedidos, entregas: data.entregas, devolucoes: Array.isArray(data.devolucoes) ? data.devolucoes : [] };
-      renderAll();
-      toast('Backup importado com sucesso');
-    } catch (err) {
-      alert('Não foi possível importar este arquivo: ' + err.message);
-    }
-  };
-  reader.readAsText(file);
-}
-document.getElementById('importFile').addEventListener('change', (e) => { if (e.target.files[0]) importJsonFile(e.target.files[0]); e.target.value = ''; });
-document.getElementById('importFile2').addEventListener('change', (e) => { if (e.target.files[0]) importJsonFile(e.target.files[0]); e.target.value = ''; });
-
-document.getElementById('btnResetData').addEventListener('click', () => {
-  if (!confirm('Isso substitui os dados atuais pelos dados de exemplo originais da planilha. Continuar?')) return;
-  state = seedData();
-  renderAll();
-  toast('Dados de exemplo restaurados');
-});
-document.getElementById('btnClearData').addEventListener('click', () => {
-  if (!confirm('Isso apaga todos os pedidos, entregas e devoluções cadastrados. Continuar?')) return;
-  state = { pedidos: [], entregas: [], devolucoes: [] };
-  renderAll();
-  toast('Dados limpos');
-});
 
 /* ============ EXCEL EXPORT ============ */
 function exportXlsx() {
@@ -7910,7 +8057,7 @@ function exportXlsx() {
 
   const devolucoesRows = (state.devolucoes||[]).slice().sort((a,b) => (a.data||'').localeCompare(b.data||'')).map(d => {
     const p = pedidoById(d.pedidoId);
-    const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+    const entOrig = d.entregaId ? state.entregas.find(e => String(e.id) === String(d.entregaId)) : null;
     return {
       'Data': d.data, 'Nº NF devolução': d.nf || '', 'Pedido': p ? p.numero : '',
       'Entrega estornada (NF)': entOrig ? entOrig.nf : '', 'Qtd. devolvida (t)': d.qtd,
@@ -8111,7 +8258,7 @@ function buildReportHtml() {
     <tbody>
       ${(state.devolucoes||[]).slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(d => {
         const p = pedidoById(d.pedidoId);
-        const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+        const entOrig = d.entregaId ? state.entregas.find(e => String(e.id) === String(d.entregaId)) : null;
         return `<tr>
           <td>${fmtDate(d.data)}</td><td>${escapeHtml(d.nf||'—')}</td><td>${p ? escapeHtml(p.numero) : '—'}</td>
           <td>${entOrig ? 'NF ' + escapeHtml(entOrig.nf) : '—'}</td><td class="num">${fmtT(d.qtd)}</td>
@@ -8323,7 +8470,7 @@ function extractDevolucaoFields(text, pedidosConhecidos, entregasConhecidas) {
   // Pedido vinculado — herdado da entrega original se encontrada, senão procurado no texto
   out.pedidoNumero = null;
   if (out.entregaId) {
-    const ent = entregasConhecidas.find(e => e.id === out.entregaId);
+    const ent = entregasConhecidas.find(e => String(e.id) === String(out.entregaId));
     if (ent) {
       const p = pedidoById(ent.pedidoId);
       if (p) out.pedidoNumero = p.numero;
@@ -8521,7 +8668,20 @@ window.CAP = {
 };
 
 /* ============ INIT ============ */
-renderAll();
+async function initCap() {
+  // Espera a sessão de login terminar de carregar antes de buscar dados que
+  // exigem usuário autenticado (mesmo cuidado do init() principal do painel:
+  // sem essa espera, a política de RLS pode simplesmente não devolver
+  // nenhuma linha porque a sessão ainda não estava pronta no primeiro pedido).
+  try { await window.SB.auth.getSession(); } catch (e) { /* segue mesmo assim */ }
+  await reloadCapData();
+  renderAll();
+  window.SB.auth.onAuthStateChange(async () => {
+    await reloadCapData();
+    renderAll();
+  });
+}
+initCap();
 
 })();
 </script>
