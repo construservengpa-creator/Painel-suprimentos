@@ -308,14 +308,56 @@ body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador) .logged-non-
   cursor:help;
 }
 
-/* ---- tabs ---- */
-nav.tabs{
+/* ---- layout shell: sidebar + conteúdo ---- */
+.shell{
   display:flex;
-  flex-wrap:wrap;
-  gap:4px;
-  margin:22px 0 26px;
-  border-bottom:1px solid var(--line);
+  align-items:flex-start;
+  gap:24px;
+  margin-top:26px;
 }
+main.tab-content{
+  flex:1 1 0%;
+  min-width:0;
+}
+
+/* ---- sidebar (menu principal vertical) ---- */
+nav.tabs.sidebar{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  flex:0 0 272px;
+  width:272px;
+  margin:0 0 26px;
+  border-bottom:none;
+  border-right:1px solid var(--line);
+  padding:0 14px 24px 0;
+  position:sticky;
+  top:20px;
+  max-height:calc(100vh - 40px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  transition:flex-basis .18s ease, width .18s ease;
+}
+.sidebar-toggle{
+  align-self:flex-end;
+  background:var(--asphalt-2);
+  border:1px solid var(--line);
+  color:var(--text-dim);
+  width:28px;
+  height:28px;
+  min-width:28px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:13px;
+  margin:0 0 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:none;
+}
+.sidebar-toggle:hover{border-color:var(--yellow-dim);color:var(--yellow);}
+.sidebar-toggle-arrow{display:inline-flex;align-items:center;justify-content:center;width:20px;transition:transform .18s ease;}
+
 .tab-btn{
   font-family:var(--font-display);
   font-size:14.5px;
@@ -323,14 +365,33 @@ nav.tabs{
   color:var(--text-dim);
   background:none;
   border:none;
-  padding:12px 18px;
+  border-left:3px solid transparent;
+  padding:11px 12px;
   cursor:pointer;
   position:relative;
-  top:1px;
+  top:0;
   flex:none;
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-align:left;
   white-space:nowrap;
+  border-radius:0 6px 6px 0;
 }
-.tab-btn.active{color:var(--yellow);border-bottom:2px solid var(--yellow);}
+.tab-btn:hover{background:rgba(255,255,255,0.04);color:var(--text);}
+.tab-btn.active{color:var(--yellow);background:rgba(245,196,51,0.08);border-left-color:var(--yellow);border-bottom:none;}
+.tab-btn .tab-icon{
+  font-size:15px;
+  flex:none;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:20px;
+}
+.tab-btn .tab-label{overflow:hidden;text-overflow:ellipsis;}
+.tab-btn .nav-caret{margin-left:auto;}
 .tab-btn .count-pill{
   font-family:var(--font-mono);
   font-size:10.5px;
@@ -338,43 +399,103 @@ nav.tabs{
   color:var(--text-dim);
   padding:1px 6px;
   border-radius:20px;
-  margin-left:7px;
+  margin-left:auto;
 }
 .tab-btn.active .count-pill{background:var(--yellow-dim);color:#1A1E24;background:var(--yellow);}
 
 section.tab-panel{display:none;}
 section.tab-panel.active{display:block;}
 
-/* ---- Nav groups (menu + submenu) ---- */
-.nav-group{position:relative;display:inline-flex;flex:none;}
-.nav-group-btn{display:inline-flex;align-items:center;}
-.nav-caret{font-size:9px;margin-left:6px;opacity:0.6;position:relative;top:-1px;}
+/* ---- Nav groups (menu + submenu), agora empilhados verticalmente ---- */
+.nav-group{position:relative;display:flex;flex-direction:column;width:100%;flex:none;}
+.nav-group-btn{width:100%;}
+.nav-caret{
+  flex:none;
+  margin-left:auto;
+  opacity:0.7;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  transform:rotate(0deg);
+  transition:transform .15s ease;
+}
+.nav-caret svg{display:block;}
+.nav-group.open>.nav-group-btn .nav-caret,
+.nav-group.group-active>.nav-group-btn .nav-caret{transform:rotate(180deg);}
+.nav-group.open>.nav-group-btn,
+.nav-group.group-active>.nav-group-btn{border-radius:0 6px 0 0;}
 .nav-submenu{
   display:none;
-  position:absolute;
-  top:calc(100% + 1px);
-  left:0;
+  position:static;
   flex-direction:column;
-  min-width:260px;
-  background:var(--surface,#1c2028);
-  border:1px solid var(--line);
-  border-radius:0 6px 6px 6px;
-  box-shadow:0 10px 28px rgba(0,0,0,0.4);
-  z-index:80;
-  padding:4px;
+  gap:1px;
+  width:100%;
+  min-width:0;
+  background:rgba(0,0,0,0.15);
+  border:none;
+  border-left:2px solid var(--yellow-dim);
+  box-shadow:none;
+  z-index:auto;
+  padding:6px 4px 6px 10px;
+  margin:0 0 2px;
+  border-radius:0 0 6px 0;
 }
 .nav-group.open .nav-submenu,
-.nav-group:hover .nav-submenu{display:flex;}
+.nav-group.group-active .nav-submenu{display:flex;}
 .nav-submenu .tab-btn{
   width:100%;
   text-align:left;
-  padding:10px 14px;
+  padding:9px 10px;
   top:0;
   border-radius:4px;
+  border-left:none;
+  font-size:12.8px;
+  gap:6px;
 }
+.nav-submenu .tab-btn .tab-label{white-space:normal;line-height:1.25;}
+.nav-submenu .tab-btn .count-pill{flex:none;}
 .nav-submenu .tab-btn.active{border-bottom:none;background:rgba(245,196,51,0.1);}
 .nav-submenu .tab-btn:hover{background:rgba(255,255,255,0.05);}
-.nav-group.group-active>.nav-group-btn{color:var(--yellow);border-bottom:2px solid var(--yellow);}
+.nav-group.group-active>.nav-group-btn{color:var(--yellow);}
+
+/* ---- sidebar recolhida: só ícones, com tooltip via title="" nativo ---- */
+.shell.collapsed nav.tabs.sidebar{flex-basis:60px;width:60px;padding:0 8px 24px 8px;}
+.shell.collapsed .sidebar-toggle{align-self:center;margin:0 auto 12px;}
+.shell.collapsed .sidebar-toggle-arrow{transform:rotate(180deg);}
+.shell.collapsed .tab-label,
+.shell.collapsed .nav-caret,
+.shell.collapsed .tab-btn .count-pill{display:none;}
+.shell.collapsed .tab-btn{
+  display:block;
+  text-align:center;
+  padding:11px 0;
+  border-left-width:0;
+  border-radius:6px;
+}
+.shell.collapsed .tab-btn .tab-icon{
+  display:inline-block;
+  width:auto;
+  text-align:center;
+}
+.shell.collapsed .nav-submenu{display:none !important;}
+.shell.collapsed .nav-group-btn{justify-content:center;}
+
+@media (max-width:860px){
+  .shell{flex-direction:column;gap:0;}
+  nav.tabs.sidebar{
+    position:relative;top:0;max-height:none;flex-basis:auto;width:100%;
+    flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--line);
+    padding:0 0 14px;margin-bottom:18px;
+  }
+  .sidebar-toggle{display:none;}
+  nav.tabs.sidebar .nav-group{width:auto;}
+  nav.tabs.sidebar .nav-submenu{position:absolute;top:calc(100% + 1px);left:0;min-width:240px;background:var(--surface,#1c2028);border:1px solid var(--line);border-radius:0 6px 6px 6px;box-shadow:0 10px 28px rgba(0,0,0,0.4);z-index:80;padding:4px;border-left:1px solid var(--line);}
+  .tab-btn{width:auto;border-left:none;border-bottom:2px solid transparent;border-radius:0;}
+  .tab-btn.active{border-bottom-color:var(--yellow);background:none;}
+  .shell.collapsed nav.tabs.sidebar{width:100%;}
+  .shell.collapsed .tab-label{display:inline;}
+  .shell.collapsed .nav-caret{display:inline-block;}
+}
 
 /* ---- KPI grid : mile-marker cards ---- */
 .kpi-grid{
@@ -1208,27 +1329,29 @@ footer.appfoot{
   </header>
   <div class="roadline"></div>
 
-  <nav class="tabs">
+  <div class="shell">
+  <nav class="tabs sidebar" id="mainSidebar">
+    <button class="sidebar-toggle" id="sidebarToggle" type="button" title="Recolher menu" aria-label="Recolher/expandir menu" aria-expanded="true"><span class="sidebar-toggle-arrow">◂</span></button>
     <div class="nav-group group-active" data-group="suprimentos">
-      <button class="tab-btn nav-group-btn active" data-tab="overview">Suprimentos <span class="nav-caret">▾</span></button>
+      <button class="tab-btn nav-group-btn active" data-tab="overview"><span class="tab-icon">📦</span><span class="tab-label">Suprimentos</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="nav-submenu">
-        <button class="tab-btn" data-tab="compradores">Solicitações por Comprador <span class="count-pill" id="countSolic">0</span></button>
-        <button class="tab-btn" data-tab="centros">Pedidos por Centro de Custo <span class="count-pill" id="countPed">0</span></button>
+        <button class="tab-btn" data-tab="compradores"><span class="tab-label">Solicitações por Comprador</span> <span class="count-pill" id="countSolic">0</span></button>
+        <button class="tab-btn" data-tab="centros"><span class="tab-label">Pedidos por Centro de Custo</span> <span class="count-pill" id="countPed">0</span></button>
       </div>
     </div>
-    <button class="tab-btn" data-tab="prazoinsumos">Entrega Insumos Críticos <span class="count-pill" id="countPrazoInsumos">0</span></button>
-    <button class="tab-btn" data-tab="cotacoes">Cotação de Insumos Críticos</button>
+    <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
+    <button class="tab-btn" data-tab="cotacoes"><span class="tab-icon">💲</span><span class="tab-label">Cotação de Insumos Críticos</span></button>
     <div class="nav-group gestor-credito-only" data-group="creditos">
-      <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="creditos-dashboard">Controle de Crédito <span class="nav-caret">▾</span></button>
+      <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-icon">💳</span><span class="tab-label">Controle de Crédito</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="nav-submenu">
-        <button class="tab-btn gestor-credito-only" data-tab="creditos-dashboard">Dashboard</button>
-        <button class="tab-btn gestor-credito-only" data-tab="creditos">Crédito entre Obras</button>
-        <button class="tab-btn gestor-credito-only" data-tab="creditos-cap">CAP</button>
+        <button class="tab-btn gestor-credito-only" data-tab="creditos"><span class="tab-label">Crédito entre Obras</span></button>
+        <button class="tab-btn gestor-credito-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
       </div>
     </div>
-    <button class="tab-btn" data-tab="admin">🔐 Administração</button>
+    <button class="tab-btn" data-tab="admin"><span class="tab-icon">🔐</span><span class="tab-label">Administração</span></button>
   </nav>
 
+  <main class="tab-content">
   <!-- ===================== OVERVIEW ===================== -->
   <section class="tab-panel active" id="tab-overview">
     <div class="kpi-grid" id="kpiGrid"></div>
@@ -1924,7 +2047,6 @@ footer.appfoot{
     <p class="hint" style="margin:4px 0 0;">Cadastro de pedidos de compra, entregas, devoluções e saldo em tempo real</p>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <button class="btn" id="btnExportJson">&#8681; Backup (JSON)</button>
     <button class="btn primary" id="btnExportXlsx">&#128202; Exportar Excel</button>
     <button class="btn primary" id="btnGerarRelatorio">&#128424; Gerar Relatório</button>
   </div>
@@ -2067,13 +2189,12 @@ footer.appfoot{
       nas tabelas <code>cap_pedidos</code>, <code>cap_entregas</code> e <code>cap_devolucoes</code> —
       compartilhados entre todas as pessoas que acessam o painel, com leitura liberada a qualquer
       usuário logado e cadastro/edição/exclusão restritos a administradores e supervisores, igual ao
-      Controle de Crédito. Use <b>"Backup (JSON)"</b> quando quiser guardar uma cópia local, e
-      <b>"Exportar Excel"</b> para gerar uma planilha para compartilhar ou arquivar.
+      Controle de Crédito. Use <b>"Exportar Excel"</b> quando quiser gerar uma planilha para
+      compartilhar ou arquivar.
     </div>
     <div class="card">
-      <h2>Backup</h2>
+      <h2>Exportar</h2>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn primary" id="btnExportJson2">⬇ Baixar backup (JSON)</button>
         <button class="btn" id="btnExportXlsx2">📊 Exportar Excel (.xlsx)</button>
       </div>
     </div>
@@ -2327,6 +2448,9 @@ footer.appfoot{
       <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios. Supervisor pode lançar, editar e excluir créditos e vínculos. Operador pode lançar preços em Cotação de Insumos Críticos. Um usuário logado sem nenhum desses três papéis é um "visitante": só enxerga Suprimentos, Entrega de Insumos Críticos e Cotação (leitura), sem lançar nada e sem ver a aba de Controle de Crédito — é o papel padrão de quem cria a própria conta pelo site. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
     </div>
   </section>
+
+  </main>
+  </div>
 
   <div class="roadline thin"></div>
   <footer class="appfoot">
@@ -4658,6 +4782,28 @@ var navTabGroupMap = {
   overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos',
   'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos'
 };
+
+/* ---- menu principal: recolher/expandir a barra lateral ---- */
+(function(){
+  var shell = document.querySelector('.shell');
+  var toggleBtn = document.getElementById('sidebarToggle');
+  if(!shell || !toggleBtn) return;
+  var STORAGE_KEY = 'painelSuprimentosSidebarCollapsed';
+  function applyState(collapsed){
+    shell.classList.toggle('collapsed', collapsed);
+    toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    toggleBtn.title = collapsed ? 'Expandir menu' : 'Recolher menu';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(STORAGE_KEY); } catch(e){ /* ignora se bloqueado */ }
+  applyState(saved === '1');
+  toggleBtn.addEventListener('click', function(){
+    var collapsed = !shell.classList.contains('collapsed');
+    applyState(collapsed);
+    try { localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0'); } catch(e){ /* ignora se bloqueado */ }
+  });
+})();
+
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', (ev)=>{
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -8024,17 +8170,6 @@ function downloadFile(filename, content, mime) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-function exportJson() {
-  // Backup manual (não é mais a fonte dos dados — apenas um snapshot para download/arquivo,
-  // já que os dados reais ficam no Supabase, compartilhados entre todos que acessam o painel).
-  const payload = { version: 3, exportedAt: new Date().toISOString(), pedidos: state.pedidos, entregas: state.entregas, devolucoes: state.devolucoes||[] };
-  const stamp = todayIso();
-  downloadFile(`saldo_cap_backup_${stamp}.json`, JSON.stringify(payload, null, 2), 'application/json');
-  toast('Backup baixado');
-}
-document.getElementById('btnExportJson').addEventListener('click', exportJson);
-document.getElementById('btnExportJson2').addEventListener('click', exportJson);
 
 /* ============ EXCEL EXPORT ============ */
 function exportXlsx() {
