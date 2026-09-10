@@ -969,6 +969,166 @@ footer.appfoot{
 #tab-creditos .pedido-search-item b{font-family:var(--font-mono);color:var(--gold);}
 #tab-creditos .pedido-search-empty{padding:10px;font-size:12px;color:var(--text-faint);}
 
+
+/* ---- Controle de Crédito > Dashboard (visão consolidada) ---- */
+#tab-creditos-dashboard, #tab-creditos-cap {
+  --gold: var(--yellow);
+  --gold-dim: var(--yellow-dim);
+  --good: var(--teal);
+  --good-bg: rgba(12,163,12,.12);
+  --bad: var(--red);
+  --bad-bg: rgba(208,59,59,.12);
+  --surface: var(--asphalt-2);
+  --surface-2: var(--asphalt-3);
+  --text-mut: var(--text-dim);
+  padding-top: 4px;
+}
+#tab-creditos-dashboard .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+#tab-creditos-dashboard .section-head h2{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0;}
+#tab-creditos-dashboard .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow);font-weight:600;}
+
+/* ================= CAP (Controle de Saldo CAP) — escopado dentro de #tab-creditos-cap ================= */
+#tab-creditos-cap .tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+#tab-creditos-cap .cap-subtabs {
+  display: flex; gap: 4px; padding: 0; background: transparent;
+  border-bottom: 1px solid var(--line); overflow-x: auto;
+  margin: 0 0 16px;
+}
+#tab-creditos-cap .cap-subtabs button {
+  font-family: var(--font-display); font-size: 14px; letter-spacing: .02em;
+  border: none; background: transparent; color: var(--text-dim);
+  padding: 12px 16px; cursor: pointer; border-bottom: 2px solid transparent;
+  white-space: nowrap; position: relative; top: 1px;
+}
+#tab-creditos-cap .cap-subtabs button.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+#tab-creditos-cap .cap-subtabs button:hover:not(.active) { color: var(--text); }
+#tab-creditos-cap .view { display: none; }
+#tab-creditos-cap .view.active { display: block; }
+#tab-creditos-cap .card {
+  background: var(--asphalt-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px; margin-bottom: 16px;
+}
+#tab-creditos-cap .card h2 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin: 0 0 12px; color: var(--text); }
+#tab-creditos-cap .card h2 .muted { color: var(--text-faint); font-weight: 400; font-family: var(--font-body); }
+#tab-creditos-cap .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 12px; margin-bottom: 16px; }
+#tab-creditos-cap .kpi {
+  background: var(--asphalt-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px 16px 14px; position: relative; overflow: hidden;
+}
+#tab-creditos-cap .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--yellow); }
+#tab-creditos-cap .kpi .label { color: var(--text-faint); font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+#tab-creditos-cap .kpi .value { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--text); line-height: 1; }
+#tab-creditos-cap .kpi .sub { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; }
+#tab-creditos-cap .po-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 12px; }
+#tab-creditos-cap .po-card { background: var(--asphalt-2); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+#tab-creditos-cap .po-card .po-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+#tab-creditos-cap .po-card .po-head .num { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; color: var(--text); }
+#tab-creditos-cap .po-card .po-head .price { color: var(--text-faint); font-family: var(--font-mono); font-size: 11.5px; }
+#tab-creditos-cap .po-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-dim); margin: 3px 0; }
+#tab-creditos-cap .po-row b { color: var(--text); font-weight: 600; }
+#tab-creditos-cap .bar-track { height: 8px; border-radius: 4px; background: var(--asphalt-3); overflow: hidden; margin: 8px 0 6px; position: relative; }
+#tab-creditos-cap .bar-fill { height: 100%; background: var(--yellow); border-radius: 4px 0 0 4px; }
+#tab-creditos-cap .badge { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 20px; letter-spacing: .02em; }
+#tab-creditos-cap .badge.low { background: rgba(208,59,59,.18); color: var(--red); }
+#tab-creditos-cap .badge.ok { background: rgba(12,163,12,.15); color: var(--teal); }
+#tab-creditos-cap table { width: 100%; border-collapse: collapse; font-size: 12.6px; }
+#tab-creditos-cap thead th {
+  text-align: left; color: var(--text-faint); font-family: var(--font-mono); font-weight: 600; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: .04em; padding: 11px 12px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; background: var(--asphalt-2); white-space: nowrap;
+}
+#tab-creditos-cap thead th.num, #tab-creditos-cap td.num { text-align: right; }
+#tab-creditos-cap tbody td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.04); color: var(--text); }
+#tab-creditos-cap tbody tr:hover { background: var(--asphalt-3); }
+#tab-creditos-cap .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--asphalt-2); }
+#tab-creditos-cap .row-actions button { border: none; background: transparent; cursor: pointer; color: var(--text-dim); font-size: 13px; padding: 3px 6px; border-radius: 6px; }
+#tab-creditos-cap .row-actions button:hover { background: var(--asphalt-3); color: var(--yellow); }
+#tab-creditos-cap .row-actions button.danger:hover { color: var(--red); }
+#tab-creditos-cap .empty-row td { text-align: center; color: var(--text-faint); padding: 24px; }
+#tab-creditos-cap .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; justify-content: space-between; }
+#tab-creditos-cap .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#tab-creditos-cap .filters input, #tab-creditos-cap .filters select { font-size: 12.5px; padding: 7px 9px; }
+#tab-creditos-cap input, #tab-creditos-cap select {
+  background: var(--asphalt-3); color: var(--text); border: 1px solid var(--line);
+  border-radius: 5px; padding: 8px 10px; font-size: 13px; font-family: var(--font-body);
+}
+#tab-creditos-cap input:focus, #tab-creditos-cap select:focus { outline: 2px solid var(--yellow-dim); outline-offset: 1px; }
+#tab-creditos-cap label { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); display: block; margin-bottom: 4px; font-weight: 500; }
+#tab-creditos-cap .field { margin-bottom: 10px; }
+#tab-creditos-cap .field-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 10px; }
+#tab-creditos-cap button.btn {
+  font-family: var(--font-body); font-weight: 600; font-size: 12.8px;
+  border: 1px solid var(--line); background: var(--asphalt-2); color: var(--text);
+  padding: 8px 13px; border-radius: 6px; cursor: pointer; transition: background .15s, border-color .15s;
+}
+#tab-creditos-cap button.btn:hover { background: var(--asphalt-3); border-color: var(--text-faint); }
+#tab-creditos-cap button.btn.primary { background: var(--yellow); color: #1A1E24; border-color: var(--yellow); }
+#tab-creditos-cap button.btn.primary:hover { background: #ffd75c; }
+#tab-creditos-cap button.btn.small { padding: 6px 10px; font-size: 12px; }
+#tab-creditos-cap button.btn.danger:hover { border-color: var(--red); color: var(--red); }
+#tab-creditos-cap .modal-backdrop { display:none; position:fixed; inset:0; background: rgba(0,0,0,.6); z-index:50; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+#tab-creditos-cap .modal-backdrop.open { display:flex; }
+#tab-creditos-cap .modal { background: var(--asphalt-2); border: 1px solid var(--line); border-top: 3px solid var(--yellow); border-radius: 10px; padding: 20px; width:100%; max-width:480px; }
+#tab-creditos-cap .modal h3 { font-family: var(--font-display); font-size: 16px; font-weight:600; margin:0 0 14px; color: var(--text); }
+#tab-creditos-cap .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+#tab-creditos-cap .hint { color: var(--text-faint); font-size: 12px; line-height: 1.5; }
+#tab-creditos-cap .note {
+  background: var(--asphalt-2); border: 1px solid var(--line); border-left: 3px solid var(--yellow);
+  border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px;
+}
+#tab-creditos-cap .note b { color: var(--text); }
+#tab-creditos-cap .toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--asphalt-3); border: 1px solid var(--line); color: var(--text); padding: 10px 18px;
+  border-radius: 999px; font-family: var(--font-mono); font-size: 12.5px; z-index:60; opacity:0; pointer-events:none;
+  transition: opacity .2s, transform .2s;
+}
+#tab-creditos-cap .toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
+#tab-creditos-cap .bar-chart { display:flex; flex-direction:column; gap:10px; }
+#tab-creditos-cap .bar-chart .bc-row { display:grid; grid-template-columns: 130px 1fr 90px; align-items:center; gap:10px; }
+#tab-creditos-cap .bar-chart .bc-label { font-size:12.5px; color: var(--text-dim); text-align:right; }
+#tab-creditos-cap .bar-chart .bc-track { background: var(--asphalt-3); border-radius:4px; height:20px; position:relative; overflow:hidden; }
+#tab-creditos-cap .bar-chart .bc-fill { background: var(--yellow); height:100%; border-radius:4px; min-width:2px; }
+#tab-creditos-cap .bar-chart .bc-value { font-family: var(--font-mono); font-size:12.5px; text-align:right; color: var(--text); font-weight:600; }
+#tab-creditos-cap .sparkline-wrap { width:100%; overflow-x:auto; }
+#tab-creditos-cap svg.spark { display:block; }
+#tab-creditos-cap .spark .line { fill:none; stroke: var(--yellow); stroke-width:2; }
+#tab-creditos-cap .spark .area { fill: var(--yellow); opacity:.12; }
+#tab-creditos-cap .spark .dot { fill: var(--yellow); }
+#tab-creditos-cap .spark .axis-text { fill: var(--text-faint); font-size:10px; font-family: var(--font-mono); }
+#tab-creditos-cap .spark .gridline { stroke: var(--line); stroke-width:1; }
+#tab-creditos-cap .spark .baseline { stroke: var(--text-faint); stroke-width:1; }
+#tab-creditos-cap .tooltip-box {
+  position:absolute; background: var(--asphalt-3); border:1px solid var(--line); color: var(--text);
+  font-family: var(--font-mono); font-size:11.5px; padding:6px 9px; border-radius:7px; pointer-events:none;
+  opacity:0; transition: opacity .1s; z-index:30; white-space:nowrap;
+}
+#tab-creditos-cap .tooltip-box.show { opacity:1; }
+#tab-creditos-cap footer.appfoot { text-align:center; color: var(--text-faint); font-family: var(--font-mono); font-size:11.5px; padding:24px; }
+#tab-creditos-cap .attach-box { border: 1.5px dashed var(--yellow-dim); border-radius:8px; padding:12px; margin-bottom:14px; background: var(--asphalt-2); transition: border-color .15s; }
+#tab-creditos-cap .attach-box:hover { border-color: var(--yellow); }
+#tab-creditos-cap .attach-box .attach-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+#tab-creditos-cap .attach-box .attach-label { font-size:12.5px; font-weight:600; color: var(--text); flex:1 1 auto; min-width:160px; }
+#tab-creditos-cap .attach-box input[type="file"] { font-size:12px; max-width:220px; color: var(--text-dim); }
+#tab-creditos-cap .attach-status { font-size:12px; margin-top:8px; color: var(--text-dim); }
+#tab-creditos-cap .attach-status.busy { color: var(--yellow); }
+#tab-creditos-cap .attach-status.error { color: var(--red); }
+#tab-creditos-cap .extract-report { margin-top:10px; display:none; }
+#tab-creditos-cap .extract-report.show { display:block; }
+#tab-creditos-cap .extract-report ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+#tab-creditos-cap .extract-report li { font-size:12px; display:flex; gap:6px; align-items:flex-start; }
+#tab-creditos-cap .extract-report li .ico { flex:0 0 auto; }
+#tab-creditos-cap .extract-report li.found .ico { color: var(--teal); }
+#tab-creditos-cap .extract-report li.missing .ico { color: var(--text-faint); }
+#tab-creditos-cap .extract-report .snippet { color: var(--text-faint); }
+#tab-creditos-cap .extract-toggle { background:none; border:none; color: var(--yellow); font-size:11.5px; cursor:pointer; padding:6px 0 0; }
+#tab-creditos-cap .extract-raw { display:none; margin-top:6px; max-height:140px; overflow-y:auto; background: var(--asphalt-3); border:1px solid var(--line); border-radius:8px; padding:8px; font-family: var(--font-mono); font-size:11px; color: var(--text-faint); white-space:pre-wrap; }
+#tab-creditos-cap .extract-raw.show { display:block; }
+#tab-creditos-cap .attach-filename { font-size:11.5px; color: var(--text-faint); margin-top:4px; }
+@media (max-width:640px) {
+#tab-creditos-cap .cap-subtabs { padding:0; }
+#tab-creditos-cap .bar-chart .bc-row { grid-template-columns:90px 1fr 70px; }
+}
 </style>
 </head>
 <body>
@@ -1052,7 +1212,14 @@ footer.appfoot{
     </div>
     <button class="tab-btn" data-tab="prazoinsumos">Entrega Insumos Críticos <span class="count-pill" id="countPrazoInsumos">0</span></button>
     <button class="tab-btn" data-tab="cotacoes">Cotação de Insumos Críticos</button>
-    <button class="tab-btn gestor-credito-only" data-tab="creditos">Controle de Crédito</button>
+    <div class="nav-group gestor-credito-only" data-group="creditos">
+      <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="creditos-dashboard">Controle de Crédito <span class="nav-caret">▾</span></button>
+      <div class="nav-submenu">
+        <button class="tab-btn gestor-credito-only" data-tab="creditos-dashboard">Dashboard</button>
+        <button class="tab-btn gestor-credito-only" data-tab="creditos">Crédito entre Obras</button>
+        <button class="tab-btn gestor-credito-only" data-tab="creditos-cap">CAP</button>
+      </div>
+    </div>
     <button class="tab-btn" data-tab="admin">🔐 Administração</button>
   </nav>
 
@@ -1567,7 +1734,21 @@ footer.appfoot{
     <div class="view-panel" data-view-panel="tabela" id="piViewTabela"></div>
   </section>
 
-  <!-- ===================== CONTROLE DE CRÉDITO ===================== -->
+  <!-- ===================== CONTROLE DE CRÉDITO · DASHBOARD ===================== -->
+  <section class="tab-panel" id="tab-creditos-dashboard">
+    <div class="section-head">
+      <h2>Controle de Crédito <span class="eyebrow" style="display:block;font-size:11px;margin-top:2px;">Visão consolidada</span></h2>
+    </div>
+    <div class="note" style="background:var(--surface,var(--asphalt-2));border:1px solid var(--line);border-left:3px solid var(--gold,var(--yellow));border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--text-mut,var(--text-dim));line-height:1.6;margin-bottom:16px;">
+      Resumo dos dois controles agrupados aqui: <b>Crédito entre Obras</b> (créditos lançados entre empresas/obras e seu abatimento por pedidos) e <b>CAP</b> (saldo de cimento asfáltico por pedido de compra, entregas, devoluções e estoque).
+    </div>
+    <p class="eyebrow" style="margin:0 0 10px;">Crédito entre Obras</p>
+    <div class="kpi-grid" id="creditosDashKpiGridCredito"></div>
+    <p class="eyebrow" style="margin:20px 0 10px;">CAP · Cimento Asfáltico de Petróleo</p>
+    <div class="kpi-grid" id="creditosDashKpiGridCap"></div>
+  </section>
+
+  <!-- ===================== CONTROLE DE CRÉDITO · CRÉDITO ENTRE OBRAS ===================== -->
   <section class="tab-panel" id="tab-creditos">
     <div class="credito-tabs no-print" role="tablist">
       <button class="credito-tab-btn active" data-ctab="lista" role="tab">Créditos</button>
@@ -1726,6 +1907,350 @@ footer.appfoot{
         <button class="ghost" id="auditoria-btnLoadMore" style="margin-top:12px;">Carregar mais</button>
       </div>
     </div>
+  </section>
+
+  <!-- ===================== CONTROLE DE CRÉDITO · CAP ===================== -->
+  <section class="tab-panel" id="tab-creditos-cap">
+<div class="section-head">
+  <div>
+    <p class="eyebrow">Suprimentos &middot; CAP Asfalto</p>
+    <h2 style="margin:0;">Controle de Saldo &mdash; CAP <span style="color:var(--text-faint);font-weight:400;">(Cimento Asfáltico de Petróleo)</span></h2>
+    <p class="hint" style="margin:4px 0 0;">Cadastro de pedidos de compra, entregas, devoluções e saldo em tempo real</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn" id="btnExportJson">&#8681; Backup (JSON)</button>
+    <label class="btn" style="margin:0;">&#8679; Importar<input type="file" id="importFile" accept=".json" style="display:none;"></label>
+    <button class="btn primary" id="btnExportXlsx">&#128202; Exportar Excel</button>
+    <button class="btn primary" id="btnGerarRelatorio">&#128424; Gerar Relatório</button>
+  </div>
+</div>
+
+<nav class="cap-subtabs">
+  <button data-view="dashboard" class="active">Dashboard</button>
+  <button data-view="pedidos">Pedidos de Compra</button>
+  <button data-view="entregas">Entregas</button>
+  <button data-view="devolucoes">Devoluções / Estorno</button>
+  <button data-view="estoque">Estoque</button>
+  <button data-view="resumo">Resumo por Obra</button>
+  <button data-view="dados">Dados</button>
+</nav>
+
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="view-dashboard">
+    <div class="kpi-grid" id="dashKpis"></div>
+    <div class="card">
+      <h2>Saldo por Pedido de Compra</h2>
+      <div class="po-grid" id="dashPoGrid"></div>
+    </div>
+    <div class="card">
+      <h2>Qtd. entregue por obra <span class="muted">(toneladas)</span></h2>
+      <div class="bar-chart" id="dashObraChart"></div>
+    </div>
+  </section>
+
+  <!-- PEDIDOS -->
+  <section class="view" id="view-pedidos">
+    <div class="toolbar">
+      <div class="filters">
+        <span class="hint">Pedidos de compra contratados com o fornecedor</span>
+      </div>
+      <button class="btn primary" id="btnNovoPedido">+ Novo Pedido de Compra</button>
+    </div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr>
+          <th>Pedido</th><th>Fornecedor</th><th>Preço/t</th><th class="num">Qtd. contratada</th><th class="num">Valor total</th>
+          <th class="num">Entregue líq. (t)</th><th class="num">Devolvido (t)</th><th class="num">Saldo (t)</th><th class="num">Saldo (R$)</th><th></th>
+        </tr></thead>
+        <tbody id="pedidosTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ENTREGAS -->
+  <section class="view" id="view-entregas">
+    <div class="toolbar">
+      <div class="filters">
+        <select id="filtroPedido"><option value="">Todos os pedidos</option></select>
+        <select id="filtroObra"><option value="">Todas as obras</option></select>
+        <input type="search" id="filtroBusca" placeholder="Buscar NF...">
+      </div>
+      <button class="btn primary" id="btnNovaEntrega">+ Nova Entrega</button>
+    </div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr>
+          <th>Data</th><th>Nº NF</th><th>Pedido</th><th class="num">Qtd. (t)</th><th>Local de entrega</th>
+          <th>Data entrega</th><th class="num">Valor (R$)</th><th></th>
+        </tr></thead>
+        <tbody id="entregasTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DEVOLUÇÕES / ESTORNO -->
+  <section class="view" id="view-devolucoes">
+    <div class="note">
+      Registre aqui as <b>devoluções de material</b> (obra devolve CAP ao fornecedor, geralmente com NF-e de
+      "Devolução de Venda") e os <b>estornos</b> de entregas lançadas incorretamente. Uma devolução reduz a
+      quantidade líquida entregue do pedido vinculado (o saldo a entregar volta a subir) e entra como
+      movimento positivo no Estoque. Use o botão <b>↩</b> na aba Entregas para estornar uma entrega específica
+      já pré-preenchida, ou "+ Nova Devolução / Estorno" para lançar direto aqui.
+    </div>
+    <div class="kpi-grid" id="devolucoesKpis"></div>
+    <div class="toolbar">
+      <div class="filters">
+        <span class="hint">Devoluções ao fornecedor e estornos de entregas</span>
+      </div>
+      <button class="btn primary" id="btnNovaDevolucao">+ Nova Devolução / Estorno</button>
+    </div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr>
+          <th>Data</th><th>Nº NF devolução</th><th>Pedido</th><th>Entrega estornada</th>
+          <th class="num">Qtd. devolvida (t)</th><th class="num">Valor (R$)</th><th>Local</th><th>Motivo</th><th></th>
+        </tr></thead>
+        <tbody id="devolucoesTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ESTOQUE -->
+  <section class="view" id="view-estoque">
+    <div class="note">
+      Saldo físico combinado em estoque: soma das quantidades recebidas dos pedidos de compra, menos as
+      quantidades já entregues às obras, mais as devoluções recebidas de volta, em ordem cronológica —
+      equivalente à coluna <b>“Saldo Quant. (t)”</b> da planilha original.
+    </div>
+    <div class="card">
+      <h2>Evolução do saldo em estoque (t)</h2>
+      <div class="sparkline-wrap"><svg class="spark" id="estoqueSpark"></svg></div>
+    </div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr>
+          <th>Data</th><th>Evento</th><th class="num">Movimento (t)</th><th class="num">Saldo resultante (t)</th><th class="num">Saldo resultante (R$)</th>
+        </tr></thead>
+        <tbody id="estoqueTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RESUMO POR OBRA -->
+  <section class="view" id="view-resumo">
+    <div class="kpi-grid" id="resumoKpis"></div>
+    <div class="card">
+      <h2>Qtd. entregue por obra <span class="muted">(toneladas)</span></h2>
+      <div class="bar-chart" id="resumoChartQtd"></div>
+    </div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr>
+          <th>Obra / Local de entrega</th><th class="num">Nº de entregas</th><th class="num">Qtd. líquida (t)</th>
+          <th class="num">Devolvido (t)</th><th class="num">Valor líquido (R$)</th><th class="num">% do total</th>
+        </tr></thead>
+        <tbody id="resumoTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DADOS -->
+  <section class="view" id="view-dados">
+    <div class="note">
+      <b>Este aplicativo não salva dados automaticamente no navegador.</b> Todas as informações ficam em
+      memória enquanto a página está aberta. Para não perder o que você cadastrar:
+      <br>1) Clique em <b>“Baixar backup (JSON)”</b> sempre que terminar de editar — isso salva um arquivo no seu computador.
+      <br>2) Na próxima vez que abrir o app, clique em <b>“Importar backup (JSON)”</b> e selecione esse arquivo para continuar de onde parou.
+      <br>Use <b>“Exportar Excel”</b> a qualquer momento para gerar uma planilha .xlsx para compartilhar ou arquivar.
+    </div>
+    <div class="card">
+      <h2>Backup e restauração</h2>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn primary" id="btnExportJson2">⬇ Baixar backup (JSON)</button>
+        <label class="btn" style="margin:0;">⬆ Importar backup (JSON)
+          <input type="file" id="importFile2" accept=".json" style="display:none;">
+        </label>
+        <button class="btn" id="btnExportXlsx2">📊 Exportar Excel (.xlsx)</button>
+        <button class="btn danger" id="btnResetData">↺ Restaurar dados de exemplo</button>
+        <button class="btn danger" id="btnClearData">🗑 Limpar tudo</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Resumo dos dados atuais</h2>
+      <div id="dadosResumo" class="hint"></div>
+    </div>
+  </section>
+
+
+<!-- MODAL PEDIDO -->
+<div class="modal-backdrop" id="modalPedido">
+  <div class="modal">
+    <h3 id="modalPedidoTitle">Novo Pedido de Compra</h3>
+    <input type="hidden" id="pedidoEditId">
+
+    <div class="attach-box">
+      <div class="attach-row">
+        <span class="attach-label">📎 Anexar Pedido de Compra (PDF) e preencher automaticamente</span>
+        <input type="file" id="pedidoAnexo" accept="application/pdf">
+      </div>
+      <div class="attach-status" id="pedidoAnexoStatus"></div>
+      <div class="extract-report" id="pedidoAnexoReport"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Número do pedido</label>
+        <input type="text" id="pedidoNumero" placeholder="Ex: 55607">
+      </div>
+      <div class="field">
+        <label>Fornecedor</label>
+        <input type="text" id="pedidoFornecedor" placeholder="Ex: CBAA" list="fornecedorList">
+        <datalist id="fornecedorList"></datalist>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Qtd. contratada (t)</label>
+        <input type="number" id="pedidoQtd" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label>Preço por tonelada (R$/t)</label>
+        <input type="number" id="pedidoPreco" step="0.01" min="0" placeholder="0,00">
+      </div>
+    </div>
+    <div class="field">
+      <label>Data de recebimento <span class="hint">(opcional)</span></label>
+      <input type="date" id="pedidoDataRecebimento">
+    </div>
+    <div class="hint" id="pedidoValorPreview" style="margin-top:2px;"></div>
+    <div class="modal-actions">
+      <button class="btn" data-close="modalPedido">Cancelar</button>
+      <button class="btn primary" id="btnSalvarPedido">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENTREGA -->
+<div class="modal-backdrop" id="modalEntrega">
+  <div class="modal">
+    <h3 id="modalEntregaTitle">Nova Entrega</h3>
+    <input type="hidden" id="entregaEditId">
+
+    <div class="attach-box">
+      <div class="attach-row">
+        <span class="attach-label">📎 Anexar Nota Fiscal (PDF) e preencher automaticamente</span>
+        <input type="file" id="entregaAnexo" accept="application/pdf">
+      </div>
+      <div class="attach-status" id="entregaAnexoStatus"></div>
+      <div class="extract-report" id="entregaAnexoReport"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Data do registro</label>
+        <input type="date" id="entregaData">
+      </div>
+      <div class="field">
+        <label>Nº da NF</label>
+        <input type="text" id="entregaNf" placeholder="Ex: 8071">
+      </div>
+    </div>
+    <div class="field">
+      <label>Pedido de compra vinculado</label>
+      <select id="entregaPedido"></select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Qtd. entregue (t)</label>
+        <input type="number" id="entregaQtd" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label>Valor (R$)</label>
+        <input type="number" id="entregaValor" step="0.01" min="0" placeholder="0,00">
+      </div>
+    </div>
+    <div class="field">
+      <label>Local de entrega (obra)</label>
+      <input type="text" id="entregaLocal" placeholder="Ex: Portel - PA" list="obraList">
+      <datalist id="obraList"></datalist>
+    </div>
+    <div class="field">
+      <label>Data de entrega</label>
+      <input type="date" id="entregaDataEntrega">
+    </div>
+    <div class="hint" id="entregaSaldoPreview" style="margin-top:2px;"></div>
+    <div class="modal-actions">
+      <button class="btn" data-close="modalEntrega">Cancelar</button>
+      <button class="btn primary" id="btnSalvarEntrega">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DEVOLUÇÃO / ESTORNO -->
+<div class="modal-backdrop" id="modalDevolucao">
+  <div class="modal">
+    <h3 id="modalDevolucaoTitle">Nova Devolução / Estorno</h3>
+    <input type="hidden" id="devolucaoEditId">
+
+    <div class="attach-box">
+      <div class="attach-row">
+        <span class="attach-label">📎 Anexar NF-e de Devolução (PDF) e preencher automaticamente</span>
+        <input type="file" id="devolucaoAnexo" accept="application/pdf">
+      </div>
+      <div class="attach-status" id="devolucaoAnexoStatus"></div>
+      <div class="extract-report" id="devolucaoAnexoReport"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Data do registro</label>
+        <input type="date" id="devolucaoData">
+      </div>
+      <div class="field">
+        <label>Nº da NF de devolução</label>
+        <input type="text" id="devolucaoNf" placeholder="Ex: 8207">
+      </div>
+    </div>
+    <div class="field">
+      <label>Pedido de compra vinculado</label>
+      <select id="devolucaoPedido"></select>
+    </div>
+    <div class="field">
+      <label>Entrega original estornada <span class="hint">(opcional — deixe em branco se a devolução não corresponder a uma entrega específica)</span></label>
+      <select id="devolucaoEntrega"></select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Qtd. devolvida (t)</label>
+        <input type="number" id="devolucaoQtd" step="0.01" min="0" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label>Valor (R$)</label>
+        <input type="number" id="devolucaoValor" step="0.01" min="0" placeholder="0,00">
+      </div>
+    </div>
+    <div class="field">
+      <label>Local / obra de origem da devolução</label>
+      <input type="text" id="devolucaoLocal" placeholder="Ex: Benevides - PA" list="obraList">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Data da devolução</label>
+        <input type="date" id="devolucaoDataDevolucao">
+      </div>
+      <div class="field">
+        <label>Motivo <span class="hint">(opcional)</span></label>
+        <input type="text" id="devolucaoMotivo" placeholder="Ex: excesso de material na obra">
+      </div>
+    </div>
+    <div class="hint" id="devolucaoSaldoPreview" style="margin-top:2px;"></div>
+    <div class="modal-actions">
+      <button class="btn" data-close="modalDevolucao">Cancelar</button>
+      <button class="btn primary" id="btnSalvarDevolucao">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="tooltip-box" id="tooltipBox"></div>
   </section>
 
   <!-- ===================== ADMINISTRAÇÃO ===================== -->
@@ -4129,7 +4654,8 @@ function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); re
    10. TABS + FILTER BINDINGS
    ============================================================ */
 var navTabGroupMap = {
-  overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos'
+  overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos',
+  'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos'
 };
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', (ev)=>{
@@ -4138,6 +4664,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.classList.add('active');
     var targetTab = btn.getAttribute('data-tab');
     document.getElementById('tab-'+targetTab).classList.add('active');
+    if(targetTab === 'creditos-dashboard' && typeof renderCreditosDashboard === 'function') renderCreditosDashboard();
 
     var groupName = navTabGroupMap[targetTab];
     document.querySelectorAll('.nav-group').forEach(function(g){
@@ -5631,12 +6158,46 @@ function renderCreditoKpis(lista){
   `;
 }
 
+/* ============================================================
+   CONTROLE DE CRÉDITO — DASHBOARD CONSOLIDADO
+   Reúne os valores dos dois sub-menus (Crédito entre Obras e CAP)
+   em um único painel de KPIs. É chamado sempre que os créditos são
+   recarregados/renderizados (renderCreditos) e sempre que o app CAP
+   embutido recalcula seus próprios totais (via window.CAP.getSummary,
+   exposto pelo script do CAP em #tab-creditos-cap).
+   ============================================================ */
+function renderCreditosDashboard(){
+  const gridCredito = document.getElementById('creditosDashKpiGridCredito');
+  const gridCap = document.getElementById('creditosDashKpiGridCap');
+  if(!gridCredito || !gridCap) return;
+
+  const totalLancado = creditos.reduce((s,c)=>s+c.valorTotal,0);
+  const totalAbatido = creditos.reduce((s,c)=>s+creditoAbatido(c.id),0);
+  const saldoDisponivel = totalLancado - totalAbatido;
+  const comSaldo = creditos.filter(c=>creditoSaldo(c)>0.005).length;
+
+  gridCredito.innerHTML = `
+    <div class="kpi-card c-total"><p class="kpi-label">Total lançado</p><div class="kpi-value">R$ ${fmtMoney(totalLancado)}</div><p class="kpi-foot">${creditos.length} crédito(s)</p></div>
+    <div class="kpi-card c-ped"><p class="kpi-label">Total abatido</p><div class="kpi-value">R$ ${fmtMoney(totalAbatido)}</div><p class="kpi-foot">${vinculosCredito.length} vínculo(s)</p></div>
+    <div class="kpi-card c-crit"><p class="kpi-label">Saldo disponível</p><div class="kpi-value">R$ ${fmtMoney(saldoDisponivel)}</div><p class="kpi-foot">${comSaldo} obra(s) com saldo</p></div>
+  `;
+
+  const cap = (window.CAP && typeof window.CAP.getSummary === 'function') ? window.CAP.getSummary() : null;
+  gridCap.innerHTML = cap ? `
+    <div class="kpi-card c-solic"><p class="kpi-label">Saldo a entregar</p><div class="kpi-value">${cap.saldoQtdFmt}</div><p class="kpi-foot">${cap.saldoValorFmt}</p></div>
+    <div class="kpi-card c-crit"><p class="kpi-label">Estoque físico atual</p><div class="kpi-value">${cap.estoqueAtualFmt}</div><p class="kpi-foot">saldo combinado em tanque</p></div>
+    <div class="kpi-card c-ped"><p class="kpi-label">Devolvido / estornado</p><div class="kpi-value">${cap.devolvidoFmt}</div><p class="kpi-foot">${cap.devolucoesCount} devolução(ões)</p></div>
+    <div class="kpi-card c-total"><p class="kpi-label">Entregue (líquido)</p><div class="kpi-value">${cap.entregueLiquidoFmt}</div><p class="kpi-foot">${cap.pedidosCount} pedido(s) · ${cap.entregasCount} entrega(s)</p></div>
+  ` : `<div class="kpi-card"><p class="kpi-label">CAP</p><div class="kpi-value" style="font-size:14px;color:var(--text-faint);">carregando…</div></div>`;
+}
+
 function renderCreditos(){
   if(!document.getElementById('tab-creditos')) return;
   populateCreditoDatalists();
 
   const lista = getCreditosFiltrados();
   renderCreditoKpis(lista);
+  renderCreditosDashboard();
 
   const badge = document.getElementById('creditoCountBadge');
   if(badge) badge.textContent = `${lista.length} crédito(s)`;
@@ -6364,6 +6925,1604 @@ init();
     refreshAuthUI();
   });
   refreshAuthUI();
+})();
+</script>
+
+<!-- ===================== CAP (Controle de Saldo CAP) — script isolado em IIFE, embutido em #tab-creditos-cap ===================== -->
+<script>
+(function () {
+/* ============ FORMATTERS ============ */
+const fmtT = n => (Number(n)||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' t';
+const fmtNum = n => (Number(n)||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtR = n => (Number(n)||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const fmtDate = iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
+const todayIso = () => new Date().toISOString().slice(0,10);
+let uidCounter = 1;
+const uid = () => 'id' + (uidCounter++) + '_' + Math.floor(Math.random()*1e6);
+
+/* ============ SEED DATA (from planilha SALDO_CAP.xlsx) ============ */
+function seedData() {
+  const pedidos = [
+    { id: 'p55607', numero: '55607', fornecedor: '', qtdContratada: 400, precoTon: 6200, dataRecebimento: null },
+    { id: 'p56587', numero: '56587', fornecedor: '', qtdContratada: 500, precoTon: 6150, dataRecebimento: '2026-08-11' },
+  ];
+  const entregas = [
+    { id: uid(), data:'2026-07-30', nf:'7974', pedidoId:'p55607', qtd:38.31, local:'Benevides - PA', dataEntrega:'2026-07-24', valor:237522 },
+    { id: uid(), data:'2026-08-03', nf:'8012', pedidoId:'p55607', qtd:30.41, local:'ATL Xingu - PA', dataEntrega:'2026-08-04', valor:188542 },
+    { id: uid(), data:'2026-08-04', nf:'8017', pedidoId:'p55607', qtd:35.52, local:'Benevides - PA', dataEntrega:'2026-08-05', valor:220224 },
+    { id: uid(), data:'2026-08-06', nf:'8037', pedidoId:'p55607', qtd:38.77, local:'Portel - PA', dataEntrega:'2026-08-08', valor:240374 },
+    { id: uid(), data:'2026-08-06', nf:'8036', pedidoId:'p55607', qtd:35.36, local:'Portel - PA', dataEntrega:'2026-08-08', valor:219232 },
+    { id: uid(), data:'2026-08-06', nf:'8035', pedidoId:'p55607', qtd:38.71, local:'Portel - PA', dataEntrega:'2026-08-08', valor:240002 },
+    { id: uid(), data:'2026-08-07', nf:'8054', pedidoId:'p55607', qtd:31.67, local:'Portel - PA', dataEntrega:'2026-08-10', valor:196354 },
+    { id: uid(), data:'2026-08-07', nf:'8051', pedidoId:'p55607', qtd:32.95, local:'Portel - PA', dataEntrega:'2026-08-10', valor:204290 },
+    { id: uid(), data:'2026-08-07', nf:'8062', pedidoId:'p55607', qtd:34.20, local:'Benevides - PA', dataEntrega:'2026-08-10', valor:212040 },
+    { id: uid(), data:'2026-08-10', nf:'8071', pedidoId:'p55607', qtd:29.54, local:'ATL Xingu - PA', dataEntrega:'2026-08-12', valor:183148 },
+    { id: uid(), data:'2026-08-11', nf:'8089', pedidoId:'p56587', qtd:38.83, local:'Portel - PA', dataEntrega:'2026-08-14', valor:238804.5 },
+    { id: uid(), data:'2026-08-11', nf:'8088', pedidoId:'p56587', qtd:23.90, local:'Portel - PA', dataEntrega:'2026-08-14', valor:146985 },
+    { id: uid(), data:'2026-08-11', nf:'8087', pedidoId:'p55607', qtd:15.02, local:'Portel - PA', dataEntrega:'2026-08-14', valor:93124 },
+    { id: uid(), data:'2026-08-11', nf:'8086', pedidoId:'p56587', qtd:31.48, local:'Portel - PA', dataEntrega:'2026-08-14', valor:193602 },
+    { id: uid(), data:'2026-08-11', nf:'8084', pedidoId:'p55607', qtd:38.98, local:'Portel - PA', dataEntrega:'2026-08-14', valor:241676 },
+  ];
+  const entrega8062 = entregas.find(e => e.nf === '8062');
+  const devolucoes = [
+    { id: uid(), data:'2026-08-25', nf:'8207', pedidoId:'p55607', entregaId: entrega8062 ? entrega8062.id : null,
+      qtd:1.06, valor:6572, local:'Benevides - PA', dataDevolucao:'2026-08-25', motivo:'Devolução de venda (NF-e 8207)' },
+  ];
+  return { pedidos, entregas, devolucoes };
+}
+
+let state = seedData();
+
+/* ============ DERIVED CALCS ============ */
+function pedidoById(id) { return state.pedidos.find(p => p.id === id); }
+
+function entregasDoPedido(pedidoId) {
+  return state.entregas.filter(e => e.pedidoId === pedidoId);
+}
+
+function devolucoesDoPedido(pedidoId) {
+  return (state.devolucoes||[]).filter(d => d.pedidoId === pedidoId);
+}
+
+function devolvidoQtdDaEntrega(entregaId, ignorarDevolucaoId) {
+  return (state.devolucoes||[])
+    .filter(d => d.entregaId === entregaId && d.id !== ignorarDevolucaoId)
+    .reduce((s,d) => s + Number(d.qtd||0), 0);
+}
+
+function pedidoStats(p) {
+  const ents = entregasDoPedido(p.id);
+  const devs = devolucoesDoPedido(p.id);
+  const entregueQtdBruto = ents.reduce((s,e) => s + Number(e.qtd||0), 0);
+  const entregueValorBruto = ents.reduce((s,e) => s + Number(e.valor||0), 0);
+  const devolvidoQtd = devs.reduce((s,d) => s + Number(d.qtd||0), 0);
+  const devolvidoValor = devs.reduce((s,d) => s + Number(d.valor||0), 0);
+  const entregueQtd = entregueQtdBruto - devolvidoQtd;
+  const entregueValor = entregueValorBruto - devolvidoValor;
+  const valorTotal = p.qtdContratada * p.precoTon;
+  const saldoQtd = p.qtdContratada - entregueQtd;
+  const saldoValor = valorTotal - entregueValor;
+  const pct = p.qtdContratada > 0 ? Math.min(100, (entregueQtd / p.qtdContratada) * 100) : 0;
+  return { entregueQtdBruto, entregueValorBruto, devolvidoQtd, devolvidoValor, entregueQtd, entregueValor, valorTotal, saldoQtd, saldoValor, pct };
+}
+
+function estoqueLedger() {
+  // Combine receipts (pedidos with dataRecebimento) and deliveries into one chronological ledger.
+  // Pedidos without a dataRecebimento are treated as already in stock (opening balance).
+  const opening = state.pedidos
+    .filter(p => !p.dataRecebimento)
+    .reduce((s,p) => s + Number(p.qtdContratada||0), 0);
+
+  const events = [];
+  state.pedidos.filter(p => p.dataRecebimento).forEach(p => {
+    events.push({ data: p.dataRecebimento, tipo: 'Recebimento', desc: `Recebimento Pedido ${p.numero}`, mov: Number(p.qtdContratada||0), order: 0 });
+  });
+  state.entregas.forEach(e => {
+    const p = pedidoById(e.pedidoId);
+    events.push({ data: e.data, tipo: 'Entrega', desc: `NF ${e.nf} · ${e.local}${p ? ' · Pedido '+p.numero : ''}`, mov: -Number(e.qtd||0), order: 1 });
+  });
+  (state.devolucoes||[]).forEach(d => {
+    const p = pedidoById(d.pedidoId);
+    const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+    events.push({
+      data: d.data, tipo: 'Devolução',
+      desc: `Devolução NF ${d.nf || '—'}${entOrig ? ' · estorno da NF '+entOrig.nf : ''} · ${d.local || 'sem local'}${p ? ' · Pedido '+p.numero : ''}`,
+      mov: Number(d.qtd||0), order: 2
+    });
+  });
+  events.sort((a,b) => {
+    if (a.data === b.data) return a.order - b.order;
+    return (a.data || '') < (b.data || '') ? -1 : 1;
+  });
+
+  let saldo = opening;
+  let saldoValor = state.pedidos.filter(p=>!p.dataRecebimento).reduce((s,p)=>s+p.qtdContratada*p.precoTon,0);
+  // approximate R$ value per ton using weighted avg price of stock currently "in": simplistic FIFO not tracked, so
+  // we show R$ saldo per event using the price of the pedido tied to that movement.
+  const rows = [];
+  if (opening > 0) {
+    rows.push({ data: null, tipo: 'Saldo inicial', desc: 'Estoque já disponível antes do período', mov: opening, saldo, saldoValor });
+  }
+  events.forEach(ev => {
+    saldo += ev.mov;
+    // find price context: if entrega, subtract at that pedido's price; if recebimento, add at pedido's price
+    let priceMov = 0;
+    if (ev.tipo === 'Recebimento') {
+      const p = state.pedidos.find(pp => ev.desc.includes(pp.numero) && pp.dataRecebimento === ev.data);
+      priceMov = p ? ev.mov * p.precoTon : 0;
+    } else if (ev.tipo === 'Devolução') {
+      const match = (state.devolucoes||[]).find(d => ev.desc.startsWith('Devolução NF ' + (d.nf || '—')));
+      const p = match ? pedidoById(match.pedidoId) : null;
+      priceMov = (match && match.valor) ? Number(match.valor) : (p ? ev.mov * p.precoTon : ev.mov * 6200);
+    } else {
+      const match = state.entregas.find(e => ev.desc.startsWith('NF ' + e.nf));
+      const p = match ? pedidoById(match.pedidoId) : null;
+      priceMov = p ? ev.mov * p.precoTon : ev.mov * 6200;
+    }
+    saldoValor += priceMov;
+    rows.push({ data: ev.data, tipo: ev.tipo, desc: ev.desc, mov: ev.mov, saldo, saldoValor });
+  });
+  return rows;
+}
+
+function resumoPorObra() {
+  const map = new Map();
+  state.entregas.forEach(e => {
+    const key = e.local || '(sem local)';
+    if (!map.has(key)) map.set(key, { local: key, qtd: 0, valor: 0, count: 0, devolvidoQtd: 0, devolvidoValor: 0 });
+    const o = map.get(key);
+    o.qtd += Number(e.qtd||0);
+    o.valor += Number(e.valor||0);
+    o.count += 1;
+  });
+  (state.devolucoes||[]).forEach(d => {
+    const key = d.local || '(sem local)';
+    if (!map.has(key)) map.set(key, { local: key, qtd: 0, valor: 0, count: 0, devolvidoQtd: 0, devolvidoValor: 0 });
+    const o = map.get(key);
+    o.devolvidoQtd += Number(d.qtd||0);
+    o.devolvidoValor += Number(d.valor||0);
+    o.qtd -= Number(d.qtd||0);
+    o.valor -= Number(d.valor||0);
+  });
+  return Array.from(map.values()).sort((a,b) => b.qtd - a.qtd);
+}
+
+/* ============ RENDER: DASHBOARD ============ */
+function renderDashboard() {
+  const totalContratado = state.pedidos.reduce((s,p) => s + p.qtdContratada, 0);
+  const totalEntregue = state.entregas.reduce((s,e) => s + Number(e.qtd||0), 0);
+  const totalDevolvido = (state.devolucoes||[]).reduce((s,d) => s + Number(d.qtd||0), 0);
+  const totalSaldoQtd = state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoQtd, 0);
+  const totalSaldoValor = state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoValor, 0);
+  const ledger = estoqueLedger();
+  const estoqueAtual = ledger.length ? ledger[ledger.length-1].saldo : 0;
+
+  const kpis = [
+    { label: 'Qtd. contratada (total)', value: fmtT(totalContratado), sub: state.pedidos.length + ' pedido(s)' },
+    { label: 'Qtd. entregue (líquida)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
+    { label: 'Devolvido (total)', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
+    { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) },
+    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: 'saldo combinado em tanque' },
+  ];
+  document.getElementById('dashKpis').innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value tabular">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('dashPoGrid').innerHTML = state.pedidos.map(p => renderPoCard(p)).join('') ||
+    `<div class="hint">Nenhum pedido cadastrado.</div>`;
+
+  renderBarChart('dashObraChart', resumoPorObra().map(o => ({ label: o.local, value: o.qtd })));
+}
+
+function renderPoCard(p) {
+  const s = pedidoStats(p);
+  const low = s.pct >= 85;
+  return `
+  <div class="po-card">
+    <div class="po-head">
+      <span class="num">Pedido ${p.numero}</span>
+      <span class="price">${fmtR(p.precoTon)}/t</span>
+    </div>
+    <div class="po-row"><span>Fornecedor</span><b>${p.fornecedor ? escapeHtml(p.fornecedor) : '<span class="hint">não informado</span>'}</b></div>
+    <div class="po-row"><span>Contratado</span><b class="tabular">${fmtT(p.qtdContratada)}</b></div>
+    <div class="po-row"><span>Entregue (líquido)</span><b class="tabular">${fmtT(s.entregueQtd)}</b></div>
+    ${s.devolvidoQtd > 0 ? `<div class="po-row"><span>Devolvido</span><b class="tabular" style="color:var(--amber);">${fmtT(s.devolvidoQtd)}</b></div>` : ''}
+    <div class="bar-track"><div class="bar-fill" style="width:${s.pct.toFixed(1)}%; background:${low ? 'var(--red)' : 'var(--yellow)'};"></div></div>
+    <div class="po-row"><span>Saldo restante</span><b class="tabular">${fmtT(s.saldoQtd)}</b></div>
+    <div class="po-row"><span>Saldo (R$)</span><b class="tabular">${fmtR(s.saldoValor)}</b></div>
+    <div style="margin-top:6px;">
+      ${low ? `<span class="badge low">⚠ Saldo baixo</span>` : `<span class="badge ok">✓ Saldo disponível</span>`}
+    </div>
+  </div>`;
+}
+
+function renderBarChart(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!items.length) { el.innerHTML = `<div class="hint">Sem dados ainda.</div>`; return; }
+  const max = Math.max(...items.map(i => i.value), 0.0001);
+  el.innerHTML = items.map(i => `
+    <div class="bc-row">
+      <div class="bc-label">${escapeHtml(i.label)}</div>
+      <div class="bc-track"><div class="bc-fill" style="width:${(i.value/max*100).toFixed(1)}%"></div></div>
+      <div class="bc-value tabular">${fmtT(i.value)}</div>
+    </div>`).join('');
+}
+
+/* ============ RENDER: PEDIDOS ============ */
+function renderPedidos() {
+  const tbody = document.getElementById('pedidosTbody');
+  if (!state.pedidos.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">Nenhum pedido de compra cadastrado. Clique em “+ Novo Pedido de Compra”.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.pedidos.map(p => {
+    const s = pedidoStats(p);
+    return `<tr>
+      <td><b>${escapeHtml(p.numero)}</b>${p.anexoNome ? ` <span title="${escapeHtml(p.anexoNome)}" style="color:var(--text-faint);">📎</span>` : ''}</td>
+      <td>${p.fornecedor ? escapeHtml(p.fornecedor) : '<span class="hint">—</span>'}</td>
+      <td class="tabular">${fmtR(p.precoTon)}</td>
+      <td class="num tabular">${fmtT(p.qtdContratada)}</td>
+      <td class="num tabular">${fmtR(s.valorTotal)}</td>
+      <td class="num tabular">${fmtT(s.entregueQtd)}</td>
+      <td class="num tabular">${s.devolvidoQtd > 0 ? fmtT(s.devolvidoQtd) : '<span class="hint">—</span>'}</td>
+      <td class="num tabular">${fmtT(s.saldoQtd)}</td>
+      <td class="num tabular">${fmtR(s.saldoValor)}</td>
+      <td class="row-actions">
+        <button title="Editar" onclick="openPedidoModal('${p.id}')">✎</button>
+        <button title="Excluir" class="danger" onclick="deletePedido('${p.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============ RENDER: ENTREGAS ============ */
+function getFilteredEntregas() {
+  const pedidoF = document.getElementById('filtroPedido').value;
+  const obraF = document.getElementById('filtroObra').value;
+  const buscaF = document.getElementById('filtroBusca').value.trim().toLowerCase();
+  return state.entregas
+    .filter(e => !pedidoF || e.pedidoId === pedidoF)
+    .filter(e => !obraF || e.local === obraF)
+    .filter(e => !buscaF || (e.nf||'').toLowerCase().includes(buscaF))
+    .sort((a,b) => (b.data||'').localeCompare(a.data||''));
+}
+
+function renderEntregas() {
+  populateFilterSelects();
+  const tbody = document.getElementById('entregasTbody');
+  const list = getFilteredEntregas();
+  if (!list.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Nenhuma entrega encontrada.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(e => {
+    const p = pedidoById(e.pedidoId);
+    return `<tr>
+      <td>${fmtDate(e.data)}</td>
+      <td>${escapeHtml(e.nf||'—')}${e.anexoNome ? ` <span title="${escapeHtml(e.anexoNome)}" style="color:var(--text-faint);">📎</span>` : ''}</td>
+      <td>${p ? escapeHtml(p.numero) : '<span class="hint">—</span>'}</td>
+      <td class="num tabular">${fmtT(e.qtd)}</td>
+      <td>${escapeHtml(e.local||'—')}</td>
+      <td>${fmtDate(e.dataEntrega)}</td>
+      <td class="num tabular">${fmtR(e.valor)}</td>
+      <td class="row-actions">
+        <button title="Editar" onclick="openEntregaModal('${e.id}')">✎</button>
+        <button title="Registrar devolução / estornar" onclick="estornarEntrega('${e.id}')">↩</button>
+        <button title="Excluir" class="danger" onclick="deleteEntrega('${e.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateFilterSelects() {
+  const pedidoSel = document.getElementById('filtroPedido');
+  const curPedido = pedidoSel.value;
+  pedidoSel.innerHTML = '<option value="">Todos os pedidos</option>' +
+    state.pedidos.map(p => `<option value="${p.id}">${escapeHtml(p.numero)}</option>`).join('');
+  pedidoSel.value = curPedido;
+
+  const obraSel = document.getElementById('filtroObra');
+  const curObra = obraSel.value;
+  const obras = Array.from(new Set(state.entregas.map(e => e.local).filter(Boolean))).sort();
+  obraSel.innerHTML = '<option value="">Todas as obras</option>' +
+    obras.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+  obraSel.value = curObra;
+
+  document.getElementById('obraList').innerHTML = obras.map(o => `<option value="${escapeHtml(o)}">`).join('');
+}
+
+/* ============ RENDER: ESTOQUE ============ */
+function renderEstoque() {
+  const rows = estoqueLedger();
+  const tbody = document.getElementById('estoqueTbody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Sem movimentações.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.slice().reverse().map(r => `
+      <tr>
+        <td>${r.data ? fmtDate(r.data) : '—'}</td>
+        <td>${escapeHtml(r.desc)}</td>
+        <td class="num tabular" style="color:${r.mov < 0 ? 'var(--red)' : 'var(--teal)'}">${r.mov >= 0 ? '+' : ''}${fmtNum(r.mov)}</td>
+        <td class="num tabular"><b>${fmtT(r.saldo)}</b></td>
+        <td class="num tabular">${fmtR(r.saldoValor)}</td>
+      </tr>`).join('');
+  }
+  renderSparkline('estoqueSpark', rows);
+}
+
+function renderSparkline(svgId, rows) {
+  const svg = document.getElementById(svgId);
+  const w = Math.max(560, rows.length * 46);
+  const h = 160;
+  const padL = 46, padR = 16, padT = 14, padB = 26;
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.innerHTML = '';
+  if (!rows.length) return;
+
+  const vals = rows.map(r => r.saldo);
+  const maxV = Math.max(...vals, 1);
+  const minV = Math.min(0, ...vals);
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const x = i => padL + (rows.length === 1 ? innerW/2 : (i/(rows.length-1)) * innerW);
+  const y = v => padT + innerH - ((v - minV) / (maxV - minV || 1)) * innerH;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  // gridlines
+  for (let g = 0; g <= 4; g++) {
+    const gv = minV + (maxV - minV) * (g/4);
+    const gy = y(gv);
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', w - padR);
+    line.setAttribute('y1', gy); line.setAttribute('y2', gy);
+    line.setAttribute('class', g === 0 ? 'baseline' : 'gridline');
+    svg.appendChild(line);
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', 4); t.setAttribute('y', gy + 3); t.setAttribute('class', 'axis-text');
+    t.textContent = Math.round(gv);
+    svg.appendChild(t);
+  }
+
+  const pts = rows.map((r,i) => [x(i), y(r.saldo)]);
+  const areaPath = `M${pts[0][0]},${y(minV)} ` + pts.map(p => `L${p[0]},${p[1]}`).join(' ') + ` L${pts[pts.length-1][0]},${y(minV)} Z`;
+  const area = document.createElementNS(ns, 'path');
+  area.setAttribute('d', areaPath); area.setAttribute('class', 'area');
+  svg.appendChild(area);
+
+  const linePath = 'M' + pts.map(p => p.join(',')).join(' L');
+  const line = document.createElementNS(ns, 'path');
+  line.setAttribute('d', linePath); line.setAttribute('class', 'line');
+  svg.appendChild(line);
+
+  const tooltip = document.getElementById('tooltipBox');
+  pts.forEach((p,i) => {
+    const dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', p[0]); dot.setAttribute('cy', p[1]); dot.setAttribute('r', 4);
+    dot.setAttribute('class', 'dot');
+    dot.style.cursor = 'pointer';
+    dot.addEventListener('mousemove', (ev) => {
+      tooltip.innerHTML = `${rows[i].data ? fmtDate(rows[i].data) : 'Inicial'} · ${escapeHtml(rows[i].desc)}<br><b>${fmtT(rows[i].saldo)}</b>`;
+      tooltip.style.left = ev.pageX + 12 + 'px';
+      tooltip.style.top = ev.pageY - 12 + 'px';
+      tooltip.classList.add('show');
+    });
+    dot.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+    svg.appendChild(dot);
+
+    if (i === 0 || i === pts.length - 1 || rows.length <= 8) {
+      const t = document.createElementNS(ns, 'text');
+      t.setAttribute('x', p[0]); t.setAttribute('y', h - 6); t.setAttribute('class', 'axis-text');
+      t.setAttribute('text-anchor', 'middle');
+      t.textContent = rows[i].data ? fmtDate(rows[i].data) : 'início';
+      svg.appendChild(t);
+    }
+  });
+}
+
+/* ============ RENDER: RESUMO POR OBRA ============ */
+function renderResumo() {
+  const obras = resumoPorObra();
+  const totalQtd = obras.reduce((s,o) => s + o.qtd, 0);
+  const totalValor = obras.reduce((s,o) => s + o.valor, 0);
+
+  document.getElementById('resumoKpis').innerHTML = `
+    <div class="kpi"><div class="label">Obras atendidas</div><div class="value tabular">${obras.length}</div></div>
+    <div class="kpi"><div class="label">Qtd. total entregue</div><div class="value tabular">${fmtT(totalQtd)}</div></div>
+    <div class="kpi"><div class="label">Valor total entregue</div><div class="value tabular">${fmtR(totalValor)}</div></div>
+  `;
+
+  renderBarChart('resumoChartQtd', obras.map(o => ({ label: o.local, value: o.qtd })));
+
+  const tbody = document.getElementById('resumoTbody');
+  if (!obras.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Nenhuma entrega registrada ainda.</td></tr>`;
+  } else {
+    tbody.innerHTML = obras.map(o => `
+      <tr>
+        <td>${escapeHtml(o.local)}</td>
+        <td class="num tabular">${o.count}</td>
+        <td class="num tabular">${fmtT(o.qtd)}</td>
+        <td class="num tabular">${o.devolvidoQtd > 0 ? fmtT(o.devolvidoQtd) : '<span class="hint">—</span>'}</td>
+        <td class="num tabular">${fmtR(o.valor)}</td>
+        <td class="num tabular">${totalQtd ? (o.qtd/totalQtd*100).toFixed(1) : '0.0'}%</td>
+      </tr>`).join('');
+  }
+}
+
+/* ============ RENDER: DEVOLUÇÕES / ESTORNO ============ */
+function renderDevolucoes() {
+  const devs = (state.devolucoes||[]).slice().sort((a,b) => (b.data||'').localeCompare(a.data||''));
+  const totalQtd = devs.reduce((s,d) => s + Number(d.qtd||0), 0);
+  const totalValor = devs.reduce((s,d) => s + Number(d.valor||0), 0);
+  const comEntrega = devs.filter(d => d.entregaId).length;
+
+  document.getElementById('devolucoesKpis').innerHTML = `
+    <div class="kpi"><div class="label">Devoluções/estornos</div><div class="value tabular">${devs.length}</div></div>
+    <div class="kpi"><div class="label">Qtd. total devolvida</div><div class="value tabular">${fmtT(totalQtd)}</div></div>
+    <div class="kpi"><div class="label">Valor total devolvido</div><div class="value tabular">${fmtR(totalValor)}</div></div>
+    <div class="kpi"><div class="label">Vinculadas a uma entrega</div><div class="value tabular">${comEntrega}</div><div class="sub">estorno direto</div></div>
+  `;
+
+  const tbody = document.getElementById('devolucoesTbody');
+  if (!devs.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">Nenhuma devolução ou estorno registrado.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = devs.map(d => {
+    const p = pedidoById(d.pedidoId);
+    const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+    return `<tr>
+      <td>${fmtDate(d.data)}</td>
+      <td>${escapeHtml(d.nf||'—')}${d.anexoNome ? ` <span title="${escapeHtml(d.anexoNome)}" style="color:var(--text-faint);">📎</span>` : ''}</td>
+      <td>${p ? escapeHtml(p.numero) : '<span class="hint">—</span>'}</td>
+      <td>${entOrig ? 'NF ' + escapeHtml(entOrig.nf) : '<span class="hint">—</span>'}</td>
+      <td class="num tabular" style="color:var(--amber);">${fmtT(d.qtd)}</td>
+      <td class="num tabular">${fmtR(d.valor)}</td>
+      <td>${escapeHtml(d.local||'—')}</td>
+      <td>${d.motivo ? escapeHtml(d.motivo) : '<span class="hint">—</span>'}</td>
+      <td class="row-actions">
+        <button title="Editar" onclick="openDevolucaoModal('${d.id}')">✎</button>
+        <button title="Excluir" class="danger" onclick="deleteDevolucao('${d.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============ RENDER: DADOS ============ */
+function renderDados() {
+  const obras = resumoPorObra().length;
+  document.getElementById('dadosResumo').innerHTML = `
+    ${state.pedidos.length} pedido(s) de compra cadastrado(s)<br>
+    ${state.entregas.length} entrega(s) registrada(s)<br>
+    ${(state.devolucoes||[]).length} devolução(ões)/estorno(s) registrado(s)<br>
+    ${obras} obra(s) distinta(s) atendida(s)
+  `;
+}
+
+/* ============ RENDER ALL ============ */
+function renderAll() {
+  renderDashboard();
+  renderPedidos();
+  renderEntregas();
+  renderDevolucoes();
+  renderEstoque();
+  renderResumo();
+  renderDados();
+  if (typeof window.renderCreditosDashboard === 'function') window.renderCreditosDashboard();
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============ TABS ============ */
+document.querySelectorAll('#tab-creditos-cap .cap-subtabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#tab-creditos-cap .cap-subtabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+  });
+});
+
+/* ============ TOAST ============ */
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ============ MODAL HELPERS ============ */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(bd => bd.addEventListener('click', (e) => { if (e.target === bd) bd.classList.remove('open'); }));
+
+/* ============ PEDIDOS: CRUD ============ */
+document.getElementById('btnNovoPedido').addEventListener('click', () => openPedidoModal(null));
+
+let pedidoAnexoNomeAtual = null;
+
+function openPedidoModal(id) {
+  document.getElementById('pedidoEditId').value = id || '';
+  const isEdit = !!id;
+  document.getElementById('modalPedidoTitle').textContent = isEdit ? 'Editar Pedido de Compra' : 'Novo Pedido de Compra';
+  document.getElementById('pedidoAnexo').value = '';
+  document.getElementById('pedidoAnexoReport').classList.remove('show');
+  document.getElementById('pedidoAnexoReport').innerHTML = '';
+  const fornecedores = Array.from(new Set(state.pedidos.map(p => p.fornecedor).filter(Boolean))).sort();
+  document.getElementById('fornecedorList').innerHTML = fornecedores.map(f => `<option value="${escapeHtml(f)}">`).join('');
+  if (isEdit) {
+    const p = pedidoById(id);
+    document.getElementById('pedidoNumero').value = p.numero;
+    document.getElementById('pedidoFornecedor').value = p.fornecedor || '';
+    document.getElementById('pedidoPreco').value = p.precoTon;
+    document.getElementById('pedidoQtd').value = p.qtdContratada;
+    document.getElementById('pedidoDataRecebimento').value = p.dataRecebimento || '';
+    pedidoAnexoNomeAtual = p.anexoNome || null;
+    document.getElementById('pedidoAnexoStatus').textContent = pedidoAnexoNomeAtual ? `📄 Anexo atual: ${pedidoAnexoNomeAtual}` : '';
+    document.getElementById('pedidoAnexoStatus').className = 'attach-status';
+  } else {
+    document.getElementById('pedidoNumero').value = '';
+    document.getElementById('pedidoFornecedor').value = '';
+    document.getElementById('pedidoPreco').value = '';
+    document.getElementById('pedidoQtd').value = '';
+    document.getElementById('pedidoDataRecebimento').value = '';
+    pedidoAnexoNomeAtual = null;
+    document.getElementById('pedidoAnexoStatus').textContent = '';
+    document.getElementById('pedidoAnexoStatus').className = 'attach-status';
+  }
+  updatePedidoPreview();
+  openModal('modalPedido');
+}
+function updatePedidoPreview() {
+  const q = Number(document.getElementById('pedidoQtd').value || 0);
+  const pr = Number(document.getElementById('pedidoPreco').value || 0);
+  document.getElementById('pedidoValorPreview').textContent = `Valor total do pedido: ${fmtR(q*pr)}`;
+}
+['pedidoQtd','pedidoPreco'].forEach(id => document.getElementById(id).addEventListener('input', updatePedidoPreview));
+
+document.getElementById('btnSalvarPedido').addEventListener('click', () => {
+  const id = document.getElementById('pedidoEditId').value;
+  const numero = document.getElementById('pedidoNumero').value.trim();
+  const fornecedor = document.getElementById('pedidoFornecedor').value.trim();
+  const preco = Number(document.getElementById('pedidoPreco').value);
+  const qtd = Number(document.getElementById('pedidoQtd').value);
+  const dataRecebimento = document.getElementById('pedidoDataRecebimento').value || null;
+
+  if (!numero) { toast('Informe o número do pedido'); return; }
+  if (!(qtd > 0)) { toast('Informe a quantidade contratada'); return; }
+  if (!(preco > 0)) { toast('Informe o preço por tonelada'); return; }
+
+  if (id) {
+    const p = pedidoById(id);
+    Object.assign(p, { numero, fornecedor, precoTon: preco, qtdContratada: qtd, dataRecebimento, anexoNome: pedidoAnexoNomeAtual });
+    toast('Pedido atualizado');
+  } else {
+    state.pedidos.push({ id: uid(), numero, fornecedor, precoTon: preco, qtdContratada: qtd, dataRecebimento, anexoNome: pedidoAnexoNomeAtual });
+    toast('Pedido cadastrado');
+  }
+  closeModal('modalPedido');
+  renderAll();
+});
+
+function deletePedido(id) {
+  const vinculadas = entregasDoPedido(id).length;
+  const msg = vinculadas
+    ? `Este pedido tem ${vinculadas} entrega(s) vinculada(s). Excluir mesmo assim? As entregas ficarão sem pedido vinculado.`
+    : 'Excluir este pedido de compra?';
+  if (!confirm(msg)) return;
+  state.pedidos = state.pedidos.filter(p => p.id !== id);
+  renderAll();
+  toast('Pedido excluído');
+}
+
+/* ============ ENTREGAS: CRUD ============ */
+document.getElementById('btnNovaEntrega').addEventListener('click', () => openEntregaModal(null));
+
+function refreshEntregaPedidoOptions(selectedId) {
+  const sel = document.getElementById('entregaPedido');
+  sel.innerHTML = '<option value="">— nenhum —</option>' + state.pedidos.map(p => {
+    const s = pedidoStats(p);
+    return `<option value="${p.id}">${escapeHtml(p.numero)}${p.fornecedor ? ' · ' + escapeHtml(p.fornecedor) : ''} — saldo ${fmtT(s.saldoQtd)}</option>`;
+  }).join('');
+  if (selectedId) sel.value = selectedId;
+}
+
+let entregaAnexoNomeAtual = null;
+
+function openEntregaModal(id) {
+  refreshEntregaPedidoOptions();
+  document.getElementById('entregaEditId').value = id || '';
+  const isEdit = !!id;
+  document.getElementById('modalEntregaTitle').textContent = isEdit ? 'Editar Entrega' : 'Nova Entrega';
+  document.getElementById('entregaAnexo').value = '';
+  document.getElementById('entregaAnexoReport').classList.remove('show');
+  document.getElementById('entregaAnexoReport').innerHTML = '';
+  if (isEdit) {
+    const e = state.entregas.find(x => x.id === id);
+    document.getElementById('entregaData').value = e.data || '';
+    document.getElementById('entregaNf').value = e.nf || '';
+    document.getElementById('entregaPedido').value = e.pedidoId || '';
+    document.getElementById('entregaQtd').value = e.qtd;
+    document.getElementById('entregaValor').value = e.valor;
+    document.getElementById('entregaLocal').value = e.local || '';
+    document.getElementById('entregaDataEntrega').value = e.dataEntrega || '';
+    entregaAnexoNomeAtual = e.anexoNome || null;
+    document.getElementById('entregaAnexoStatus').textContent = entregaAnexoNomeAtual ? `📄 Anexo atual: ${entregaAnexoNomeAtual}` : '';
+    document.getElementById('entregaAnexoStatus').className = 'attach-status';
+  } else {
+    document.getElementById('entregaData').value = todayIso();
+    document.getElementById('entregaNf').value = '';
+    document.getElementById('entregaPedido').value = '';
+    document.getElementById('entregaQtd').value = '';
+    document.getElementById('entregaValor').value = '';
+    document.getElementById('entregaLocal').value = '';
+    document.getElementById('entregaDataEntrega').value = '';
+    entregaAnexoNomeAtual = null;
+    document.getElementById('entregaAnexoStatus').textContent = '';
+    document.getElementById('entregaAnexoStatus').className = 'attach-status';
+  }
+  updateEntregaPreview();
+  openModal('modalEntrega');
+}
+
+function updateEntregaPreview() {
+  const pedidoId = document.getElementById('entregaPedido').value;
+  const qtd = Number(document.getElementById('entregaQtd').value || 0);
+  const p = pedidoId ? pedidoById(pedidoId) : null;
+  const previewEl = document.getElementById('entregaSaldoPreview');
+  if (!p) { previewEl.textContent = ''; return; }
+  const s = pedidoStats(p);
+  const editId = document.getElementById('entregaEditId').value;
+  const already = editId ? Number(state.entregas.find(x=>x.id===editId)?.qtd || 0) : 0;
+  const saldoDepois = s.saldoQtd + already - qtd;
+  previewEl.innerHTML = `Saldo do pedido ${p.numero} após esta entrega: <b class="tabular" style="color:${saldoDepois < 0 ? 'var(--red)' : 'var(--text)'}">${fmtT(saldoDepois)}</b>`;
+}
+document.getElementById('entregaPedido').addEventListener('change', () => {
+  const pedidoId = document.getElementById('entregaPedido').value;
+  const qtdField = document.getElementById('entregaQtd');
+  const valorField = document.getElementById('entregaValor');
+  const p = pedidoId ? pedidoById(pedidoId) : null;
+  if (p && qtdField.value && !valorField.value) {
+    valorField.value = (Number(qtdField.value) * p.precoTon).toFixed(2);
+  }
+  updateEntregaPreview();
+});
+document.getElementById('entregaQtd').addEventListener('input', () => {
+  const pedidoId = document.getElementById('entregaPedido').value;
+  const p = pedidoId ? pedidoById(pedidoId) : null;
+  const qtd = Number(document.getElementById('entregaQtd').value || 0);
+  if (p) document.getElementById('entregaValor').value = (qtd * p.precoTon).toFixed(2);
+  updateEntregaPreview();
+});
+
+document.getElementById('btnSalvarEntrega').addEventListener('click', () => {
+  const id = document.getElementById('entregaEditId').value;
+  const data = document.getElementById('entregaData').value;
+  const nf = document.getElementById('entregaNf').value.trim();
+  const pedidoId = document.getElementById('entregaPedido').value || null;
+  const qtd = Number(document.getElementById('entregaQtd').value);
+  const valor = Number(document.getElementById('entregaValor').value);
+  const local = document.getElementById('entregaLocal').value.trim();
+  const dataEntrega = document.getElementById('entregaDataEntrega').value;
+
+  if (!data) { toast('Informe a data do registro'); return; }
+  if (!(qtd > 0)) { toast('Informe a quantidade entregue'); return; }
+  if (!local) { toast('Informe o local de entrega'); return; }
+
+  if (pedidoId) {
+    const p = pedidoById(pedidoId);
+    const s = pedidoStats(p);
+    const already = id ? Number(state.entregas.find(x=>x.id===id)?.qtd || 0) : 0;
+    const saldoDepois = s.saldoQtd + already - qtd;
+    if (saldoDepois < -0.0001) {
+      if (!confirm(`Esta entrega excede o saldo do pedido ${p.numero} em ${fmtT(Math.abs(saldoDepois))}. Salvar mesmo assim?`)) return;
+    }
+  }
+
+  if (id) {
+    const e = state.entregas.find(x => x.id === id);
+    Object.assign(e, { data, nf, pedidoId, qtd, valor, local, dataEntrega, anexoNome: entregaAnexoNomeAtual });
+    toast('Entrega atualizada');
+  } else {
+    state.entregas.push({ id: uid(), data, nf, pedidoId, qtd, valor, local, dataEntrega, anexoNome: entregaAnexoNomeAtual });
+    toast('Entrega cadastrada');
+  }
+  closeModal('modalEntrega');
+  renderAll();
+});
+
+function deleteEntrega(id) {
+  if (!confirm('Excluir esta entrega?')) return;
+  state.entregas = state.entregas.filter(e => e.id !== id);
+  renderAll();
+  toast('Entrega excluída');
+}
+
+/* ============ DEVOLUÇÕES / ESTORNO: CRUD ============ */
+if (!Array.isArray(state.devolucoes)) state.devolucoes = [];
+
+document.getElementById('btnNovaDevolucao').addEventListener('click', () => openDevolucaoModal(null));
+
+function estornarEntrega(entregaId) {
+  openDevolucaoModal(null, entregaId);
+}
+
+let devolucaoAnexoNomeAtual = null;
+
+function refreshDevolucaoPedidoOptions(selectedId) {
+  const sel = document.getElementById('devolucaoPedido');
+  sel.innerHTML = '<option value="">— nenhum —</option>' + state.pedidos.map(p => {
+    const s = pedidoStats(p);
+    return `<option value="${p.id}">${escapeHtml(p.numero)}${p.fornecedor ? ' · ' + escapeHtml(p.fornecedor) : ''} — entregue líq. ${fmtT(s.entregueQtd)}</option>`;
+  }).join('');
+  if (selectedId) sel.value = selectedId;
+}
+
+function refreshDevolucaoEntregaOptions(pedidoId, selectedId) {
+  const sel = document.getElementById('devolucaoEntrega');
+  const editId = document.getElementById('devolucaoEditId').value;
+  const candidatas = state.entregas
+    .filter(e => !pedidoId || e.pedidoId === pedidoId)
+    .filter(e => {
+      const jaDevolvido = devolvidoQtdDaEntrega(e.id, editId || null);
+      return jaDevolvido < Number(e.qtd||0) - 0.0001;
+    });
+  sel.innerHTML = '<option value="">— não vinculada a uma entrega específica —</option>' + candidatas.map(e => {
+    const disponivel = Number(e.qtd||0) - devolvidoQtdDaEntrega(e.id, editId || null);
+    return `<option value="${e.id}">NF ${escapeHtml(e.nf||'—')} · ${fmtDate(e.data)} · ${escapeHtml(e.local||'—')} — disponível p/ devolução ${fmtT(disponivel)}</option>`;
+  }).join('');
+  if (selectedId) sel.value = selectedId;
+}
+
+function openDevolucaoModal(id, fromEntregaId) {
+  document.getElementById('devolucaoEditId').value = id || '';
+  const isEdit = !!id;
+  document.getElementById('modalDevolucaoTitle').textContent = isEdit ? 'Editar Devolução / Estorno' : 'Nova Devolução / Estorno';
+  document.getElementById('devolucaoAnexo').value = '';
+  document.getElementById('devolucaoAnexoReport').classList.remove('show');
+  document.getElementById('devolucaoAnexoReport').innerHTML = '';
+
+  if (isEdit) {
+    const d = state.devolucoes.find(x => x.id === id);
+    refreshDevolucaoPedidoOptions(d.pedidoId);
+    refreshDevolucaoEntregaOptions(d.pedidoId, d.entregaId);
+    document.getElementById('devolucaoData').value = d.data || '';
+    document.getElementById('devolucaoNf').value = d.nf || '';
+    document.getElementById('devolucaoQtd').value = d.qtd;
+    document.getElementById('devolucaoValor').value = d.valor;
+    document.getElementById('devolucaoLocal').value = d.local || '';
+    document.getElementById('devolucaoDataDevolucao').value = d.dataDevolucao || '';
+    document.getElementById('devolucaoMotivo').value = d.motivo || '';
+    devolucaoAnexoNomeAtual = d.anexoNome || null;
+    document.getElementById('devolucaoAnexoStatus').textContent = devolucaoAnexoNomeAtual ? `📄 Anexo atual: ${devolucaoAnexoNomeAtual}` : '';
+    document.getElementById('devolucaoAnexoStatus').className = 'attach-status';
+  } else if (fromEntregaId) {
+    const e = state.entregas.find(x => x.id === fromEntregaId);
+    const disponivel = e ? Number(e.qtd||0) - devolvidoQtdDaEntrega(e.id) : 0;
+    refreshDevolucaoPedidoOptions(e ? e.pedidoId : '');
+    refreshDevolucaoEntregaOptions(e ? e.pedidoId : '', fromEntregaId);
+    document.getElementById('devolucaoData').value = todayIso();
+    document.getElementById('devolucaoNf').value = '';
+    document.getElementById('devolucaoQtd').value = disponivel > 0 ? disponivel.toFixed(2) : '';
+    const p = e ? pedidoById(e.pedidoId) : null;
+    document.getElementById('devolucaoValor').value = (p && disponivel > 0) ? (disponivel * p.precoTon).toFixed(2) : '';
+    document.getElementById('devolucaoLocal').value = e ? (e.local || '') : '';
+    document.getElementById('devolucaoDataDevolucao').value = todayIso();
+    document.getElementById('devolucaoMotivo').value = 'Estorno da entrega NF ' + (e ? e.nf : '');
+    devolucaoAnexoNomeAtual = null;
+    document.getElementById('devolucaoAnexoStatus').textContent = '';
+    document.getElementById('devolucaoAnexoStatus').className = 'attach-status';
+  } else {
+    refreshDevolucaoPedidoOptions('');
+    refreshDevolucaoEntregaOptions('', '');
+    document.getElementById('devolucaoData').value = todayIso();
+    document.getElementById('devolucaoNf').value = '';
+    document.getElementById('devolucaoQtd').value = '';
+    document.getElementById('devolucaoValor').value = '';
+    document.getElementById('devolucaoLocal').value = '';
+    document.getElementById('devolucaoDataDevolucao').value = '';
+    document.getElementById('devolucaoMotivo').value = '';
+    devolucaoAnexoNomeAtual = null;
+    document.getElementById('devolucaoAnexoStatus').textContent = '';
+    document.getElementById('devolucaoAnexoStatus').className = 'attach-status';
+  }
+  updateDevolucaoPreview();
+  openModal('modalDevolucao');
+}
+
+document.getElementById('devolucaoPedido').addEventListener('change', () => {
+  const pedidoId = document.getElementById('devolucaoPedido').value;
+  refreshDevolucaoEntregaOptions(pedidoId, '');
+  updateDevolucaoPreview();
+});
+document.getElementById('devolucaoEntrega').addEventListener('change', () => {
+  const entregaId = document.getElementById('devolucaoEntrega').value;
+  const e = entregaId ? state.entregas.find(x => x.id === entregaId) : null;
+  if (e) {
+    const editId = document.getElementById('devolucaoEditId').value;
+    const disponivel = Number(e.qtd||0) - devolvidoQtdDaEntrega(e.id, editId || null);
+    const qtdField = document.getElementById('devolucaoQtd');
+    if (!qtdField.value) qtdField.value = disponivel > 0 ? disponivel.toFixed(2) : '';
+    const p = pedidoById(e.pedidoId);
+    const valorField = document.getElementById('devolucaoValor');
+    if (!valorField.value && p) valorField.value = (Number(qtdField.value||0) * p.precoTon).toFixed(2);
+    if (!document.getElementById('devolucaoLocal').value) document.getElementById('devolucaoLocal').value = e.local || '';
+  }
+  updateDevolucaoPreview();
+});
+document.getElementById('devolucaoQtd').addEventListener('input', updateDevolucaoPreview);
+
+function updateDevolucaoPreview() {
+  const pedidoId = document.getElementById('devolucaoPedido').value;
+  const entregaId = document.getElementById('devolucaoEntrega').value;
+  const qtd = Number(document.getElementById('devolucaoQtd').value || 0);
+  const previewEl = document.getElementById('devolucaoSaldoPreview');
+  const editId = document.getElementById('devolucaoEditId').value;
+
+  if (entregaId) {
+    const e = state.entregas.find(x => x.id === entregaId);
+    const disponivel = e ? Number(e.qtd||0) - devolvidoQtdDaEntrega(entregaId, editId || null) : 0;
+    const excede = qtd > disponivel + 0.0001;
+    previewEl.innerHTML = `Disponível para devolução nesta entrega: <b class="tabular" style="color:${excede ? 'var(--red)' : 'var(--text)'}">${fmtT(disponivel)}</b>${excede ? ' — quantidade informada excede o disponível' : ''}`;
+    return;
+  }
+  if (pedidoId) {
+    const p = pedidoById(pedidoId);
+    const s = p ? pedidoStats(p) : null;
+    if (s) {
+      previewEl.innerHTML = `Saldo do pedido ${p.numero} após esta devolução: <b class="tabular">${fmtT(s.saldoQtd + qtd)}</b>`;
+      return;
+    }
+  }
+  previewEl.textContent = '';
+}
+
+document.getElementById('btnSalvarDevolucao').addEventListener('click', () => {
+  const id = document.getElementById('devolucaoEditId').value;
+  const data = document.getElementById('devolucaoData').value;
+  const nf = document.getElementById('devolucaoNf').value.trim();
+  const pedidoId = document.getElementById('devolucaoPedido').value || null;
+  const entregaId = document.getElementById('devolucaoEntrega').value || null;
+  const qtd = Number(document.getElementById('devolucaoQtd').value);
+  const valor = Number(document.getElementById('devolucaoValor').value);
+  const local = document.getElementById('devolucaoLocal').value.trim();
+  const dataDevolucao = document.getElementById('devolucaoDataDevolucao').value;
+  const motivo = document.getElementById('devolucaoMotivo').value.trim();
+
+  if (!data) { toast('Informe a data do registro'); return; }
+  if (!(qtd > 0)) { toast('Informe a quantidade devolvida'); return; }
+
+  if (entregaId) {
+    const e = state.entregas.find(x => x.id === entregaId);
+    const disponivel = e ? Number(e.qtd||0) - devolvidoQtdDaEntrega(entregaId, id || null) : 0;
+    if (qtd > disponivel + 0.0001) {
+      if (!confirm(`Esta devolução excede a quantidade disponível da entrega NF ${e ? e.nf : ''} em ${fmtT(qtd - disponivel)}. Salvar mesmo assim?`)) return;
+    }
+  }
+
+  if (id) {
+    const d = state.devolucoes.find(x => x.id === id);
+    Object.assign(d, { data, nf, pedidoId, entregaId, qtd, valor, local, dataDevolucao, motivo, anexoNome: devolucaoAnexoNomeAtual });
+    toast('Devolução atualizada');
+  } else {
+    state.devolucoes.push({ id: uid(), data, nf, pedidoId, entregaId, qtd, valor, local, dataDevolucao, motivo, anexoNome: devolucaoAnexoNomeAtual });
+    toast('Devolução/estorno registrado');
+  }
+  closeModal('modalDevolucao');
+  renderAll();
+});
+
+function deleteDevolucao(id) {
+  if (!confirm('Excluir esta devolução/estorno? O saldo do pedido e o estoque voltarão a considerar a entrega original integralmente.')) return;
+  state.devolucoes = state.devolucoes.filter(d => d.id !== id);
+  renderAll();
+  toast('Devolução excluída');
+}
+
+/* ============ FILTERS ============ */
+['filtroPedido','filtroObra','filtroBusca'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderEntregas);
+  document.getElementById(id).addEventListener('change', renderEntregas);
+});
+
+/* ============ JSON EXPORT / IMPORT ============ */
+function downloadFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportJson() {
+  const payload = { version: 2, exportedAt: new Date().toISOString(), pedidos: state.pedidos, entregas: state.entregas, devolucoes: state.devolucoes||[] };
+  const stamp = todayIso();
+  downloadFile(`saldo_cap_backup_${stamp}.json`, JSON.stringify(payload, null, 2), 'application/json');
+  toast('Backup baixado');
+}
+document.getElementById('btnExportJson').addEventListener('click', exportJson);
+document.getElementById('btnExportJson2').addEventListener('click', exportJson);
+
+function importJsonFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data.pedidos) || !Array.isArray(data.entregas)) throw new Error('formato inválido');
+      state = { pedidos: data.pedidos, entregas: data.entregas, devolucoes: Array.isArray(data.devolucoes) ? data.devolucoes : [] };
+      renderAll();
+      toast('Backup importado com sucesso');
+    } catch (err) {
+      alert('Não foi possível importar este arquivo: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+document.getElementById('importFile').addEventListener('change', (e) => { if (e.target.files[0]) importJsonFile(e.target.files[0]); e.target.value = ''; });
+document.getElementById('importFile2').addEventListener('change', (e) => { if (e.target.files[0]) importJsonFile(e.target.files[0]); e.target.value = ''; });
+
+document.getElementById('btnResetData').addEventListener('click', () => {
+  if (!confirm('Isso substitui os dados atuais pelos dados de exemplo originais da planilha. Continuar?')) return;
+  state = seedData();
+  renderAll();
+  toast('Dados de exemplo restaurados');
+});
+document.getElementById('btnClearData').addEventListener('click', () => {
+  if (!confirm('Isso apaga todos os pedidos, entregas e devoluções cadastrados. Continuar?')) return;
+  state = { pedidos: [], entregas: [], devolucoes: [] };
+  renderAll();
+  toast('Dados limpos');
+});
+
+/* ============ EXCEL EXPORT ============ */
+function exportXlsx() {
+  const wb = XLSX.utils.book_new();
+
+  const pedidosRows = state.pedidos.map(p => {
+    const s = pedidoStats(p);
+    return {
+      'Pedido': p.numero, 'Fornecedor': p.fornecedor || '', 'Preço/t (R$)': p.precoTon, 'Qtd. contratada (t)': p.qtdContratada,
+      'Valor total (R$)': s.valorTotal, 'Entregue bruto (t)': s.entregueQtdBruto, 'Devolvido (t)': s.devolvidoQtd,
+      'Entregue líquido (t)': s.entregueQtd, 'Entregue líquido (R$)': s.entregueValor,
+      'Saldo (t)': s.saldoQtd, 'Saldo (R$)': s.saldoValor, 'Data recebimento': p.dataRecebimento || ''
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pedidosRows), 'Pedidos de Compra');
+
+  const entregasRows = getAllEntregasSorted().map(e => {
+    const p = pedidoById(e.pedidoId);
+    return {
+      'Data': e.data, 'Nº NF': e.nf, 'Pedido': p ? p.numero : '', 'Qtd (t)': e.qtd,
+      'Local de entrega': e.local, 'Data de entrega': e.dataEntrega, 'Valor (R$)': e.valor,
+      'Devolvido desta entrega (t)': devolvidoQtdDaEntrega(e.id)
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entregasRows), 'Entregas');
+
+  const devolucoesRows = (state.devolucoes||[]).slice().sort((a,b) => (a.data||'').localeCompare(b.data||'')).map(d => {
+    const p = pedidoById(d.pedidoId);
+    const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+    return {
+      'Data': d.data, 'Nº NF devolução': d.nf || '', 'Pedido': p ? p.numero : '',
+      'Entrega estornada (NF)': entOrig ? entOrig.nf : '', 'Qtd. devolvida (t)': d.qtd,
+      'Valor (R$)': d.valor, 'Local': d.local || '', 'Data devolução': d.dataDevolucao || '', 'Motivo': d.motivo || ''
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(devolucoesRows), 'Devoluções');
+
+  const estoqueRows = estoqueLedger().map(r => ({
+    'Data': r.data || '', 'Evento': r.desc, 'Movimento (t)': r.mov, 'Saldo (t)': r.saldo, 'Saldo (R$)': r.saldoValor
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(estoqueRows), 'Estoque');
+
+  const resumoRows = resumoPorObra().map(o => ({
+    'Obra': o.local, 'Nº entregas': o.count, 'Qtd líquida (t)': o.qtd, 'Devolvido (t)': o.devolvidoQtd, 'Valor líquido (R$)': o.valor
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumoRows), 'Resumo por Obra');
+
+  const stamp = todayIso();
+  XLSX.writeFile(wb, `saldo_cap_${stamp}.xlsx`);
+  toast('Excel exportado');
+}
+function getAllEntregasSorted() {
+  return state.entregas.slice().sort((a,b) => (a.data||'').localeCompare(b.data||''));
+}
+document.getElementById('btnExportXlsx').addEventListener('click', () => {
+  if (typeof XLSX === 'undefined') { alert('Não foi possível carregar a biblioteca de exportação Excel (sem conexão com a internet). Tente novamente com internet disponível, ou use o backup JSON.'); return; }
+  exportXlsx();
+});
+document.getElementById('btnExportXlsx2').addEventListener('click', () => {
+  if (typeof XLSX === 'undefined') { alert('Não foi possível carregar a biblioteca de exportação Excel (sem conexão com a internet). Tente novamente com internet disponível, ou use o backup JSON.'); return; }
+  exportXlsx();
+});
+
+/* ============ RELATÓRIO HTML (Dashboard + Resumo por Obra) ============ */
+function buildReportHtml() {
+  const now = new Date();
+  const geradoEm = now.toLocaleString('pt-BR');
+
+  const totalContratado = state.pedidos.reduce((s,p) => s + p.qtdContratada, 0);
+  const totalEntregue = state.entregas.reduce((s,e) => s + Number(e.qtd||0), 0);
+  const totalDevolvido = (state.devolucoes||[]).reduce((s,d) => s + Number(d.qtd||0), 0);
+  const totalSaldoQtd = state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoQtd, 0);
+  const totalSaldoValor = state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoValor, 0);
+  const ledger = estoqueLedger();
+  const estoqueAtual = ledger.length ? ledger[ledger.length-1].saldo : 0;
+
+  const kpis = [
+    { label: 'Qtd. contratada (total)', value: fmtT(totalContratado), sub: state.pedidos.length + ' pedido(s)' },
+    { label: 'Qtd. entregue (líquida)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
+    { label: 'Devolvido (total)', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
+    { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) },
+    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: 'saldo combinado em tanque' },
+  ];
+  const kpiHtml = kpis.map(k => `
+    <div class="kpi">
+      <div class="label">${escapeHtml(k.label)}</div>
+      <div class="value">${escapeHtml(k.value)}</div>
+      <div class="sub">${escapeHtml(k.sub)}</div>
+    </div>`).join('');
+
+  const poCardsHtml = state.pedidos.map(p => {
+    const s = pedidoStats(p);
+    const low = s.pct >= 85;
+    return `
+    <div class="po-card">
+      <div class="po-head">
+        <span class="po-num">Pedido ${escapeHtml(p.numero)}</span>
+        <span class="po-price">${fmtR(p.precoTon)}/t</span>
+      </div>
+      <div class="po-row"><span>Fornecedor</span><b>${p.fornecedor ? escapeHtml(p.fornecedor) : 'não informado'}</b></div>
+      <div class="po-row"><span>Contratado</span><b>${fmtT(p.qtdContratada)}</b></div>
+      <div class="po-row"><span>Entregue (líquido)</span><b>${fmtT(s.entregueQtd)}</b></div>
+      ${s.devolvidoQtd > 0 ? `<div class="po-row"><span>Devolvido</span><b>${fmtT(s.devolvidoQtd)}</b></div>` : ''}
+      <div class="bar-track"><div class="bar-fill" style="width:${s.pct.toFixed(1)}%; background:${low ? '#d03b3b' : '#2a78d6'};"></div></div>
+      <div class="po-row"><span>Saldo restante</span><b>${fmtT(s.saldoQtd)}</b></div>
+      <div class="po-row"><span>Saldo (R$)</span><b>${fmtR(s.saldoValor)}</b></div>
+    </div>`;
+  }).join('') || `<p class="hint">Nenhum pedido de compra cadastrado.</p>`;
+
+  const obras = resumoPorObra();
+  const totalQtdObras = obras.reduce((s,o) => s + o.qtd, 0);
+  const totalValorObras = obras.reduce((s,o) => s + o.valor, 0);
+  const maxQtd = Math.max(...obras.map(o => o.qtd), 0.0001);
+
+  const chartHtml = obras.length ? obras.map(o => `
+    <div class="bc-row">
+      <div class="bc-label">${escapeHtml(o.local)}</div>
+      <div class="bc-track"><div class="bc-fill" style="width:${(o.qtd/maxQtd*100).toFixed(1)}%"></div></div>
+      <div class="bc-value">${fmtT(o.qtd)}</div>
+    </div>`).join('') : `<p class="hint">Nenhuma entrega registrada ainda.</p>`;
+
+  const obraRowsHtml = obras.length ? obras.map(o => `
+    <tr>
+      <td>${escapeHtml(o.local)}</td>
+      <td class="num">${o.count}</td>
+      <td class="num">${fmtT(o.qtd)}</td>
+      <td class="num">${o.devolvidoQtd > 0 ? fmtT(o.devolvidoQtd) : '—'}</td>
+      <td class="num">${fmtR(o.valor)}</td>
+      <td class="num">${totalQtdObras ? (o.qtd/totalQtdObras*100).toFixed(1) : '0.0'}%</td>
+    </tr>`).join('') : `<tr><td colspan="6" class="hint" style="text-align:center;">Nenhuma entrega registrada ainda.</td></tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório de Saldo — CAP · ${escapeHtml(todayIso())}</title>
+<style>
+  :root {
+    --surface-0: #f9f9f7; --surface-1: #fcfcfb; --surface-2: #ffffff;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --gridline: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6; --good: #0ca30c; --critical: #d03b3b;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background: var(--surface-0); color: var(--text-primary); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 24px 60px; }
+  .report-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .report-header h1 { font-size: 19px; margin: 0 0 4px; }
+  .report-header p { margin: 0; color: var(--text-secondary); font-size: 12.5px; }
+  .no-print button { border:1px solid var(--border); background: var(--surface-2); color: var(--text-primary); padding: 8px 14px; border-radius: 8px; cursor:pointer; font-size: 12.8px; font-weight:500; }
+  .no-print button:hover { border-color: var(--series-1); color: var(--series-1); }
+  h2.section-title { font-size: 14.5px; margin: 30px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--baseline); }
+  .kpi-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 10px; }
+  .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; }
+  .kpi .label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing:.03em; margin-bottom:6px; }
+  .kpi .value { font-size: 19px; font-weight: 600; }
+  .kpi .sub { color: var(--text-secondary); font-size: 12px; margin-top: 3px; }
+  .po-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 12px; }
+  .po-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; break-inside: avoid; }
+  .po-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+  .po-num { font-weight:600; font-size: 13.5px; }
+  .po-price { color: var(--text-muted); font-size: 11.5px; }
+  .po-row { display:flex; justify-content:space-between; font-size: 12px; color: var(--text-secondary); margin: 3px 0; }
+  .po-row b { color: var(--text-primary); }
+  .bar-track { height: 7px; border-radius: 4px; background: var(--gridline); overflow:hidden; margin: 7px 0 5px; }
+  .bar-fill { height: 100%; border-radius: 4px 0 0 4px; }
+  .bar-chart { display:flex; flex-direction:column; gap: 9px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .bc-row { display:grid; grid-template-columns: 140px 1fr 90px; align-items:center; gap: 10px; }
+  .bc-label { font-size: 12px; color: var(--text-secondary); text-align:right; }
+  .bc-track { background: var(--gridline); border-radius: 4px; height: 18px; overflow:hidden; }
+  .bc-fill { background: var(--series-1); height:100%; border-radius:4px; min-width:2px; }
+  .bc-value { font-size: 12px; text-align:right; font-weight:600; }
+  table { width:100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
+  thead th { text-align:left; color: var(--text-muted); font-weight:600; font-size: 10.5px; text-transform:uppercase; letter-spacing:.02em; padding: 8px 10px; border-bottom: 1px solid var(--baseline); }
+  thead th.num, td.num { text-align:right; }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
+  tbody tr:last-child td { font-weight:600; border-bottom:none; border-top: 1px solid var(--baseline); }
+  .hint { color: var(--text-muted); font-size: 12.5px; }
+  footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--gridline); color: var(--text-muted); font-size: 11px; }
+  @media print {
+    .no-print { display:none !important; }
+    body { background:#fff; }
+    .kpi, .po-card, .bar-chart { border-color:#ccc; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="report-header">
+    <div>
+      <h1>Relatório de Saldo — CAP <span style="color:var(--text-muted); font-weight:400;">(Cimento Asfáltico de Petróleo)</span></h1>
+      <p>Gerado em ${escapeHtml(geradoEm)} · Controle de Saldo CAP</p>
+    </div>
+    <div class="no-print"><button onclick="window.print()">🖨 Imprimir / Salvar PDF</button></div>
+  </div>
+
+  <h2 class="section-title">Visão geral</h2>
+  <div class="kpi-grid">${kpiHtml}</div>
+
+  <h2 class="section-title">Saldo por Pedido de Compra</h2>
+  <div class="po-grid">${poCardsHtml}</div>
+
+  <h2 class="section-title">Resumo de fornecimento por obra — Qtd. líquida entregue (t)</h2>
+  <div class="bar-chart">${chartHtml}</div>
+
+  <h2 class="section-title">Resumo de fornecimento por obra — detalhado</h2>
+  <table>
+    <thead><tr>
+      <th>Obra / Local de entrega</th><th class="num">Nº de entregas</th><th class="num">Qtd. líquida (t)</th>
+      <th class="num">Devolvido (t)</th><th class="num">Valor líquido (R$)</th><th class="num">% do total</th>
+    </tr></thead>
+    <tbody>
+      ${obraRowsHtml}
+      ${obras.length ? `<tr><td>TOTAL</td><td class="num">${state.entregas.length}</td><td class="num">${fmtT(totalQtdObras)}</td><td class="num">${fmtT(obras.reduce((s,o)=>s+o.devolvidoQtd,0))}</td><td class="num">${fmtR(totalValorObras)}</td><td class="num">100.0%</td></tr>` : ''}
+    </tbody>
+  </table>
+
+  ${(state.devolucoes||[]).length ? `
+  <h2 class="section-title">Devoluções e estornos</h2>
+  <table>
+    <thead><tr>
+      <th>Data</th><th>NF devolução</th><th>Pedido</th><th>Entrega estornada</th>
+      <th class="num">Qtd. (t)</th><th class="num">Valor (R$)</th><th>Local</th><th>Motivo</th>
+    </tr></thead>
+    <tbody>
+      ${(state.devolucoes||[]).slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(d => {
+        const p = pedidoById(d.pedidoId);
+        const entOrig = d.entregaId ? state.entregas.find(e => e.id === d.entregaId) : null;
+        return `<tr>
+          <td>${fmtDate(d.data)}</td><td>${escapeHtml(d.nf||'—')}</td><td>${p ? escapeHtml(p.numero) : '—'}</td>
+          <td>${entOrig ? 'NF ' + escapeHtml(entOrig.nf) : '—'}</td><td class="num">${fmtT(d.qtd)}</td>
+          <td class="num">${fmtR(d.valor)}</td><td>${escapeHtml(d.local||'—')}</td><td>${escapeHtml(d.motivo||'—')}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>` : ''}
+
+  <footer>Relatório gerado automaticamente pelo Controle de Saldo CAP a partir dos dados cadastrados no momento da geração.</footer>
+</div>
+</body>
+</html>`;
+}
+
+document.getElementById('btnGerarRelatorio').addEventListener('click', () => {
+  const html = buildReportHtml();
+  downloadFile(`relatorio_saldo_cap_${todayIso()}.html`, html, 'text/html');
+  toast('Relatório gerado');
+});
+
+/* ============ LEITURA AUTOMÁTICA DE PDF (Pedido de Compra / Nota Fiscal) ============ */
+/* Extração best-effort por padrões de texto — sempre revise os valores antes de salvar. */
+
+function parseNumBR(str) {
+  if (!str) return null;
+  let s = str.trim();
+  if (/\d\.\d{3}(?:[.,]|$)/.test(s) || /,\d{1,2}$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    s = s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+function firstMatch(text, patterns) {
+  for (const re of patterns) { const m = text.match(re); if (m) return m; }
+  return null;
+}
+function anyDateBR(text) {
+  const m = text.match(/(\d{2}\/\d{2}\/\d{4})/);
+  return m ? m[1] : null;
+}
+function dateBRtoIso(dBR) {
+  if (!dBR) return null;
+  const [d, m, y] = dBR.split('/');
+  if (!d || !m || !y) return null;
+  return `${y}-${m}-${d}`;
+}
+
+async function readPdfText(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    throw new Error('Biblioteca de leitura de PDF não carregou (verifique sua conexão com a internet).');
+  }
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+  let text = '';
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(it => it.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+function extractPedidoFields(text) {
+  const out = {};
+  let m = firstMatch(text, [
+    /pedido\s*(?:de\s*compra)?\s*n?[ºo°]?\.?\s*:?\s*(\d{3,8})/i,
+    /\b(?:PC|OC)\s*[:\-]?\s*n?[ºo°]?\.?\s*(\d{3,8})/i,
+  ]);
+  out.numero = m ? { value: m[1], snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /fornecedor\s*:?\s*([A-Za-zÀ-ÿ0-9.,&\-\/\s]+?)(?=\s+(?:item|material|quantidade|cnpj|endere[çc]o|pedido|data|condi[çc][õo]es|local|valor)\b|$)/i,
+  ]);
+  out.fornecedor = m ? { value: m[1].trim(), snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /quantidade\s*(?:contratada)?\s*:?\s*([\d.,]+)\s*(?:t\b|ton)/i,
+    /qtd\.?\s*(?:contratada)?\s*:?\s*([\d.,]+)/i,
+  ]);
+  out.qtdContratada = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /(?:pre[çc]o|valor)\s*(?:unit[aá]rio)?\s*(?:\(?r\$\s*\/\s*t(?:on)?\)?|por\s*ton(?:elada)?|\/\s*ton(?:elada)?)\s*:?\s*r?\$?\s*([\d.,]+)/i,
+  ]);
+  out.precoTon = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /valor\s*total\s*(?:do\s*pedido)?\s*:?\s*r?\$?\s*([\d.,]+)/i,
+  ]);
+  out.valorTotal = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /data\s*(?:do\s*pedido)?\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
+    /emitido\s*em\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
+  ]);
+  out.data = m ? { value: m[1], snippet: m[0].trim() } : (anyDateBR(text) ? { value: anyDateBR(text), snippet: null, fallback: true } : null);
+
+  // fallback: derive preço/ton from valor total ÷ quantidade quando o preço unitário não aparece no documento
+  if (!out.precoTon && out.valorTotal && out.qtdContratada && out.qtdContratada.value > 0) {
+    out.precoTon = { value: Math.round((out.valorTotal.value / out.qtdContratada.value) * 100) / 100, snippet: null, derived: true };
+  }
+  return out;
+}
+
+function extractNfFields(text, pedidosConhecidos) {
+  const out = {};
+  let m = firstMatch(text, [
+    /n[uú]mero\s*:?\s*0*(\d{1,9})\s+s[eé]rie/i,
+    /nf-?e?\s*n?[ºo°]?\.?\s*:?\s*0*(\d{4,9})\b/i,
+    /nota\s*fiscal\s*(?:eletr[oô]nica)?\s*n?[ºo°]?\.?\s*:?\s*0*(\d{1,9})/i,
+  ]);
+  out.nf = m ? { value: m[1], snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /quantidade\s*:?\s*([\d.,]+)\s*(?:un(?:idade)?|ton|t\b)/i,
+    /quantidade\s*:?\s*([\d.,]+)/i,
+  ]);
+  out.qtd = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /valor\s*total\s*(?:da\s*nota|da\s*nf)?\s*:?\s*r?\$?\s*([\d.,]+)/i,
+  ]);
+  out.valor = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : null;
+
+  m = firstMatch(text, [
+    /data\s*(?:de\s*)?emiss[ãa]o\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
+    /emiss[ãa]o\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
+  ]);
+  out.data = m ? { value: m[1], snippet: m[0].trim() } : (anyDateBR(text) ? { value: anyDateBR(text), snippet: null, fallback: true } : null);
+
+  m = firstMatch(text, [
+    /(?:munic[ií]pio|obra\s*\/?\s*local|local\s*(?:de\s*entrega)?)\s*:?\s*([A-Za-zÀ-ÿ0-9º\s\-]+?)(?:\s{2,}|\s+referente|\s+pedido|\s+dados do produto|$)/i,
+  ]);
+  out.local = m ? { value: m[1].trim(), snippet: m[0].trim() } : null;
+
+  out.pedidoNumero = null;
+  if (pedidosConhecidos) {
+    for (const num of pedidosConhecidos) {
+      const re = new RegExp('pedido\\s*(?:de\\s*compra)?\\s*n?[ºo°]?\\.?\\s*:?\\s*0*' + num + '\\b', 'i');
+      if (re.test(text)) { out.pedidoNumero = num; break; }
+    }
+  }
+  return out;
+}
+
+function extractDevolucaoFields(text, pedidosConhecidos, entregasConhecidas) {
+  const out = {};
+
+  // Número da NF de devolução (formato DANFE: "Nº 8207" ou "NF-e Nº ...")
+  let m = firstMatch(text, [
+    /n[ºo°]\s*0*(\d{3,9})\s*(?:s[eé]rie)?/i,
+    /nf-?e?\s*n?[ºo°]?\.?\s*:?\s*0*(\d{3,9})\b/i,
+  ]);
+  out.nf = m ? { value: m[1], snippet: m[0].trim() } : null;
+
+  // Quantidade + unidade (tabela de produtos: UNID QUANT. VALOR_UNIT. VALOR_TOTAL) — converte KG para toneladas
+  m = firstMatch(text, [
+    /\b(kg|ton|un|l)\s+([\d]{1,3}(?:\.\d{3})*,\d{2,4})\s+([\d]{1,3}(?:\.\d{3})*,\d{2,4})\s+([\d]{1,3}(?:\.\d{3})*,\d{2,4})/i,
+  ]);
+  if (m) {
+    const unit = m[1].toLowerCase();
+    let val = parseNumBR(m[2]);
+    const converted = unit === 'kg';
+    if (converted && val !== null) val = Math.round((val / 1000) * 10000) / 10000;
+    out.qtd = { value: val, snippet: m[0].trim(), convertedFromKg: converted };
+    out.valorItem = { value: parseNumBR(m[4]), snippet: m[0].trim() };
+  } else {
+    out.qtd = null;
+    out.valorItem = null;
+  }
+
+  // Valor total da nota
+  m = firstMatch(text, [
+    /valor\s*total\s*da\s*nota\s*:?\s*r?\$?\s*([\d.,]+)/i,
+  ]);
+  out.valor = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : out.valorItem;
+
+  // Data de emissão
+  m = firstMatch(text, [
+    /data\s*(?:de\s*)?emiss[ãa]o\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
+    /emiss[ãa]o\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
+  ]);
+  out.data = m ? { value: m[1], snippet: m[0].trim() } : (anyDateBR(text) ? { value: anyDateBR(text), snippet: null, fallback: true } : null);
+
+  // Município do destinatário (obra que está devolvendo o material)
+  m = firstMatch(text, [
+    /munic[ií]pio\s+([A-Za-zÀ-ÿ\s]+?)\s+fone/i,
+  ]);
+  out.local = m ? { value: m[1].trim(), snippet: m[0].trim() } : null;
+
+  // NF-e original referenciada nas informações complementares — usada para vincular à entrega estornada
+  m = firstMatch(text, [
+    /emiss[ãa]o\s*original\s*nf-?e?\s*:?\s*\d*\s*0*(\d{3,9})/i,
+    /nf-?e?\s*(?:de\s*)?origem\s*:?\s*0*(\d{3,9})/i,
+    /referente\s*(?:[àa]\s*)?nf-?e?\s*n?[ºo°]?\.?\s*:?\s*0*(\d{3,9})/i,
+  ]);
+  out.entregaId = null;
+  out.nfOriginal = null;
+  if (m && entregasConhecidas) {
+    const numOriginal = m[1].replace(/^0+/, '');
+    out.nfOriginal = { value: numOriginal, snippet: m[0].trim() };
+    const ent = entregasConhecidas.find(e => String(e.nf||'').replace(/^0+/, '') === numOriginal);
+    if (ent) out.entregaId = ent.id;
+  }
+
+  // Pedido vinculado — herdado da entrega original se encontrada, senão procurado no texto
+  out.pedidoNumero = null;
+  if (out.entregaId) {
+    const ent = entregasConhecidas.find(e => e.id === out.entregaId);
+    if (ent) {
+      const p = pedidoById(ent.pedidoId);
+      if (p) out.pedidoNumero = p.numero;
+    }
+  }
+  if (!out.pedidoNumero && pedidosConhecidos) {
+    for (const num of pedidosConhecidos) {
+      const re = new RegExp('pedido\\s*(?:de\\s*compra)?\\s*n?[ºo°]?\\.?\\s*:?\\s*0*' + num + '\\b', 'i');
+      if (re.test(text)) { out.pedidoNumero = num; break; }
+    }
+  }
+  return out;
+}
+
+function renderExtractReport(containerId, rawText, fieldReport) {
+  const container = document.getElementById(containerId);
+  const items = fieldReport.map(f => {
+    if (f.data && f.data.value !== null && f.data.value !== undefined && f.data.value !== '') {
+      const tag = f.data.derived ? ' (calculado)' : f.data.fallback ? ' (data encontrada no documento)' : f.data.convertedFromKg ? ' (convertido de kg para toneladas)' : '';
+      return `<li class="found"><span class="ico">✓</span><span>${f.label}: <b>${escapeHtml(String(f.data.value))}</b>${tag}${f.data.snippet ? ` <span class="snippet">— “${escapeHtml(f.data.snippet)}”</span>` : ''}</span></li>`;
+    }
+    return `<li class="missing"><span class="ico">–</span><span>${f.label}: não encontrado, preencha manualmente</span></li>`;
+  }).join('');
+  const rawId = containerId + 'Raw';
+  container.innerHTML = `
+    <ul>${items}</ul>
+    <button type="button" class="extract-toggle" onclick="document.getElementById('${rawId}').classList.toggle('show')">Ver texto extraído do PDF</button>
+    <div class="extract-raw" id="${rawId}">${escapeHtml(rawText.trim()).slice(0, 4000)}</div>
+  `;
+  container.classList.add('show');
+}
+
+document.getElementById('pedidoAnexo').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('pedidoAnexoStatus');
+  statusEl.textContent = 'Lendo PDF...';
+  statusEl.className = 'attach-status busy';
+  try {
+    const text = await readPdfText(file);
+    if (text.trim().length < 15) {
+      statusEl.textContent = '⚠ Este PDF parece não ter texto (provável digitalização/imagem). Preencha os campos manualmente.';
+      statusEl.className = 'attach-status error';
+      return;
+    }
+    const fields = extractPedidoFields(text);
+    if (fields.numero) document.getElementById('pedidoNumero').value = fields.numero.value;
+    if (fields.fornecedor) document.getElementById('pedidoFornecedor').value = fields.fornecedor.value;
+    if (fields.qtdContratada) document.getElementById('pedidoQtd').value = fields.qtdContratada.value;
+    if (fields.precoTon) document.getElementById('pedidoPreco').value = fields.precoTon.value;
+    updatePedidoPreview();
+
+    pedidoAnexoNomeAtual = file.name;
+    statusEl.textContent = `📄 ${file.name} — campos preenchidos automaticamente, confira antes de salvar.`;
+    statusEl.className = 'attach-status';
+    renderExtractReport('pedidoAnexoReport', text, [
+      { label: 'Número do pedido', data: fields.numero },
+      { label: 'Fornecedor', data: fields.fornecedor },
+      { label: 'Qtd. contratada (t)', data: fields.qtdContratada },
+      { label: 'Preço por tonelada', data: fields.precoTon },
+      { label: 'Valor total', data: fields.valorTotal },
+      { label: 'Data do documento', data: fields.data },
+    ]);
+  } catch (err) {
+    statusEl.textContent = '⚠ Não foi possível ler este PDF: ' + err.message;
+    statusEl.className = 'attach-status error';
+  }
+});
+
+document.getElementById('entregaAnexo').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('entregaAnexoStatus');
+  statusEl.textContent = 'Lendo PDF...';
+  statusEl.className = 'attach-status busy';
+  try {
+    const text = await readPdfText(file);
+    if (text.trim().length < 15) {
+      statusEl.textContent = '⚠ Este PDF parece não ter texto (provável digitalização/imagem). Preencha os campos manualmente.';
+      statusEl.className = 'attach-status error';
+      return;
+    }
+    const pedidosNumeros = state.pedidos.map(p => p.numero);
+    const fields = extractNfFields(text, pedidosNumeros);
+
+    if (fields.nf) document.getElementById('entregaNf').value = fields.nf.value;
+    if (fields.qtd) document.getElementById('entregaQtd').value = fields.qtd.value;
+    if (fields.local) document.getElementById('entregaLocal').value = fields.local.value;
+    if (fields.data) document.getElementById('entregaData').value = dateBRtoIso(fields.data.value) || document.getElementById('entregaData').value;
+    if (fields.pedidoNumero) {
+      const p = state.pedidos.find(pp => pp.numero === fields.pedidoNumero);
+      if (p) document.getElementById('entregaPedido').value = p.id;
+    }
+    // valor: prioriza o valor total lido da nota; senão deixa o cálculo automático (qtd × preço do pedido) atuar
+    if (fields.valor) {
+      document.getElementById('entregaValor').value = fields.valor.value;
+    } else {
+      const pedidoId = document.getElementById('entregaPedido').value;
+      const p = pedidoId ? pedidoById(pedidoId) : null;
+      if (p && fields.qtd) document.getElementById('entregaValor').value = (fields.qtd.value * p.precoTon).toFixed(2);
+    }
+    updateEntregaPreview();
+
+    entregaAnexoNomeAtual = file.name;
+    statusEl.textContent = `📄 ${file.name} — campos preenchidos automaticamente, confira antes de salvar.`;
+    statusEl.className = 'attach-status';
+    renderExtractReport('entregaAnexoReport', text, [
+      { label: 'Nº da NF', data: fields.nf },
+      { label: 'Quantidade (t)', data: fields.qtd },
+      { label: 'Valor total da nota', data: fields.valor },
+      { label: 'Data de emissão', data: fields.data },
+      { label: 'Local / obra', data: fields.local },
+      { label: 'Pedido de compra vinculado', data: fields.pedidoNumero ? { value: fields.pedidoNumero } : null },
+    ]);
+  } catch (err) {
+    statusEl.textContent = '⚠ Não foi possível ler este PDF: ' + err.message;
+    statusEl.className = 'attach-status error';
+  }
+});
+
+document.getElementById('devolucaoAnexo').addEventListener('change', async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('devolucaoAnexoStatus');
+  statusEl.textContent = 'Lendo PDF...';
+  statusEl.className = 'attach-status busy';
+  try {
+    const text = await readPdfText(file);
+    if (text.trim().length < 15) {
+      statusEl.textContent = '⚠ Este PDF parece não ter texto (provável digitalização/imagem). Preencha os campos manualmente.';
+      statusEl.className = 'attach-status error';
+      return;
+    }
+    const pedidosNumeros = state.pedidos.map(p => p.numero);
+    const fields = extractDevolucaoFields(text, pedidosNumeros, state.entregas);
+
+    if (fields.nf) document.getElementById('devolucaoNf').value = fields.nf.value;
+    if (fields.qtd && fields.qtd.value !== null) document.getElementById('devolucaoQtd').value = fields.qtd.value;
+    if (fields.valor && fields.valor.value !== null) document.getElementById('devolucaoValor').value = fields.valor.value;
+    if (fields.local) document.getElementById('devolucaoLocal').value = fields.local.value;
+    if (fields.data) document.getElementById('devolucaoDataDevolucao').value = dateBRtoIso(fields.data.value) || document.getElementById('devolucaoDataDevolucao').value;
+
+    let pedidoIdEncontrado = '';
+    if (fields.pedidoNumero) {
+      const p = state.pedidos.find(pp => pp.numero === fields.pedidoNumero);
+      if (p) pedidoIdEncontrado = p.id;
+    }
+    refreshDevolucaoPedidoOptions(pedidoIdEncontrado);
+    refreshDevolucaoEntregaOptions(pedidoIdEncontrado, fields.entregaId || '');
+    if (!document.getElementById('devolucaoMotivo').value && fields.nfOriginal) {
+      document.getElementById('devolucaoMotivo').value = 'Devolução conforme NF-e ' + (document.getElementById('devolucaoNf').value || '') + (fields.entregaId ? ' — estorno da NF ' + fields.nfOriginal.value : '');
+    }
+    updateDevolucaoPreview();
+
+    devolucaoAnexoNomeAtual = file.name;
+    statusEl.textContent = `📄 ${file.name} — campos preenchidos automaticamente, confira antes de salvar.`;
+    statusEl.className = 'attach-status';
+    renderExtractReport('devolucaoAnexoReport', text, [
+      { label: 'Nº da NF de devolução', data: fields.nf },
+      { label: 'Quantidade devolvida (t)', data: fields.qtd },
+      { label: 'Valor total', data: fields.valor },
+      { label: 'Data de emissão', data: fields.data },
+      { label: 'Local / município', data: fields.local },
+      { label: 'NF-e original referenciada', data: fields.nfOriginal },
+      { label: 'Pedido de compra vinculado', data: fields.pedidoNumero ? { value: fields.pedidoNumero } : null },
+    ]);
+  } catch (err) {
+    statusEl.textContent = '⚠ Não foi possível ler este PDF: ' + err.message;
+    statusEl.className = 'attach-status error';
+  }
+});
+
+/* ============ EXPOSIÇÃO PARA O DASHBOARD CONSOLIDADO (Controle de Crédito) ============ */
+window.CAP = {
+  getSummary: function () {
+    const totalContratado = state.pedidos.reduce((s, p) => s + p.qtdContratada, 0);
+    const totalEntregueBruto = state.entregas.reduce((s, e) => s + Number(e.qtd || 0), 0);
+    const totalDevolvido = (state.devolucoes || []).reduce((s, d) => s + Number(d.qtd || 0), 0);
+    const totalSaldoQtd = state.pedidos.reduce((s, p) => s + pedidoStats(p).saldoQtd, 0);
+    const totalSaldoValor = state.pedidos.reduce((s, p) => s + pedidoStats(p).saldoValor, 0);
+    const ledger = estoqueLedger();
+    const estoqueAtual = ledger.length ? ledger[ledger.length - 1].saldo : 0;
+    return {
+      contratadoFmt: fmtT(totalContratado),
+      entregueLiquidoFmt: fmtT(totalEntregueBruto - totalDevolvido),
+      saldoQtdFmt: fmtT(totalSaldoQtd),
+      saldoValorFmt: fmtR(totalSaldoValor),
+      estoqueAtualFmt: fmtT(estoqueAtual),
+      devolvidoFmt: fmtT(totalDevolvido),
+      devolucoesCount: (state.devolucoes || []).length,
+      pedidosCount: state.pedidos.length,
+      entregasCount: state.entregas.length
+    };
+  }
+};
+
+/* ============ INIT ============ */
+renderAll();
+
 })();
 </script>
 </body>
