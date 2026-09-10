@@ -8673,6 +8673,19 @@ window.CAP = {
   }
 };
 
+/* ============ EXPOSIÇÃO DOS HANDLERS DE CLIQUE (onclick inline no HTML gerado) ============
+   Os botões de ação de cada linha (editar ✎, estornar ↩, excluir 🗑) são gerados como HTML
+   com atributos onclick="...", e por isso são resolvidos no escopo GLOBAL do navegador — não
+   no escopo local desta IIFE. Sem expor essas funções em window, o clique falha silenciosamente
+   (a função "não existe" do ponto de vista do atributo onclick). */
+window.openPedidoModal = openPedidoModal;
+window.deletePedido = deletePedido;
+window.openEntregaModal = openEntregaModal;
+window.deleteEntrega = deleteEntrega;
+window.estornarEntrega = estornarEntrega;
+window.openDevolucaoModal = openDevolucaoModal;
+window.deleteDevolucao = deleteDevolucao;
+
 /* ============ INIT ============ */
 async function initCap() {
   // Espera a sessão de login terminar de carregar antes de buscar dados que
