@@ -3064,6 +3064,35 @@ function redistribuirSaldoPorNFDuplicada(kept, keptRawItems){
         k.nfDuplicadaLinhasNoCluster = indices.length;
         k.nfDuplicadaRecalculada = true;
       });
+      // ajuste 15 (cont. — fusão de resíduo): quando um lote já passou da
+      // própria data e recebeu ALGUMA entrega mas não o suficiente (saldo
+      // residual pequeno, ex.: 2,48t de um lote de 40t), o Sienge não deixa
+      // esse restinho pendurado numa linha própria com data vencida — ele
+      // funde esse resíduo dentro da PRÓXIMA data que ainda está totalmente
+      // em aberto. Confirmado direto na tela "Reprogramação de Pedidos de
+      // Compras" do Sienge para o pedido 57834: o resíduo de 2,48t do lote
+      // de 11/09 (37,52t de 40t entregues) apareceu somado à data de
+      // 14/09 (virou 32,48t), não como uma linha de 11/09 à parte.
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      const residuais = indices.filter(idx=>{
+        const k = kept[idx];
+        const d = parseDateBR(k.dataChegadaObra);
+        return parseNumBR(k.qtdEntregue) > SALDO_EPSILON && k.saldo > SALDO_EPSILON && d && d < hoje;
+      });
+      residuais.forEach(idxResidual=>{
+        const residual = kept[idxResidual];
+        const candidatosAbertos = indices
+          .filter(idx => idx !== idxResidual && !removedIndices.has(idx) && kept[idx].saldo > SALDO_EPSILON)
+          .sort((a,b)=> (parseDateBR(kept[a].dataChegadaObra)||0) - (parseDateBR(kept[b].dataChegadaObra)||0));
+        if(!candidatosAbertos.length) return; // não há pra onde fundir — mantém como está
+        const alvo = kept[candidatosAbertos[0]];
+        alvo.saldo += residual.saldo;
+        alvo.qtdSolicitada = parseNumBR(alvo.qtdSolicitada) + residual.saldo;
+        residual.saldo = 0;
+        residual.situacaoPedido = 'Atendida integralmente';
+        residual.situacaoSolicitacao = 'Atendida integralmente';
+        removedIndices.add(idxResidual);
+      });
       gruposCorrigidos += 1;
     } else {
       indices.forEach(idx=>{
