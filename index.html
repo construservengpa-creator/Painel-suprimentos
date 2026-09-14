@@ -234,6 +234,12 @@ body:not(.is-logged) .logged-non-gestor-only{ display:none !important; }
    só tem leitura, igual a um visitante anônimo. */
 .pode-lancar-cotacao-only{ display:none !important; }
 body.is-admin .pode-lancar-cotacao-only, body.is-supervisor .pode-lancar-cotacao-only, body.is-operador .pode-lancar-cotacao-only{ display:block !important; }
+/* Dentro das ações de linha do CAP, o botão fica ao lado de outros botões
+   (editar, excluir) — precisa continuar inline-block, não ocupar a linha
+   toda como o padrão acima faz para os cards de formulário. */
+body.is-admin #tab-creditos-cap .row-actions .pode-lancar-cotacao-only,
+body.is-supervisor #tab-creditos-cap .row-actions .pode-lancar-cotacao-only,
+body.is-operador #tab-creditos-cap .row-actions .pode-lancar-cotacao-only{ display:inline-block !important; }
 .logged-non-lancador-only{ display:none; }
 body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador) .logged-non-lancador-only{ display:block !important; }
 .file-drop{
@@ -2082,7 +2088,7 @@ footer.appfoot{
       <div class="filters">
         <span class="hint">Pedidos de compra contratados com o fornecedor</span>
       </div>
-      <button class="btn primary" id="btnNovoPedido">+ Novo Pedido de Compra</button>
+      <button class="btn primary pode-lancar-cotacao-only" id="btnNovoPedido">+ Novo Pedido de Compra</button>
     </div>
     <div class="card table-wrap">
       <table>
@@ -2103,7 +2109,7 @@ footer.appfoot{
         <select id="filtroObra"><option value="">Todas as obras</option></select>
         <input type="search" id="filtroBusca" placeholder="Buscar NF...">
       </div>
-      <button class="btn primary" id="btnNovaEntrega">+ Nova Entrega</button>
+      <button class="btn primary pode-lancar-cotacao-only" id="btnNovaEntrega">+ Nova Entrega</button>
     </div>
     <div class="card table-wrap">
       <table>
@@ -2130,7 +2136,7 @@ footer.appfoot{
       <div class="filters">
         <span class="hint">Devoluções ao fornecedor e estornos de entregas</span>
       </div>
-      <button class="btn primary" id="btnNovaDevolucao">+ Nova Devolução / Estorno</button>
+      <button class="btn primary pode-lancar-cotacao-only" id="btnNovaDevolucao">+ Nova Devolução / Estorno</button>
     </div>
     <div class="card table-wrap">
       <table>
@@ -7490,8 +7496,8 @@ function renderPedidos() {
       <td class="num tabular">${fmtT(s.saldoQtd)}</td>
       <td class="num tabular">${fmtR(s.saldoValor)}</td>
       <td class="row-actions">
-        <button title="Editar" onclick="openPedidoModal('${p.id}')">✎</button>
-        <button title="Excluir" class="danger" onclick="deletePedido('${p.id}')">🗑</button>
+        <button title="Editar" class="gestor-credito-only" onclick="openPedidoModal('${p.id}')">✎</button>
+        <button title="Excluir" class="danger gestor-credito-only" onclick="deletePedido('${p.id}')">🗑</button>
       </td>
     </tr>`;
   }).join('');
@@ -7528,9 +7534,9 @@ function renderEntregas() {
       <td>${fmtDate(e.dataEntrega)}</td>
       <td class="num tabular">${fmtR(e.valor)}</td>
       <td class="row-actions">
-        <button title="Editar" onclick="openEntregaModal('${e.id}')">✎</button>
-        <button title="Registrar devolução / estornar" onclick="estornarEntrega('${e.id}')">↩</button>
-        <button title="Excluir" class="danger" onclick="deleteEntrega('${e.id}')">🗑</button>
+        <button title="Editar" class="gestor-credito-only" onclick="openEntregaModal('${e.id}')">✎</button>
+        <button title="Registrar devolução / estornar" class="pode-lancar-cotacao-only" onclick="estornarEntrega('${e.id}')">↩</button>
+        <button title="Excluir" class="danger gestor-credito-only" onclick="deleteEntrega('${e.id}')">🗑</button>
       </td>
     </tr>`;
   }).join('');
@@ -7704,8 +7710,8 @@ function renderDevolucoes() {
       <td>${escapeHtml(d.local||'—')}</td>
       <td>${d.motivo ? escapeHtml(d.motivo) : '<span class="hint">—</span>'}</td>
       <td class="row-actions">
-        <button title="Editar" onclick="openDevolucaoModal('${d.id}')">✎</button>
-        <button title="Excluir" class="danger" onclick="deleteDevolucao('${d.id}')">🗑</button>
+        <button title="Editar" class="gestor-credito-only" onclick="openDevolucaoModal('${d.id}')">✎</button>
+        <button title="Excluir" class="danger gestor-credito-only" onclick="deleteDevolucao('${d.id}')">🗑</button>
       </td>
     </tr>`;
   }).join('');
