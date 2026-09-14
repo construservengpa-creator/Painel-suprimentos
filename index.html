@@ -242,6 +242,20 @@ body.is-supervisor #tab-creditos-cap .row-actions .pode-lancar-cotacao-only,
 body.is-operador #tab-creditos-cap .row-actions .pode-lancar-cotacao-only{ display:inline-block !important; }
 .logged-non-lancador-only{ display:none; }
 body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador) .logged-non-lancador-only{ display:block !important; }
+/* Controle de CAP: visualização liberada para qualquer papel atribuído
+   (operador, operador avançado, supervisor, admin) — só um "visitante"
+   (usuário logado sem nenhum papel) ou anônimo não vê. Incluir dados é
+   restrito a admin, supervisor ou operador avançado; operador comum só
+   visualiza. Editar/excluir continuam só para admin/supervisor
+   (.gestor-credito-only, sem alteração). */
+.pode-ver-cap-only{ display:none !important; }
+body.is-admin .pode-ver-cap-only, body.is-supervisor .pode-ver-cap-only,
+body.is-operador .pode-ver-cap-only, body.is-operador-avancado .pode-ver-cap-only{ display:inline-block !important; }
+.pode-lancar-cap-only{ display:none !important; }
+body.is-admin .pode-lancar-cap-only, body.is-supervisor .pode-lancar-cap-only, body.is-operador-avancado .pode-lancar-cap-only{ display:block !important; }
+body.is-admin #tab-creditos-cap .row-actions .pode-lancar-cap-only,
+body.is-supervisor #tab-creditos-cap .row-actions .pode-lancar-cap-only,
+body.is-operador-avancado #tab-creditos-cap .row-actions .pode-lancar-cap-only{ display:inline-block !important; }
 .file-drop{
   position:relative;
   display:flex;
@@ -1347,11 +1361,11 @@ footer.appfoot{
     </div>
     <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
     <button class="tab-btn" data-tab="cotacoes"><span class="tab-icon">💲</span><span class="tab-label">Cotação de Insumos Críticos</span></button>
-    <div class="nav-group gestor-credito-only" data-group="creditos">
-      <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-icon">💳</span><span class="tab-label">Controle de Crédito</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+    <div class="nav-group pode-ver-cap-only" data-group="creditos">
+      <button class="tab-btn nav-group-btn pode-ver-cap-only" data-tab="creditos-dashboard"><span class="tab-icon">💳</span><span class="tab-label">Controle de Crédito</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="nav-submenu">
         <button class="tab-btn gestor-credito-only" data-tab="creditos"><span class="tab-label">Crédito entre Obras</span></button>
-        <button class="tab-btn gestor-credito-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
+        <button class="tab-btn pode-ver-cap-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
       </div>
     </div>
     <button class="tab-btn" data-tab="admin"><span class="tab-icon">🔐</span><span class="tab-label">Administração</span></button>
@@ -1877,8 +1891,10 @@ footer.appfoot{
     <div class="note" style="background:var(--surface,var(--asphalt-2));border:1px solid var(--line);border-left:3px solid var(--gold,var(--yellow));border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--text-mut,var(--text-dim));line-height:1.6;margin-bottom:16px;">
       Resumo dos dois controles agrupados aqui: <b>Crédito entre Obras</b> (créditos lançados entre empresas/obras e seu abatimento por pedidos) e <b>CAP</b> (saldo de cimento asfáltico por pedido de compra, entregas, devoluções e estoque).
     </div>
-    <p class="eyebrow" style="margin:0 0 10px;">Crédito entre Obras</p>
-    <div class="kpi-grid" id="creditosDashKpiGridCredito"></div>
+    <div class="gestor-credito-only">
+      <p class="eyebrow" style="margin:0 0 10px;">Crédito entre Obras</p>
+      <div class="kpi-grid" id="creditosDashKpiGridCredito"></div>
+    </div>
     <p class="eyebrow" style="margin:20px 0 10px;">CAP · Cimento Asfáltico de Petróleo</p>
     <div class="kpi-grid" id="creditosDashKpiGridCap"></div>
   </section>
@@ -2088,7 +2104,7 @@ footer.appfoot{
       <div class="filters">
         <span class="hint">Pedidos de compra contratados com o fornecedor</span>
       </div>
-      <button class="btn primary pode-lancar-cotacao-only" id="btnNovoPedido">+ Novo Pedido de Compra</button>
+      <button class="btn primary pode-lancar-cap-only" id="btnNovoPedido">+ Novo Pedido de Compra</button>
     </div>
     <div class="card table-wrap">
       <table>
@@ -2109,7 +2125,7 @@ footer.appfoot{
         <select id="filtroObra"><option value="">Todas as obras</option></select>
         <input type="search" id="filtroBusca" placeholder="Buscar NF...">
       </div>
-      <button class="btn primary pode-lancar-cotacao-only" id="btnNovaEntrega">+ Nova Entrega</button>
+      <button class="btn primary pode-lancar-cap-only" id="btnNovaEntrega">+ Nova Entrega</button>
     </div>
     <div class="card table-wrap">
       <table>
@@ -2136,7 +2152,7 @@ footer.appfoot{
       <div class="filters">
         <span class="hint">Devoluções ao fornecedor e estornos de entregas</span>
       </div>
-      <button class="btn primary pode-lancar-cotacao-only" id="btnNovaDevolucao">+ Nova Devolução / Estorno</button>
+      <button class="btn primary pode-lancar-cap-only" id="btnNovaDevolucao">+ Nova Devolução / Estorno</button>
     </div>
     <div class="card table-wrap">
       <table>
@@ -2446,12 +2462,12 @@ footer.appfoot{
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Nome</th><th>Administrador</th><th>Supervisor</th><th>Operador</th><th></th></tr>
+            <tr><th>Nome</th><th>Administrador</th><th>Supervisor</th><th>Operador</th><th>Operador Avançado</th><th></th></tr>
           </thead>
           <tbody id="usuariosTableBody"></tbody>
         </table>
       </div>
-      <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios. Supervisor pode lançar, editar e excluir créditos e vínculos. Operador pode lançar preços em Cotação de Insumos Críticos. Um usuário logado sem nenhum desses três papéis é um "visitante": só enxerga Suprimentos, Entrega de Insumos Críticos e Cotação (leitura), sem lançar nada e sem ver a aba de Controle de Crédito — é o papel padrão de quem cria a própria conta pelo site. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
+      <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios. Supervisor pode lançar, editar e excluir créditos e vínculos, e também gerencia o CAP (incluir, editar, excluir). Operador pode lançar preços em Cotação de Insumos Críticos e visualizar o Controle de CAP (só leitura). Operador Avançado tem tudo que o Operador tem, mais a permissão de incluir pedidos, entregas e devoluções no CAP — mas não pode editar nem excluir. Um usuário logado sem nenhum desses papéis é um "visitante": só enxerga Suprimentos, Entrega de Insumos Críticos e Cotação (leitura), sem lançar nada e sem ver Controle de Crédito nem CAP — é o papel padrão de quem cria a própria conta pelo site. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
     </div>
   </section>
 
@@ -6907,22 +6923,25 @@ init();
       currentUserId = session.user.id;
       let isSupervisor = false;
       let isOperador = false;
+      let isOperadorAvancado = false;
       let nome = session.user.email;
       try{
-        const { data: perfil } = await window.SB.from('perfis').select('nome,is_admin,is_supervisor,is_operador').eq('id', session.user.id).single();
+        const { data: perfil } = await window.SB.from('perfis').select('nome,is_admin,is_supervisor,is_operador,is_operador_avancado').eq('id', session.user.id).single();
         if(perfil){
           isAdmin = !!perfil.is_admin;
           isSupervisor = !!perfil.is_supervisor;
           isOperador = !!perfil.is_operador;
+          isOperadorAvancado = !!perfil.is_operador_avancado;
           if(perfil.nome) nome = perfil.nome;
         } else {
-          await window.SB.from('perfis').insert({ id: session.user.id, nome: session.user.email, is_admin: false, is_supervisor: false, is_operador: false });
+          await window.SB.from('perfis').insert({ id: session.user.id, nome: session.user.email, is_admin: false, is_supervisor: false, is_operador: false, is_operador_avancado: false });
         }
       }catch(e){ /* tabela perfis pode não ter linha ainda; segue sem papel */ }
       document.body.classList.toggle('is-admin', isAdmin);
       document.body.classList.toggle('is-supervisor', isSupervisor);
       document.body.classList.toggle('is-operador', isOperador);
-      const papel = isAdmin ? ' (admin)' : (isSupervisor ? ' (supervisor)' : (isOperador ? ' (operador)' : ' (visitante)'));
+      document.body.classList.toggle('is-operador-avancado', isOperadorAvancado);
+      const papel = isAdmin ? ' (admin)' : (isSupervisor ? ' (supervisor)' : (isOperadorAvancado ? ' (operador avançado)' : (isOperador ? ' (operador)' : ' (visitante)')));
       authWhoAmI.textContent = `${nome}${papel}`;
       authToggleBtn.textContent = `👤 ${nome}${papel}`;
     } else {
@@ -6930,6 +6949,7 @@ init();
       document.body.classList.remove('is-admin');
       document.body.classList.remove('is-supervisor');
       document.body.classList.remove('is-operador');
+      document.body.classList.remove('is-operador-avancado');
       authLoggedOut.style.display = 'block';
       authLoggedIn.style.display = 'none';
       authToggleBtn.textContent = '👤 Entrar';
@@ -6990,7 +7010,7 @@ init();
       return;
     }
     if(data && data.user){
-      try{ await window.SB.from('perfis').insert({ id: data.user.id, nome, is_admin: false, is_supervisor: false, is_operador: false }); }catch(e){ /* perfil pode já existir ou sessão ainda não ativa */ }
+      try{ await window.SB.from('perfis').insert({ id: data.user.id, nome, is_admin: false, is_supervisor: false, is_operador: false, is_operador_avancado: false }); }catch(e){ /* perfil pode já existir ou sessão ainda não ativa */ }
     }
     cadNome.value = ''; cadEmail.value = ''; cadSenha.value = ''; cadSenhaConfirma.value = '';
     if(data && data.session){
@@ -7012,7 +7032,7 @@ init();
   // trancar fora sem querer.
   async function loadUsuarios(){
     try{
-      const { data, error } = await window.SB.from('perfis').select('id,nome,is_admin,is_supervisor,is_operador').order('nome');
+      const { data, error } = await window.SB.from('perfis').select('id,nome,is_admin,is_supervisor,is_operador,is_operador_avancado').order('nome');
       if(error) throw error;
       renderUsuarios(data||[]);
     }catch(e){
@@ -7026,7 +7046,7 @@ init();
     if(!tbody) return;
     if(badge) badge.textContent = `${lista.length} usuário(s)`;
     if(!lista.length){
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum usuário encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum usuário encontrado.</td></tr>`;
       return;
     }
     tbody.innerHTML = lista.map(u=>{
@@ -7036,6 +7056,7 @@ init();
         <td><input type="checkbox" class="usuario-admin" ${u.is_admin?'checked':''} ${ehVoceMesmo?'disabled title="Você não pode remover seu próprio acesso de administrador."':''}></td>
         <td><input type="checkbox" class="usuario-supervisor" ${u.is_supervisor?'checked':''}></td>
         <td><input type="checkbox" class="usuario-operador" ${u.is_operador?'checked':''}></td>
+        <td><input type="checkbox" class="usuario-operador-avancado" ${u.is_operador_avancado?'checked':''}></td>
         <td><button class="primary" data-salvar-usuario="${u.id}">Salvar</button> <span class="usuario-msg" style="font-size:11px;color:var(--bad);margin-left:6px;"></span></td>
       </tr>`;
     }).join('');
@@ -7048,11 +7069,12 @@ init();
         const isAdminChk = row.querySelector('.usuario-admin').checked;
         const isSupervisorChk = row.querySelector('.usuario-supervisor').checked;
         const isOperadorChk = row.querySelector('.usuario-operador').checked;
+        const isOperadorAvancadoChk = row.querySelector('.usuario-operador-avancado').checked;
         const msgEl = row.querySelector('.usuario-msg');
         msgEl.textContent = '';
         if(!nome){ msgEl.textContent = 'Informe um nome.'; return; }
         try{
-          const { error } = await window.SB.from('perfis').update({ nome, is_admin: isAdminChk, is_supervisor: isSupervisorChk, is_operador: isOperadorChk }).eq('id', id);
+          const { error } = await window.SB.from('perfis').update({ nome, is_admin: isAdminChk, is_supervisor: isSupervisorChk, is_operador: isOperadorChk, is_operador_avancado: isOperadorAvancadoChk }).eq('id', id);
           if(error) throw error;
           msgEl.style.color = 'var(--good,#0ca30c)';
           msgEl.textContent = 'Salvo!';
@@ -7535,7 +7557,7 @@ function renderEntregas() {
       <td class="num tabular">${fmtR(e.valor)}</td>
       <td class="row-actions">
         <button title="Editar" class="gestor-credito-only" onclick="openEntregaModal('${e.id}')">✎</button>
-        <button title="Registrar devolução / estornar" class="pode-lancar-cotacao-only" onclick="estornarEntrega('${e.id}')">↩</button>
+        <button title="Registrar devolução / estornar" class="pode-lancar-cap-only" onclick="estornarEntrega('${e.id}')">↩</button>
         <button title="Excluir" class="danger gestor-credito-only" onclick="deleteEntrega('${e.id}')">🗑</button>
       </td>
     </tr>`;
