@@ -233,7 +233,7 @@ body:not(.is-logged) .logged-non-gestor-only{ display:none !important; }
    supervisor ou operador — um visitante logado (sem nenhum desses papéis)
    só tem leitura, igual a um visitante anônimo. */
 .pode-lancar-cotacao-only{ display:none !important; }
-body.is-admin .pode-lancar-cotacao-only, body.is-supervisor .pode-lancar-cotacao-only, body.is-operador .pode-lancar-cotacao-only{ display:block !important; }
+body.is-admin .pode-lancar-cotacao-only, body.is-supervisor .pode-lancar-cotacao-only, body.is-operador .pode-lancar-cotacao-only, body.is-operador-avancado .pode-lancar-cotacao-only{ display:block !important; }
 /* Dentro das ações de linha do CAP, o botão fica ao lado de outros botões
    (editar, excluir) — precisa continuar inline-block, não ocupar a linha
    toda como o padrão acima faz para os cards de formulário. */
@@ -241,7 +241,7 @@ body.is-admin #tab-creditos-cap .row-actions .pode-lancar-cotacao-only,
 body.is-supervisor #tab-creditos-cap .row-actions .pode-lancar-cotacao-only,
 body.is-operador #tab-creditos-cap .row-actions .pode-lancar-cotacao-only{ display:inline-block !important; }
 .logged-non-lancador-only{ display:none; }
-body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador) .logged-non-lancador-only{ display:block !important; }
+body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador):not(.is-operador-avancado) .logged-non-lancador-only{ display:block !important; }
 /* Botão "Controle de CAP" no menu principal: só aparece pra quem tem CAP
    mas não é gestor (só operador avançado) — pra essa pessoa, o menu
    "Controle de Crédito" (com o resumo misto e "Crédito entre Obras",
