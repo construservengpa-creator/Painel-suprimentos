@@ -1806,7 +1806,7 @@ footer.appfoot{
 
     <div class="kpi-grid" id="piKpiGrid"></div>
 
-    <div class="filters-bar">
+    <div class="filters-bar" id="piFiltersBar">
       <div class="field">
         <label>Material crítico</label>
         <select id="fPiMaterial">
@@ -1823,6 +1823,10 @@ footer.appfoot{
       <div class="field">
         <label>Fornecedor</label>
         <select id="fPiFornecedor"><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label>Comprador</label>
+        <select id="fPiComprador"><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Origem</label>
@@ -2493,6 +2497,7 @@ footer.appfoot{
     <button class="btn ghost small" id="btnPiPresentClose">✕ Fechar (Esc)</button>
   </div>
   <div class="pi-present-kpis" id="piPresentKpis"></div>
+  <div id="piPresentFiltersSlot"></div>
   <div id="piPresentTimeline"></div>
 </div>
 
@@ -3768,6 +3773,10 @@ function populateFilterOptions(){
   const selPiFornecedor = document.getElementById('fPiFornecedor');
   if(selPiFornecedor) selPiFornecedor.innerHTML = '<option value="">Todos</option>' + piFornecedores.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
 
+  const piCompradores = uniqueSorted(criticosRows.flatMap(r=>[r.compradorLabel, r.compradorDistribuidoLabel]).filter(Boolean));
+  const selPiComprador = document.getElementById('fPiComprador');
+  if(selPiComprador) selPiComprador.innerHTML = '<option value="">Todos</option>' + piCompradores.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
   // Opções de material crítico: geradas a partir da classificação atual
   // (window.CRITICOS_RULES), não mais fixas em "CAP asfalto/Emulsão/Diesel" —
   // assim continuam batendo mesmo depois que um administrador editar/renomear
@@ -4500,6 +4509,7 @@ function getFilteredPiItems(){
   const fMaterial = document.getElementById('fPiMaterial').value;
   const fObra = document.getElementById('fPiObra').value;
   const fFornecedor = document.getElementById('fPiFornecedor').value;
+  const fComprador = document.getElementById('fPiComprador').value;
   const fOrigem = document.getElementById('fPiOrigem').value;
   const fPrazo = document.getElementById('fPiPrazo').value;
   const fSearch = document.getElementById('fPiSearch').value.trim().toUpperCase();
@@ -4508,6 +4518,7 @@ function getFilteredPiItems(){
   if(fMaterial) items = items.filter(it=>it.material===fMaterial);
   if(fObra) items = items.filter(it=>it.obra===fObra);
   if(fFornecedor) items = items.filter(it=>it.fornecedor===fFornecedor);
+  if(fComprador) items = items.filter(it=>it.comprador===fComprador);
   if(fOrigem==='pedido') items = items.filter(it=>it.origem==='pedido');
   else if(fOrigem==='solicitacao') items = items.filter(it=>it.origem==='solicitacao');
   if(fPrazo) items = items.filter(it=>it.status===fPrazo);
@@ -4515,6 +4526,7 @@ function getFilteredPiItems(){
     (it.insumo||'').toUpperCase().includes(fSearch) ||
     (it.obra||'').toUpperCase().includes(fSearch) ||
     (it.fornecedor||'').toUpperCase().includes(fSearch) ||
+    (it.comprador||'').toUpperCase().includes(fSearch) ||
     String(it.pedido||'').toUpperCase().includes(fSearch)
   );
   items.sort((a,b)=>{
@@ -4612,7 +4624,7 @@ function renderPiTimeline(items, container){
         }).join('')}
       </div>
       <div class="pi-tl-items">
-        ${arr.map(it=>`<div class="pi-tl-item-row">${lamp(it.status)}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.fornecedor)} · ${esc(it.origemLabel)}${it.solicCancelada?' <span class="saldo-flag" title="A solicitação de origem foi cancelada/rejeitada, mas este pedido segue com saldo em aberto — continue acompanhando pela data de entrega.">ⓘ solic. cancelada</span>':''}${it.semAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado — confirme no Sienge se a autorização já foi dada.">⚠ sem autorização</span>':''}${it.previsaoReatribuida?' <span class="saldo-flag" title="Este lote fazia parte de um grupo do mesmo pedido/insumo com datas de previsão duplicadas no relatório — data reatribuída por ordem. Confirme no Sienge se necessário.">⚠previsão</span>':''}</span><span style="margin-left:auto;color:var(--text-dim)">${fmtDate(it.data)} · ${badge(it.status, prazoLabel(it.status,it.data))}</span></div>`).join('')}
+        ${arr.map(it=>`<div class="pi-tl-item-row">${lamp(it.status)}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.fornecedor)} · Comprador: <strong>${esc(it.comprador)}</strong> · ${esc(it.origemLabel)}${it.solicCancelada?' <span class="saldo-flag" title="A solicitação de origem foi cancelada/rejeitada, mas este pedido segue com saldo em aberto — continue acompanhando pela data de entrega.">ⓘ solic. cancelada</span>':''}${it.semAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado — confirme no Sienge se a autorização já foi dada.">⚠ sem autorização</span>':''}${it.previsaoReatribuida?' <span class="saldo-flag" title="Este lote fazia parte de um grupo do mesmo pedido/insumo com datas de previsão duplicadas no relatório — data reatribuída por ordem. Confirme no Sienge se necessário.">⚠previsão</span>':''}</span><span style="margin-left:auto;color:var(--text-dim)">${fmtDate(it.data)} · ${badge(it.status, prazoLabel(it.status,it.data))}</span></div>`).join('')}
       </div>
     </div>`;
   });
@@ -4621,7 +4633,7 @@ function renderPiTimeline(items, container){
     html += `<div class="pi-tl-group">
       <div class="pi-tl-group-head"><h4>Sem data de previsão definida</h4><span>${semData.length} item(ns)</span></div>
       <div class="pi-tl-items">
-        ${semData.map(it=>`<div class="pi-tl-item-row">${lamp('sem-data')}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.obra)} · ${esc(it.fornecedor)} · ${esc(it.origemLabel)}</span></div>`).join('')}
+        ${semData.map(it=>`<div class="pi-tl-item-row">${lamp('sem-data')}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.obra)} · ${esc(it.fornecedor)} · Comprador: <strong>${esc(it.comprador)}</strong> · ${esc(it.origemLabel)}</span></div>`).join('')}
       </div>
     </div>`;
   }
@@ -4788,7 +4800,7 @@ function renderPiTable(items, container){
 }
 
 /* ---- modo apresentação (tela cheia, para reunião/projeção) ---- */
-function openPiPresent(){
+function refreshPiPresentContent(){
   const items = getFilteredPiItems();
   document.getElementById('piPresentSubtitle').textContent = `${items.length} item(ns) no recorte atual · gerado em ${fmtDate(new Date())}`;
   const atrasados = items.filter(i=>i.status==='atrasado').length;
@@ -4802,13 +4814,35 @@ function openPiPresent(){
     <div class="kpi-card c-crit"><p class="kpi-label">Próximos ${horizonte} dias</p><div class="kpi-value">${proximos}</div></div>
   `;
   renderPiTimeline(items, document.getElementById('piPresentTimeline'));
-  document.getElementById('piPresentOverlay').classList.add('active');
 }
 
-['fPiMaterial','fPiObra','fPiFornecedor','fPiOrigem','fPiSearch','piHorizonte'].forEach(id=>{
+// Roda depois de qualquer mudança de filtro: atualiza a tela normal e,
+// se o modo apresentação estiver aberto (a barra de filtros mora dentro
+// dele nesse momento), também atualiza o conteúdo da apresentação —
+// assim dá pra trocar obra/material/fornecedor sem precisar fechar a
+// tela cheia.
+function refreshPiViews(){
+  renderPrazoInsumos();
+  if(document.getElementById('piPresentOverlay').classList.contains('active')) refreshPiPresentContent();
+}
+
+function openPiPresent(){
+  // a barra de filtros é a MESMA barra da tela normal — só muda de lugar
+  // (fica dentro da apresentação enquanto ela está aberta), pra poder
+  // filtrar sem sair da tela cheia. Fecha e ela volta pro lugar de origem.
+  document.getElementById('piPresentFiltersSlot').appendChild(document.getElementById('piFiltersBar'));
+  refreshPiPresentContent();
+  document.getElementById('piPresentOverlay').classList.add('active');
+}
+function closePiPresent(){
+  document.getElementById('piKpiGrid').insertAdjacentElement('afterend', document.getElementById('piFiltersBar'));
+  document.getElementById('piPresentOverlay').classList.remove('active');
+}
+
+['fPiMaterial','fPiObra','fPiFornecedor','fPiComprador','fPiOrigem','fPiSearch','piHorizonte'].forEach(id=>{
   const el = document.getElementById(id);
-  el.addEventListener('input', renderPrazoInsumos);
-  el.addEventListener('change', renderPrazoInsumos);
+  el.addEventListener('input', refreshPiViews);
+  el.addEventListener('change', refreshPiViews);
 });
 
 document.querySelectorAll('#tab-prazoinsumos .view-btn').forEach(btn=>{
@@ -4823,18 +4857,18 @@ document.querySelectorAll('#tab-prazoinsumos .view-btn').forEach(btn=>{
 
 document.getElementById('btnExportPi').addEventListener('click', ()=>{
   if(!lastPiItems.length){ alert('Não há dados para exportar.'); return; }
-  const headers = ['Origem','Obra','Material','Insumo','Detalhe','Fornecedor','Pedido','Qtd','Unidade','Data prevista','Status do prazo'];
-  const rows = lastPiItems.map(it=>[it.origemLabel, it.obra, it.material, it.insumo, it.detalhe, it.fornecedor, it.pedido, it.qtd, it.unidade, it.data?fmtDate(it.data):'', it.status]);
+  const headers = ['Origem','Obra','Material','Insumo','Detalhe','Fornecedor','Comprador','Pedido','Qtd','Unidade','Data prevista','Status do prazo'];
+  const rows = lastPiItems.map(it=>[it.origemLabel, it.obra, it.material, it.insumo, it.detalhe, it.fornecedor, it.comprador, it.pedido, it.qtd, it.unidade, it.data?fmtDate(it.data):'', it.status]);
   downloadCSV('prazo_insumos_criticos.csv', toCSV(headers, rows));
 });
 
 document.getElementById('btnPiPresent').addEventListener('click', openPiPresent);
-document.getElementById('btnPiPresentClose').addEventListener('click', ()=>document.getElementById('piPresentOverlay').classList.remove('active'));
+document.getElementById('btnPiPresentClose').addEventListener('click', closePiPresent);
 document.addEventListener('keydown', e=>{
-  if(e.key==='Escape') document.getElementById('piPresentOverlay').classList.remove('active');
+  if(e.key==='Escape' && document.getElementById('piPresentOverlay').classList.contains('active')) closePiPresent();
 });
 
-wireLampFilter('lampFilterPi','fPiPrazo',renderPrazoInsumos);
+wireLampFilter('lampFilterPi','fPiPrazo',refreshPiViews);
 
 function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); }
 
