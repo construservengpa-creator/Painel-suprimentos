@@ -1060,13 +1060,13 @@ footer.appfoot{
 #tab-cotacoes .form-field input, #tab-cotacoes .form-field select, #tab-creditos .form-field input, #tab-creditos .form-field select{width:100%;}
 
 /* table */
-#tab-cotacoes .table-wrap, #tab-creditos .table-wrap, #tab-admin .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;}
-#tab-cotacoes table, #tab-creditos table, #tab-admin table{width:100%;border-collapse:collapse;font-size:13px;}
-#tab-cotacoes thead th, #tab-creditos thead th, #tab-admin thead th{background:var(--surface-2);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-mut);border-bottom:1px solid var(--line);}
-#tab-cotacoes tbody td, #tab-creditos tbody td, #tab-admin tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:12.5px;}
-#tab-cotacoes tbody td.txt, #tab-creditos tbody td.txt, #tab-admin tbody td.txt{font-family:var(--font-body);}
-#tab-cotacoes tbody tr:last-child td, #tab-creditos tbody tr:last-child td, #tab-admin tbody tr:last-child td{border-bottom:none;}
-#tab-cotacoes tbody tr:hover, #tab-creditos tbody tr:hover, #tab-admin tbody tr:hover{background:rgba(255,255,255,0.02);}
+#tab-cotacoes .table-wrap, #tab-creditos .table-wrap, #tab-admin .table-wrap, #tab-creditos-dashboard .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+#tab-cotacoes table, #tab-creditos table, #tab-admin table, #tab-creditos-dashboard table{width:100%;border-collapse:collapse;font-size:13px;}
+#tab-cotacoes thead th, #tab-creditos thead th, #tab-admin thead th, #tab-creditos-dashboard thead th{background:var(--surface-2);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-mut);border-bottom:1px solid var(--line);}
+#tab-cotacoes tbody td, #tab-creditos tbody td, #tab-admin tbody td, #tab-creditos-dashboard tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:12.5px;}
+#tab-cotacoes tbody td.txt, #tab-creditos tbody td.txt, #tab-admin tbody td.txt, #tab-creditos-dashboard tbody td.txt{font-family:var(--font-body);}
+#tab-cotacoes tbody tr:last-child td, #tab-creditos tbody tr:last-child td, #tab-admin tbody tr:last-child td, #tab-creditos-dashboard tbody tr:last-child td{border-bottom:none;}
+#tab-cotacoes tbody tr:hover, #tab-creditos tbody tr:hover, #tab-admin tbody tr:hover, #tab-creditos-dashboard tbody tr:hover{background:rgba(255,255,255,0.02);}
 #tab-cotacoes tbody tr.is-min td.price-cell{color:var(--good);font-weight:600;}
 
 #tab-cotacoes .toolbar, #tab-creditos .toolbar, #tab-admin .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
@@ -1134,6 +1134,59 @@ footer.appfoot{
 #tab-creditos-dashboard .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
 #tab-creditos-dashboard .section-head h2{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0;}
 #tab-creditos-dashboard .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow);font-weight:600;}
+/* Modal genérico (mesmo visual do modal do CAP, mas disponível em
+   qualquer aba — usado pelo "Ver pedido" em Vincular Pedido). */
+.modal-backdrop{ display:none; position:fixed; inset:0; background: rgba(0,0,0,.6); z-index:60; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+.modal-backdrop.open{ display:flex; }
+.modal{ background: var(--asphalt-2); border: 1px solid var(--line); border-top: 3px solid var(--yellow); border-radius: 10px; padding: 20px; width:100%; max-width:480px; }
+.modal.wide{ max-width:860px; }
+.modal h3{ font-family: var(--font-display); font-size: 16px; font-weight:600; margin:0 0 14px; color: var(--text); }
+.modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+.pedido-info-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px 20px;
+  background:var(--asphalt-3,rgba(255,255,255,.04));
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:14px 16px;
+  margin-bottom:18px;
+}
+.pedido-info-grid .lbl{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-faint);margin-bottom:3px;}
+.pedido-info-grid .val{font-size:13.5px;font-weight:600;color:var(--text);}
+
+.creditos-dash-card{
+  background:var(--surface,var(--asphalt-2));
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:20px 22px 22px;
+  margin-bottom:22px;
+}
+.creditos-dash-card-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+}
+.creditos-dash-card-icon{
+  font-size:22px;
+  line-height:1;
+  width:40px;
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--asphalt-3,rgba(255,255,255,.05));
+  border:1px solid var(--line);
+  border-radius:10px;
+  flex-shrink:0;
+}
+.creditos-dash-card-sub{
+  font-size:12px;
+  color:var(--text-faint);
+  margin:2px 0 0;
+}
+.creditos-dash-card .kpi-grid{margin-bottom:0;}
 
 /* ================= CAP (Controle de Saldo CAP) — escopado dentro de #tab-creditos-cap ================= */
 #tab-creditos-cap .tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
@@ -1900,15 +1953,32 @@ footer.appfoot{
     <div class="section-head">
       <h2>Controle de Crédito <span class="eyebrow" style="display:block;font-size:11px;margin-top:2px;">Visão consolidada</span></h2>
     </div>
-    <div class="note" style="background:var(--surface,var(--asphalt-2));border:1px solid var(--line);border-left:3px solid var(--gold,var(--yellow));border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--text-mut,var(--text-dim));line-height:1.6;margin-bottom:16px;">
+    <div class="note" style="background:var(--surface,var(--asphalt-2));border:1px solid var(--line);border-left:3px solid var(--gold,var(--yellow));border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--text-mut,var(--text-dim));line-height:1.6;margin-bottom:22px;">
       Resumo dos dois controles agrupados aqui: <b>Crédito entre Obras</b> (créditos lançados entre empresas/obras e seu abatimento por pedidos) e <b>CAP</b> (saldo de cimento asfáltico por pedido de compra, entregas, devoluções e estoque).
     </div>
-    <div class="gestor-credito-only">
-      <p class="eyebrow" style="margin:0 0 10px;">Crédito entre Obras</p>
+
+    <div class="gestor-credito-only creditos-dash-card">
+      <div class="creditos-dash-card-head">
+        <span class="creditos-dash-card-icon">💳</span>
+        <div>
+          <p class="eyebrow" style="margin:0;">Crédito entre Obras</p>
+          <p class="creditos-dash-card-sub">Créditos lançados entre empresas/obras e seu abatimento por pedidos</p>
+        </div>
+      </div>
       <div class="kpi-grid" id="creditosDashKpiGridCredito"></div>
+      <div id="creditosDashPorEmpresa" style="margin-top:18px;"></div>
     </div>
-    <p class="eyebrow" style="margin:20px 0 10px;">CAP · Cimento Asfáltico de Petróleo</p>
-    <div class="kpi-grid" id="creditosDashKpiGridCap"></div>
+
+    <div class="creditos-dash-card">
+      <div class="creditos-dash-card-head">
+        <span class="creditos-dash-card-icon">🛢️</span>
+        <div>
+          <p class="eyebrow" style="margin:0;">CAP · Cimento Asfáltico de Petróleo</p>
+          <p class="creditos-dash-card-sub">Saldo por pedido de compra, entregas, devoluções e estoque</p>
+        </div>
+      </div>
+      <div class="kpi-grid" id="creditosDashKpiGridCap"></div>
+    </div>
   </section>
 
   <!-- ===================== CONTROLE DE CRÉDITO · CRÉDITO ENTRE OBRAS ===================== -->
@@ -1953,7 +2023,7 @@ footer.appfoot{
         <div class="section-head">
           <div>
             <div class="eyebrow">Base completa</div>
-            <h2>Créditos lançados</h2>
+            <h2>💳 Créditos lançados</h2>
           </div>
           <div class="toolbar">
             <span class="count-badge" id="creditoCountBadge">0 créditos</span>
@@ -1978,7 +2048,7 @@ footer.appfoot{
         <div class="section-head">
           <div>
             <div class="eyebrow">Novo lançamento</div>
-            <h2 id="credito-formTitle">Lançar crédito</h2>
+            <h2 id="credito-formTitle">➕ Lançar crédito</h2>
           </div>
         </div>
         <div class="form-card">
@@ -2020,6 +2090,42 @@ footer.appfoot{
           <button class="primary" id="vinculo-btnAdd">Vincular</button>
           <button class="ghost" id="vinculo-btnCancelEdit" style="display:none;">Cancelar edição</button>
           <span id="vinculo-formMsg" style="margin-left:10px;font-size:12px;color:var(--bad);"></span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Já vinculados</div>
+            <h2>🔗 Pedidos já vinculados</h2>
+          </div>
+          <div class="toolbar">
+            <span class="count-badge" id="vinculoListaCountBadge">0 vínculo(s)</span>
+          </div>
+        </div>
+        <div class="filters-bar">
+          <div class="field">
+            <label>Buscar</label>
+            <input type="text" id="fVinculoListaBusca" placeholder="pedido, obra, fornecedor, empresa…">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Crédito (beneficiária → devedora)</th><th>Pedido</th><th>Obra</th><th>Fornecedor</th><th>Status</th><th>Valor</th><th>Data</th><th>Observação</th><th class="no-print"></th></tr>
+            </thead>
+            <tbody id="vinculoListaTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modalVerPedidoVinculado">
+      <div class="modal wide">
+        <h3 id="verPedidoVinculadoTitulo">Pedido de compra</h3>
+        <div id="verPedidoVinculadoConteudo"></div>
+        <div class="modal-actions">
+          <button class="ghost" id="btnFecharVerPedidoVinculado">Fechar</button>
         </div>
       </div>
     </div>
@@ -3703,6 +3809,7 @@ function loadRows(rawRows, sourceName){
     `${sourceName} · ${state.rows.length} registro(s) importado(s) · atualizado em ${fmtDate(new Date())}`;
   populateFilterOptions();
   renderAll();
+  if(typeof reconciliarVinculosComNotasFiscais==='function') reconciliarVinculosComNotasFiscais();
 }
 
 // Permite que a aba "Preço Insumos Críticos → Configuração" force a
@@ -6110,10 +6217,25 @@ function vinculoRowFromDb(row){
     obraPedido: row.obra_pedido || '',
     fornecedor: row.fornecedor || '',
     comprador: row.comprador || '',
-    valorAbatido: Number(row.valor_abatido)||0,
+    valorPrevisto: Number(row.valor_previsto)||0,
+    valorRealizado: Number(row.valor_realizado)||0,
+    status: row.status || 'previsto',
     dataVinculo: row.data_vinculo,
     observacao: row.observacao || ''
   };
+}
+// Valor que efetivamente conta contra o saldo do crédito: enquanto não
+// tem nota fiscal, é o previsto (reservado); quando a nota aparece, vira
+// o realizado (valor real); se o vínculo foi cancelado, não conta nada.
+function vinculoValorEfetivo(v){
+  if(v.status === 'cancelado') return 0;
+  if(v.status === 'realizado') return v.valorRealizado;
+  return v.valorPrevisto;
+}
+function vinculoStatusBadge(status){
+  if(status==='realizado') return '<span class="badge dentro">Realizado</span>';
+  if(status==='cancelado') return '<span class="badge sem-data">Cancelado</span>';
+  return '<span class="badge hoje">Previsto</span>';
 }
 
 async function loadCreditos(){
@@ -6179,7 +6301,8 @@ async function insertVinculoCredito(v){
     const { error } = await window.SB.from('creditos_vinculos').insert({
       credito_id: v.creditoId, num_pedido: v.numPedido, obra_pedido: v.obraPedido || null,
       fornecedor: v.fornecedor || null, comprador: v.comprador || null,
-      valor_abatido: v.valorAbatido, data_vinculo: v.dataVinculo, observacao: v.observacao || null
+      valor_previsto: v.valorPrevisto, valor_realizado: v.valorRealizado, status: v.status,
+      data_vinculo: v.dataVinculo, observacao: v.observacao || null
     });
     if(error) throw error;
     return true;
@@ -6194,7 +6317,8 @@ async function updateVinculoCredito(id, v){
     const { error } = await window.SB.from('creditos_vinculos').update({
       credito_id: v.creditoId, num_pedido: v.numPedido, obra_pedido: v.obraPedido || null,
       fornecedor: v.fornecedor || null, comprador: v.comprador || null,
-      valor_abatido: v.valorAbatido, data_vinculo: v.dataVinculo, observacao: v.observacao || null
+      valor_previsto: v.valorPrevisto, valor_realizado: v.valorRealizado, status: v.status,
+      data_vinculo: v.dataVinculo, observacao: v.observacao || null
     }).eq('id', id);
     if(error) throw error;
     return true;
@@ -6221,7 +6345,7 @@ function vinculosDoCredito(creditoId){
   return vinculosCredito.filter(v=>String(v.creditoId)===String(creditoId));
 }
 function creditoAbatido(creditoId){
-  return vinculosDoCredito(creditoId).reduce((s,v)=>s+v.valorAbatido,0);
+  return vinculosDoCredito(creditoId).reduce((s,v)=>s+vinculoValorEfetivo(v),0);
 }
 function creditoSaldo(c){
   return c.valorTotal - creditoAbatido(c.id);
@@ -6269,6 +6393,43 @@ function getPedidosUnicos(){
   return [...map.values()]
     .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, notas:p.notas }))
     .sort((a,b)=>String(a.numPedido).localeCompare(String(b.numPedido),'pt-BR',{numeric:true}));
+}
+
+let reconciliandoVinculos = false;
+// Roda toda vez que um relatório é carregado (login normal ou reimportação):
+// para cada vínculo ainda "previsto" (reservado, sem nota fiscal na época em
+// que foi lançado), verifica se o pedido já tem nota fiscal na base atual —
+// se tiver, promove o vínculo pra "realizado" com o valor real da(s)
+// nota(s), automaticamente, sem precisar de ação manual. Só quem tem
+// permissão de editar vínculo (admin/supervisor) consegue de fato gravar
+// essa atualização — para os demais, a leitura acontece normal, só a
+// escrita fica pulada (RLS bloquearia mesmo).
+async function reconciliarVinculosComNotasFiscais(){
+  const ehGestor = document.body.classList.contains('is-admin') || document.body.classList.contains('is-supervisor');
+  if(!ehGestor || reconciliandoVinculos) return;
+  if(!vinculosCredito || !vinculosCredito.length) return;
+  const pendentes = vinculosCredito.filter(v=>v.status==='previsto');
+  if(!pendentes.length) return;
+  reconciliandoVinculos = true;
+  try{
+    const pedidosPorNumero = new Map(getPedidosUnicos().map(p=>[String(p.numPedido), p]));
+    let algumAtualizado = false;
+    for(const v of pendentes){
+      const pedido = pedidosPorNumero.get(String(v.numPedido));
+      if(!pedido || !(pedido.valorTotal > 0)) continue;
+      const ok = await updateVinculoCredito(v.id, Object.assign({}, v, {
+        valorRealizado: pedido.valorTotal,
+        status: 'realizado'
+      }));
+      if(ok) algumAtualizado = true;
+    }
+    if(algumAtualizado){
+      await loadVinculosCredito();
+      renderCreditos();
+    }
+  } finally {
+    reconciliandoVinculos = false;
+  }
 }
 
 function populateCreditoDatalists(){
@@ -6348,7 +6509,7 @@ function populateCreditoDatalists(){
     const vinculoEmEdicao = editingVinculoId ? vinculosCredito.find(v=>String(v.id)===String(editingVinculoId)) : null;
     const candidatos = creditos.map(c=>{
       let saldo = creditoSaldo(c);
-      if(vinculoEmEdicao && String(vinculoEmEdicao.creditoId)===String(c.id)) saldo += vinculoEmEdicao.valorAbatido;
+      if(vinculoEmEdicao && String(vinculoEmEdicao.creditoId)===String(c.id)) saldo += vinculoValorEfetivo(vinculoEmEdicao);
       return { c, saldo };
     }).filter(x=>x.saldo > 0.005);
     selCredito.innerHTML = candidatos.length
@@ -6481,6 +6642,45 @@ function renderCreditosDashboard(){
     <div class="kpi-card c-crit"><p class="kpi-label">Saldo disponível</p><div class="kpi-value">R$ ${fmtMoney(saldoDisponivel)}</div><p class="kpi-foot">${comSaldo} obra(s) com saldo</p></div>
   `;
 
+  // Créditos agrupados por empresa beneficiária (a empresa credora, dona
+  // do crédito) — dá pra ver de relance quanto cada empresa tem lançado,
+  // abatido e disponível, sem precisar somar crédito por crédito.
+  const porEmpresaEl = document.getElementById('creditosDashPorEmpresa');
+  if(porEmpresaEl){
+    const porEmpresa = new Map();
+    creditos.forEach(c=>{
+      const chave = c.empresaBeneficiaria || '(sem empresa informada)';
+      if(!porEmpresa.has(chave)) porEmpresa.set(chave, { lancado:0, abatido:0, qtd:0, devedoras:new Set() });
+      const grupo = porEmpresa.get(chave);
+      grupo.lancado += c.valorTotal;
+      grupo.abatido += creditoAbatido(c.id);
+      grupo.qtd += 1;
+      if(c.empresaDevedora) grupo.devedoras.add(c.empresaDevedora);
+    });
+    const linhas = Array.from(porEmpresa.entries()).sort((a,b)=>b[1].lancado - a[1].lancado);
+    porEmpresaEl.innerHTML = !linhas.length ? '' : `
+      <p class="eyebrow" style="margin:0 0 10px;">Créditos por empresa</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Empresa beneficiária</th><th>Créditos</th><th>Lançado</th><th>Abatido</th><th>Saldo disponível</th><th>Empresas devedoras</th></tr></thead>
+          <tbody>
+            ${linhas.map(([empresa, g])=>{
+              const saldo = g.lancado - g.abatido;
+              return `<tr>
+                <td class="txt">${esc(empresa)}</td>
+                <td>${g.qtd}</td>
+                <td>R$ ${fmtMoney(g.lancado)}</td>
+                <td>R$ ${fmtMoney(g.abatido)}</td>
+                <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span></td>
+                <td class="txt">${esc(Array.from(g.devedoras).join(', '))||'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   const cap = (window.CAP && typeof window.CAP.getSummary === 'function') ? window.CAP.getSummary() : null;
   gridCap.innerHTML = cap ? `
     <div class="kpi-card c-solic"><p class="kpi-label">Saldo a entregar</p><div class="kpi-value">${cap.saldoQtdFmt}</div><p class="kpi-foot">${cap.saldoValorFmt}</p></div>
@@ -6497,6 +6697,7 @@ function renderCreditos(){
   const lista = getCreditosFiltrados();
   renderCreditoKpis(lista);
   renderCreditosDashboard();
+  renderVinculosLista();
 
   const badge = document.getElementById('creditoCountBadge');
   if(badge) badge.textContent = `${lista.length} crédito(s)`;
@@ -6528,14 +6729,15 @@ function renderCreditos(){
     </tr>
     <tr class="credito-detail-row ${isOpen?'open':''}"><td colspan="10">
       ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
-          <th>Pedido</th><th>Obra</th><th>Fornecedor</th><th>Nota Fiscal</th><th>Valor abatido</th><th>Data</th><th>Observação</th><th class="no-print"></th>
+          <th>Pedido</th><th>Obra</th><th>Fornecedor</th><th>Nota Fiscal</th><th>Status</th><th>Valor</th><th>Data</th><th>Observação</th><th class="no-print"></th>
         </tr></thead><tbody>
         ${vinculos.map(v=>`<tr>
           <td>${esc(v.numPedido)}</td>
           <td class="txt">${esc(v.obraPedido)}</td>
           <td class="txt">${esc(v.fornecedor)}</td>
           <td class="txt">${esc(notasDoPedidoFormatadas(v.numPedido))||'—'}</td>
-          <td>R$ ${fmtMoney(v.valorAbatido)}</td>
+          <td>${vinculoStatusBadge(v.status)}</td>
+          <td>R$ ${fmtMoney(vinculoValorEfetivo(v))}</td>
           <td>${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</td>
           <td class="txt">${esc(v.observacao)||'—'}</td>
           <td class="no-print"><button class="credito-toggle gestor-credito-only" data-edit-vinculo="${v.id}" title="Editar vínculo">✎</button><button class="credito-toggle gestor-credito-only" data-del-vinculo="${v.id}" title="Remover vínculo">✕</button></td>
@@ -6568,6 +6770,158 @@ function renderCreditos(){
     });
   });
 }
+
+/* ============================================================
+   VINCULAR PEDIDO — listagem de tudo que já foi vinculado
+   Mostra, direto na aba "Vincular Pedido", todos os vínculos já
+   lançados (creditos_vinculos), sem precisar ir até "Créditos" e
+   expandir cada linha. Reaproveita startEditVinculo/deleteVinculoCredito,
+   que já existiam prontas mas não tinham nenhuma lista chamando-as.
+   ============================================================ */
+function renderVinculosLista(){
+  const tbody = document.getElementById('vinculoListaTableBody');
+  if(!tbody) return;
+  const busca = (document.getElementById('fVinculoListaBusca')?.value || '').trim().toUpperCase();
+  const creditosPorId = new Map(creditos.map(c=>[String(c.id), c]));
+  let lista = vinculosCredito.slice();
+  if(busca){
+    lista = lista.filter(v=>{
+      const c = creditosPorId.get(String(v.creditoId));
+      const alvo = [v.numPedido, v.obraPedido, v.fornecedor, v.observacao, c?.empresaBeneficiaria, c?.empresaDevedora]
+        .map(x=>String(x||'').toUpperCase()).join(' § ');
+      return alvo.includes(busca);
+    });
+  }
+  lista.sort((a,b)=> new Date(b.dataVinculo||0) - new Date(a.dataVinculo||0));
+
+  const badge = document.getElementById('vinculoListaCountBadge');
+  if(badge) badge.textContent = `${lista.length} vínculo(s)`;
+
+  if(!lista.length){
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum pedido vinculado ainda.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(v=>{
+    const c = creditosPorId.get(String(v.creditoId));
+    const rotuloCredito = c ? `${esc(c.empresaBeneficiaria||'—')} → ${esc(c.empresaDevedora||'—')}` : '<span style="color:var(--text-faint);">crédito não encontrado</span>';
+    return `<tr>
+      <td class="txt">${rotuloCredito}</td>
+      <td>${esc(v.numPedido)}</td>
+      <td class="txt">${esc(v.obraPedido)}</td>
+      <td class="txt">${esc(v.fornecedor)}</td>
+      <td>${vinculoStatusBadge(v.status)}</td>
+      <td>R$ ${fmtMoney(vinculoValorEfetivo(v))}</td>
+      <td>${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</td>
+      <td class="txt">${esc(v.observacao)||'—'}</td>
+      <td class="no-print"><button class="ghost" data-ver-pedido-vinculado="${esc(v.numPedido)}">Ver pedido</button> <button class="ghost gestor-credito-only" data-edit-vinculo-lista="${v.id}">Editar</button>${v.status==='previsto' ? ` <button class="ghost gestor-credito-only" data-cancel-vinculo-lista="${v.id}" title="Libera o valor reservado sem excluir o histórico">Cancelar</button>` : ''} <button class="danger gestor-credito-only" data-del-vinculo-lista="${v.id}">Excluir</button></td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('[data-ver-pedido-vinculado]').forEach(btn=>{
+    btn.addEventListener('click', ()=> abrirModalVerPedido(btn.getAttribute('data-ver-pedido-vinculado')));
+  });
+
+  tbody.querySelectorAll('[data-edit-vinculo-lista]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      startEditVinculo(btn.getAttribute('data-edit-vinculo-lista'));
+      document.getElementById('vinculo-fPedido')?.scrollIntoView({behavior:'smooth', block:'center'});
+    });
+  });
+  tbody.querySelectorAll('[data-del-vinculo-lista]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const ok = await deleteVinculoCredito(btn.getAttribute('data-del-vinculo-lista'));
+      if(ok){ await loadVinculosCredito(); renderCreditos(); }
+    });
+  });
+  tbody.querySelectorAll('[data-cancel-vinculo-lista]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const ok = await cancelarVinculo(btn.getAttribute('data-cancel-vinculo-lista'));
+      if(ok){ await loadVinculosCredito(); renderCreditos(); }
+    });
+  });
+}
+// Cancela um vínculo ainda "previsto" (pedido nunca ganhou nota fiscal —
+// ex.: compra cancelada) sem apagar o histórico como se fosse uma
+// exclusão comum: o valor reservado é liberado de volta pro saldo do
+// crédito, mas o registro continua existindo, marcado como cancelado.
+async function cancelarVinculo(id){
+  const v = vinculosCredito.find(vv=>String(vv.id)===String(id));
+  if(!v) return false;
+  if(!confirm(`Cancelar este vínculo (pedido ${v.numPedido})? O valor reservado de R$ ${fmtMoney(v.valorPrevisto)} volta a ficar disponível no crédito. O registro continua no histórico, marcado como cancelado.`)) return false;
+  return updateVinculoCredito(id, Object.assign({}, v, { status:'cancelado' }));
+}
+(function(){
+  const el = document.getElementById('fVinculoListaBusca');
+  if(el) el.addEventListener('input', renderVinculosLista);
+})();
+
+/* ============================================================
+   "VER PEDIDO" — modal com os dados completos do pedido de compra
+   vinculado, no espírito do relatório de Reprogramação de Pedidos do
+   Sienge: informações do pedido (obra, fornecedor, comprador, situação)
+   e a programação por lote/insumo (previsão, quantidade, saldo).
+   ============================================================ */
+function abrirModalVerPedido(numPedido){
+  const modal = document.getElementById('modalVerPedidoVinculado');
+  const titulo = document.getElementById('verPedidoVinculadoTitulo');
+  const conteudo = document.getElementById('verPedidoVinculadoConteudo');
+  if(!modal || !conteudo) return;
+  titulo.textContent = `Pedido de compra nº ${numPedido}`;
+
+  const rows = (typeof state!=='undefined' && state.rows) ? state.rows : [];
+  const alvo = String(numPedido||'').trim();
+  const lotes = rows.filter(r => r.temPedido && String(r.numPedido||'').trim() === alvo);
+
+  if(!lotes.length){
+    conteudo.innerHTML = '<p style="color:var(--text-faint);font-size:12.5px;">Não foi possível encontrar esse pedido na base de Suprimentos atual (pode ter sido importado num relatório mais antigo, ou o número foi digitado manualmente no vínculo).</p>';
+    modal.classList.add('open');
+    return;
+  }
+
+  const primeiro = lotes[0];
+  const fmtQ = n => Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalSolicitado = lotes.reduce((s,r)=>s+(r.qtdSolicitadaNum||0),0);
+  const totalEntregue = lotes.reduce((s,r)=>s+(r.qtdEntregueNum||0),0);
+  const totalSaldo = lotes.reduce((s,r)=>s+(r.saldoNum||0),0);
+
+  conteudo.innerHTML = `
+    <div class="pedido-info-grid">
+      <div><span class="lbl">Obra</span><span class="val">${esc(primeiro.obra||'—')}</span></div>
+      <div><span class="lbl">Fornecedor</span><span class="val">${esc(primeiro.fornecedor||'—')}</span></div>
+      <div><span class="lbl">Comprador</span><span class="val">${esc(primeiro.compradorLabel||'—')}</span></div>
+      <div><span class="lbl">Situação</span><span class="val">${esc(primeiro.situacaoPedido||'—')}</span></div>
+      <div><span class="lbl">Qtd. solicitada (total)</span><span class="val">${fmtQ(totalSolicitado)} ${esc(primeiro.unidadeMovimento||'')}</span></div>
+      <div><span class="lbl">Entregue (total)</span><span class="val">${fmtQ(totalEntregue)} ${esc(primeiro.unidadeMovimento||'')}</span></div>
+      <div><span class="lbl">Saldo (total)</span><span class="val">${fmtQ(totalSaldo)} ${esc(primeiro.unidadeMovimento||'')}</span></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Insumo</th><th>Detalhe</th><th>Qtd. solicitada</th><th>Entregue</th><th>Saldo</th><th>Previsão de entrega</th><th>Situação</th></tr></thead>
+        <tbody>
+          ${lotes.map(r=>`<tr>
+            <td class="txt">${esc(r.descricaoInsumo||'—')}</td>
+            <td class="txt">${esc(r.detalhe||'—')}</td>
+            <td>${fmtQ(r.qtdSolicitadaNum)} ${esc(r.unidadeMovimento||'')}</td>
+            <td>${fmtQ(r.qtdEntregueNum)} ${esc(r.unidadeMovimento||'')}</td>
+            <td>${fmtQ(r.saldoNum)} ${esc(r.unidadeMovimento||'')}</td>
+            <td>${r.dPrevisao?fmtDate(r.dPrevisao):'—'}</td>
+            <td class="txt">${esc(r.situacaoPedido||'—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  modal.classList.add('open');
+}
+(function(){
+  const modal = document.getElementById('modalVerPedidoVinculado');
+  const btnFechar = document.getElementById('btnFecharVerPedidoVinculado');
+  if(btnFechar) btnFechar.addEventListener('click', ()=> modal.classList.remove('open'));
+  if(modal) modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape' && modal && modal.classList.contains('open')) modal.classList.remove('open');
+  });
+})();
 // Este bloco roda dentro de uma IIFE — renderCreditos fica privada por
 // padrão. O carregamento da base do Sienge (outro bloco de script) chama
 // o renderAll() do painel principal quando os dados terminam de carregar
@@ -6596,7 +6950,7 @@ function startEditCredito(id){
   document.getElementById('credito-fValor').value = c.valorTotal;
   document.getElementById('credito-fData').value = c.dataDisponibilidade;
   document.getElementById('credito-fDescricao').value = c.descricao;
-  document.getElementById('credito-formTitle').textContent = 'Editar crédito';
+  document.getElementById('credito-formTitle').textContent = '✏️ Editar crédito';
   document.getElementById('credito-btnAdd').textContent = 'Salvar alterações';
   document.getElementById('credito-btnCancelEdit').style.display = 'inline-block';
   document.getElementById('credito-formMsg').textContent = '';
@@ -6609,7 +6963,7 @@ function cancelEditCredito(){
   document.getElementById('credito-fValor').value = '';
   document.getElementById('credito-fData').value = todayISO();
   document.getElementById('credito-fDescricao').value = '';
-  document.getElementById('credito-formTitle').textContent = 'Lançar crédito';
+  document.getElementById('credito-formTitle').textContent = '➕ Lançar crédito';
   document.getElementById('credito-btnAdd').textContent = 'Lançar crédito';
   document.getElementById('credito-btnCancelEdit').style.display = 'none';
   document.getElementById('credito-formMsg').textContent = '';
@@ -6650,7 +7004,7 @@ function startEditVinculo(id){
   populateCreditoDatalists();
   document.getElementById('vinculo-fCredito').value = v.creditoId;
   document.getElementById('vinculo-fPedido').value = v.numPedido;
-  document.getElementById('vinculo-fValor').value = v.valorAbatido;
+  document.getElementById('vinculo-fValor').value = vinculoValorEfetivo(v);
   document.getElementById('vinculo-fData').value = v.dataVinculo;
   document.getElementById('vinculo-fObs').value = v.observacao;
   document.getElementById('vinculo-formTitle').textContent = 'Editar vínculo';
@@ -6706,7 +7060,7 @@ async function addVinculoCredito(){
     let saldoDisponivel = creditoSaldo(credito);
     if(editingVinculoId){
       const atual = vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId));
-      if(atual && String(atual.creditoId)===String(credito.id)) saldoDisponivel += atual.valorAbatido;
+      if(atual && String(atual.creditoId)===String(credito.id)) saldoDisponivel += vinculoValorEfetivo(atual);
     }
     if(valor > saldoDisponivel + 0.005){
       msg.textContent = `Valor maior que o saldo disponível (R$ ${fmtMoney(saldoDisponivel)}).`;
@@ -6714,10 +7068,28 @@ async function addVinculoCredito(){
     }
   }
 
+  // Status do vínculo: se está editando um já existente, mantém o status
+  // atual (editar aqui não promove nem rebaixa previsto/realizado — isso
+  // só acontece automaticamente quando a nota fiscal aparece num relatório
+  // reimportado). Se é um vínculo novo, nasce "realizado" quando o pedido
+  // já tem nota fiscal na base atual, ou "previsto" (reservado) quando
+  // ainda não tem.
+  let status, valorPrevisto, valorRealizado;
+  const vinculoAtual = editingVinculoId ? vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId)) : null;
+  if(vinculoAtual){
+    status = vinculoAtual.status;
+    valorPrevisto = status==='realizado' ? vinculoAtual.valorPrevisto : valor;
+    valorRealizado = status==='realizado' ? valor : vinculoAtual.valorRealizado;
+  } else if(pedido && pedido.valorTotal > 0){
+    status = 'realizado'; valorPrevisto = valor; valorRealizado = valor;
+  } else {
+    status = 'previsto'; valorPrevisto = valor; valorRealizado = 0;
+  }
+
   const payload = {
     creditoId, numPedido,
     obraPedido: pedido?pedido.obra:'', fornecedor: pedido?pedido.fornecedor:'', comprador: pedido?pedido.comprador:'',
-    valorAbatido: valor, dataVinculo: data, observacao: obs
+    valorPrevisto, valorRealizado, status, dataVinculo: data, observacao: obs
   };
   const ok = editingVinculoId ? await updateVinculoCredito(editingVinculoId, payload) : await insertVinculoCredito(payload);
   if(ok){
@@ -6772,11 +7144,13 @@ function resumoAuditoria(a){
       return mudou.length ? `Alterou crédito de ${novo.obra||antigo.obra}: ${mudou.join('; ')}` : `Alterou crédito de ${novo.obra||antigo.obra}`;
     }
   } else if(a.tabela === 'creditos_vinculos'){
-    if(a.operacao === 'INSERT') return `Vinculou pedido ${novo.num_pedido||'—'} (R$ ${fmtMoney(Number(novo.valor_abatido)||0)})`;
-    if(a.operacao === 'DELETE') return `Removeu vínculo do pedido ${antigo.num_pedido||'—'} (R$ ${fmtMoney(Number(antigo.valor_abatido)||0)})`;
+    const efetivoRaw = (row) => !row ? 0 : (row.status==='cancelado' ? 0 : row.status==='realizado' ? Number(row.valor_realizado)||0 : Number(row.valor_previsto)||0);
+    if(a.operacao === 'INSERT') return `Vinculou pedido ${novo.num_pedido||'—'} (R$ ${fmtMoney(efetivoRaw(novo))}, ${novo.status||'previsto'})`;
+    if(a.operacao === 'DELETE') return `Removeu vínculo do pedido ${antigo.num_pedido||'—'} (R$ ${fmtMoney(efetivoRaw(antigo))})`;
     if(a.operacao === 'UPDATE'){
       const mudou = [];
-      if(antigo.valor_abatido !== novo.valor_abatido) mudou.push(`valor abatido de R$ ${fmtMoney(Number(antigo.valor_abatido)||0)} para R$ ${fmtMoney(Number(novo.valor_abatido)||0)}`);
+      if(antigo.status !== novo.status) mudou.push(`status de "${antigo.status}" para "${novo.status}"`);
+      if(efetivoRaw(antigo) !== efetivoRaw(novo)) mudou.push(`valor de R$ ${fmtMoney(efetivoRaw(antigo))} para R$ ${fmtMoney(efetivoRaw(novo))}`);
       if(antigo.num_pedido !== novo.num_pedido) mudou.push(`pedido de ${antigo.num_pedido} para ${novo.num_pedido}`);
       return mudou.length ? `Alterou vínculo do pedido ${novo.num_pedido||antigo.num_pedido}: ${mudou.join('; ')}` : `Alterou vínculo do pedido ${novo.num_pedido||antigo.num_pedido}`;
     }
@@ -6842,7 +7216,10 @@ function exportCreditosExcel(){
     'Fornecedor': v.fornecedor,
     'Comprador': v.comprador,
     'Nota(s) fiscal(is)': notasDoPedidoFormatadas(v.numPedido),
-    'Valor abatido': v.valorAbatido,
+    'Status': v.status === 'realizado' ? 'Realizado' : (v.status === 'cancelado' ? 'Cancelado' : 'Previsto'),
+    'Valor previsto': v.valorPrevisto,
+    'Valor realizado': v.valorRealizado,
+    'Valor considerado no saldo': vinculoValorEfetivo(v),
     'Data': v.dataVinculo ? fmtBRDate(v.dataVinculo) : '',
     'Observação': v.observacao
   })));
