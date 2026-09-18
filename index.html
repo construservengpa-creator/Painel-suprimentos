@@ -2034,7 +2034,7 @@ footer.appfoot{
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th class="no-print"></th><th>Empresa beneficiária</th><th>Empresa devedora</th><th>Obra do devedor</th><th>Valor total</th><th>Abatido</th><th>Saldo</th><th>Disponível a partir de</th><th>Descrição</th><th class="no-print"></th></tr>
+              <tr><th class="no-print"></th><th>Empresa beneficiária</th><th>Empresa devedora</th><th>Obra do devedor</th><th>Valor total</th><th>Comprometido</th><th>Saldo</th><th>Disponível a partir de</th><th>Descrição</th><th class="no-print"></th></tr>
             </thead>
             <tbody id="creditoTableBody"></tbody>
           </table>
@@ -6347,6 +6347,16 @@ function vinculosDoCredito(creditoId){
 function creditoAbatido(creditoId){
   return vinculosDoCredito(creditoId).reduce((s,v)=>s+vinculoValorEfetivo(v),0);
 }
+// Dentro do total "comprometido" (creditoAbatido), separa o que ainda é
+// só reserva (previsto, sem nota fiscal) do que já foi de fato realizado
+// (com nota fiscal confirmada) — pra não apresentar um valor reservado
+// como se já tivesse sido abatido de verdade.
+function creditoReservado(creditoId){
+  return vinculosDoCredito(creditoId).filter(v=>v.status==='previsto').reduce((s,v)=>s+v.valorPrevisto,0);
+}
+function creditoRealizadoAbatido(creditoId){
+  return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado').reduce((s,v)=>s+v.valorRealizado,0);
+}
 function creditoSaldo(c){
   return c.valorTotal - creditoAbatido(c.id);
 }
@@ -6606,14 +6616,18 @@ function getCreditosFiltrados(){
 
 function renderCreditoKpis(lista){
   const totalLancado = lista.reduce((s,c)=>s+c.valorTotal,0);
-  const totalAbatido = lista.reduce((s,c)=>s+creditoAbatido(c.id),0);
-  const saldoDisponivel = totalLancado - totalAbatido;
+  const totalReservado = lista.reduce((s,c)=>s+creditoReservado(c.id),0);
+  const totalRealizado = lista.reduce((s,c)=>s+creditoRealizadoAbatido(c.id),0);
+  const saldoDisponivel = totalLancado - totalReservado - totalRealizado;
   const grid = document.getElementById('creditoKpiGrid');
   if(!grid) return;
-  const totalVinculos = vinculosCredito.filter(v=>lista.some(c=>String(c.id)===String(v.creditoId))).length;
+  const vinculosDaLista = vinculosCredito.filter(v=>lista.some(c=>String(c.id)===String(v.creditoId)));
+  const qtdReservados = vinculosDaLista.filter(v=>v.status==='previsto').length;
+  const qtdRealizados = vinculosDaLista.filter(v=>v.status==='realizado').length;
   grid.innerHTML = `
     <div class="kpi-card c-total"><p class="kpi-label">Total lançado</p><div class="kpi-value">R$ ${fmtMoney(totalLancado)}</div><p class="kpi-foot">${lista.length} crédito(s)</p></div>
-    <div class="kpi-card c-ped"><p class="kpi-label">Total abatido</p><div class="kpi-value">R$ ${fmtMoney(totalAbatido)}</div><p class="kpi-foot">${totalVinculos} vínculo(s)</p></div>
+    <div class="kpi-card c-solic"><p class="kpi-label">Reservado (previsto)</p><div class="kpi-value">R$ ${fmtMoney(totalReservado)}</div><p class="kpi-foot">${qtdReservados} vínculo(s) sem nota ainda</p></div>
+    <div class="kpi-card c-ped"><p class="kpi-label">Abatido (realizado)</p><div class="kpi-value">R$ ${fmtMoney(totalRealizado)}</div><p class="kpi-foot">${qtdRealizados} vínculo(s) com nota</p></div>
     <div class="kpi-card c-crit"><p class="kpi-label">Saldo disponível</p><div class="kpi-value">R$ ${fmtMoney(saldoDisponivel)}</div><p class="kpi-foot">${lista.filter(c=>creditoSaldo(c)>0.005).length} com saldo</p></div>
   `;
 }
@@ -6632,28 +6646,32 @@ function renderCreditosDashboard(){
   if(!gridCredito || !gridCap) return;
 
   const totalLancado = creditos.reduce((s,c)=>s+c.valorTotal,0);
-  const totalAbatido = creditos.reduce((s,c)=>s+creditoAbatido(c.id),0);
-  const saldoDisponivel = totalLancado - totalAbatido;
+  const totalReservado = creditos.reduce((s,c)=>s+creditoReservado(c.id),0);
+  const totalRealizado = creditos.reduce((s,c)=>s+creditoRealizadoAbatido(c.id),0);
+  const saldoDisponivel = totalLancado - totalReservado - totalRealizado;
   const comSaldo = creditos.filter(c=>creditoSaldo(c)>0.005).length;
 
   gridCredito.innerHTML = `
     <div class="kpi-card c-total"><p class="kpi-label">Total lançado</p><div class="kpi-value">R$ ${fmtMoney(totalLancado)}</div><p class="kpi-foot">${creditos.length} crédito(s)</p></div>
-    <div class="kpi-card c-ped"><p class="kpi-label">Total abatido</p><div class="kpi-value">R$ ${fmtMoney(totalAbatido)}</div><p class="kpi-foot">${vinculosCredito.length} vínculo(s)</p></div>
+    <div class="kpi-card c-solic"><p class="kpi-label">Reservado (previsto)</p><div class="kpi-value">R$ ${fmtMoney(totalReservado)}</div><p class="kpi-foot">vínculo(s) sem nota ainda</p></div>
+    <div class="kpi-card c-ped"><p class="kpi-label">Abatido (realizado)</p><div class="kpi-value">R$ ${fmtMoney(totalRealizado)}</div><p class="kpi-foot">vínculo(s) com nota</p></div>
     <div class="kpi-card c-crit"><p class="kpi-label">Saldo disponível</p><div class="kpi-value">R$ ${fmtMoney(saldoDisponivel)}</div><p class="kpi-foot">${comSaldo} obra(s) com saldo</p></div>
   `;
 
   // Créditos agrupados por empresa beneficiária (a empresa credora, dona
   // do crédito) — dá pra ver de relance quanto cada empresa tem lançado,
-  // abatido e disponível, sem precisar somar crédito por crédito.
+  // reservado, abatido de fato e disponível, sem precisar somar crédito
+  // por crédito.
   const porEmpresaEl = document.getElementById('creditosDashPorEmpresa');
   if(porEmpresaEl){
     const porEmpresa = new Map();
     creditos.forEach(c=>{
       const chave = c.empresaBeneficiaria || '(sem empresa informada)';
-      if(!porEmpresa.has(chave)) porEmpresa.set(chave, { lancado:0, abatido:0, qtd:0, devedoras:new Set() });
+      if(!porEmpresa.has(chave)) porEmpresa.set(chave, { lancado:0, reservado:0, realizado:0, qtd:0, devedoras:new Set() });
       const grupo = porEmpresa.get(chave);
       grupo.lancado += c.valorTotal;
-      grupo.abatido += creditoAbatido(c.id);
+      grupo.reservado += creditoReservado(c.id);
+      grupo.realizado += creditoRealizadoAbatido(c.id);
       grupo.qtd += 1;
       if(c.empresaDevedora) grupo.devedoras.add(c.empresaDevedora);
     });
@@ -6662,15 +6680,16 @@ function renderCreditosDashboard(){
       <p class="eyebrow" style="margin:0 0 10px;">Créditos por empresa</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Empresa beneficiária</th><th>Créditos</th><th>Lançado</th><th>Abatido</th><th>Saldo disponível</th><th>Empresas devedoras</th></tr></thead>
+          <thead><tr><th>Empresa beneficiária</th><th>Créditos</th><th>Lançado</th><th>Reservado</th><th>Abatido</th><th>Saldo disponível</th><th>Empresas devedoras</th></tr></thead>
           <tbody>
             ${linhas.map(([empresa, g])=>{
-              const saldo = g.lancado - g.abatido;
+              const saldo = g.lancado - g.reservado - g.realizado;
               return `<tr>
                 <td class="txt">${esc(empresa)}</td>
                 <td>${g.qtd}</td>
                 <td>R$ ${fmtMoney(g.lancado)}</td>
-                <td>R$ ${fmtMoney(g.abatido)}</td>
+                <td>R$ ${fmtMoney(g.reservado)}</td>
+                <td>R$ ${fmtMoney(g.realizado)}</td>
                 <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span></td>
                 <td class="txt">${esc(Array.from(g.devedoras).join(', '))||'—'}</td>
               </tr>`;
@@ -6711,17 +6730,22 @@ function renderCreditos(){
 
   let html = '';
   lista.forEach(c=>{
-    const abatido = creditoAbatido(c.id);
+    const reservado = creditoReservado(c.id);
+    const realizado = creditoRealizadoAbatido(c.id);
+    const abatido = reservado + realizado;
     const saldo = c.valorTotal - abatido;
     const isOpen = creditoDetailOpen.has(c.id);
     const vinculos = vinculosDoCredito(c.id);
+    const abatidoDetalhe = reservado>0.005 && realizado>0.005
+      ? `<br><span style="font-size:10.5px;color:var(--text-faint);font-weight:400;">R$ ${fmtMoney(realizado)} realizado + R$ ${fmtMoney(reservado)} reservado</span>`
+      : (reservado>0.005 ? `<br><span style="font-size:10.5px;color:var(--amber);font-weight:400;">reservado (sem nota ainda)</span>` : '');
     html += `<tr>
       <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}">${isOpen?'▾':'▸'}</button></td>
       <td class="txt">${esc(c.empresaBeneficiaria)||'—'}</td>
       <td class="txt">${esc(c.empresaDevedora)||'—'}</td>
       <td class="txt">${esc(c.obra)}</td>
       <td>R$ ${fmtMoney(c.valorTotal)}</td>
-      <td>R$ ${fmtMoney(abatido)}</td>
+      <td>R$ ${fmtMoney(abatido)}${abatidoDetalhe}</td>
       <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span></td>
       <td>${c.dataDisponibilidade?fmtBRDate(c.dataDisponibilidade):'—'}</td>
       <td class="txt">${esc(c.descricao)||'—'}</td>
@@ -7203,7 +7227,8 @@ function exportCreditosExcel(){
     'Empresa devedora': c.empresaDevedora,
     'Obra do devedor': c.obra,
     'Valor total': c.valorTotal,
-    'Abatido': creditoAbatido(c.id),
+    'Reservado (previsto)': creditoReservado(c.id),
+    'Abatido (realizado)': creditoRealizadoAbatido(c.id),
     'Saldo': creditoSaldo(c),
     'Disponível a partir de': c.dataDisponibilidade ? fmtBRDate(c.dataDisponibilidade) : '',
     'Descrição': c.descricao
