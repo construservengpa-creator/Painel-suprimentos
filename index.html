@@ -9403,81 +9403,177 @@ initCap();
 
 <style>
   :root {
-    --j-bg: #1c1d20;
-    --j-panel: #25262a;
-    --j-line: #3a3b40;
-    --j-text: #ecebe6;
-    --j-dim: #9a9a94;
-    --j-accent: #F5C433;
+    --j-fundo: #111316;
+    --j-painel: #1a1d21;
+    --j-painel-2: #22262b;
+    --j-linha: #2f353c;
+    --j-texto: #ecebe6;
+    --j-apagado: #98a0aa;
+    --j-amarelo: #F5C433;
+    --j-ruim: #e5645c;
+    --j-bom: #34c05f;
+    --j-neutro: #8d97a3;
   }
-  #jarvis-orb {
-    position: fixed; right: 20px; bottom: 20px; z-index: 9998;
-    width: 56px; height: 56px; border-radius: 50%;
-    background: var(--j-bg); border: 2px solid var(--j-accent);
-    color: var(--j-accent); cursor: pointer;
-    display: grid; place-items: center;
-    font: 600 22px/1 Oswald, Inter, system-ui, sans-serif;
-    box-shadow: 0 6px 20px rgba(0,0,0,.45);
-  }
-  #jarvis-orb::after {
-    content: ""; position: absolute; inset: -8px; border-radius: 50%;
-    border: 2px solid var(--j-accent); opacity: 0; pointer-events: none;
-  }
-  #jarvis-orb[data-state="listening"]::after { animation: j-ring 1.4s ease-out infinite; }
-  #jarvis-orb[data-state="thinking"] { border-style: dashed; animation: j-spin 2.4s linear infinite; }
-  #jarvis-orb[data-state="speaking"]::after { animation: j-ring .8s ease-out infinite; }
-  @keyframes j-ring { from { transform: scale(.8); opacity: .8; } to { transform: scale(1.35); opacity: 0; } }
-  @keyframes j-spin { to { transform: rotate(360deg); } }
+  #jarvis-orb[hidden], #jarvis-stage[hidden] { display: none !important; }
+  body.jarvis-palco { overflow: hidden; }
+
+  /* ---------- reator (orb) ---------- */
+  .j-reactor { width: 100%; height: 100%; display: block; overflow: visible; }
+  .j-reactor * { transform-box: fill-box; transform-origin: center; }
+  .j-reactor .ticks line { stroke: var(--j-amarelo); stroke-width: 1.3; opacity: .55; }
+  .j-reactor .anel-externo { fill: none; stroke: var(--j-amarelo); stroke-width: 1; opacity: .35; }
+  .j-reactor .segmentos { fill: none; stroke: var(--j-amarelo); stroke-width: 12; stroke-dasharray: 100 20; opacity: .92; }
+  .j-reactor .anel-fino { fill: none; stroke: var(--j-amarelo); stroke-width: 2; stroke-dasharray: 2 7; opacity: .7; }
+  .j-reactor .miolo { fill: none; stroke: var(--j-amarelo); stroke-width: 1; opacity: .5; }
+  .j-reactor .onda { fill: none; stroke: var(--j-amarelo); stroke-width: 2; opacity: 0; }
+  .j-reactor .semente { fill: var(--j-amarelo); }
+  .j-reactor .ticks { animation: j-gira 120s linear infinite reverse; }
+  .j-reactor .segmentos { animation: j-gira 26s linear infinite; }
+  .j-reactor .anel-fino { animation: j-gira 50s linear infinite reverse; }
+  .j-reactor .respira { animation: j-respira 4.5s ease-in-out infinite; }
+  .j-reactor .nucleo { transform: scale(calc(1 + var(--amp, 0) * .24)); }
+  .j-host[data-state="listening"] .segmentos { animation-duration: 9s; }
+  .j-host[data-state="listening"] .onda { animation: j-onda 2s ease-out infinite; }
+  .j-host[data-state="listening"] .onda.o2 { animation-delay: 1s; }
+  .j-host[data-state="thinking"] .segmentos { animation-duration: 1.8s; }
+  .j-host[data-state="thinking"] .anel-fino { animation-duration: 4s; }
+  .j-host[data-state="thinking"] .semente { opacity: .55; }
+  .j-host[data-state="speaking"] .segmentos { animation-duration: 12s; }
+  .j-host.mini .ticks, .j-host.mini .anel-externo, .j-host.mini .anel-fino { display: none; }
+  .j-host.mini .segmentos { stroke-width: 26; }
+  .j-host.mini .miolo { stroke-width: 6; }
+  @keyframes j-gira { to { transform: rotate(360deg); } }
+  @keyframes j-respira { 50% { transform: scale(1.05); } }
+  @keyframes j-onda { from { transform: scale(.9); opacity: .55; } to { transform: scale(1.32); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) {
-    #jarvis-orb::after, #jarvis-orb[data-state] { animation: none !important; }
-    #jarvis-orb[data-state="listening"]::after,
-    #jarvis-orb[data-state="speaking"]::after { opacity: .7; }
+    .j-reactor * { animation: none !important; }
+    .j-host[data-state="listening"] .onda { opacity: .35; }
   }
 
+  /* ---------- botão flutuante ---------- */
+  #jarvis-orb {
+    position: fixed; right: 20px; bottom: 20px; z-index: 9998;
+    width: 62px; height: 62px; padding: 7px; border-radius: 50%;
+    background: var(--j-fundo); border: 1px solid var(--j-linha);
+    cursor: pointer; display: grid; place-items: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,.5);
+  }
+  #jarvis-orb:hover { border-color: var(--j-amarelo); }
+
+  /* ---------- painel compacto ---------- */
   #jarvis-panel {
-    position: fixed; right: 20px; bottom: 90px; z-index: 9999;
-    width: min(380px, calc(100vw - 24px)); height: min(520px, 70vh);
-    background: var(--j-bg); color: var(--j-text);
-    border: 1px solid var(--j-line); border-radius: 14px;
+    position: fixed; right: 20px; bottom: 96px; z-index: 9999;
+    width: min(390px, calc(100vw - 24px)); height: min(540px, 72vh);
+    background: var(--j-fundo); color: var(--j-texto);
+    border: 1px solid var(--j-linha); border-radius: 14px;
     display: none; flex-direction: column; overflow: hidden;
     font: 400 14px/1.45 Inter, system-ui, sans-serif;
     box-shadow: 0 16px 40px rgba(0,0,0,.55);
   }
   #jarvis-panel.open { display: flex; }
-  #jarvis-head {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 14px; border-bottom: 1px solid var(--j-line);
-  }
-  #jarvis-head strong { font: 600 17px Oswald, Inter, sans-serif; letter-spacing: .02em; flex: 1; }
-  #jarvis-head label { display: flex; align-items: center; gap: 6px; color: var(--j-dim); font-size: 12px; cursor: pointer; }
-  #jarvis-head input { accent-color: var(--j-accent); }
-  #jarvis-status { padding: 6px 14px; min-height: 30px; color: var(--j-dim); font-size: 12px; border-bottom: 1px solid var(--j-line); }
-  #jarvis-status.on { color: var(--j-accent); }
+  #jarvis-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--j-linha); }
+  #jarvis-head strong { font: 600 18px Oswald, Inter, sans-serif; flex: 1; }
+  #jarvis-head label { display: flex; align-items: center; gap: 6px; color: var(--j-apagado); font-size: 12px; cursor: pointer; }
+  #jarvis-head input, .j-chip input { accent-color: var(--j-amarelo); }
+  #jarvis-subhead { display: flex; align-items: center; gap: 10px; padding: 6px 14px; min-height: 36px; border-bottom: 1px solid var(--j-linha); }
+  #jarvis-status { flex: 1; color: var(--j-apagado); font-size: 12px; }
+  #jarvis-status.on { color: var(--j-amarelo); }
+  .j-link { background: none; border: 1px solid var(--j-linha); color: var(--j-texto); border-radius: 999px; padding: 3px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+  .j-link:hover { border-color: var(--j-amarelo); color: var(--j-amarelo); }
   #jarvis-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .j-msg { max-width: 88%; padding: 9px 12px; border-radius: 10px; white-space: pre-wrap; word-wrap: break-word; }
-  .j-msg.user { align-self: flex-end; background: var(--j-accent); color: #1c1d20; border-bottom-right-radius: 3px; }
-  .j-msg.bot { align-self: flex-start; background: var(--j-panel); border: 1px solid var(--j-line); border-bottom-left-radius: 3px; }
+  .j-msg { max-width: 92%; padding: 9px 12px; border-radius: 10px; white-space: pre-wrap; word-wrap: break-word; }
+  .j-msg.user { align-self: flex-end; background: var(--j-amarelo); color: #1c1d20; border-bottom-right-radius: 3px; }
+  .j-msg.bot { align-self: flex-start; background: var(--j-painel); border: 1px solid var(--j-linha); border-bottom-left-radius: 3px; }
   .j-msg.err { align-self: flex-start; color: #ff8a80; border: 1px solid #6b2f2b; background: transparent; }
-  .j-empty { color: var(--j-dim); margin: auto; text-align: center; padding: 0 16px; }
-  #jarvis-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--j-line); }
-  #jarvis-input {
+  .j-msg .j-kpis { margin-bottom: 8px; }
+  .j-msg .j-kpi { padding: 0 14px; }
+  .j-msg .j-kpi-n { font-size: 26px; }
+  .j-msg .j-kpi-l { font-size: 11px; margin-top: 2px; }
+  .j-empty { color: var(--j-apagado); margin: auto; text-align: center; padding: 0 16px; }
+  #jarvis-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--j-linha); }
+  #jarvis-input, #jarvis-stage-input {
     flex: 1; min-width: 0; padding: 10px 12px; border-radius: 8px;
-    background: var(--j-panel); border: 1px solid var(--j-line); color: var(--j-text);
-    font: inherit;
+    background: var(--j-painel); border: 1px solid var(--j-linha); color: var(--j-texto); font: inherit;
   }
-  #jarvis-input:focus, #jarvis-orb:focus-visible, .j-btn:focus-visible { outline: 2px solid var(--j-accent); outline-offset: 2px; }
-  .j-btn {
-    width: 40px; border-radius: 8px; border: 1px solid var(--j-line);
-    background: var(--j-panel); color: var(--j-text); cursor: pointer; font-size: 16px;
+  #jarvis-input:focus, #jarvis-stage-input:focus, #jarvis-orb:focus-visible, .j-btn:focus-visible, .j-chip:focus-visible, .j-link:focus-visible { outline: 2px solid var(--j-amarelo); outline-offset: 2px; }
+  .j-btn { width: 40px; border-radius: 8px; border: 1px solid var(--j-linha); background: var(--j-painel); color: var(--j-texto); cursor: pointer; font-size: 16px; }
+  .j-btn.on { background: var(--j-amarelo); color: #1c1d20; border-color: var(--j-amarelo); }
+
+  /* ---------- números grandes ---------- */
+  .j-kpis { display: flex; flex-wrap: wrap; row-gap: 14px; }
+  .j-kpi { padding: 0 34px; border-left: 1px solid var(--j-linha); display: flex; flex-direction: column; }
+  .j-kpi:first-child { padding-left: 0; border-left: 0; }
+  .j-kpi-n { font: 600 34px/1 Oswald, Inter, sans-serif; font-variant-numeric: tabular-nums; color: var(--j-texto); }
+  .j-kpi-l { color: var(--j-apagado); font-size: 13px; margin-top: 4px; }
+  .j-kpi.total .j-kpi-n { color: var(--j-amarelo); }
+  .j-kpi.ruim .j-kpi-n { color: var(--j-ruim); }
+  .j-kpi.bom .j-kpi-n { color: var(--j-bom); }
+  .j-kpi.neutro .j-kpi-n { color: var(--j-neutro); }
+
+  /* ---------- modo apresentação ---------- */
+  #jarvis-stage {
+    position: fixed; inset: 0; z-index: 10000; background: var(--j-fundo); color: var(--j-texto);
+    display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); font: 400 18px/1.45 Inter, system-ui, sans-serif;
   }
-  .j-btn.on { background: var(--j-accent); color: #1c1d20; border-color: var(--j-accent); }
+  .j-top { display: flex; align-items: baseline; gap: 16px; padding: 28px 44px 0; }
+  .j-brand { font: 600 36px/1 Oswald, Inter, sans-serif; }
+  .j-sub { color: var(--j-apagado); flex: 1; }
+  .j-top .j-link { font-size: 14px; padding: 6px 16px; }
+  .j-main { display: grid; grid-template-columns: minmax(280px, 40%) minmax(0, 1fr); gap: 48px; align-items: start; padding: 0 44px; min-height: 0; }
+  .j-left { display: flex; flex-direction: column; align-items: center; gap: 22px; margin-top: 3vh; }
+  #jarvis-core { width: min(34vw, 50vh); aspect-ratio: 1; }
+  #jarvis-caption { min-height: 2.8em; max-width: 32ch; text-align: center; color: var(--j-apagado); font-size: 20px; }
+  .j-right { display: flex; flex-direction: column; gap: 26px; min-width: 0; max-height: 100%; overflow-y: auto; padding: 9vh 0 8px; }
+  #jarvis-q { color: var(--j-apagado); font-size: 22px; min-height: 1.4em; }
+  #jarvis-stage .j-kpi-n { font-size: clamp(52px, 7.2vw, 104px); }
+  #jarvis-stage .j-kpi-l { font-size: 19px; margin-top: 8px; }
+  #jarvis-answer { font-size: clamp(22px, 2.1vw, 31px); line-height: 1.5; max-width: 44ch; min-height: 3em; }
+  #jarvis-answer.erro { color: #ff8a80; }
+  #jarvis-answer.digitando::after { content: ""; display: inline-block; width: .5ch; height: 1em; margin-left: 3px; vertical-align: -.12em; background: var(--j-amarelo); animation: j-caret 1s steps(1) infinite; }
+  @keyframes j-caret { 50% { opacity: 0; } }
+  #jarvis-boot { color: var(--j-apagado); font-size: 18px; }
+  #jarvis-boot p { margin: 0 0 4px; }
+  .j-foot { padding: 0 44px 34px; display: flex; flex-direction: column; gap: 16px; }
+  .j-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .j-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--j-linha); background: transparent; color: var(--j-texto); border-radius: 999px; padding: 8px 18px; cursor: pointer; font: inherit; font-size: 16px; }
+  .j-chip:hover { border-color: var(--j-amarelo); color: var(--j-amarelo); }
+  .j-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+  #jarvis-stage-form { display: flex; gap: 10px; flex: 1 1 420px; max-width: 820px; min-width: 0; }
+  #jarvis-stage-form .j-btn { width: 52px; }
+  #jarvis-stage-input { font-size: 18px; padding: 12px 16px; }
+  #jarvis-stage .j-kpi.longo .j-kpi-n { font-size: clamp(34px, 4.2vw, 62px); }
+  .j-msg .j-kpi.longo .j-kpi-n { font-size: 20px; }
+  @media (max-width: 900px) {
+    #jarvis-stage { display: flex; flex-direction: column; overflow-y: auto; }
+    .j-top { padding: 14px 16px 0; flex: none; }
+    .j-sub { display: none; }
+    .j-brand { flex: 1; font-size: 30px; }
+    .j-main { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0 16px; overflow: visible; flex: none; }
+    .j-left { margin-top: 0; gap: 8px; }
+    #jarvis-core { width: min(46vw, 24vh); }
+    #jarvis-caption { min-height: 0; font-size: 16px; }
+    #jarvis-caption:empty, #jarvis-q:empty { display: none; }
+    .j-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 0; }
+    .j-kpi, .j-kpi:first-child { padding: 0 10px 0 0; border-left: 0; }
+    .j-right { padding: 0; overflow: visible; max-height: none; gap: 16px; }
+    #jarvis-q { font-size: 17px; }
+    .j-foot { position: sticky; bottom: 0; margin-top: auto; padding: 10px 16px 14px; background: var(--j-fundo); border-top: 1px solid var(--j-linha); gap: 10px; }
+    .j-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+    .j-chip { white-space: nowrap; flex: none; font-size: 14px; padding: 6px 14px; }
+    #jarvis-stage-form { flex: 1 1 100%; }
+    #jarvis-stage-input { min-width: 0; width: 100%; }
+    #jarvis-stage .j-kpi-n { font-size: 40px; }
+    #jarvis-stage .j-kpi.longo .j-kpi-n { font-size: 28px; }
+    #jarvis-stage .j-kpi-l { font-size: 14px; }
+    #jarvis-answer { font-size: 20px; }
+  }
   @media (max-width: 480px) {
-    #jarvis-panel { right: 12px; bottom: 84px; }
+    #jarvis-panel { right: 12px; bottom: 90px; }
     #jarvis-orb { right: 12px; bottom: 12px; }
   }
 </style>
 
-<button id="jarvis-orb" type="button" aria-label="Abrir o Jarvis" data-state="idle">J</button>
+<button id="jarvis-orb" class="j-host mini" type="button" aria-label="Abrir o Jarvis" data-state="idle"></button>
 
 <section id="jarvis-panel" aria-label="Jarvis, assistente do painel">
   <div id="jarvis-head">
@@ -9487,9 +9583,12 @@ initCap();
     </label>
     <label><input type="checkbox" id="jarvis-voice" checked> Voz</label>
   </div>
-  <div id="jarvis-status" aria-live="polite"></div>
+  <div id="jarvis-subhead">
+    <span id="jarvis-status" aria-live="polite"></span>
+    <button type="button" class="j-link" id="jarvis-present">Apresentar</button>
+  </div>
   <div id="jarvis-log" aria-live="polite">
-    <div class="j-empty">Pergunte, por exemplo: “quanto CAP foi entregue este mês?”, “qual o saldo de CAP?” ou “qual a última cotação de diesel?”. Diga “o que você sabe fazer” para ver tudo.</div>
+    <div class="j-empty">Pergunte, por exemplo: “quantos pedidos estão fora do prazo?”, “solicitações do Gabriel Axel”, “entregas de combustíveis” ou “quanto CAP foi entregue este mês?”. Diga “o que você sabe fazer” para ver tudo.</div>
   </div>
   <form id="jarvis-form" autocomplete="off">
     <input id="jarvis-input" type="text" placeholder="Digite ou toque no microfone" aria-label="Mensagem para o Jarvis">
@@ -9497,6 +9596,46 @@ initCap();
     <button type="submit" class="j-btn" aria-label="Enviar">➤</button>
   </form>
 </section>
+
+<div id="jarvis-stage" hidden role="dialog" aria-label="Jarvis, modo apresentação">
+  <div class="j-top">
+    <span class="j-brand">Jarvis</span>
+    <span class="j-sub">Painel de Suprimentos</span>
+    <button type="button" class="j-link" id="jarvis-close">Sair da apresentação</button>
+  </div>
+  <div class="j-main">
+    <div class="j-left">
+      <div id="jarvis-core" class="j-host" data-state="idle"></div>
+      <p id="jarvis-caption" aria-live="polite"></p>
+    </div>
+    <div class="j-right">
+      <p id="jarvis-q"></p>
+      <div id="jarvis-kpis"></div>
+      <p id="jarvis-answer" aria-live="polite"></p>
+      <div id="jarvis-boot"></div>
+    </div>
+  </div>
+  <div class="j-foot">
+    <div class="j-chips">
+      <button type="button" class="j-chip" data-q="Como estamos?">Como estamos?</button>
+      <button type="button" class="j-chip" data-q="Pedidos atrasados">Pedidos atrasados</button>
+      <button type="button" class="j-chip" data-q="Solicitações por comprador">Solicitações por comprador</button>
+      <button type="button" class="j-chip" data-q="Entregas de combustíveis">Entregas de combustíveis</button>
+      <button type="button" class="j-chip" data-q="Insumos críticos fora do prazo">Insumos críticos fora do prazo</button>
+      <button type="button" class="j-chip" data-q="Saldo de CAP">Saldo de CAP</button>
+      <button type="button" class="j-chip" data-q="Última cotação de diesel">Última cotação de diesel</button>
+      <button type="button" class="j-chip" data-q="Saldo dos créditos">Saldo dos créditos</button>
+    </div>
+    <div class="j-row">
+      <form id="jarvis-stage-form" autocomplete="off">
+        <input id="jarvis-stage-input" type="text" placeholder="Pergunte ao Jarvis" aria-label="Pergunta para o Jarvis">
+        <button type="button" class="j-btn" id="jarvis-stage-mic" aria-label="Falar">🎤</button>
+        <button type="submit" class="j-btn" aria-label="Enviar">➤</button>
+      </form>
+      <label class="j-chip"><input type="checkbox" id="jarvis-stage-wake"> Ouvir “Jarvis”</label>
+    </div>
+  </div>
+</div>
 
 <script>
 window.JARVIS_CONFIG = {
@@ -9517,33 +9656,194 @@ window.JARVIS_CONFIG = {
   const $ = (id) => document.getElementById(id);
   const orb = $("jarvis-orb"), panel = $("jarvis-panel"), log = $("jarvis-log");
   const input = $("jarvis-input"), form = $("jarvis-form"), micBtn = $("jarvis-mic");
-  const wakeChk = $("jarvis-wake"), voiceChk = $("jarvis-voice");
+  const wakeChk = $("jarvis-wake"), voiceChk = $("jarvis-voice"), statusEl = $("jarvis-status");
+  const stage = $("jarvis-stage"), core = $("jarvis-core"), caption = $("jarvis-caption");
+  const stQ = $("jarvis-q"), stKpis = $("jarvis-kpis"), stAns = $("jarvis-answer"), stBoot = $("jarvis-boot");
+  const stForm = $("jarvis-stage-form"), stInput = $("jarvis-stage-input"), stMic = $("jarvis-stage-mic"), stWake = $("jarvis-stage-wake");
 
   const history = [];
-  let busy = false, speaking = false, listening = false;
+  let busy = false, speaking = false, listening = false, palco = false, interagiu = false;
+  const reduzMovimento = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  const setState = (s) => (orb.dataset.state = s);
+  /* ---------- reator: o elemento visual do Jarvis ---------- */
+  function reactor(id, vb) {
+    const ticks = Array.from({ length: 72 }, (_, i) => {
+      const a = (i * 5 * Math.PI) / 180, r1 = i % 6 === 0 ? 172 : 179, r2 = 188;
+      return `<line x1="${(200 + r1 * Math.cos(a)).toFixed(1)}" y1="${(200 + r1 * Math.sin(a)).toFixed(1)}" x2="${(200 + r2 * Math.cos(a)).toFixed(1)}" y2="${(200 + r2 * Math.sin(a)).toFixed(1)}"/>`;
+    }).join("");
+    return `<svg class="j-reactor" viewBox="${vb}" aria-hidden="true">
+      <defs><radialGradient id="${id}" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#F5C433" stop-opacity=".95"/><stop offset="55%" stop-color="#F5C433" stop-opacity=".32"/><stop offset="100%" stop-color="#F5C433" stop-opacity="0"/>
+      </radialGradient></defs>
+      <g class="ticks">${ticks}</g>
+      <circle class="anel-externo" cx="200" cy="200" r="166"/>
+      <circle class="onda" cx="200" cy="200" r="150"/><circle class="onda o2" cx="200" cy="200" r="150"/>
+      <circle class="segmentos" cx="200" cy="200" r="140" pathLength="360"/>
+      <circle class="anel-fino" cx="200" cy="200" r="112"/>
+      <circle class="miolo" cx="200" cy="200" r="88"/>
+      <g class="respira"><g class="nucleo"><circle cx="200" cy="200" r="74" fill="url(#${id})"/><circle class="semente" cx="200" cy="200" r="26"/></g></g>
+    </svg>`;
+  }
+  orb.innerHTML = reactor("jg-orb", "40 40 320 320");
+  core.innerHTML = reactor("jg-core", "0 0 400 400");
 
-  function addMsg(text, cls) {
+  // amplitude da "voz": sobe a cada palavra falada e decai
+  let amp = 0, ampRaf = 0;
+  const aplicarAmp = () => { const v = amp.toFixed(3); orb.style.setProperty("--amp", v); core.style.setProperty("--amp", v); };
+  function ampLoop(t) {
+    if (!speaking) { amp = 0; aplicarAmp(); ampRaf = 0; return; }
+    amp = Math.max(amp * 0.9, 0.22 + 0.12 * Math.sin(t / 130));
+    aplicarAmp();
+    ampRaf = requestAnimationFrame(ampLoop);
+  }
+
+  const LEGENDA = {
+    idle: () => (Date.now() < aguardaComando ? "Pois não? Pode falar." : wakeChk.checked ? "Pronto. Diga “Jarvis” ou use um atalho." : "Pronto. Pergunte ou toque em um atalho."),
+    listening: () => "Ouvindo…",
+    thinking: () => "Consultando os dados…",
+    speaking: () => "",
+  };
+  const legenda = (t) => { caption.textContent = t; };
+  const setState = (s) => {
+    orb.dataset.state = s; core.dataset.state = s;
+    if (palco && !(s === "speaking" && Date.now() < aguardaComando)) legenda(LEGENDA[s] ? LEGENDA[s]() : "");
+  };
+
+  /* ---------- números grandes (KPIs) ---------- */
+  const fmtInt = (n) => Math.round(Number(n) || 0).toLocaleString("pt-BR");
+  function formatar(v, f) {
+    if (f === "t") return (Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " t";
+    if (f === "r") return v >= 1e6 ? `R$ ${(v / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi` : "R$ " + Math.round(v).toLocaleString("pt-BR");
+    return fmtInt(v);
+  }
+  function contar(el, alvo, f) {
+    const t0 = performance.now(), dur = 800;
+    const passo = (t) => {
+      const x = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - x, 3);
+      el.textContent = formatar(alvo * e, f);
+      if (x < 1) requestAnimationFrame(passo);
+    };
+    requestAnimationFrame(passo);
+  }
+  function criarKpis(kpis, animar) {
+    const box = document.createElement("div");
+    box.className = "j-kpis";
+    kpis.forEach((k) => {
+      const item = document.createElement("div"); item.className = "j-kpi " + (k.tom || "") + (formatar(k.v, k.f).length > 6 ? " longo" : "");
+      const num = document.createElement("span"); num.className = "j-kpi-n";
+      const lab = document.createElement("span"); lab.className = "j-kpi-l"; lab.textContent = k.l;
+      item.append(num, lab); box.append(item);
+      if (animar && !reduzMovimento) contar(num, k.v, k.f); else num.textContent = formatar(k.v, k.f);
+    });
+    return box;
+  }
+
+  function addMsg(text, cls, kpis) {
     log.querySelector(".j-empty")?.remove();
     const el = document.createElement("div");
     el.className = "j-msg " + cls;
-    el.textContent = text;
+    if (kpis && kpis.length) el.append(criarKpis(kpis, false));
+    el.append(document.createTextNode(text));
     log.appendChild(el);
     log.scrollTop = log.scrollHeight;
   }
 
-  /* ---------- Voz de saída ---------- */
+  /* ---------- voz de saída, com texto que aparece junto com a fala ---------- */
+  const reveal = { texto: "", boundary: 0, t0: 0, raf: 0 };
+  function escrever(texto) {
+    cancelAnimationFrame(reveal.raf);
+    Object.assign(reveal, { texto, boundary: 0, t0: performance.now() });
+    stAns.classList.remove("erro");
+    if (reduzMovimento) { stAns.textContent = texto; stAns.classList.remove("digitando"); return; }
+    stAns.textContent = "";
+    stAns.classList.add("digitando");
+    const cps = voiceChk.checked ? 13 : 90;
+    const passo = (agora) => {
+      const n = Math.min(texto.length, Math.max(reveal.boundary, Math.floor(((agora - reveal.t0) / 1000) * cps)));
+      stAns.textContent = texto.slice(0, n);
+      if (n < texto.length) reveal.raf = requestAnimationFrame(passo);
+      else stAns.classList.remove("digitando");
+    };
+    reveal.raf = requestAnimationFrame(passo);
+  }
+
   function falar(texto) {
     if (!voiceChk.checked || !("speechSynthesis" in window)) return;
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(texto.replace(/[*_#`]/g, ""));
+    const u = new SpeechSynthesisUtterance(texto);
     u.lang = "pt-BR";
     const v = speechSynthesis.getVoices().find((x) => x.lang === "pt-BR");
     if (v) u.voice = v;
-    u.onstart = () => { speaking = true; setState("speaking"); pausarEscuta(); };
+    u.onstart = () => {
+      speaking = true; setState("speaking"); pausarEscuta();
+      if (!ampRaf && !reduzMovimento) ampRaf = requestAnimationFrame(ampLoop);
+    };
+    u.onboundary = (e) => {
+      amp = 1;
+      if (reveal.texto === texto) { const fim = texto.indexOf(" ", e.charIndex); reveal.boundary = Math.max(reveal.boundary, fim < 0 ? texto.length : fim); }
+    };
     u.onend = u.onerror = () => { speaking = false; setState("idle"); retomarEscuta(); };
     speechSynthesis.speak(u);
+  }
+
+  /* ---------- modo apresentação ---------- */
+  async function nomeUsuario() {
+    try {
+      const { data: s } = await window.SB.auth.getSession();
+      const id = s?.session?.user?.id;
+      if (!id) return "";
+      const { data } = await window.SB.from("perfis").select("nome").eq("id", id).maybeSingle();
+      return String(data?.nome || "").trim().split(" ")[0];
+    } catch (_) { return ""; }
+  }
+  function limparPalco() {
+    cancelAnimationFrame(reveal.raf);
+    stQ.textContent = ""; stKpis.replaceChildren(); stAns.textContent = "";
+    stAns.classList.remove("digitando", "erro"); stBoot.replaceChildren();
+  }
+  function mostrarResposta(texto, kpis) {
+    stBoot.replaceChildren(); stKpis.replaceChildren();
+    if (kpis && kpis.length) stKpis.append(criarKpis(kpis, true));
+    escrever(texto);
+  }
+  async function iniciarPalco() {
+    limparPalco();
+    const linha = async (t) => { const p = document.createElement("p"); p.textContent = t; stBoot.append(p); if (!reduzMovimento) await espera(420); };
+    const token = await cfg.getToken();
+    await linha(token ? "Acesso autenticado" : "Sem login: entre no painel para consultar os dados");
+    const n = linhas().length;
+    await linha(n ? `Relatório do Sienge carregado: ${fmtInt(n)} registros` : "Relatório do Sienge ainda não carregado");
+    await linha("Jarvis pronto");
+    if (!palco || !token || !n || interagiu) return;
+    await espera(reduzMovimento ? 0 : 500);
+    if (!palco || interagiu) return;
+    const nome = await nomeUsuario();
+    const h = new Date().getHours();
+    const saud = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+    const res = resumoSienge();
+    const texto = `${saud}${nome ? ", " + nome : ""}. ${res.texto}`;
+    mostrarResposta(texto, res.kpis);
+    falar(texto);
+  }
+  function abrirPalco() {
+    if (palco) return;
+    palco = true; interagiu = false;
+    stage.hidden = false; orb.hidden = true;
+    panel.classList.remove("open");
+    document.body.classList.add("jarvis-palco");
+    const p = stage.requestFullscreen && stage.requestFullscreen();
+    if (p && p.catch) p.catch(() => {});
+    legenda(LEGENDA.idle());
+    iniciarPalco();
+  }
+  function fecharPalco() {
+    if (!palco) return;
+    palco = false;
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    stage.hidden = true; orb.hidden = false;
+    document.body.classList.remove("jarvis-palco");
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
 
   /* ---------- Respostas locais (regras: sem IA e sem custo) ---------- */
@@ -9557,6 +9857,13 @@ window.JARVIS_CONFIG = {
   const fmtData = (iso) => (iso ? iso.split("-").reverse().join("/") : "sem data");
   const soma = (arr, k) => arr.reduce((s, r) => s + (Number(r[k]) || 0), 0);
   const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  const R = (texto, kpis) => ({ texto, kpis });
+  const kpisPrazo = (total, c, rotulo) => [
+    { v: total, l: rotulo, tom: "total" },
+    { v: c.atrasado, l: "fora do prazo", tom: "ruim" },
+    { v: c.hoje + c.dentro, l: "no prazo", tom: "bom" },
+    { v: c["sem-data"], l: "sem data", tom: "neutro" },
+  ].filter((k) => k.v > 0 || k.tom === "total" || k.tom === "ruim");
 
   // Lê a tabela inteira (o Supabase devolve no máximo 1000 linhas por vez).
   async function todas(tabela) {
@@ -9628,7 +9935,9 @@ window.JARVIS_CONFIG = {
     let r = `Foram entregues ${fmtT(soma(es, "qtd") - dev)} de CAP${doPedido(f)}${quando}`;
     r += dev > 0 ? `, já descontadas ${fmtT(dev)} devolvidas` : "";
     r += `, em ${plural(es.length, "entrega", "entregas")}.`;
-    return r + ` Isso equivale a ${fmtR(soma(es, "valor") - soma(ds, "valor"))}.`;
+    const ks = [{ v: soma(es, "qtd") - dev, l: "entregues", f: "t", tom: "total" }, { v: soma(es, "valor") - soma(ds, "valor"), l: "em valor", f: "r", tom: "neutro" }];
+    if (dev > 0) ks.push({ v: dev, l: "devolvidas", f: "t", tom: "ruim" });
+    return R(r + ` Isso equivale a ${fmtR(soma(es, "valor") - soma(ds, "valor"))}.`, ks);
   }
 
   async function capDevolvido(q) {
@@ -9642,7 +9951,7 @@ window.JARVIS_CONFIG = {
     if (!ds.length) return `Não encontrei devoluções de CAP${doPedido(f)}${quando}.`;
     let r = `Foram devolvidas ${fmtT(soma(ds, "qtd"))} de CAP${doPedido(f)}${quando}, em ${plural(ds.length, "devolução", "devoluções")}, no valor de ${fmtR(soma(ds, "valor"))}.`;
     if (ds.length === 1 && ds[0].motivo) r += ` Motivo: ${ds[0].motivo}.`;
-    return r;
+    return R(r, [{ v: soma(ds, "qtd"), l: "devolvidas", f: "t", tom: "ruim" }, { v: soma(ds, "valor"), l: "em valor", f: "r", tom: "neutro" }]);
   }
 
   function saldoDe(p, e, d) {
@@ -9664,7 +9973,7 @@ window.JARVIS_CONFIG = {
     if (!f.num && f.sel.length > 1 && f.sel.length <= 4) {
       r += " Por pedido: " + f.sel.map((x) => `${x.numero}, saldo de ${fmtT(saldoDe([x], e, d).saldoQtd)}`).join("; ") + ".";
     }
-    return r;
+    return R(r, [{ v: s.saldoQtd, l: "saldo", f: "t", tom: "total" }, { v: s.contratado, l: "contratadas", f: "t", tom: "neutro" }, { v: s.entregue, l: "entregues", f: "t", tom: "bom" }]);
   }
 
   async function capPedidos(q) {
@@ -9679,7 +9988,8 @@ window.JARVIS_CONFIG = {
     const { p, e, d } = await capDados();
     if (!p.length) return "Não há pedidos de CAP cadastrados.";
     const s = saldoDe(p, e, d);
-    return `Resumo do CAP: ${plural(p.length, "pedido", "pedidos")}, ${fmtT(s.contratado)} contratadas, ${fmtT(s.entregue)} entregues já descontadas as devoluções, e saldo de ${fmtT(s.saldoQtd)}, equivalente a ${fmtR(s.saldoValor)}.`;
+    return R(`Resumo do CAP: ${plural(p.length, "pedido", "pedidos")}, ${fmtT(s.contratado)} contratadas, ${fmtT(s.entregue)} entregues já descontadas as devoluções, e saldo de ${fmtT(s.saldoQtd)}, equivalente a ${fmtR(s.saldoValor)}.`,
+      [{ v: s.saldoQtd, l: "saldo", f: "t", tom: "total" }, { v: s.contratado, l: "contratadas", f: "t", tom: "neutro" }, { v: s.entregue, l: "entregues", f: "t", tom: "bom" }]);
   }
 
   // ----- Créditos entre obras -----
@@ -9694,7 +10004,7 @@ window.JARVIS_CONFIG = {
     if (cr.length <= 5) {
       r += " " + cr.map((c) => `${c.empresa_beneficiaria} a receber de ${c.empresa_devedora}, obra ${c.obra}, saldo de ${fmtR(Number(c.valor_total) - usado(c.id))}`).join(". ") + ".";
     }
-    return r;
+    return R(r, [{ v: total, l: "em créditos", f: "r", tom: "total" }, { v: abatido, l: "abatido", f: "r", tom: "neutro" }, { v: total - abatido, l: "saldo", f: "r", tom: "bom" }]);
   }
 
   // ----- Cotações -----
@@ -9728,8 +10038,271 @@ window.JARVIS_CONFIG = {
     return r;
   }
 
+  // ----- Sienge: usa os mesmos dados (e as mesmas regras) que o painel já mostra na tela -----
+  const linhas = () => (typeof state !== "undefined" && state && Array.isArray(state.rows) ? state.rows : []);
+  const SEM_RELATORIO = "O relatório do Sienge ainda não foi carregado neste painel. Aguarde o carregamento ou peça a um administrador para importar o relatório.";
+  const hoje0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+  const diasAte = (dt) => { const d = new Date(dt); d.setHours(0, 0, 0, 0); return Math.round((d - hoje0()) / 86400000); };
+  const fmtDia = (dt) => (dt ? fmtData(iso(dt)) : "sem data");
+  const limpar = (s) => String(s || "").replace(/^\d+\s*-\s*/, "").replace(/\s+/g, " ").trim();
+  const juntar = (a) => (a.length <= 1 ? a[0] || "" : a.slice(0, -1).join(", ") + " e " + a[a.length - 1]);
+  const UNIDADES = { l: "litros", t: "toneladas", un: "unidades", m3: "metros cúbicos", m: "metros", kg: "quilos", pc: "peças", vb: "verba" };
+  const fmtQtd = (n, un) => fmtN(n) + " " + (UNIDADES[String(un || "").toLowerCase()] || un || "");
+
+  function contaPrazo(arr, get) {
+    const c = { atrasado: 0, hoje: 0, dentro: 0, "sem-data": 0 };
+    arr.forEach((x) => { const k = get(x); if (k in c) c[k]++; });
+    return c;
+  }
+  function textoPrazo(c) {
+    const p = [];
+    if (c.atrasado) p.push(`${c.atrasado} fora do prazo`);
+    if (c.hoje) p.push(`${c.hoje} para hoje`);
+    if (c.dentro) p.push(`${c.dentro} dentro do prazo`);
+    if (c["sem-data"]) p.push(`${c["sem-data"]} sem data definida`);
+    return juntar(p);
+  }
+  const pctNoPrazo = (c) => { const com = c.atrasado + c.hoje + c.dentro; return com ? Math.round((100 * (c.hoje + c.dentro)) / com) : null; };
+  function topN(arr, chave, n = 5) {
+    const m = new Map();
+    arr.forEach((r) => { const k = chave(r); m.set(k, (m.get(k) || 0) + 1); });
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+  }
+  const descPrazoItem = (st, dt) =>
+    st === "atrasado" ? `atrasado há ${plural(-diasAte(dt), "dia", "dias")}` :
+    st === "hoje" ? "previsto para hoje" :
+    st === "dentro" ? `previsto para ${fmtDia(dt)}` : "sem data definida";
+  const semComprador = (r) => r.compradorDistribuidoLabel === "Nenhum" || r.compradorDistribuidoLabel === "(não atribuído)";
+  const nomeComprador = (r) => (semComprador(r) ? "aguardando distribuição" : r.compradorDistribuidoLabel);
+
+  // Reconhece um nome de pessoa citado na pergunta (por qualquer parte do nome).
+  const STOP = new Set(["nao", "atribuido", "aguardando", "distribuicao", "nenhum", "de", "da", "do", "dos", "das", "com", "sem", "junior", "jr", "filho", "neto", "ltda", "epp", "eireli", "sa"]);
+  function acharPessoa(q, rows, campo) {
+    const palavras = new Set(q.split(" "));
+    const nomes = [...new Set(rows.map((r) => r[campo]).filter((x) => x && x !== "Nenhum"))];
+    let melhor = [], melhorS = 0;
+    for (const nome of nomes) {
+      const toks = norm(String(nome).split(" - ")[0]).split(" ").filter((t) => t.length >= 3 && !STOP.has(t));
+      const s = toks.filter((t) => palavras.has(t)).length;
+      if (s > melhorS) { melhor = [nome]; melhorS = s; }
+      else if (s === melhorS && s > 0) melhor.push(nome);
+    }
+    return melhor;
+  }
+
+  const FLAG_ATRASO = /atrasad|fora do prazo|vencid|em atraso/;
+  const FLAG_SEMDATA = /sem data|sem previsao/;
+
+  // Aplica obra (por código), pessoa e fornecedor citados na pergunta.
+  function filtrar(q, rows, { campoPessoa, comSolicitante }) {
+    const desc = [];
+    let lista = rows;
+    const universo = linhas();
+    let quem = acharPessoa(q, universo, campoPessoa), campo = campoPessoa;
+    if (!quem.length && comSolicitante) { quem = acharPessoa(q, universo, "solicitante"); campo = "solicitante"; }
+    const m = q.match(/(?:obra|centro de custo|\bcc)\s*(?:n[o°º.]?\s*)?(\d{1,4})\b/);
+    if (m) {
+      lista = lista.filter((r) => String(r.obraLabel).split(/[\s-]+/)[0] === m[1]);
+      desc.push(`da obra ${m[1]}`);
+    }
+    if (quem.length) {
+      lista = lista.filter((r) => quem.includes(r[campo]));
+      desc.push(campo === "solicitante" ? `pedidas por ${juntar(quem.map(limpar))}` : `de ${juntar(quem.map((x) => String(x).split(" - ")[0]))}`);
+    }
+    const f = q.match(/fornecedor\s+(?:de\s+|do\s+|da\s+)?(.+)$/);
+    if (f) {
+      const termo = f[1].replace(/\b(pendentes?|atrasad\w*|fora do prazo|hoje|previst\w*)\b.*$/, "").trim();
+      if (termo.length >= 3) {
+        lista = lista.filter((r) => norm(r.fornecedor || "").includes(termo));
+        desc.push(`do fornecedor ${termo}`);
+      }
+    }
+    return { lista, desc: desc.length ? " " + desc.join(" ") : "" };
+  }
+
+  function detalheSolicitacao(rows, num) {
+    const itens = rows.filter((r) => String(r.numSolicitacao) === num);
+    if (!itens.length) return `Não encontrei a solicitação ${num} no relatório carregado.`;
+    const s = itens[0];
+    const pend = itens.filter((r) => r.solicPendente);
+    const comPedido = itens.filter((r) => r.temPedido);
+    let r = `A solicitação ${num} é da obra ${s.obraLabel}, feita por ${s.solicitante || "solicitante não informado"} em ${fmtDia(s.dSolicitacao)}, com ${plural(itens.length, "item", "itens")}. Situação: ${s.situacaoSolicitacao || "não informada"}. Comprador: ${nomeComprador(s)}.`;
+    if (pend.length) {
+      const c = contaPrazo(pend, (x) => x.solicPrazoStatus);
+      const datas = pend.map((x) => x.dChegada).filter(Boolean).sort((a, b) => a - b);
+      r += ` Ainda sem pedido: ${plural(pend.length, "item", "itens")} (${textoPrazo(c)}), chegada na obra prevista para ${fmtDia(datas[0])}.`;
+    }
+    if (comPedido.length) r += ` ${plural(comPedido.length, "item já virou", "itens já viraram")} pedido: ${juntar([...new Set(comPedido.map((x) => x.numPedido))])}.`;
+    return r;
+  }
+
+  function detalhePedido(rows, num) {
+    const n = num.toLowerCase();
+    const itens = rows.filter((r) => String(r.numPedido).toLowerCase() === n);
+    if (!itens.length) return `Não encontrei o pedido ${num} no relatório do Sienge carregado.`;
+    const p = itens[0];
+    let r = `O pedido ${p.numPedido} é do fornecedor ${limpar(p.fornecedor) || "não informado"}, para a obra ${p.obraLabel}, comprador ${p.compradorLabel}, com ${plural(itens.length, "item", "itens")}. Situação: ${p.situacaoPedido || "não informada"}.`;
+    const pend = itens.filter((x) => x.pedidoPendente);
+    if (!pend.length) return r + " Não há entrega pendente.";
+    const urgente = pend.filter((x) => x.dPrevisao).sort((a, b) => a.dPrevisao - b.dPrevisao)[0];
+    r += ` Faltam entregar ${plural(pend.length, "item", "itens")}: ${textoPrazo(contaPrazo(pend, (x) => x.pedidoPrazoStatus))}.`;
+    if (urgente) r += ` O mais urgente é ${limpar(urgente.descricaoInsumo)}, ${descPrazoItem(urgente.pedidoPrazoStatus, urgente.dPrevisao)}.`;
+    const saldos = new Map();
+    pend.forEach((x) => { const k = limpar(x.descricaoInsumo) + "|" + (x.unidadeMovimento || ""); saldos.set(k, (saldos.get(k) || 0) + (Number(x.saldoNum) || 0)); });
+    r += " Saldo a entregar: " + [...saldos.entries()].slice(0, 3).map(([k, v]) => { const [nome, un] = k.split("|"); return `${nome}, ${fmtQtd(v, un)}`; }).join("; ") + ".";
+    return r;
+  }
+
+  function solicitacoes(q) {
+    const rows = linhas();
+    if (!rows.length) return SEM_RELATORIO;
+    const num = (q.match(/solicitacao\s*(?:numero\s*|n[o°º.]?\s*)?(\d{3,})/) || [])[1];
+    if (num) return detalheSolicitacao(rows, num);
+
+    const f = filtrar(q, rows.filter((r) => r.solicPendente), { campoPessoa: "compradorDistribuidoLabel", comSolicitante: true });
+    let lista = f.lista, desc = f.desc;
+    const so = { atraso: FLAG_ATRASO.test(q), semData: FLAG_SEMDATA.test(q) };
+    if (/aguardando distribuicao|sem comprador|nao distribuid|nao atribuid|sem distribuicao/.test(q)) { lista = lista.filter(semComprador); desc += " aguardando distribuição"; }
+    if (so.atraso) { lista = lista.filter((r) => r.solicPrazoStatus === "atrasado"); desc += " fora do prazo"; }
+    else if (so.semData) { lista = lista.filter((r) => r.solicPrazoStatus === "sem-data"); desc += " sem data de chegada definida"; }
+    if (!lista.length) return `Não encontrei solicitações pendentes${desc}.`;
+
+    const c = contaPrazo(lista, (r) => r.solicPrazoStatus);
+    let r = `Há ${plural(lista.length, "solicitação pendente", "solicitações pendentes")}${desc}`;
+    r += so.atraso || so.semData ? "." : `: ${textoPrazo(c)}.`;
+    if (!so.atraso && !so.semData) { const pc = pctNoPrazo(c); if (pc !== null) r += ` Entre as que têm data de chegada, ${pc}% estão no prazo.`; }
+    if (/por comprador|quem (tem|possui)|mais solicitac|ranking|distribuic/.test(q)) {
+      r += " Por comprador: " + topN(lista, nomeComprador).map(([k, n]) => `${k}, ${n}`).join("; ") + ".";
+    } else if (/por obra|por centro de custo|qual obra|quais obras/.test(q)) {
+      r += " Por obra: " + topN(lista, (x) => x.obraLabel).map(([k, n]) => `${k}, ${n}`).join("; ") + ".";
+    }
+    return R(r, kpisPrazo(lista.length, c, "pendentes"));
+  }
+
+  function pedidos(q) {
+    const rows = linhas();
+    if (!rows.length) return SEM_RELATORIO;
+    const num = (q.match(PEDIDO_RE) || [])[1];
+    if (num) return detalhePedido(rows, num);
+
+    const f = filtrar(q, rows.filter((r) => r.pedidoPendente), { campoPessoa: "compradorLabel", comSolicitante: false });
+    let lista = f.lista, desc = f.desc;
+    const atraso = FLAG_ATRASO.test(q), semData = FLAG_SEMDATA.test(q);
+    const per = /previst|chega|entrega|vence/.test(q) ? periodo(q) : null;
+    let assunto = ["pedido com entrega pendente", "pedidos com entrega pendente"];
+    if (atraso) { lista = lista.filter((r) => r.pedidoPrazoStatus === "atrasado"); desc += " fora do prazo"; }
+    else if (semData) { lista = lista.filter((r) => r.pedidoPrazoStatus === "sem-data"); desc += " sem previsão de entrega"; }
+    else if (per) {
+      lista = lista.filter((r) => r.dPrevisao && noPeriodo(iso(r.dPrevisao), per));
+      assunto = ["pedido com entrega prevista", "pedidos com entrega prevista"]; desc += ` ${per.rotulo}`;
+    }
+    if (!lista.length) return `Não encontrei ${assunto[1]}${desc}.`;
+
+    if (/proxim/.test(q) && !atraso && !semData && !per) {
+      const prox = lista.filter((x) => x.dPrevisao && diasAte(x.dPrevisao) >= 0).sort((a, b) => a.dPrevisao - b.dPrevisao).slice(0, 3);
+      if (prox.length) return "As próximas entregas previstas são: " + prox.map((x) => `pedido ${x.numPedido}, ${limpar(x.descricaoInsumo)}, ${limpar(x.fornecedor)}, ${descPrazoItem(x.pedidoPrazoStatus, x.dPrevisao)}, obra ${x.obraLabel}`).join("; ") + ".";
+    }
+
+    const c = contaPrazo(lista, (r) => r.pedidoPrazoStatus);
+    let r = `Há ${plural(lista.length, assunto[0], assunto[1])}${desc}`;
+    r += atraso || semData || per ? "." : `: ${textoPrazo(c)}.`;
+    if (!atraso && !semData && !per) { const pc = pctNoPrazo(c); if (pc !== null) r += ` Entre os que têm previsão, ${pc}% estão no prazo.`; }
+    if (atraso) {
+      const piores = lista.filter((x) => x.dPrevisao).sort((a, b) => a.dPrevisao - b.dPrevisao).slice(0, 3);
+      if (piores.length) r += " Os mais atrasados: " + piores.map((x) => `pedido ${x.numPedido}, ${limpar(x.descricaoInsumo)}, ${descPrazoItem(x.pedidoPrazoStatus, x.dPrevisao)}`).join("; ") + ".";
+    }
+    if (/por fornecedor|qual fornecedor|quais fornecedores/.test(q)) {
+      r += " Por fornecedor: " + topN(lista, (x) => limpar(x.fornecedor) || "sem fornecedor").map(([k, n]) => `${k}, ${n}`).join("; ") + ".";
+    } else if (/por comprador|qual comprador|quem (tem|possui)/.test(q)) {
+      r += " Por comprador: " + topN(lista, (x) => x.compradorLabel).map(([k, n]) => `${k}, ${n}`).join("; ") + ".";
+    } else if (/por obra|por centro de custo|qual obra|quais obras/.test(q)) {
+      r += " Por obra: " + topN(lista, (x) => x.obraLabel).map(([k, n]) => `${k}, ${n}`).join("; ") + ".";
+    }
+    return R(r, kpisPrazo(lista.length, c, "pendentes"));
+  }
+
+  // ----- Insumos críticos (mesma base da aba "Entrega Insumos Críticos") -----
+  function materialDaPergunta(q, itens) {
+    for (const m of [...new Set(itens.map((i) => i.material))]) if (q.includes(norm(m))) return m;
+    if (/combust|diesel|gasolina|etanol/.test(q)) return "COMBUSTÍVEIS";
+    if (/betumin|asfalt|emulsa|rr1c|rr2c|\beai\b|\bdop\b/.test(q)) return "BETUMINOSO";
+    if (/aglomerante|cimento/.test(q)) return "AGLOMERANTES";
+    return null;
+  }
+  const descItem = (i) => `${limpar(i.insumo)}, ${i.pedido !== "—" ? "pedido " + i.pedido : "solicitação " + i.solicitacao}, obra ${i.obra}`;
+
+  function criticos(q) {
+    if (!linhas().length || typeof getCriticalItems !== "function") return SEM_RELATORIO;
+    let itens = getCriticalItems();
+    const mat = materialDaPergunta(q, itens);
+    let desc = mat ? (mat === "COMBUSTÍVEIS" ? "de combustíveis" : `de ${mat.toLowerCase()}`) : "de insumos críticos";
+    if (mat) itens = itens.filter((i) => i.material === mat);
+    const m = q.match(/(?:obra|centro de custo|\bcc)\s*(?:n[o°º.]?\s*)?(\d{1,4})\b/);
+    if (m) { itens = itens.filter((i) => String(i.obra).split(/[\s-]+/)[0] === m[1]); desc += ` na obra ${m[1]}`; }
+    if (/solicitac/.test(q) && !/pedido/.test(q)) { itens = itens.filter((i) => i.origem === "solicitacao"); desc += " (solicitações sem pedido)"; }
+    else if (/pedido/.test(q) && !/solicitac/.test(q)) { itens = itens.filter((i) => i.origem === "pedido"); desc += " (pedidos de compra)"; }
+    const atraso = FLAG_ATRASO.test(q), semData = FLAG_SEMDATA.test(q);
+    if (atraso) { itens = itens.filter((i) => i.status === "atrasado"); desc += " fora do prazo"; }
+    else if (semData) { itens = itens.filter((i) => i.status === "sem-data"); desc += " sem data definida"; }
+    if (!itens.length) return `Não há entregas ${desc} no momento.`;
+
+    const ped = itens.filter((i) => i.origem === "pedido").length;
+    const c = contaPrazo(itens, (i) => i.status);
+    let r = `Há ${plural(itens.length, "item", "itens")} ${desc} em acompanhamento: ${plural(ped, "pedido de compra com entrega pendente", "pedidos de compra com entrega pendente")} e ${plural(itens.length - ped, "solicitação ainda sem pedido", "solicitações ainda sem pedido")}.`;
+    if (!atraso && !semData) r += ` Situação: ${textoPrazo(c)}.`;
+
+    if (!mat) {
+      r += " Por material: " + topN(itens, (i) => i.material, 6).map(([k, n]) => `${k.toLowerCase()}, ${n} (${itens.filter((i) => i.material === k && i.status === "atrasado").length} fora do prazo)`).join("; ") + ".";
+    } else {
+      const soma = new Map();
+      itens.forEach((i) => { const k = limpar(i.insumo) + "|" + i.unidade; soma.set(k, (soma.get(k) || 0) + (Number(i.qtd) || 0)); });
+      const tops = [...soma.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+      if (tops.length) r += " Quantidade pendente: " + tops.map(([k, q2]) => { const [nome, un] = k.split("|"); return `${nome}, ${fmtQtd(q2, un)}`; }).join("; ") + ".";
+    }
+    const comData = itens.filter((i) => i.data);
+    if (atraso) {
+      const piores = comData.sort((a, b) => a.data - b.data).slice(0, 3);
+      if (piores.length) r += " Os mais atrasados: " + piores.map((i) => `${descItem(i)}, ${descPrazoItem(i.status, i.data)}`).join("; ") + ".";
+    } else {
+      const futuros = comData.filter((i) => i.status === "hoje" || i.status === "dentro").sort((a, b) => a.data - b.data);
+      if (futuros.length) r += ` A próxima entrega prevista é ${descItem(futuros[0])}, ${descPrazoItem(futuros[0].status, futuros[0].data)}.`;
+      const vencidos = comData.filter((i) => i.status === "atrasado").sort((a, b) => a.data - b.data);
+      if (vencidos.length) r += ` O mais atrasado é ${descItem(vencidos[0])}, ${descPrazoItem(vencidos[0].status, vencidos[0].data)}.`;
+    }
+    return R(r, kpisPrazo(itens.length, c, "em acompanhamento"));
+  }
+
+  // ----- Visões gerais -----
+  function foraDoPrazoGeral() {
+    const rows = linhas();
+    if (!rows.length) return SEM_RELATORIO;
+    const sol = rows.filter((r) => r.solicPendente && r.solicPrazoStatus === "atrasado").length;
+    const ped = rows.filter((r) => r.pedidoPendente && r.pedidoPrazoStatus === "atrasado").length;
+    const crit = typeof getCriticalItems === "function" ? getCriticalItems().filter((i) => i.status === "atrasado").length : 0;
+    return R(`Estão fora do prazo ${plural(sol, "solicitação pendente", "solicitações pendentes")} e ${plural(ped, "pedido com entrega pendente", "pedidos com entrega pendente")}. Entre os insumos críticos, ${plural(crit, "item está", "itens estão")} fora do prazo.`,
+      [{ v: sol, l: "solicitações", tom: "ruim" }, { v: ped, l: "pedidos", tom: "ruim" }, { v: crit, l: "insumos críticos", tom: "ruim" }]);
+  }
+
+  function resumoSienge() {
+    const rows = linhas();
+    if (!rows.length) return SEM_RELATORIO;
+    const sol = rows.filter((r) => r.solicPendente), ped = rows.filter((r) => r.pedidoPendente);
+    const cs = contaPrazo(sol, (r) => r.solicPrazoStatus), cp = contaPrazo(ped, (r) => r.pedidoPrazoStatus);
+    const ps = pctNoPrazo(cs), pp = pctNoPrazo(cp);
+    let r = `Resumo do painel: ${plural(sol.length, "solicitação pendente", "solicitações pendentes")}, ${cs.atrasado} fora do prazo${ps !== null ? `, ${ps}% no prazo` : ""}. `;
+    r += `${plural(ped.length, "pedido com entrega pendente", "pedidos com entrega pendente")}, ${cp.atrasado} fora do prazo${pp !== null ? `, ${pp}% no prazo` : ""}.`;
+    if (typeof getCriticalItems === "function") {
+      const ci = getCriticalItems();
+      r += ` Insumos críticos em acompanhamento: ${ci.length}, com ${ci.filter((i) => i.status === "atrasado").length} fora do prazo.`;
+    }
+    return R(r, [
+      { v: sol.length, l: "solicitações pendentes", tom: "total" }, { v: cs.atrasado, l: "solicitações fora do prazo", tom: "ruim" },
+      { v: ped.length, l: "pedidos pendentes", tom: "total" }, { v: cp.atrasado, l: "pedidos fora do prazo", tom: "ruim" },
+    ]);
+  }
+
   function ajuda() {
-    return "Sem usar IA, eu respondo sobre o CAP: quanto foi entregue (hoje, este mês, em junho, em um pedido), devoluções, saldo e pedidos. Também sobre créditos entre obras e a última cotação de um insumo, como diesel. Qualquer outra pergunta eu envio para a IA.";
+    return "Sem usar IA, eu respondo sobre: CAP (entregas, devoluções, saldo e pedidos); créditos entre obras; cotações, como a última de diesel; solicitações pendentes, por comprador, obra ou número; pedidos com entrega pendente, atrasados ou previstos; e insumos críticos, como combustíveis, betuminosos e cimento. Para números de solicitação e pedido, diga por exemplo: solicitação 33724. Qualquer outra pergunta eu envio para a IA.";
   }
 
   const temCap = (q) => /\bcap\b/.test(q);
@@ -9741,8 +10314,13 @@ window.JARVIS_CONFIG = {
     { when: (q) => capCtx(q) && /entreg|receb|chegou|chegaram/.test(q), fn: capEntregue },
     { when: (q) => temCap(q) && /pedido|contratad|contrato|fornecedor/.test(q), fn: capPedidos },
     { when: (q) => /\bcredito/.test(q), fn: creditos },
-    { when: (q) => /cotac/.test(q), fn: cotacao },
+    { when: (q) => /cotac|\bpreco/.test(q), fn: cotacao },
+    { when: (q) => /critico|combust|diesel|gasolina|etanol|betumin|aglomerante|cimento/.test(q), fn: criticos },
+    { when: (q) => /solicita/.test(q), fn: solicitacoes },
+    { when: (q) => /\bpedido|entrega|fornecedor|previst/.test(q), fn: pedidos },
     { when: (q) => temCap(q), fn: capResumo },
+    { when: (q) => FLAG_ATRASO.test(q), fn: foraDoPrazoGeral },
+    { when: (q) => /resumo|visao geral|panorama|indicadores|\bkpi|como (esta|estamos|anda)/.test(q), fn: resumoSienge },
   ];
 
   /* ---------- Envio ---------- */
@@ -9756,9 +10334,8 @@ window.JARVIS_CONFIG = {
       if (!it.when(q)) continue;
       try {
         const r = await it.fn(q);
-        if (r) return r;
-      } catch (_) { /* se a consulta local falhar, tenta a IA */ }
-      break;
+        if (r) return typeof r === "string" ? { texto: r } : r;
+      } catch (_) { break; /* consulta local falhou: deixa a IA tentar, sem cair em outra regra */ }
     }
 
     // 2) IA (só quando as regras não entendem a pergunta)
@@ -9774,25 +10351,30 @@ window.JARVIS_CONFIG = {
       }
       throw new Error(d.error || "Erro ao falar com o Jarvis.");
     }
-    return d.reply;
+    return { texto: d.reply };
   }
 
   async function enviar(texto) {
-    texto = texto.trim();
+    texto = String(texto || "").trim();
     if (!texto || busy) return;
     busy = true;
     addMsg(texto, "user");
     history.push({ role: "user", content: texto });
+    if (palco) { interagiu = true; limparPalco(); stQ.textContent = texto; }
     setState("thinking");
     try {
-      const reply = await responder(texto);
-      history.push({ role: "assistant", content: reply });
-      addMsg(reply, "bot");
+      const res = await responder(texto);
+      const limpo = String(res.texto).replace(/[*_#`]/g, "");
+      history.push({ role: "assistant", content: limpo });
+      addMsg(limpo, "bot", res.kpis);
+      if (palco) mostrarResposta(limpo, res.kpis);
       setState("idle");
-      falar(reply);
+      falar(limpo);
     } catch (e) {
       history.pop();
-      addMsg(e.message, "err");
+      const msg = /failed to fetch|networkerror|load failed/i.test(e.message) ? "Não consegui falar com o servidor do Jarvis. Verifique a conexão e tente de novo." : e.message;
+      addMsg(msg, "err");
+      if (palco) { stAns.textContent = msg; stAns.classList.add("erro"); }
       setState("idle");
     } finally {
       busy = false;
@@ -9805,24 +10387,25 @@ window.JARVIS_CONFIG = {
   let aguardaComando = 0;       // até quando a próxima frase conta como comando
   // aceita variações comuns de como o navegador entende "Jarvis" em português
   const WAKE = /\b(jarvis|j[aáe]r?\s?[vw][ie][sz]|gervais|djarvis|jarves|jarvi)\b[\s,.:;!?-]*(.*)$/i;
-  const statusEl = $("jarvis-status");
-  const status = (t, on) => { statusEl.textContent = t; statusEl.classList.toggle("on", !!on); };
+  const status = (t, on) => { statusEl.textContent = t; statusEl.classList.toggle("on", !!on); if (palco && t) legenda(t); };
+  const setWake = (b) => { wakeChk.checked = b; stWake.checked = b; };
+  const marcarMic = (b) => { micBtn.classList.toggle("on", b); stMic.classList.toggle("on", b); };
 
   function criarRec() {
     if (!SR) return null;
     const r = new SR();
     r.lang = "pt-BR";
-    r.interimResults = false;
+    r.interimResults = true; // legenda ao vivo enquanto a pessoa fala
     r.onstart = () => {
       listening = true;
       if (!busy && !speaking) setState("listening");
-      status(modo === "wake" ? "Ouvindo. Diga “Jarvis” e a pergunta." : "Ouvindo…", true);
+      status(Date.now() < aguardaComando ? "Pois não? Pode falar." : modo === "wake" ? "Ouvindo. Diga “Jarvis” e a pergunta." : "Ouvindo…", true);
     };
     r.onend = () => {
       listening = false;
       if (!busy && !speaking) setState("idle");
       if (modo === "wake") { if (!speaking) setTimeout(() => iniciar("wake"), 300); }
-      else { micBtn.classList.remove("on"); status(""); }
+      else { marcarMic(false); status(""); }
     };
     r.onerror = (e) => {
       if (e.error === "no-speech" || e.error === "aborted") return;
@@ -9832,19 +10415,26 @@ window.JARVIS_CONFIG = {
         "audio-capture": "Nenhum microfone encontrado.",
         "network": "Sem conexão com o serviço de voz do navegador.",
       }[e.error] || ("Erro de voz: " + e.error);
-      if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") {
-        modo = "off"; wakeChk.checked = false;
-      }
+      if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") { modo = "off"; setWake(false); }
       status(msg);
       addMsg(msg, "err");
     };
     r.onresult = (ev) => {
-      const t = ev.results[ev.results.length - 1][0].transcript.trim();
-      if (!t) return;
-      status("Ouvi: " + t, true);
+      let parcial = "", final = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) final += t; else parcial += t;
+      }
+      parcial = parcial.trim(); final = final.trim();
+      if (!final) {
+        // legenda ao vivo (no modo "Jarvis", só depois que a palavra de ativação for ouvida)
+        if (parcial && palco && (modo !== "wake" || Date.now() < aguardaComando || WAKE.test(parcial))) legenda(`“${parcial}”`);
+        return;
+      }
+      status("Ouvi: " + final, true);
       if (modo === "wake") {
-        if (Date.now() < aguardaComando) { aguardaComando = 0; abrir(); enviar(t); return; }
-        const m = t.match(WAKE);
+        if (Date.now() < aguardaComando) { aguardaComando = 0; abrir(); enviar(final); return; }
+        const m = final.match(WAKE);
         if (!m) return;
         abrir();
         if (m[2].trim().length > 1) enviar(m[2]);
@@ -9855,7 +10445,7 @@ window.JARVIS_CONFIG = {
         }
       } else {
         modo = "off";
-        enviar(t);
+        enviar(final);
       }
     };
     return r;
@@ -9872,29 +10462,33 @@ window.JARVIS_CONFIG = {
   }
   function pausarEscuta() { if (listening && rec) { try { rec.stop(); } catch (_) {} } }
   function retomarEscuta() { if (modo === "wake") setTimeout(() => iniciar("wake"), 300); }
-
-  micBtn.addEventListener("click", () => {
+  function alternarMic() {
     if (listening) { modo = "off"; rec.stop(); return; }
-    micBtn.classList.add("on");
+    marcarMic(true);
     iniciar("ptt");
-  });
-  wakeChk.addEventListener("change", () => {
+  }
+  function aplicarWake() {
     if (wakeChk.checked) { status("Pedindo acesso ao microfone…", true); iniciar("wake"); }
-    else { modo = "off"; aguardaComando = 0; status(""); if (rec && listening) rec.stop(); }
-  });
+    else { modo = "off"; aguardaComando = 0; status(""); if (rec && listening) rec.stop(); setState(orb.dataset.state === "listening" ? "idle" : orb.dataset.state); }
+  }
 
-  /* ---------- Painel ---------- */
-  function abrir() { panel.classList.add("open"); }
+  /* ---------- Painel e eventos ---------- */
+  function abrir() { if (!palco) panel.classList.add("open"); }
   orb.addEventListener("click", () => {
     panel.classList.toggle("open");
     if (panel.classList.contains("open")) input.focus();
   });
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const t = input.value;
-    input.value = "";
-    enviar(t);
-  });
+  form.addEventListener("submit", (e) => { e.preventDefault(); const t = input.value; input.value = ""; enviar(t); });
+  stForm.addEventListener("submit", (e) => { e.preventDefault(); const t = stInput.value; stInput.value = ""; enviar(t); });
+  micBtn.addEventListener("click", alternarMic);
+  stMic.addEventListener("click", alternarMic);
+  wakeChk.addEventListener("change", () => { stWake.checked = wakeChk.checked; aplicarWake(); });
+  stWake.addEventListener("change", () => { wakeChk.checked = stWake.checked; aplicarWake(); });
+  $("jarvis-present").addEventListener("click", abrirPalco);
+  $("jarvis-close").addEventListener("click", fecharPalco);
+  stage.querySelectorAll(".j-chip[data-q]").forEach((b) => b.addEventListener("click", () => enviar(b.dataset.q)));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && palco) fecharPalco(); });
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && palco) fecharPalco(); });
 })();
 </script>
 
