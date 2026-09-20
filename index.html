@@ -9489,7 +9489,7 @@ initCap();
   </div>
   <div id="jarvis-status" aria-live="polite"></div>
   <div id="jarvis-log" aria-live="polite">
-    <div class="j-empty">Pergunte sobre os pedidos de CAP, entregas, devoluções e créditos entre obras.</div>
+    <div class="j-empty">Pergunte, por exemplo: “quanto CAP foi entregue este mês?”, “qual o saldo de CAP?” ou “qual a última cotação de diesel?”. Diga “o que você sabe fazer” para ver tudo.</div>
   </div>
   <form id="jarvis-form" autocomplete="off">
     <input id="jarvis-input" type="text" placeholder="Digite ou toque no microfone" aria-label="Mensagem para o Jarvis">
@@ -9546,7 +9546,237 @@ window.JARVIS_CONFIG = {
     speechSynthesis.speak(u);
   }
 
+  /* ---------- Respostas locais (regras: sem IA e sem custo) ---------- */
+  const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/\b(capim|capi|kap|cape|c\s?a\s?p)\b/g, "cap")
+    .replace(/[?!,;:()"']/g, " ").replace(/\s+/g, " ").trim();
+
+  const fmtN = (n) => (Number(n) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtT = (n) => fmtN(n) + " toneladas";
+  const fmtR = (n) => (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmtData = (iso) => (iso ? iso.split("-").reverse().join("/") : "sem data");
+  const soma = (arr, k) => arr.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+  const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+
+  // Lê a tabela inteira (o Supabase devolve no máximo 1000 linhas por vez).
+  async function todas(tabela) {
+    const out = [];
+    for (let de = 0; ; de += 1000) {
+      const { data, error } = await window.SB.from(tabela).select("*").order("id").range(de, de + 999);
+      if (error) throw new Error(error.message);
+      out.push(...data);
+      if (data.length < 1000) return out;
+    }
+  }
+
+  // ----- período citado na pergunta -----
+  const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  const MESES_N = ["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  function periodo(q) {
+    const h = new Date(), y = h.getFullYear(), m = h.getMonth();
+    const P = (a, b, rotulo) => ({ de: iso(a), ate: iso(b), rotulo });
+    let x;
+    if (/\bhoje\b/.test(q)) return P(h, h, "hoje");
+    if (/\bontem\b/.test(q)) { const d = new Date(y, m, h.getDate() - 1); return P(d, d, "ontem"); }
+    if ((x = q.match(/ultimos? (\d+) dias/))) return P(new Date(y, m, h.getDate() - Number(x[1])), h, `nos últimos ${x[1]} dias`);
+    if (/\b(esta|essa|nesta|nessa) semana\b/.test(q)) return P(new Date(y, m, h.getDate() - ((h.getDay() + 6) % 7)), h, "esta semana");
+    if (/mes passado|ultimo mes/.test(q)) return P(new Date(y, m - 1, 1), new Date(y, m, 0), "no mês passado");
+    if (/\b(este|esse|neste|nesse) mes\b/.test(q)) return P(new Date(y, m, 1), new Date(y, m + 1, 0), "este mês");
+    if (/ano passado/.test(q)) return P(new Date(y - 1, 0, 1), new Date(y - 1, 11, 31), "no ano passado");
+    if (/\b(este|esse|neste|nesse) ano\b/.test(q)) return P(new Date(y, 0, 1), new Date(y, 11, 31), "este ano");
+    for (let i = 0; i < 12; i++) {
+      if (new RegExp(`\\b${MESES_N[i]}\\b`).test(q)) {
+        const ano = (x = q.match(/\b(20\d\d)\b/)) ? Number(x[1]) : (i > m ? y - 1 : y);
+        return P(new Date(ano, i, 1), new Date(ano, i + 1, 0), `em ${MESES[i]} de ${ano}`);
+      }
+    }
+    return null;
+  }
+  const noPeriodo = (dt, per) => !per || (!!dt && dt >= per.de && dt <= per.ate);
+
+  // ----- CAP -----
+  const PEDIDO_RE = /pedido\s*(?:numero\s*|n[o°º.]?\s*)?([a-z]*\d[\w./-]*)/;
+  async function capDados() {
+    const [p, e, d] = await Promise.all([todas("cap_pedidos"), todas("cap_entregas"), todas("cap_devolucoes")]);
+    return { p, e, d };
+  }
+  function filtrarPedido(q, p) {
+    const explicito = /\bcap\b/.test(q);
+    const m = q.match(PEDIDO_RE);
+    if (!m) return { sel: p, num: null, vazio: false, explicito };
+    const n = m[1].toLowerCase();
+    const exato = p.filter((x) => String(x.numero).toLowerCase() === n);
+    const sel = exato.length ? exato : p.filter((x) => String(x.numero).toLowerCase().includes(n));
+    return { sel, num: m[1], vazio: !sel.length, explicito };
+  }
+  // Pedido que não é de CAP (ex.: pedido do Sienge): sem "CAP" na pergunta, deixa a IA responder.
+  const ausente = (f) => (f.explicito ? `Não encontrei o pedido ${f.num} de CAP.` : null);
+  const doPedido = (f) => (f.num ? ` no pedido ${f.sel.map((x) => x.numero).join(", ")}` : "");
+
+  async function capEntregue(q) {
+    const per = periodo(q);
+    const { p, e, d } = await capDados();
+    const f = filtrarPedido(q, p);
+    if (f.vazio) return ausente(f);
+    const ids = f.num ? new Set(f.sel.map((x) => x.id)) : null;
+    const es = e.filter((x) => (!ids || ids.has(x.pedido_id)) && noPeriodo(x.data, per));
+    const ds = d.filter((x) => (!ids || ids.has(x.pedido_id)) && noPeriodo(x.data, per));
+    const quando = per ? " " + per.rotulo : "";
+    if (!es.length && !ds.length) return `Não encontrei entregas de CAP${doPedido(f)}${quando}.`;
+    const dev = soma(ds, "qtd");
+    let r = `Foram entregues ${fmtT(soma(es, "qtd") - dev)} de CAP${doPedido(f)}${quando}`;
+    r += dev > 0 ? `, já descontadas ${fmtT(dev)} devolvidas` : "";
+    r += `, em ${plural(es.length, "entrega", "entregas")}.`;
+    return r + ` Isso equivale a ${fmtR(soma(es, "valor") - soma(ds, "valor"))}.`;
+  }
+
+  async function capDevolvido(q) {
+    const per = periodo(q);
+    const { p, d } = await capDados();
+    const f = filtrarPedido(q, p);
+    if (f.vazio) return ausente(f);
+    const ids = f.num ? new Set(f.sel.map((x) => x.id)) : null;
+    const ds = d.filter((x) => (!ids || ids.has(x.pedido_id)) && noPeriodo(x.data, per));
+    const quando = per ? " " + per.rotulo : "";
+    if (!ds.length) return `Não encontrei devoluções de CAP${doPedido(f)}${quando}.`;
+    let r = `Foram devolvidas ${fmtT(soma(ds, "qtd"))} de CAP${doPedido(f)}${quando}, em ${plural(ds.length, "devolução", "devoluções")}, no valor de ${fmtR(soma(ds, "valor"))}.`;
+    if (ds.length === 1 && ds[0].motivo) r += ` Motivo: ${ds[0].motivo}.`;
+    return r;
+  }
+
+  function saldoDe(p, e, d) {
+    const ids = new Set(p.map((x) => x.id));
+    const es = e.filter((x) => ids.has(x.pedido_id)), ds = d.filter((x) => ids.has(x.pedido_id));
+    const contratado = soma(p, "qtd_contratada");
+    const entregue = soma(es, "qtd") - soma(ds, "qtd");
+    const valorTotal = p.reduce((s, x) => s + (Number(x.qtd_contratada) || 0) * (Number(x.preco_ton) || 0), 0);
+    return { contratado, entregue, saldoQtd: contratado - entregue, saldoValor: valorTotal - (soma(es, "valor") - soma(ds, "valor")) };
+  }
+
+  async function capSaldo(q) {
+    const { p, e, d } = await capDados();
+    const f = filtrarPedido(q, p);
+    if (f.vazio) return ausente(f);
+    if (!f.sel.length) return "Não há pedidos de CAP cadastrados.";
+    const s = saldoDe(f.sel, e, d);
+    let r = `O saldo de CAP${doPedido(f)} é de ${fmtT(s.saldoQtd)}: ${fmtT(s.contratado)} contratadas e ${fmtT(s.entregue)} já entregues. Em valor, o saldo é de ${fmtR(s.saldoValor)}.`;
+    if (!f.num && f.sel.length > 1 && f.sel.length <= 4) {
+      r += " Por pedido: " + f.sel.map((x) => `${x.numero}, saldo de ${fmtT(saldoDe([x], e, d).saldoQtd)}`).join("; ") + ".";
+    }
+    return r;
+  }
+
+  async function capPedidos(q) {
+    const { p } = await capDados();
+    if (!p.length) return "Não há pedidos de CAP cadastrados.";
+    let r = `Há ${plural(p.length, "pedido", "pedidos")} de CAP, somando ${fmtT(soma(p, "qtd_contratada"))} contratadas.`;
+    r += " " + p.slice(0, 5).map((x) => `Pedido ${x.numero}${x.fornecedor ? ", " + x.fornecedor : ""}: ${fmtT(x.qtd_contratada)} a ${fmtR(x.preco_ton)} a tonelada`).join(". ") + ".";
+    return r;
+  }
+
+  async function capResumo() {
+    const { p, e, d } = await capDados();
+    if (!p.length) return "Não há pedidos de CAP cadastrados.";
+    const s = saldoDe(p, e, d);
+    return `Resumo do CAP: ${plural(p.length, "pedido", "pedidos")}, ${fmtT(s.contratado)} contratadas, ${fmtT(s.entregue)} entregues já descontadas as devoluções, e saldo de ${fmtT(s.saldoQtd)}, equivalente a ${fmtR(s.saldoValor)}.`;
+  }
+
+  // ----- Créditos entre obras -----
+  async function creditos() {
+    const [cr, vi] = await Promise.all([todas("creditos_obra"), todas("creditos_vinculos")]);
+    if (!cr.length) return "Não há créditos cadastrados, ou você não tem acesso a eles.";
+    const efetivo = (v) => (v.status === "cancelado" ? 0 : v.status === "realizado" ? Number(v.valor_realizado) || 0 : Number(v.valor_previsto) || 0);
+    const usado = (id) => vi.filter((v) => v.credito_id === id).reduce((s, v) => s + efetivo(v), 0);
+    const total = soma(cr, "valor_total");
+    const abatido = cr.reduce((s, c) => s + usado(c.id), 0);
+    let r = `Há ${plural(cr.length, "crédito cadastrado", "créditos cadastrados")}, somando ${fmtR(total)}. Já foram abatidos ${fmtR(abatido)} e o saldo é de ${fmtR(total - abatido)}.`;
+    if (cr.length <= 5) {
+      r += " " + cr.map((c) => `${c.empresa_beneficiaria} a receber de ${c.empresa_devedora}, obra ${c.obra}, saldo de ${fmtR(Number(c.valor_total) - usado(c.id))}`).join(". ") + ".";
+    }
+    return r;
+  }
+
+  // ----- Cotações -----
+  async function cotacao(q) {
+    const m = q.match(/cotac\w*\s+(?:(?:mais\s+)?recente\s+|atual\s+|ultima\s+)?(?:de\s+|do\s+|da\s+|dos\s+|das\s+)?(.+)$/);
+    const termo = (m ? m[1] : "").replace(/\b(hoje|agora|atual|mais recente|por favor)\b/g, "").replace(/\s+/g, " ").trim();
+    if (!termo) return "De qual insumo você quer a cotação? Por exemplo: última cotação de diesel.";
+    const todasCot = await todas("cotacoes");
+    let achadas = todasCot.filter((c) => norm(c.insumo || "").includes(termo));
+    if (!achadas.length) {
+      const palavras = termo.split(" ").filter((x) => x.length >= 4);
+      achadas = todasCot.filter((c) => palavras.some((pl) => norm(c.insumo || "").includes(pl)));
+    }
+    if (!achadas.length) return `Não encontrei cotações de ${termo}.`;
+
+    // pega o insumo cotado mais recentemente e, dele, as cotações da data mais recente
+    achadas.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : b.id - a.id));
+    const insumo = achadas[0].insumo;
+    const doInsumo = achadas.filter((c) => c.insumo === insumo);
+    const dataRec = doInsumo[0].data;
+    const recentes = doInsumo.filter((c) => c.data === dataRec);
+    const total = (x) => (Number(x.valor_unitario) || 0) + (Number(x.frete_unitario) || 0);
+    const barata = recentes.reduce((a, b) => (total(b) < total(a) ? b : a));
+    const un = barata.unidade_medida || "unidade";
+    const comFrete = Number(barata.frete_unitario) > 0;
+
+    let r = `As cotações mais recentes de ${insumo} são de ${fmtData(dataRec)}, ${plural(recentes.length, "cotação", "cotações")}. `;
+    r += `O menor preço${comFrete ? " com frete" : ""} é ${fmtR(total(barata))} por ${un}, do fornecedor ${barata.fornecedor}, para ${barata.localidade_entrega || "local não informado"}.`;
+    const outros = [...new Set(achadas.map((c) => c.insumo))].filter((i) => i !== insumo);
+    if (outros.length) r += ` Também há cotações de ${outros.join(" e ")}. Diga qual você quer para eu detalhar.`;
+    return r;
+  }
+
+  function ajuda() {
+    return "Sem usar IA, eu respondo sobre o CAP: quanto foi entregue (hoje, este mês, em junho, em um pedido), devoluções, saldo e pedidos. Também sobre créditos entre obras e a última cotação de um insumo, como diesel. Qualquer outra pergunta eu envio para a IA.";
+  }
+
+  const temCap = (q) => /\bcap\b/.test(q);
+  const capCtx = (q) => temCap(q) || PEDIDO_RE.test(q);
+  const INTENCOES = [
+    { when: (q) => /(o que (voce|vc) (sabe|faz|pode)|\bajuda\b|\bcomandos\b)/.test(q), fn: ajuda },
+    { when: (q) => capCtx(q) && /devol|estorn/.test(q), fn: capDevolvido },
+    { when: (q) => capCtx(q) && /saldo|estoque|\bfalta|\bfaltam|restante|restam|a entregar|pendente/.test(q), fn: capSaldo },
+    { when: (q) => capCtx(q) && /entreg|receb|chegou|chegaram/.test(q), fn: capEntregue },
+    { when: (q) => temCap(q) && /pedido|contratad|contrato|fornecedor/.test(q), fn: capPedidos },
+    { when: (q) => /\bcredito/.test(q), fn: creditos },
+    { when: (q) => /cotac/.test(q), fn: cotacao },
+    { when: (q) => temCap(q), fn: capResumo },
+  ];
+
   /* ---------- Envio ---------- */
+  async function responder(texto) {
+    const token = await cfg.getToken();
+    if (!token) throw new Error("Faça login no painel para usar o Jarvis.");
+
+    // 1) regras locais (grátis)
+    const q = norm(texto);
+    for (const it of INTENCOES) {
+      if (!it.when(q)) continue;
+      try {
+        const r = await it.fn(q);
+        if (r) return r;
+      } catch (_) { /* se a consulta local falhar, tenta a IA */ }
+      break;
+    }
+
+    // 2) IA (só quando as regras não entendem a pergunta)
+    const r = await fetch(cfg.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, apikey: cfg.anonKey },
+      body: JSON.stringify({ messages: history }),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      if (/credit balance/i.test(d.error || "")) {
+        throw new Error("Essa pergunta não está nas respostas prontas e a IA está sem crédito. Diga “o que você sabe fazer” para ver o que respondo sem IA.");
+      }
+      throw new Error(d.error || "Erro ao falar com o Jarvis.");
+    }
+    return d.reply;
+  }
+
   async function enviar(texto) {
     texto = texto.trim();
     if (!texto || busy) return;
@@ -9555,23 +9785,11 @@ window.JARVIS_CONFIG = {
     history.push({ role: "user", content: texto });
     setState("thinking");
     try {
-      const token = await cfg.getToken();
-      if (!token) throw new Error("Faça login no painel para usar o Jarvis.");
-      const r = await fetch(cfg.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-          apikey: cfg.anonKey,
-        },
-        body: JSON.stringify({ messages: history }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Erro ao falar com o Jarvis.");
-      history.push({ role: "assistant", content: d.reply });
-      addMsg(d.reply, "bot");
+      const reply = await responder(texto);
+      history.push({ role: "assistant", content: reply });
+      addMsg(reply, "bot");
       setState("idle");
-      falar(d.reply);
+      falar(reply);
     } catch (e) {
       history.pop();
       addMsg(e.message, "err");
