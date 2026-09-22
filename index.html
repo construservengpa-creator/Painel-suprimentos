@@ -10088,15 +10088,14 @@ window.JARVIS_CONFIG = {
     const n = linhas().length;
     await linha(n ? `Relatório do Sienge carregado: ${fmtInt(n)} registros` : "Relatório do Sienge ainda não carregado");
     await linha("Jarvis pronto");
-    if (!palco || !token || !n || interagiu) return;
+    if (!palco || !token || interagiu) return;
     await espera(reduzMovimento ? 0 : 500);
     if (!palco || interagiu) return;
     const nome = await nomeUsuario();
     const h = new Date().getHours();
     const saud = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
-    const res = resumoSienge();
-    const texto = `${saud}${nome ? ", " + nome : ""}. ${res.texto}`;
-    mostrarResposta(texto, res.kpis);
+    const texto = `${saud}${nome ? ", " + nome : ""}. Estou pronto — pode perguntar o que precisar sobre o painel.`;
+    mostrarResposta(texto, []);
     falar(texto);
   }
   function abrirPalco() {
@@ -10556,6 +10555,37 @@ window.JARVIS_CONFIG = {
       [{ v: sol, l: "solicitações", tom: "ruim" }, { v: ped, l: "pedidos", tom: "ruim" }, { v: crit, l: "insumos críticos", tom: "ruim" }]);
   }
 
+  // ----- Pedidos sem Nota Fiscal (aba "Pedidos sem Nota Fiscal") -----
+  function semNotaFiscal(q) {
+    if (!linhas().length || typeof getPedidoGroupsSemNF !== "function") return SEM_RELATORIO;
+    const mDias = q.match(/(\d+)\s*dias?/);
+    const minDias = mDias ? Number(mDias[1]) : 60;
+    const base = getPedidoGroupsSemNF().filter((g) => !g.temNota && g.dias !== null && g.dias >= minDias);
+    if (!base.length) return `Não encontrei pedidos sem nota fiscal há mais de ${minDias} dias.`;
+
+    const f = filtrar(q, base, { campoPessoa: "compradorLabel", comSolicitante: false });
+    let lista = f.lista, desc = f.desc;
+    if (!lista.length) return `Não encontrei pedidos sem nota fiscal há mais de ${minDias} dias${desc}.`;
+    lista = lista.slice().sort((a, b) => b.dias - a.dias);
+
+    let r = `Há ${plural(lista.length, "pedido de compra", "pedidos de compra")} sem nenhuma nota fiscal lançada há mais de ${minDias} dias${desc}, contando a partir da data do pedido.`;
+    const piores = lista.slice(0, 3);
+    r += " Os mais antigos: " + piores.map((g) => `pedido ${g.key}, ${limpar(g.fornecedor) || "fornecedor não informado"}, ${plural(g.dias, "dia", "dias")} sem NF, obra ${g.obraLabel}`).join("; ") + ".";
+    if (/por obra|por centro de custo|qual obra|quais obras/.test(q)) {
+      r += " Por obra: " + topN(lista, (g) => g.obraLabel).map(([k, n2]) => `${k}, ${n2}`).join("; ") + ".";
+    } else if (/por fornecedor|qual fornecedor|quais fornecedores/.test(q)) {
+      r += " Por fornecedor: " + topN(lista, (g) => limpar(g.fornecedor) || "sem fornecedor").map(([k, n2]) => `${k}, ${n2}`).join("; ") + ".";
+    } else if (/por comprador|qual comprador|quem (tem|possui)/.test(q)) {
+      r += " Por comprador: " + topN(lista, (g) => g.compradorLabel).map(([k, n2]) => `${k}, ${n2}`).join("; ") + ".";
+    }
+    const semEntrega = lista.filter((g) => g.statusEntregaPed !== "entregue").length;
+    if (semEntrega && semEntrega < lista.length) r += ` ${plural(semEntrega, "deles ainda não foi entregue", "deles ainda não foram entregues")}.`;
+    return R(r, [
+      { v: lista.length, l: `sem NF (+${minDias}d)`, tom: "ruim" },
+      { v: Math.max(...lista.map((g) => g.dias)), l: "dias no pior caso", tom: "ruim" },
+    ]);
+  }
+
   function resumoSienge() {
     const rows = linhas();
     if (!rows.length) return SEM_RELATORIO;
@@ -10568,20 +10598,29 @@ window.JARVIS_CONFIG = {
       const ci = getCriticalItems();
       r += ` Insumos críticos em acompanhamento: ${ci.length}, com ${ci.filter((i) => i.status === "atrasado").length} fora do prazo.`;
     }
-    return R(r, [
+    const kpisExtra = [
       { v: sol.length, l: "solicitações pendentes", tom: "total" }, { v: cs.atrasado, l: "solicitações fora do prazo", tom: "ruim" },
       { v: ped.length, l: "pedidos pendentes", tom: "total" }, { v: cp.atrasado, l: "pedidos fora do prazo", tom: "ruim" },
-    ]);
+    ];
+    if (typeof getPedidoGroupsSemNF === "function") {
+      const semNf = getPedidoGroupsSemNF().filter((g) => !g.temNota && g.dias !== null && g.dias >= 60).length;
+      if (semNf) {
+        r += ` Também há ${plural(semNf, "pedido sem nota fiscal", "pedidos sem nota fiscal")} há mais de 60 dias — pergunte "pedidos sem nota fiscal" para ver quais são.`;
+        kpisExtra.push({ v: semNf, l: "sem NF (+60d)", tom: "ruim" });
+      }
+    }
+    return R(r, kpisExtra);
   }
 
   function ajuda() {
-    return "Sem usar IA, eu respondo sobre: CAP (entregas, devoluções, saldo e pedidos); créditos entre obras; cotações, como a última de diesel; solicitações pendentes, por comprador, obra ou número; pedidos com entrega pendente, atrasados ou previstos; e insumos críticos, como combustíveis, betuminosos e cimento. Para números de solicitação e pedido, diga por exemplo: solicitação 33724. Qualquer outra pergunta eu envio para a IA.";
+    return "Sem usar IA, eu respondo sobre: CAP (entregas, devoluções, saldo e pedidos); créditos entre obras; cotações, como a última de diesel; solicitações pendentes, por comprador, obra ou número; pedidos com entrega pendente, atrasados ou previstos; pedidos sem nota fiscal há mais de X dias; e insumos críticos, como combustíveis, betuminosos e cimento. Para números de solicitação e pedido, diga por exemplo: solicitação 33724. Qualquer outra pergunta eu envio para a IA.";
   }
 
   const temCap = (q) => /\bcap\b/.test(q);
   const capCtx = (q) => temCap(q) || PEDIDO_RE.test(q);
   const INTENCOES = [
     { when: (q) => /(o que (voce|vc) (sabe|faz|pode)|\bajuda\b|\bcomandos\b)/.test(q), fn: ajuda },
+    { when: (q) => /nota(s)? fiscal|\bnf\b/.test(q), fn: semNotaFiscal },
     { when: (q) => capCtx(q) && /devol|estorn/.test(q), fn: capDevolvido },
     { when: (q) => capCtx(q) && /saldo|estoque|\bfalta|\bfaltam|restante|restam|a entregar|pendente/.test(q), fn: capSaldo },
     { when: (q) => capCtx(q) && /entreg|receb|chegou|chegaram/.test(q), fn: capEntregue },
