@@ -1410,6 +1410,7 @@ footer.appfoot{
       <div class="nav-submenu">
         <button class="tab-btn" data-tab="compradores"><span class="tab-label">Solicitações por Comprador</span> <span class="count-pill" id="countSolic">0</span></button>
         <button class="tab-btn" data-tab="centros"><span class="tab-label">Pedidos por Centro de Custo</span> <span class="count-pill" id="countPed">0</span></button>
+        <button class="tab-btn" data-tab="semnf"><span class="tab-label">Pedidos sem Nota Fiscal</span> <span class="count-pill" id="countSemNF">0</span></button>
       </div>
     </div>
     <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
@@ -1614,6 +1615,62 @@ footer.appfoot{
           </tr>
         </thead>
         <tbody id="tbodyPed"></tbody>
+      </table>
+    </div>
+  </div>
+  </section>
+
+  <!-- ===================== PEDIDOS SEM NOTA FISCAL ===================== -->
+  <section class="tab-panel" id="tab-semnf">
+  <div id="semnfPresentWrap">
+    <div class="filters-bar">
+      <div class="field">
+        <label>Sem NF há mais de</label>
+        <select id="fNfDias">
+          <option value="30">30 dias</option>
+          <option value="45">45 dias</option>
+          <option value="60" selected>60 dias</option>
+          <option value="90">90 dias</option>
+          <option value="120">120 dias</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Centro de custo (obra)</label>
+        <select id="fNfObra"><option value="">Todas</option></select>
+      </div>
+      <div class="field">
+        <label>Fornecedor</label>
+        <select id="fNfFornecedor"><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label>Comprador</label>
+        <select id="fNfComprador"><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label>Buscar</label>
+        <input type="text" id="fNfSearch" placeholder="nº pedido, fornecedor…">
+      </div>
+      <div class="spacer"></div>
+      <button class="btn small" id="btnExportNf">⬇ Exportar CSV</button>
+    </div>
+    <div class="summary-row" id="nfSummary"></div>
+    <p class="group-hint">Pedidos de compra em aberto (não cancelados) sem nenhuma nota fiscal lançada em nenhum item, contando os dias a partir da data do pedido. Agrupado por Nº do pedido de compra — cada pedido aparece uma única vez, usando a data mais antiga entre seus itens.</p>
+    <div class="table-scroll">
+      <table class="data" id="tableNf">
+        <thead>
+          <tr>
+            <th class="sortable" data-key="pedido">Pedido<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="dias">Dias sem NF<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="dataPedido">Data pedido<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="obra">Centro de custo<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="fornecedor">Fornecedor<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="comprador">Comprador<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="situacao">Situação pedido<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="entrega">Status de entrega<span class="sort-arrow"></span></th>
+            <th class="sortable" data-key="itens">Itens<span class="sort-arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="tbodyNf"></tbody>
       </table>
     </div>
   </div>
@@ -3888,6 +3945,16 @@ function populateFilterOptions(){
   const selPedComprador = document.getElementById('fPedComprador');
   selPedComprador.innerHTML = '<option value="">Todos</option>' + compradores.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
 
+  // Pedidos sem Nota Fiscal — opções derivadas apenas dos pedidos de compra
+  // (linhas com temPedido), já que solicitações sem pedido não se aplicam aqui.
+  const pedidoRows = state.rows.filter(r=>r.temPedido);
+  const selNfObra = document.getElementById('fNfObra');
+  if(selNfObra) selNfObra.innerHTML = '<option value="">Todas</option>' + uniqueSorted(pedidoRows.map(r=>r.obraLabel)).map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  const selNfFornecedor = document.getElementById('fNfFornecedor');
+  if(selNfFornecedor) selNfFornecedor.innerHTML = '<option value="">Todos</option>' + uniqueSorted(pedidoRows.map(r=>normLabel(r.fornecedor))).map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  const selNfComprador = document.getElementById('fNfComprador');
+  if(selNfComprador) selNfComprador.innerHTML = '<option value="">Todos</option>' + uniqueSorted(pedidoRows.map(r=>r.compradorLabel)).map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
   const criticosRows = state.rows.filter(r=>r.materialCritico);
   const piObras = uniqueSorted(criticosRows.map(r=>r.obraLabel));
   const selPiObra = document.getElementById('fPiObra');
@@ -4012,6 +4079,11 @@ function renderOverview(){
       <div class="kpi-value">${criticosPend.length}</div>
       <p class="kpi-foot">${criticosAtrasados.length} fora do prazo (CAP Asfalto/Emulsão/Diesel)</p>
     </div>
+    <div class="kpi-card c-late">
+      <p class="kpi-label">Pedidos sem Nota Fiscal (+60 dias)</p>
+      <div class="kpi-value">${getPedidoGroupsSemNF().filter(g=>!g.temNota && g.dias!==null && g.dias>=60).length}</div>
+      <p class="kpi-foot">sem nenhuma NF lançada desde a data do pedido</p>
+    </div>
   `;
 
   // Chart 1 — pendentes por comprador distribuído (total + em dia + em atraso)
@@ -4126,6 +4198,7 @@ function worstStatus(items, field){
    ============================================================ */
 const solicSort = {key:null, dir:1};
 const pedSort = {key:null, dir:1};
+const nfSort = {key:null, dir:1};
 function compareValues(a,b){
   if(a==null && b==null) return 0;
   if(a==null) return 1;
@@ -4559,6 +4632,144 @@ function renderCentros(){
   });
   tbody.innerHTML = html;
   attachGroupToggle('tbodyPed');
+}
+
+/* ============================================================
+   9-A2. RENDER: PEDIDOS SEM NOTA FISCAL
+   Agrupa por Nº do pedido de compra (mesma base de "temPedido" usada em
+   "Pedidos por Centro de Custo"), mas o critério aqui é a AUSÊNCIA de nota
+   fiscal em qualquer item do pedido, comparando a data do pedido (a mais
+   antiga entre os itens, quando houver mais de uma) com hoje. Pedidos
+   cancelados ficam de fora — o foco é o que ainda está em aberto no
+   fornecedor sem nenhuma movimentação de NF registrada no relatório.
+   ============================================================ */
+let lastNfGroups = [];
+function getPedidoGroupsSemNF(){
+  const map = new Map();
+  state.rows.forEach(r=>{
+    if(!r.temPedido || r.pedidoCancelado) return;
+    const key = String(r.numPedido);
+    if(!map.has(key)) map.set(key, []);
+    map.get(key).push(r);
+  });
+  const groups = [];
+  map.forEach((items, key)=>{
+    const first = items[0];
+    const temNota = items.some(it=>normLabel(it.numNotaFiscal)!=='');
+    const datas = items.map(it=>it.dPedido).filter(Boolean);
+    const dPedido = datas.length ? new Date(Math.min(...datas.map(d=>d.getTime()))) : null;
+    const dias = dPedido ? Math.round((TODAY - dPedido)/86400000) : null;
+    groups.push({
+      key, items, temNota, dPedido, dias,
+      obraLabel: first.obraLabel,
+      compradorLabel: first.compradorLabel,
+      fornecedor: normLabel(first.fornecedor),
+      situacaoPedido: first.situacaoPedido,
+      statusEntregaPed: first.statusEntregaPed,
+      totalItens: items.length
+    });
+  });
+  return groups;
+}
+function nfSortValue(g, key){
+  switch(key){
+    case 'pedido': return g.key;
+    case 'dias': return g.dias;
+    case 'dataPedido': return g.dPedido;
+    case 'obra': return g.obraLabel;
+    case 'fornecedor': return g.fornecedor;
+    case 'comprador': return g.compradorLabel;
+    case 'situacao': return g.situacaoPedido;
+    case 'entrega': return g.statusEntregaPed;
+    case 'itens': return g.totalItens;
+    default: return null;
+  }
+}
+function sortNfGroups(groups, sortState){
+  if(sortState.key){
+    groups.sort((a,b)=> sortState.dir * compareValues(nfSortValue(a,sortState.key), nfSortValue(b,sortState.key))
+      || String(a.key).localeCompare(String(b.key),'pt-BR',{numeric:true}));
+  } else {
+    groups.sort((a,b)=> (b.dias - a.dias) || String(a.key).localeCompare(String(b.key),'pt-BR',{numeric:true}));
+  }
+}
+function renderSemNF(){
+  const minDias = Number(document.getElementById('fNfDias').value) || 60;
+  const fObra = document.getElementById('fNfObra').value;
+  const fFornecedor = document.getElementById('fNfFornecedor').value;
+  const fComprador = document.getElementById('fNfComprador').value;
+  const fSearch = document.getElementById('fNfSearch').value.trim().toUpperCase();
+
+  let groups = getPedidoGroupsSemNF().filter(g=> !g.temNota && g.dias!==null && g.dias>=minDias);
+  document.getElementById('countSemNF').textContent = groups.length;
+
+  let groupsParaCards = groups;
+  if(fFornecedor) groupsParaCards = groupsParaCards.filter(g=>g.fornecedor===fFornecedor);
+  if(fComprador) groupsParaCards = groupsParaCards.filter(g=>g.compradorLabel===fComprador);
+  if(fSearch) groupsParaCards = groupsParaCards.filter(g=>
+    String(g.key).toUpperCase().includes(fSearch) || g.fornecedor.toUpperCase().includes(fSearch));
+
+  const byObra = {};
+  groupsParaCards.forEach(g=>{
+    const k = g.obraLabel;
+    byObra[k] = byObra[k] || {total:0, maxDias:0};
+    byObra[k].total++;
+    if(g.dias>byObra[k].maxDias) byObra[k].maxDias = g.dias;
+  });
+  const nomesOrdenados = Object.keys(byObra).sort((a,b)=>byObra[b].total-byObra[a].total);
+  const nomesExibidos = fObra ? nomesOrdenados.filter(n=>n===fObra) : nomesOrdenados;
+  const chipHtml = nomesExibidos.map(name=>{
+    const d = byObra[name];
+    const isActive = fObra===name;
+    return `<div class="summary-chip ${isActive?'active':''}" data-name="${esc(name)}">
+      <div class="sc-name">${esc(name)}</div>
+      <div class="sc-meta">
+        <span style="color:var(--red)">${d.total} pedido(s)</span>
+        <span>até ${d.maxDias} dia(s) sem NF</span>
+      </div>
+    </div>`;
+  }).join('') || '<p style="color:var(--text-dim);font-size:13px;">Nenhum pedido encontrado.</p>';
+  document.getElementById('nfSummary').innerHTML = chipHtml;
+
+  document.querySelectorAll('#nfSummary .summary-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const name = chip.getAttribute('data-name');
+      const sel = document.getElementById('fNfObra');
+      sel.value = sel.value===name ? '' : name;
+      renderSemNF();
+    });
+  });
+
+  if(fObra) groups = groups.filter(g=>g.obraLabel===fObra);
+  if(fFornecedor) groups = groups.filter(g=>g.fornecedor===fFornecedor);
+  if(fComprador) groups = groups.filter(g=>g.compradorLabel===fComprador);
+  if(fSearch) groups = groups.filter(g=>
+    String(g.key).toUpperCase().includes(fSearch) || g.fornecedor.toUpperCase().includes(fSearch));
+
+  sortNfGroups(groups, nfSort);
+  updateSortHeaders('tableNf', nfSort);
+  lastNfGroups = groups.slice();
+
+  const tbody = document.getElementById('tbodyNf');
+  if(!groups.length){
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="es-icon">🧾</div><h3>Nenhum pedido sem nota fiscal encontrado</h3><p>Ajuste o limite de dias ou os demais filtros.</p></div></td></tr>`;
+    return;
+  }
+  let html = '';
+  groups.forEach(g=>{
+    html += `<tr class="child-row row-atrasado">
+      <td class="muted">${esc(g.key)}</td>
+      <td><span class="badge atrasado">${g.dias} dia(s)</span></td>
+      <td class="muted">${fmtDate(g.dPedido)}</td>
+      <td>${esc(g.obraLabel)}</td>
+      <td class="muted">${esc(g.fornecedor)}</td>
+      <td class="muted">${esc(g.compradorLabel)}</td>
+      <td>${esc(g.situacaoPedido)}</td>
+      <td>${g.statusEntregaPed==='entregue' ? badge('dentro','Entregue') : '<span class="badge atrasado">Pendente</span>'}</td>
+      <td>${g.totalItens}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
 }
 
 /* ============================================================
@@ -5026,7 +5237,7 @@ document.addEventListener('keydown', e=>{
 
 wireLampFilter('lampFilterPi','fPiPrazo',refreshPiViews);
 
-function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); }
+function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderSemNF(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); }
 
 /* ============================================================
    10. TABS + FILTER BINDINGS
@@ -5101,6 +5312,11 @@ document.addEventListener('click', function(e){
 });
 document.getElementById('fPedSearch').addEventListener('input', renderCentros);
 document.getElementById('fPedSearch').addEventListener('change', renderCentros);
+['fNfDias','fNfObra','fNfFornecedor','fNfComprador'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderSemNF);
+});
+document.getElementById('fNfSearch').addEventListener('input', renderSemNF);
+document.getElementById('fNfSearch').addEventListener('change', renderSemNF);
 
 /* ---- lamp-color filter buttons ---- */
 function wireLampFilter(containerId, selectId, renderFn){
@@ -5126,6 +5342,7 @@ wireLampFilter('lampFilterSolic','fSolicPrazo',renderCompradores);
 wireLampFilter('lampFilterPed','fPedPrazo',renderCentros);
 wireSortableHeaders('tableSolic', solicSort, renderCompradores);
 wireSortableHeaders('tablePed', pedSort, renderCentros);
+wireSortableHeaders('tableNf', nfSort, renderSemNF);
 
 /* ---- Dropdown de filtro por coluna (estilo Excel), compartilhado entre
    as tabelas de Solicitações e Pedidos ---- */
@@ -5267,6 +5484,15 @@ document.getElementById('btnExportPed').addEventListener('click', ()=>{
     r.duplicidadeDivergente ? 'Sim' : 'Não'
   ]);
   downloadCSV('pedidos_entregues_e_pendentes_por_centro_de_custo.csv', toCSV(headers, rows));
+});
+document.getElementById('btnExportNf').addEventListener('click', ()=>{
+  if(!lastNfGroups.length){ alert('Não há dados para exportar.'); return; }
+  const headers = ['Pedido','Dias sem NF','Data pedido','Centro de custo','Fornecedor','Comprador','Situação pedido','Status de entrega','Itens'];
+  const rows = lastNfGroups.map(g=>[
+    g.key, g.dias, fmtDate(g.dPedido), g.obraLabel, g.fornecedor, g.compradorLabel,
+    g.situacaoPedido, g.statusEntregaPed==='entregue' ? 'Entregue' : 'Pendente', g.totalItens
+  ]);
+  downloadCSV('pedidos_sem_nota_fiscal.csv', toCSV(headers, rows));
 });
 document.getElementById('btnExpandSolic').addEventListener('click', ()=>setAllGroups('tbodySolic', false));
 document.getElementById('btnCollapseSolic').addEventListener('click', ()=>setAllGroups('tbodySolic', true));
