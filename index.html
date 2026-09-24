@@ -897,6 +897,25 @@ table.data th.sortable.active .sort-arrow{opacity:1;}
 .col-filter-footer button.primary{background:var(--yellow);color:#1A1E24;border:1px solid var(--yellow);}
 .col-filter-footer button.primary:hover{background:#ffd75c;}
 .col-filter-footer button.ghost{background:transparent;color:var(--text-dim);border:1px solid var(--line);}
+/* ---- Ocultar colunas ---- */
+.btn.col-vis-active{border-color:var(--yellow-dim);color:var(--yellow);}
+.col-vis-dropdown{
+  display:none;position:fixed;z-index:500;width:250px;
+  background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;
+  padding:12px;box-shadow:0 14px 32px rgba(0,0,0,0.5);
+}
+.col-vis-dropdown.open{display:block;}
+.col-vis-title{font-size:11px;color:var(--text-mut);margin:0 0 8px;}
+.col-vis-list{max-height:320px;overflow-y:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 0;margin-bottom:10px;}
+.col-vis-item{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12.5px;color:var(--text);cursor:pointer;user-select:none;}
+.col-vis-item input{margin:0;cursor:pointer;}
+.col-vis-item.locked{opacity:.55;cursor:not-allowed;}
+.col-vis-dropdown .col-vis-footer{display:flex;gap:8px;}
+.col-vis-dropdown .col-vis-footer button{
+  flex:1;background:transparent;border:1px solid var(--line);color:var(--text-dim);
+  border-radius:4px;padding:6px 8px;font-size:12px;cursor:pointer;font-family:var(--font-body);
+}
+.col-vis-dropdown .col-vis-footer button:hover{color:var(--text);border-color:var(--yellow-dim);}
 table.data td{
   padding:10px 12px;
   border-bottom:1px solid rgba(255,255,255,.04);
@@ -1345,6 +1364,14 @@ footer.appfoot{
     <button type="button" class="ghost" id="colFilterCancel">Cancelar</button>
   </div>
 </div>
+<div id="colVisDropdown" class="col-vis-dropdown">
+  <p class="col-vis-title">Colunas visíveis</p>
+  <div class="col-vis-list" id="colVisList"></div>
+  <div class="col-vis-footer">
+    <button type="button" id="colVisShowAll">Mostrar todas</button>
+    <button type="button" id="colVisClose">Fechar</button>
+  </div>
+</div>
 <div class="app">
 
   <header class="topbar">
@@ -1507,6 +1534,7 @@ footer.appfoot{
       <button class="btn small" id="btnPresentSolic">🖥 Modo apresentação</button>
       <button class="btn small" id="btnExpandSolic">⤢ Expandir tudo</button>
       <button class="btn small" id="btnCollapseSolic">⤡ Recolher tudo</button>
+      <button class="btn small col-vis-btn" data-table="tableSolic" title="Mostrar/ocultar colunas">▦ Colunas</button>
       <button class="btn small" id="btnExportSolic">⬇ Exportar CSV</button>
     </div>
 
@@ -1591,6 +1619,8 @@ footer.appfoot{
       <button class="btn small" id="btnPresentPed">🖥 Modo apresentação</button>
       <button class="btn small" id="btnExpandPed">⤢ Expandir tudo</button>
       <button class="btn small" id="btnCollapsePed">⤡ Recolher tudo</button>
+      <button class="btn small" id="btnWhatsPed" title="Gera um arquivo HTML leve, com os pedidos filtrados, para enviar pelo WhatsApp">📲 Resumo p/ WhatsApp</button>
+      <button class="btn small col-vis-btn" data-table="tablePed" title="Mostrar/ocultar colunas">▦ Colunas</button>
       <button class="btn small" id="btnExportPed">⬇ Exportar CSV</button>
     </div>
     <div class="summary-row" id="centroSummary"></div>
@@ -1651,6 +1681,7 @@ footer.appfoot{
         <input type="text" id="fNfSearch" placeholder="nº pedido, fornecedor…">
       </div>
       <div class="spacer"></div>
+      <button class="btn small col-vis-btn" data-table="tableNf" title="Mostrar/ocultar colunas">▦ Colunas</button>
       <button class="btn small" id="btnExportNf">⬇ Exportar CSV</button>
     </div>
     <div class="summary-row" id="nfSummary"></div>
@@ -5485,6 +5516,203 @@ document.getElementById('btnExportPed').addEventListener('click', ()=>{
   ]);
   downloadCSV('pedidos_entregues_e_pendentes_por_centro_de_custo.csv', toCSV(headers, rows));
 });
+
+/* ============================================================
+   RESUMO INTERATIVO P/ WHATSAPP — Pedidos por Centro de Custo
+   Gera um HTML autossuficiente (sem bibliotecas, sem internet) com os
+   pedidos atualmente filtrados. Pensado para celular: cartões em vez de
+   tabela larga, grupos com <details> (abrem/fecham mesmo sem JavaScript)
+   e, quando o navegador permite JS, filtros por prazo + busca.
+   No celular usa o compartilhamento nativo (escolher WhatsApp direto);
+   no computador baixa o arquivo para anexar no WhatsApp Web/Desktop.
+   ============================================================ */
+function gerarResumoPedidosHTML(rows){
+  const agora = new Date();
+  const hh = String(agora.getHours()).padStart(2,'0')+':'+String(agora.getMinutes()).padStart(2,'0');
+  const selTxt = id => { const el=document.getElementById(id); if(!el||!el.value) return ''; const o=el.options?el.options[el.selectedIndex]:null; return o?o.text:el.value; };
+  const filtros = [
+    ['Centro de custo', selTxt('fPedCentro')], ['Comprador', selTxt('fPedComprador')],
+    ['Material', selTxt('fPedMaterial')], ['Prazo', selTxt('fPedPrazo')],
+    ['Status de entrega', selTxt('fPedStatusEntrega')],
+    ['Busca', (document.getElementById('fPedSearch')||{}).value||'']
+  ].filter(f=>f[1]).map(f=>`${f[0]}: ${f[1]}`);
+
+  const stOf = r => r.statusEntregaPed==='entregue' ? 'entregue' : (r.pedidoPrazoStatus||'sem-data');
+  const ORD = {atrasado:0,hoje:1,dentro:2,'sem-data':3,entregue:4};
+  const LBL = {atrasado:'Atrasado',hoje:'Hoje',dentro:'No prazo','sem-data':'Sem data',entregue:'Entregue'};
+
+  // agrupa: centro de custo -> pedido -> itens
+  const centros = new Map();
+  rows.forEach(r=>{
+    const c = r.obraLabel || '(sem centro de custo)';
+    if(!centros.has(c)) centros.set(c, new Map());
+    const peds = centros.get(c);
+    const k = String(r.numPedido||'(sem número)');
+    if(!peds.has(k)) peds.set(k, []);
+    peds.get(k).push(r);
+  });
+
+  const cont = {pedidos:0, atrasado:0, hoje:0, dentro:0, 'sem-data':0, entregue:0, itensPend:0};
+  let corpo = '';
+  const centrosArr = Array.from(centros.entries()).map(([nome,peds])=>{
+    const pedArr = Array.from(peds.entries()).map(([num,itens])=>{
+      const pend = itens.filter(i=>i.statusEntregaPed!=='entregue');
+      const st = pend.length ? pend.map(stOf).sort((a,b)=>ORD[a]-ORD[b])[0] : 'entregue';
+      const prevs = pend.map(i=>i.dPrevisao).filter(Boolean).sort((a,b)=>a-b);
+      return {num, itens, pend, st, prev: prevs[0]||null};
+    }).sort((a,b)=> ORD[a.st]-ORD[b.st] || ((a.prev||Infinity)-(b.prev||Infinity)));
+    const pior = pedArr.length ? pedArr[0].st : 'entregue';
+    return {nome, pedArr, pior};
+  }).sort((a,b)=> ORD[a.pior]-ORD[b.pior] || b.pedArr.length-a.pedArr.length);
+
+  centrosArr.forEach(c=>{
+    const nAtr = c.pedArr.filter(p=>p.st==='atrasado').length;
+    let pedHtml = '';
+    c.pedArr.forEach(p=>{
+      cont.pedidos++; cont[p.st]++; cont.itensPend += p.pend.length;
+      const f = p.itens[0];
+      const prazoTxt = p.st==='entregue' ? 'Entregue' : prazoLabel(p.st, p.prev);
+      const busca = [p.num, f.fornecedor, f.compradorLabel, c.nome, ...p.itens.map(i=>(i.descricaoInsumo||'')+' '+(i.detalhe||''))].join(' ').toLowerCase();
+      const itensHtml = p.itens.map(i=>{
+        const ist = stOf(i);
+        return `<li class="it">
+          <div class="it-nome">${esc(i.descricaoInsumo)}${i.detalhe?` <span class="fx">— ${esc(i.detalhe)}</span>`:''}</div>
+          <div class="it-num">
+            <span>Pedido <b>${esc(i.qtdSolicitada)} ${esc(i.unidadeMovimento)}</b></span>
+            <span>Entregue <b>${i.qtdEntregueNum||0}</b></span>
+            <span>Saldo <b>${i.saldoNum||0}</b></span>
+            <span>Previsão <b>${fmtDate(i.dPrevisao)}</b></span>
+          </div>
+          ${ist!==p.st?`<span class="tag ${ist}">${LBL[ist]}</span>`:''}${i.materialCritico?`<span class="tag crit">${esc(i.materialCritico)}</span>`:''}
+        </li>`;
+      }).join('');
+      pedHtml += `<details class="ped st-${p.st}" data-st="${p.st}" data-busca="${esc(busca)}">
+        <summary>
+          <span class="dot ${p.st}"></span>
+          <span class="ped-main"><b>Pedido ${esc(p.num)}</b><span class="fx">${esc(f.fornecedor)}</span></span>
+          <span class="ped-st ${p.st}">${esc(prazoTxt)}</span>
+        </summary>
+        <div class="ped-body">
+          <div class="meta">Comprador: ${esc(f.compradorLabel)} · ${p.pend.length} pendente(s), ${p.itens.length-p.pend.length} entregue(s)${f.situacaoPedido?' · '+esc(f.situacaoPedido):''}</div>
+          <ul>${itensHtml}</ul>
+        </div>
+      </details>`;
+    });
+    corpo += `<details class="cc" open>
+      <summary><span class="cc-nome">${esc(c.nome)}</span><span class="cc-n">${c.pedArr.length} pedido(s)${nAtr?` · <em>${nAtr} atrasado(s)</em>`:''}</span></summary>
+      ${pedHtml}
+    </details>`;
+  });
+
+  const kpi = (k,l)=>`<button type="button" class="kpi ${k}" data-f="${k}"><b>${cont[k]}</b><span>${l}</span></button>`;
+  const titulo = `Resumo de pedidos — ${fmtDate(agora)}`;
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(titulo)}</title>
+<style>
+:root{--bg:#12151A;--c1:#1A1E24;--c2:#20252C;--c3:#262C34;--line:#333A44;--tx:#EDEFF2;--dim:#8D97A3;--faint:#5C6570;--y:#F5C433;--g:#0CA30C;--a:#FAB219;--r:#D03B3B;--b:#4C8DFF}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;padding:14px 12px 40px;max-width:760px;margin:0 auto}
+h1{font-size:18px;margin:0 0 2px;color:var(--y)}
+.sub{color:var(--dim);font-size:12px;margin:0 0 4px}
+.filt{color:var(--faint);font-size:11.5px;margin:0 0 12px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
+.kpi{background:var(--c2);border:1px solid var(--line);border-radius:8px;padding:8px 4px;text-align:center;color:var(--tx);font:inherit;cursor:pointer}
+.kpi b{display:block;font-size:19px;line-height:1.1}.kpi span{font-size:10.5px;color:var(--dim)}
+.kpi.atrasado b{color:var(--r)}.kpi.hoje b{color:var(--a)}.kpi.dentro b{color:var(--g)}.kpi.entregue b{color:var(--b)}
+.kpi.on{border-color:var(--y);background:var(--c3)}
+.busca{width:100%;background:var(--c1);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:10px 12px;font:inherit;margin-bottom:12px}
+details.cc{margin-bottom:12px}
+details.cc>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:8px 2px;border-bottom:1px solid var(--line);margin-bottom:8px}
+details.cc>summary::-webkit-details-marker,details.ped>summary::-webkit-details-marker{display:none}
+.cc-nome{font-weight:700}.cc-n{color:var(--dim);font-size:12px;white-space:nowrap}.cc-n em{color:var(--r);font-style:normal}
+details.ped{background:var(--c1);border:1px solid var(--line);border-left:3px solid var(--faint);border-radius:8px;margin-bottom:6px}
+details.ped.st-atrasado{border-left-color:var(--r)}details.ped.st-hoje{border-left-color:var(--a)}details.ped.st-dentro{border-left-color:var(--g)}details.ped.st-entregue{border-left-color:var(--b)}
+details.ped>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 12px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--faint)}
+.dot.atrasado{background:var(--r)}.dot.hoje{background:var(--a)}.dot.dentro{background:var(--g)}.dot.entregue{background:var(--b)}
+.ped-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.ped-main .fx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx{color:var(--dim);font-size:12px}
+.ped-st{font-size:11.5px;font-weight:600;text-align:right;flex:none;max-width:40%}
+.ped-st.atrasado{color:var(--r)}.ped-st.hoje{color:var(--a)}.ped-st.dentro{color:var(--g)}.ped-st.entregue{color:var(--b)}.ped-st.sem-data{color:var(--dim)}
+.ped-body{padding:0 12px 10px;border-top:1px solid var(--line)}
+.meta{color:var(--dim);font-size:12px;padding:8px 0 4px}
+ul{list-style:none;margin:0;padding:0}
+.it{padding:8px 0;border-top:1px dashed var(--line)}.it:first-child{border-top:0}
+.it-nome{font-weight:600;font-size:13px}
+.it-num{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--dim);margin-top:3px}.it-num b{color:var(--tx);font-weight:600}
+.tag{display:inline-block;font-size:10.5px;border-radius:4px;padding:1px 6px;margin:4px 4px 0 0;background:var(--c3);color:var(--dim)}
+.tag.atrasado{color:var(--r)}.tag.hoje{color:var(--a)}.tag.dentro{color:var(--g)}.tag.entregue{color:var(--b)}.tag.crit{color:var(--y)}
+.vazio{color:var(--dim);text-align:center;padding:24px 0;display:none}
+.rod{color:var(--faint);font-size:11px;text-align:center;margin-top:18px}
+.oculto{display:none!important}
+@media (max-width:420px){.kpis{gap:4px}.kpi{padding:7px 2px}.kpi b{font-size:17px}.kpi span{font-size:9.5px}}
+</style></head><body>
+<h1>${esc(titulo)}</h1>
+<p class="sub">AMETA Engenharia · Painel de Suprimentos · gerado às ${hh}</p>
+<p class="filt">${filtros.length?'Filtros: '+esc(filtros.join(' · ')):'Sem filtros aplicados'} · ${cont.pedidos} pedido(s), ${cont.itensPend} item(ns) pendente(s)</p>
+<div class="kpis">${kpi('atrasado','Atrasados')}${kpi('hoje','Hoje')}${kpi('dentro','No prazo')}${kpi('sem-data','Sem data')}${kpi('entregue','Entregues')}</div>
+<input class="busca oculto" id="q" type="search" placeholder="Buscar pedido, insumo, fornecedor…">
+<main id="lista">${corpo}</main>
+<p class="vazio" id="vazio">Nenhum pedido com esse filtro.</p>
+<p class="rod">Toque em um pedido para ver os itens. Dados do Sienge na data de geração.</p>
+<script>
+(function(){
+  var q=document.getElementById('q');q.classList.remove('oculto');
+  var fAtivo='';
+  function aplicar(){
+    var t=q.value.trim().toLowerCase(),vis=0;
+    document.querySelectorAll('details.ped').forEach(function(d){
+      var ok=(!fAtivo||d.getAttribute('data-st')===fAtivo)&&(!t||d.getAttribute('data-busca').indexOf(t)>-1);
+      d.classList.toggle('oculto',!ok);if(ok)vis++;
+      if(t&&ok)d.open=true;
+    });
+    document.querySelectorAll('details.cc').forEach(function(c){
+      c.classList.toggle('oculto',!c.querySelector('details.ped:not(.oculto)'));
+    });
+    document.getElementById('vazio').style.display=vis?'none':'block';
+  }
+  document.querySelectorAll('.kpi').forEach(function(b){
+    b.addEventListener('click',function(){
+      fAtivo=fAtivo===b.getAttribute('data-f')?'':b.getAttribute('data-f');
+      document.querySelectorAll('.kpi').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-f')===fAtivo);});
+      aplicar();
+    });
+  });
+  q.addEventListener('input',aplicar);
+})();
+<\/script>
+</body></html>`;
+}
+
+document.getElementById('btnWhatsPed').addEventListener('click', async ()=>{
+  if(!lastPedRows.length){ alert('Não há pedidos na lista atual para gerar o resumo.'); return; }
+  const html = gerarResumoPedidosHTML(lastPedRows);
+  const d = new Date();
+  const nome = `resumo_pedidos_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.html`;
+  const blob = new Blob([html], {type:'text/html'});
+
+  // Celular: compartilhamento nativo (abre a lista de apps → WhatsApp)
+  try{
+    const file = new File([blob], nome, {type:'text/html'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'Resumo de pedidos', text:'Resumo de pedidos — abra o arquivo no navegador'});
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return;   // usuário cancelou
+    /* segue para o download */
+  }
+  // Computador: baixa o arquivo para anexar no WhatsApp Web/Desktop
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+});
 document.getElementById('btnExportNf').addEventListener('click', ()=>{
   if(!lastNfGroups.length){ alert('Não há dados para exportar.'); return; }
   const headers = ['Pedido','Dias sem NF','Data pedido','Centro de custo','Fornecedor','Comprador','Situação pedido','Status de entrega','Itens'];
@@ -5498,6 +5726,129 @@ document.getElementById('btnExpandSolic').addEventListener('click', ()=>setAllGr
 document.getElementById('btnCollapseSolic').addEventListener('click', ()=>setAllGroups('tbodySolic', true));
 document.getElementById('btnExpandPed').addEventListener('click', ()=>setAllGroups('tbodyPed', false));
 document.getElementById('btnCollapsePed').addEventListener('click', ()=>setAllGroups('tbodyPed', true));
+
+/* ============================================================
+   OCULTAR COLUNAS (Solicitações, Pedidos por CC, Pedidos sem NF)
+   A ocultação é feita por CSS (nth-child) gerado dinamicamente, então
+   sobrevive a qualquer re-render do tbody sem precisar mexer nas funções
+   de render. Linhas de grupo (td com colspan) nunca são afetadas.
+   A escolha fica salva no navegador (localStorage), por tabela.
+   A exportação CSV continua trazendo todas as colunas.
+   ============================================================ */
+(function(){
+  const TABLES = ['tableSolic','tablePed','tableNf'];
+  const KEY = id => 'painel_colunas_ocultas_' + id;
+  const lsGet = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+  const lsSet = (k,v) => { try{ localStorage.setItem(k,v); }catch(e){ /* sem storage: vale só nesta sessão */ } };
+
+  const hidden = {};           // tableId -> Set de índices (1-based)
+  const styleEl = document.createElement('style');
+  styleEl.id = 'colVisStyles';
+  document.head.appendChild(styleEl);
+
+  function headers(tableId){
+    const t = document.getElementById(tableId);
+    return t ? Array.from(t.querySelectorAll('thead tr:first-child > th')) : [];
+  }
+  function label(th){
+    const c = th.cloneNode(true);
+    c.querySelectorAll('.sort-arrow,.col-filter-btn').forEach(e=>e.remove());
+    return c.textContent.trim() || '(sem título)';
+  }
+
+  function load(){
+    TABLES.forEach(id=>{
+      let arr = [];
+      try{ arr = JSON.parse(lsGet(KEY(id)) || '[]'); }catch(e){ arr = []; }
+      const total = headers(id).length;
+      const set = new Set(arr.filter(n=>Number.isInteger(n) && n>=1 && n<=total));
+      if(total && set.size >= total) set.clear();   // nunca deixa a tabela sem colunas
+      hidden[id] = set;
+    });
+  }
+
+  function applyStyles(){
+    let css = '';
+    TABLES.forEach(id=>{
+      (hidden[id]||new Set()).forEach(n=>{
+        css += `#${id} > thead > tr > th:nth-child(${n}),`+
+               `#${id} > tbody > tr > td:not([colspan]):nth-child(${n}){display:none;}\n`;
+      });
+    });
+    styleEl.textContent = css;
+    document.querySelectorAll('.col-vis-btn').forEach(b=>{
+      const n = (hidden[b.dataset.table]||new Set()).size;
+      b.classList.toggle('col-vis-active', n>0);
+      b.textContent = n ? `▦ Colunas (${n} oculta${n>1?'s':''})` : '▦ Colunas';
+    });
+  }
+
+  function save(id){ lsSet(KEY(id), JSON.stringify(Array.from(hidden[id]))); }
+
+  const dd = document.getElementById('colVisDropdown');
+  const list = document.getElementById('colVisList');
+  let currentTable = null;
+
+  function renderList(){
+    const ths = headers(currentTable);
+    const set = hidden[currentTable];
+    const visiveis = ths.length - set.size;
+    list.innerHTML = '';
+    ths.forEach((th,i)=>{
+      const n = i+1;
+      const isVisible = !set.has(n);
+      const locked = isVisible && visiveis<=1;   // última coluna visível não pode sair
+      const row = document.createElement('label');
+      row.className = 'col-vis-item' + (locked?' locked':'');
+      if(locked) row.title = 'Pelo menos uma coluna precisa ficar visível';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = isVisible; cb.disabled = locked;
+      cb.addEventListener('change', ()=>{
+        if(cb.checked) set.delete(n); else set.add(n);
+        save(currentTable); applyStyles(); renderList();
+      });
+      const span = document.createElement('span');
+      span.textContent = label(th);
+      row.appendChild(cb); row.appendChild(span);
+      list.appendChild(row);
+    });
+  }
+
+  function openFor(btn){
+    currentTable = btn.dataset.table;
+    renderList();
+    dd.classList.add('open');
+    const r = btn.getBoundingClientRect();
+    const w = dd.offsetWidth, h = dd.offsetHeight;
+    let left = Math.min(r.left, window.innerWidth - w - 8);
+    let top = r.bottom + 6;
+    if(top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    dd.style.left = Math.max(8,left) + 'px';
+    dd.style.top = top + 'px';
+  }
+  function close(){ dd.classList.remove('open'); currentTable = null; }
+
+  document.querySelectorAll('.col-vis-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(dd.classList.contains('open') && currentTable===btn.dataset.table){ close(); return; }
+      openFor(btn);
+    });
+  });
+  document.getElementById('colVisShowAll').addEventListener('click', ()=>{
+    if(!currentTable) return;
+    hidden[currentTable].clear(); save(currentTable); applyStyles(); renderList();
+  });
+  document.getElementById('colVisClose').addEventListener('click', close);
+  dd.addEventListener('click', e=>e.stopPropagation());
+  document.addEventListener('click', ()=>{ if(dd.classList.contains('open')) close(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && dd.classList.contains('open')) close(); });
+  window.addEventListener('resize', close);
+  window.addEventListener('scroll', e=>{ if(dd.classList.contains('open') && !dd.contains(e.target)) close(); }, true);
+
+  load();
+  applyStyles();
+})();
 
 /* ============================================================
    12. INIT
