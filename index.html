@@ -627,6 +627,33 @@ select,input[type=text]{
 }
 select:focus,input:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;}
 .filters-bar .spacer{flex:1;}
+/* ---- Filtro de múltipla seleção ---- */
+.ms-btn{
+  background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
+  padding:8px 28px 8px 10px;border-radius:5px;font-size:13px;font-family:var(--font-body);
+  text-align:left;cursor:pointer;position:relative;min-width:150px;max-width:260px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ms-btn::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:11px;}
+.ms-btn:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;}
+.ms-btn.ms-on{border-color:var(--yellow-dim);color:var(--yellow);}
+.ms-pop{
+  display:none;position:fixed;z-index:520;width:290px;
+  background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;
+  padding:12px;box-shadow:0 14px 32px rgba(0,0,0,0.5);
+}
+.ms-pop.open{display:block;}
+.ms-pop input[type=text]{width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 9px;font-size:12.5px;}
+.ms-pop .ms-actions{display:flex;gap:8px;margin-bottom:8px;}
+.ms-pop .ms-actions button{
+  flex:1;background:transparent;border:1px solid var(--line);color:var(--text-dim);
+  border-radius:4px;padding:5px 6px;font-size:11px;cursor:pointer;font-family:var(--font-body);
+}
+.ms-pop .ms-actions button:hover{color:var(--text);border-color:var(--yellow-dim);}
+.ms-pop .ms-list{max-height:280px;overflow-y:auto;border-top:1px solid var(--line);padding-top:6px;}
+.ms-pop .ms-item{display:flex;align-items:flex-start;gap:8px;padding:5px 2px;font-size:12.5px;color:var(--text);cursor:pointer;user-select:none;}
+.ms-pop .ms-item input{margin:2px 0 0;cursor:pointer;flex:none;}
+.ms-pop .ms-empty{color:var(--text-faint);font-size:12px;padding:6px 2px;}
 
 /* ---- summary chip row ---- */
 .summary-row{
@@ -1364,6 +1391,14 @@ footer.appfoot{
     <button type="button" class="ghost" id="colFilterCancel">Cancelar</button>
   </div>
 </div>
+<div id="msPop" class="ms-pop">
+  <input type="text" id="msSearch" placeholder="Buscar…">
+  <div class="ms-actions">
+    <button type="button" id="msAll">Selecionar todos</button>
+    <button type="button" id="msNone">Limpar</button>
+  </div>
+  <div class="ms-list" id="msList"></div>
+</div>
 <div id="colVisDropdown" class="col-vis-dropdown">
   <p class="col-vis-title">Colunas visíveis</p>
   <div class="col-vis-list" id="colVisList"></div>
@@ -1492,15 +1527,15 @@ footer.appfoot{
     <div class="filters-bar">
       <div class="field">
         <label>Comprador distribuído</label>
-        <select id="fSolicComprador"><option value="">Todos</option></select>
+        <select id="fSolicComprador" multiple><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Centro de custo (obra)</label>
-        <select id="fSolicCentro"><option value="">Todos</option></select>
+        <select id="fSolicCentro" multiple><option value="">Todos</option></select>
       </div>
       <div class="field field-hidden">
         <label>Status do prazo</label>
-        <select id="fSolicPrazo">
+        <select id="fSolicPrazo" multiple>
           <option value="">Todos</option>
           <option value="atrasado">Fora do prazo</option>
           <option value="hoje">No dia</option>
@@ -1518,7 +1553,7 @@ footer.appfoot{
       </div>
       <div class="field">
         <label>Material</label>
-        <select id="fSolicMaterial">
+        <select id="fSolicMaterial" multiple>
           <option value="">Todos</option>
           <option value="critico">Somente críticos (CAP Asfalto/Emulsão/Diesel)</option>
           <option value="CAP asfalto">CAP Asfalto</option>
@@ -1569,15 +1604,15 @@ footer.appfoot{
     <div class="filters-bar">
       <div class="field">
         <label>Centro de custo (obra)</label>
-        <select id="fPedCentro"><option value="">Todos</option></select>
+        <select id="fPedCentro" multiple><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Comprador</label>
-        <select id="fPedComprador"><option value="">Todos</option></select>
+        <select id="fPedComprador" multiple><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Material</label>
-        <select id="fPedMaterial">
+        <select id="fPedMaterial" multiple>
           <option value="">Todos</option>
           <option value="critico">Somente críticos (CAP Asfalto/Emulsão/Diesel)</option>
           <option value="CAP asfalto">CAP Asfalto</option>
@@ -1595,7 +1630,7 @@ footer.appfoot{
       </div>
       <div class="field field-hidden">
         <label>Status do prazo</label>
-        <select id="fPedPrazo">
+        <select id="fPedPrazo" multiple>
           <option value="">Todos</option>
           <option value="atrasado">Fora do prazo</option>
           <option value="hoje">No dia da entrega</option>
@@ -1666,15 +1701,15 @@ footer.appfoot{
       </div>
       <div class="field">
         <label>Centro de custo (obra)</label>
-        <select id="fNfObra"><option value="">Todas</option></select>
+        <select id="fNfObra" multiple><option value="">Todas</option></select>
       </div>
       <div class="field">
         <label>Fornecedor</label>
-        <select id="fNfFornecedor"><option value="">Todos</option></select>
+        <select id="fNfFornecedor" multiple><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Comprador</label>
-        <select id="fNfComprador"><option value="">Todos</option></select>
+        <select id="fNfComprador" multiple><option value="">Todos</option></select>
       </div>
       <div class="field">
         <label>Buscar</label>
@@ -2787,6 +2822,35 @@ function rowClass(status){
   return (status==='atrasado'||status==='hoje'||status==='dentro') ? ('row-'+status) : '';
 }
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---- Filtros de múltipla seleção: helpers ----
+   Os <select> abaixo são "multiple". Nenhum item marcado = "Todos". */
+const MULTI_FILTER_IDS = ['fSolicComprador','fSolicCentro','fSolicPrazo','fSolicMaterial','fPedCentro','fPedComprador','fPedMaterial','fPedPrazo','fNfObra','fNfFornecedor','fNfComprador'];
+function selVals(id){
+  const el = document.getElementById(id);
+  if(!el) return [];
+  return Array.from(el.selectedOptions).map(o=>o.value).filter(v=>v!=='');
+}
+function matchMaterial(arr, r){
+  if(!arr.length) return true;
+  return (arr.includes('critico') && !!r.materialCritico) || (!!r.materialCritico && arr.includes(r.materialCritico));
+}
+function selToggle(id, val){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const o = Array.from(el.options).find(o=>o.value===val);
+  if(o) o.selected = !o.selected;
+  el.dispatchEvent(new Event('ms-sync'));
+}
+function snapshotMulti(){ const m={}; MULTI_FILTER_IDS.forEach(id=>{ m[id]=selVals(id); }); return m; }
+function restoreMulti(m){
+  MULTI_FILTER_IDS.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el || !m[id]) return;
+    Array.from(el.options).forEach(o=>{ o.selected = o.value!=='' && m[id].includes(o.value); });
+    el.dispatchEvent(new Event('ms-sync'));
+  });
+}
 
 /* ============================================================
    2. COLUMN MAPPING (robust to header text, falls back to position)
@@ -3962,6 +4026,7 @@ function uniqueSorted(arr){ return [...new Set(arr)].filter(Boolean).sort((a,b)=
 function uniqueSortedAll(arr){ return [...new Set(arr)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')); }
 
 function populateFilterOptions(){
+  const __selecoesAnteriores = snapshotMulti();
   const compradoresDistrib = uniqueSorted(state.rows.map(r=>r.compradorDistribuidoLabel));
   const selSolicComprador = document.getElementById('fSolicComprador');
   selSolicComprador.innerHTML = '<option value="">Todos</option>' + compradoresDistrib.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
@@ -4011,6 +4076,7 @@ function populateFilterOptions(){
   if(selPedMaterial) selPedMaterial.innerHTML = '<option value="">Todos</option><option value="critico">Somente críticos</option>' + materiaisOptions;
   const selPiMaterial = document.getElementById('fPiMaterial');
   if(selPiMaterial) selPiMaterial.innerHTML = '<option value="">Todos os críticos</option>' + materiaisOptions;
+  restoreMulti(__selecoesAnteriores);
 }
 
 /* ============================================================
@@ -4396,10 +4462,10 @@ function updateColFilterIcons(tableId, filtros){
 }
 
 function renderCompradores(){
-  const fComprador = document.getElementById('fSolicComprador').value;
-  const fCentro = document.getElementById('fSolicCentro').value;
-  const fPrazo = document.getElementById('fSolicPrazo').value;
-  const fMaterial = document.getElementById('fSolicMaterial').value;
+  const fComprador = selVals('fSolicComprador');
+  const fCentro = selVals('fSolicCentro');
+  const fPrazo = selVals('fSolicPrazo');
+  const fMaterial = selVals('fSolicMaterial');
   const fSearch = document.getElementById('fSolicSearch').value.trim().toUpperCase();
 
   let rows = state.rows.filter(r=>r.solicPendente);
@@ -4425,10 +4491,10 @@ function renderCompradores(){
     byComprador[k][r.solicPrazoStatus]=(byComprador[k][r.solicPrazoStatus]||0)+1;
   });
   const nomesCompradorOrdenados = Object.keys(byComprador).sort((a,b)=>byComprador[b].total-byComprador[a].total);
-  const nomesCompradorExibidos = fComprador ? nomesCompradorOrdenados.filter(n=>n===fComprador) : nomesCompradorOrdenados;
+  const nomesCompradorExibidos = fComprador.length ? nomesCompradorOrdenados.filter(n=>fComprador.includes(n)) : nomesCompradorOrdenados;
   const chipHtml = nomesCompradorExibidos.map(name=>{
     const d=byComprador[name];
-    const isActive = fComprador===name;
+    const isActive = fComprador.includes(name);
     return `<div class="summary-chip ${isActive?'active':''}" data-name="${esc(name)}">
       <div class="sc-name">${esc(name)}</div>
       <div class="sc-meta">
@@ -4442,17 +4508,15 @@ function renderCompradores(){
   document.querySelectorAll('#compradorSummary .summary-chip').forEach(chip=>{
     chip.addEventListener('click', ()=>{
       const name = chip.getAttribute('data-name');
-      const sel = document.getElementById('fSolicComprador');
-      sel.value = sel.value===name ? '' : name;
+      selToggle('fSolicComprador', name);
       renderCompradores();
     });
   });
 
-  if(fComprador) rows = rows.filter(r=>r.compradorDistribuidoLabel===fComprador);
-  if(fCentro) rows = rows.filter(r=>r.obraLabel===fCentro);
-  if(fPrazo) rows = rows.filter(r=>r.solicPrazoStatus===fPrazo);
-  if(fMaterial==='critico') rows = rows.filter(r=>r.materialCritico);
-  else if(fMaterial) rows = rows.filter(r=>r.materialCritico===fMaterial);
+  if(fComprador.length) rows = rows.filter(r=>fComprador.includes(r.compradorDistribuidoLabel));
+  if(fCentro.length) rows = rows.filter(r=>fCentro.includes(r.obraLabel));
+  if(fPrazo.length) rows = rows.filter(r=>fPrazo.includes(r.solicPrazoStatus));
+  if(fMaterial.length) rows = rows.filter(r=>matchMaterial(fMaterial, r));
   if(fSearch) rows = rows.filter(r=>
     String(r.numSolicitacao).toUpperCase().includes(fSearch) ||
     (r.descricaoInsumo||'').toUpperCase().includes(fSearch) ||
@@ -4520,10 +4584,10 @@ function renderCompradores(){
    9. RENDER: CENTROS DE CUSTO TAB
    ============================================================ */
 function renderCentros(){
-  const fCentro = document.getElementById('fPedCentro').value;
-  const fComprador = document.getElementById('fPedComprador').value;
-  const fMaterial = document.getElementById('fPedMaterial').value;
-  const fPrazo = document.getElementById('fPedPrazo').value;
+  const fCentro = selVals('fPedCentro');
+  const fComprador = selVals('fPedComprador');
+  const fMaterial = selVals('fPedMaterial');
+  const fPrazo = selVals('fPedPrazo');
   const fStatusEntrega = document.getElementById('fPedStatusEntrega').value;
   const fSearch = document.getElementById('fPedSearch').value.trim().toUpperCase();
 
@@ -4538,10 +4602,9 @@ function renderCentros(){
   // obra, já que são eles quem controlam essa seleção. Assim, com "Somente
   // pendentes" marcado, só aparecem obras que realmente têm pendência.
   let rowsParaCards = rows;
-  if(fComprador) rowsParaCards = rowsParaCards.filter(r=>r.compradorLabel===fComprador);
-  if(fMaterial==='critico') rowsParaCards = rowsParaCards.filter(r=>r.materialCritico);
-  else if(fMaterial) rowsParaCards = rowsParaCards.filter(r=>r.materialCritico===fMaterial);
-  if(fPrazo) rowsParaCards = rowsParaCards.filter(r=>r.pedidoPrazoStatus===fPrazo);
+  if(fComprador.length) rowsParaCards = rowsParaCards.filter(r=>fComprador.includes(r.compradorLabel));
+  if(fMaterial.length) rowsParaCards = rowsParaCards.filter(r=>matchMaterial(fMaterial, r));
+  if(fPrazo.length) rowsParaCards = rowsParaCards.filter(r=>fPrazo.includes(r.pedidoPrazoStatus));
   if(fStatusEntrega) rowsParaCards = rowsParaCards.filter(r=>r.statusEntregaPed===fStatusEntrega);
   if(fSearch) rowsParaCards = rowsParaCards.filter(r=>
     String(r.numPedido||'').toUpperCase().includes(fSearch) ||
@@ -4560,10 +4623,10 @@ function renderCentros(){
     else byCentro[k].entregues++;
   });
   const nomesCentroOrdenados = Object.keys(byCentro).sort((a,b)=>byCentro[b].total-byCentro[a].total);
-  const nomesCentroExibidos = fCentro ? nomesCentroOrdenados.filter(n=>n===fCentro) : nomesCentroOrdenados;
+  const nomesCentroExibidos = fCentro.length ? nomesCentroOrdenados.filter(n=>fCentro.includes(n)) : nomesCentroOrdenados;
   const chipHtml = nomesCentroExibidos.map(name=>{
     const d=byCentro[name];
-    const isActive = fCentro===name;
+    const isActive = fCentro.includes(name);
     return `<div class="summary-chip ${isActive?'active':''}" data-name="${esc(name)}">
       <div class="sc-name">${esc(name)}</div>
       <div class="sc-meta">
@@ -4579,17 +4642,15 @@ function renderCentros(){
   document.querySelectorAll('#centroSummary .summary-chip').forEach(chip=>{
     chip.addEventListener('click', ()=>{
       const name = chip.getAttribute('data-name');
-      const sel = document.getElementById('fPedCentro');
-      sel.value = sel.value===name ? '' : name;
+      selToggle('fPedCentro', name);
       renderCentros();
     });
   });
 
-  if(fCentro) rows = rows.filter(r=>r.obraLabel===fCentro);
-  if(fComprador) rows = rows.filter(r=>r.compradorLabel===fComprador);
-  if(fMaterial==='critico') rows = rows.filter(r=>r.materialCritico);
-  else if(fMaterial) rows = rows.filter(r=>r.materialCritico===fMaterial);
-  if(fPrazo) rows = rows.filter(r=>r.pedidoPrazoStatus===fPrazo);
+  if(fCentro.length) rows = rows.filter(r=>fCentro.includes(r.obraLabel));
+  if(fComprador.length) rows = rows.filter(r=>fComprador.includes(r.compradorLabel));
+  if(fMaterial.length) rows = rows.filter(r=>matchMaterial(fMaterial, r));
+  if(fPrazo.length) rows = rows.filter(r=>fPrazo.includes(r.pedidoPrazoStatus));
   if(fStatusEntrega) rows = rows.filter(r=>r.statusEntregaPed===fStatusEntrega);
   if(fSearch) rows = rows.filter(r=>
     String(r.numPedido||'').toUpperCase().includes(fSearch) ||
@@ -4726,17 +4787,17 @@ function sortNfGroups(groups, sortState){
 }
 function renderSemNF(){
   const minDias = Number(document.getElementById('fNfDias').value) || 60;
-  const fObra = document.getElementById('fNfObra').value;
-  const fFornecedor = document.getElementById('fNfFornecedor').value;
-  const fComprador = document.getElementById('fNfComprador').value;
+  const fObra = selVals('fNfObra');
+  const fFornecedor = selVals('fNfFornecedor');
+  const fComprador = selVals('fNfComprador');
   const fSearch = document.getElementById('fNfSearch').value.trim().toUpperCase();
 
   let groups = getPedidoGroupsSemNF().filter(g=> !g.temNota && g.dias!==null && g.dias>=minDias);
   document.getElementById('countSemNF').textContent = groups.length;
 
   let groupsParaCards = groups;
-  if(fFornecedor) groupsParaCards = groupsParaCards.filter(g=>g.fornecedor===fFornecedor);
-  if(fComprador) groupsParaCards = groupsParaCards.filter(g=>g.compradorLabel===fComprador);
+  if(fFornecedor.length) groupsParaCards = groupsParaCards.filter(g=>fFornecedor.includes(g.fornecedor));
+  if(fComprador.length) groupsParaCards = groupsParaCards.filter(g=>fComprador.includes(g.compradorLabel));
   if(fSearch) groupsParaCards = groupsParaCards.filter(g=>
     String(g.key).toUpperCase().includes(fSearch) || g.fornecedor.toUpperCase().includes(fSearch));
 
@@ -4748,10 +4809,10 @@ function renderSemNF(){
     if(g.dias>byObra[k].maxDias) byObra[k].maxDias = g.dias;
   });
   const nomesOrdenados = Object.keys(byObra).sort((a,b)=>byObra[b].total-byObra[a].total);
-  const nomesExibidos = fObra ? nomesOrdenados.filter(n=>n===fObra) : nomesOrdenados;
+  const nomesExibidos = fObra.length ? nomesOrdenados.filter(n=>fObra.includes(n)) : nomesOrdenados;
   const chipHtml = nomesExibidos.map(name=>{
     const d = byObra[name];
-    const isActive = fObra===name;
+    const isActive = fObra.includes(name);
     return `<div class="summary-chip ${isActive?'active':''}" data-name="${esc(name)}">
       <div class="sc-name">${esc(name)}</div>
       <div class="sc-meta">
@@ -4765,15 +4826,14 @@ function renderSemNF(){
   document.querySelectorAll('#nfSummary .summary-chip').forEach(chip=>{
     chip.addEventListener('click', ()=>{
       const name = chip.getAttribute('data-name');
-      const sel = document.getElementById('fNfObra');
-      sel.value = sel.value===name ? '' : name;
+      selToggle('fNfObra', name);
       renderSemNF();
     });
   });
 
-  if(fObra) groups = groups.filter(g=>g.obraLabel===fObra);
-  if(fFornecedor) groups = groups.filter(g=>g.fornecedor===fFornecedor);
-  if(fComprador) groups = groups.filter(g=>g.compradorLabel===fComprador);
+  if(fObra.length) groups = groups.filter(g=>fObra.includes(g.obraLabel));
+  if(fFornecedor.length) groups = groups.filter(g=>fFornecedor.includes(g.fornecedor));
+  if(fComprador.length) groups = groups.filter(g=>fComprador.includes(g.compradorLabel));
   if(fSearch) groups = groups.filter(g=>
     String(g.key).toUpperCase().includes(fSearch) || g.fornecedor.toUpperCase().includes(fSearch));
 
@@ -5349,24 +5409,129 @@ document.getElementById('fPedSearch').addEventListener('change', renderCentros);
 document.getElementById('fNfSearch').addEventListener('input', renderSemNF);
 document.getElementById('fNfSearch').addEventListener('change', renderSemNF);
 
+
+/* ---- Filtros de múltipla seleção: componente visual ----
+   O <select multiple> original fica oculto (continua sendo a fonte da
+   verdade, lido via selVals). No lugar dele aparece um botão que abre uma
+   lista com caixas de seleção, busca e "Selecionar todos / Limpar".
+   Cada clique já aplica o filtro (dispara 'change' no select). */
+(function(){
+  const pop = document.getElementById('msPop');
+  const list = document.getElementById('msList');
+  const busca = document.getElementById('msSearch');
+  let atual = null;   // {sel, btn}
+
+  function itens(sel){ return Array.from(sel.options).filter(o=>o.value!==''); }
+  function textoTodos(sel){ const o = Array.from(sel.options).find(o=>o.value===''); return o ? o.text : 'Todos'; }
+
+  function refreshBtn(sel, btn){
+    const marcados = itens(sel).filter(o=>o.selected);
+    btn.textContent = !marcados.length ? textoTodos(sel)
+      : marcados.length===1 ? marcados[0].text
+      : `${marcados.length} selecionados`;
+    btn.title = marcados.length ? marcados.map(o=>o.text).join('\n') : '';
+    btn.classList.toggle('ms-on', marcados.length>0);
+  }
+
+  function renderList(){
+    if(!atual) return;
+    const t = busca.value.trim().toLowerCase();
+    const ops = itens(atual.sel).filter(o=>!t || o.text.toLowerCase().includes(t));
+    list.innerHTML = '';
+    if(!ops.length){ list.innerHTML = '<div class="ms-empty">Nenhuma opção encontrada.</div>'; return; }
+    ops.forEach(o=>{
+      const row = document.createElement('label');
+      row.className = 'ms-item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = o.selected;
+      cb.addEventListener('change', ()=>{
+        o.selected = cb.checked;
+        atual.sel.dispatchEvent(new Event('change'));
+      });
+      const sp = document.createElement('span'); sp.textContent = o.text;
+      row.appendChild(cb); row.appendChild(sp);
+      list.appendChild(row);
+    });
+  }
+
+  function abrir(sel, btn){
+    atual = {sel, btn};
+    busca.value = '';
+    renderList();
+    pop.classList.add('open');
+    const r = btn.getBoundingClientRect();
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    let top = r.bottom + 4;
+    if(top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    pop.style.top = top + 'px';
+    if(window.matchMedia('(pointer:fine)').matches) busca.focus();
+  }
+  function fechar(){ pop.classList.remove('open'); atual = null; }
+
+  MULTI_FILTER_IDS.forEach(id=>{
+    const sel = document.getElementById(id);
+    if(!sel || !sel.multiple) return;
+    sel.style.display = 'none';
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'ms-btn';
+    sel.insertAdjacentElement('afterend', btn);
+    const refresh = ()=>{ refreshBtn(sel, btn); if(atual && atual.sel===sel) renderList(); };
+    sel.addEventListener('change', refresh);
+    sel.addEventListener('ms-sync', refresh);
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(atual && atual.sel===sel){ fechar(); return; }
+      abrir(sel, btn);
+    });
+    refreshBtn(sel, btn);
+  });
+
+  busca.addEventListener('input', renderList);
+  function marcarVisiveis(valor){
+    if(!atual) return;
+    const t = busca.value.trim().toLowerCase();
+    itens(atual.sel).forEach(o=>{ if(!t || o.text.toLowerCase().includes(t)) o.selected = valor; });
+    atual.sel.dispatchEvent(new Event('change'));
+  }
+  document.getElementById('msAll').addEventListener('click', ()=>marcarVisiveis(true));
+  document.getElementById('msNone').addEventListener('click', ()=>marcarVisiveis(false));
+  pop.addEventListener('click', e=>e.stopPropagation());
+  document.addEventListener('click', ()=>{ if(atual) fechar(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape' && atual) fechar(); });
+  window.addEventListener('resize', ()=>{ if(atual) fechar(); });
+  window.addEventListener('scroll', e=>{ if(atual && !pop.contains(e.target)) fechar(); }, true);
+})();
+
 /* ---- lamp-color filter buttons ---- */
 function wireLampFilter(containerId, selectId, renderFn){
   const container = document.getElementById(containerId);
   const select = document.getElementById(selectId);
+  // Em <select multiple> cada lâmpada liga/desliga independentemente
+  // (ex.: vermelho + amarelo juntos); nos demais continua exclusiva.
+  const ativos = () => select.multiple ? Array.from(select.selectedOptions).map(o=>o.value) : [select.value];
   function syncActive(){
+    const vals = ativos();
     container.querySelectorAll('.lamp-btn').forEach(btn=>{
-      btn.classList.toggle('active', btn.getAttribute('data-status')===select.value);
+      btn.classList.toggle('active', vals.includes(btn.getAttribute('data-status')));
     });
   }
   container.querySelectorAll('.lamp-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const status = btn.getAttribute('data-status');
-      select.value = (select.value===status) ? '' : status;
+      if(select.multiple){
+        const o = Array.from(select.options).find(o=>o.value===status);
+        if(o) o.selected = !o.selected;
+        select.dispatchEvent(new Event('ms-sync'));
+      } else {
+        select.value = (select.value===status) ? '' : status;
+      }
       syncActive();
       renderFn();
     });
   });
   select.addEventListener('change', syncActive);
+  select.addEventListener('ms-sync', syncActive);
   syncActive();
 }
 wireLampFilter('lampFilterSolic','fSolicPrazo',renderCompradores);
@@ -5529,7 +5694,7 @@ document.getElementById('btnExportPed').addEventListener('click', ()=>{
 function gerarResumoPedidosHTML(rows){
   const agora = new Date();
   const hh = String(agora.getHours()).padStart(2,'0')+':'+String(agora.getMinutes()).padStart(2,'0');
-  const selTxt = id => { const el=document.getElementById(id); if(!el||!el.value) return ''; const o=el.options?el.options[el.selectedIndex]:null; return o?o.text:el.value; };
+  const selTxt = id => { const el=document.getElementById(id); if(!el) return ''; if(el.multiple) return Array.from(el.selectedOptions).filter(o=>o.value!=='').map(o=>o.text).join(', '); if(!el.value) return ''; const o=el.options?el.options[el.selectedIndex]:null; return o?o.text:el.value; };
   const filtros = [
     ['Centro de custo', selTxt('fPedCentro')], ['Comprador', selTxt('fPedComprador')],
     ['Material', selTxt('fPedMaterial')], ['Prazo', selTxt('fPedPrazo')],
