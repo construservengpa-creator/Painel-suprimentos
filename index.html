@@ -8758,6 +8758,16 @@ async function reloadCapData() {
   await loadCapDevolucoes();
 }
 
+// Traduz os erros mais comuns do banco ao salvar pedido de CAP e sempre
+// anexa o detalhe técnico, para não esconder a causa real atrás de
+// "verifique se está logado".
+function mensagemErroCapPedido(e, prefixo) {
+  const msg = String((e && (e.message || e.details)) || e || '');
+  if (/preco_ton_check/.test(msg)) return prefixo + '\n\nO banco ainda exige preço por tonelada maior que zero, então pedidos "Apenas quantidade" não podem ser salvos. Rode o script cap_preco_ton_check.sql no Supabase.';
+  if (/controle_valor/.test(msg)) return prefixo + '\n\nA coluna controle_valor ainda não existe em cap_pedidos. Rode o script cap_controle_valor.sql no Supabase.';
+  if (/row-level security|permission denied/i.test(msg)) return prefixo + '\n\nSeu usuário não tem permissão para esta ação (é preciso ser administrador ou supervisor).';
+  return prefixo + (msg ? '\n\nDetalhe: ' + msg : '');
+}
 async function insertCapPedido(p) {
   try {
     const { error } = await window.SB.from('cap_pedidos').insert({
@@ -8768,7 +8778,7 @@ async function insertCapPedido(p) {
     return true;
   } catch (e) {
     console.error('Falha ao cadastrar pedido:', e);
-    alert(/controle_valor/.test(String(e && e.message)) ? 'A coluna controle_valor ainda não existe em cap_pedidos. Rode o script de atualização no Supabase.' : 'Não foi possível salvar o pedido. Verifique se você está logado como administrador ou supervisor.');
+    alert(mensagemErroCapPedido(e, 'Não foi possível salvar o pedido.'));
     return false;
   }
 }
@@ -8782,7 +8792,7 @@ async function updateCapPedido(id, p) {
     return true;
   } catch (e) {
     console.error('Falha ao atualizar pedido:', e);
-    alert(/controle_valor/.test(String(e && e.message)) ? 'A coluna controle_valor ainda não existe em cap_pedidos. Rode o script de atualização no Supabase.' : 'Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
+    alert(mensagemErroCapPedido(e, 'Não foi possível salvar as alterações.'));
     return false;
   }
 }
