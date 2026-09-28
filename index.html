@@ -2389,6 +2389,11 @@ footer.appfoot{
 
   <!-- DASHBOARD -->
   <section class="view active" id="view-dashboard">
+    <div class="toolbar">
+      <div class="filters forn-filters">
+        <label class="forn-f"><span>Fornecedor</span><select id="dashFiltroFornecedor"><option value="">Todos os fornecedores</option></select></label>
+      </div>
+    </div>
     <div class="kpi-grid" id="dashKpis"></div>
     <div class="card">
       <h2>Saldo por Pedido de Compra</h2>
@@ -2603,6 +2608,22 @@ footer.appfoot{
     <div class="modal-actions">
       <button class="btn" data-close="modalPedido">Cancelar</button>
       <button class="btn primary" id="btnSalvarPedido">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GERAR RELATÓRIO -->
+<div class="modal-backdrop" id="modalRelatorio">
+  <div class="modal">
+    <h3>Gerar relatório de saldo</h3>
+    <div class="field">
+      <label>Fornecedor</label>
+      <select id="relFiltroFornecedor" style="width:100%;"><option value="">Todos os fornecedores</option></select>
+    </div>
+    <div class="hint" id="relFiltroResumo" style="margin-top:2px;"></div>
+    <div class="modal-actions">
+      <button class="btn" data-close="modalRelatorio">Cancelar</button>
+      <button class="btn primary" id="btnConfirmarRelatorio">Gerar relatório</button>
     </div>
   </div>
 </div>
@@ -8953,8 +8974,39 @@ function resumoPorObra() {
   return Array.from(map.values()).sort((a,b) => b.qtd - a.qtd);
 }
 
+/* ============ RECORTE POR FORNECEDOR ============
+   Executa fn com "state" reduzido aos pedidos do fornecedor escolhido (e às
+   entregas/devoluções desses pedidos). Assim o Dashboard e o relatório
+   reaproveitam exatamente os mesmos cálculos da visão geral. */
+function comFornecedor(fornecedor, fn) {
+  if (!fornecedor) return fn();
+  const original = state;
+  const ids = new Set(original.pedidos.filter(p => fornNome(p) === fornecedor).map(p => String(p.id)));
+  state = {
+    ...original,
+    pedidos: original.pedidos.filter(p => ids.has(String(p.id))),
+    entregas: original.entregas.filter(e => ids.has(String(e.pedidoId))),
+    devolucoes: (original.devolucoes||[]).filter(d => ids.has(String(d.pedidoId)))
+  };
+  try { return fn(); } finally { state = original; }
+}
+function listaFornecedoresCap() {
+  return Array.from(new Set(state.pedidos.map(fornNome))).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+}
+function fillFornecedorSelect(sel) {
+  const cur = sel.value;
+  const forns = listaFornecedoresCap();
+  sel.innerHTML = '<option value="">Todos os fornecedores</option>' + forns.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+  sel.value = forns.includes(cur) ? cur : '';
+}
+
 /* ============ RENDER: DASHBOARD ============ */
 function renderDashboard() {
+  const sel = document.getElementById('dashFiltroFornecedor');
+  fillFornecedorSelect(sel);
+  comFornecedor(sel.value, () => renderDashboardConteudo(sel.value));
+}
+function renderDashboardConteudo(fornecedorFiltro) {
   const totalContratado = state.pedidos.reduce((s,p) => s + p.qtdContratada, 0);
   const totalEntregue = state.entregas.reduce((s,e) => s + Number(e.qtd||0), 0);
   const totalDevolvido = (state.devolucoes||[]).reduce((s,d) => s + Number(d.qtd||0), 0);
@@ -8968,7 +9020,7 @@ function renderDashboard() {
     { label: 'Qtd. entregue (líquida)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
     { label: 'Devolvido (total)', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
     { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) },
-    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: 'saldo combinado em tanque' },
+    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
   ];
   document.getElementById('dashKpis').innerHTML = kpis.map(k => `
     <div class="kpi">
@@ -8978,7 +9030,7 @@ function renderDashboard() {
     </div>`).join('');
 
   document.getElementById('dashPoGrid').innerHTML = state.pedidos.map(p => renderPoCard(p)).join('') ||
-    `<div class="hint">Nenhum pedido cadastrado.</div>`;
+    `<div class="hint">${fornecedorFiltro ? 'Nenhum pedido deste fornecedor.' : 'Nenhum pedido cadastrado.'}</div>`;
 
   renderBarChart('dashObraChart', resumoPorObra().map(o => ({ label: o.local, value: o.qtd })));
 }
@@ -9895,6 +9947,7 @@ async function deleteDevolucao(id) {
   document.getElementById(id).addEventListener('change', renderEntregas);
 });
 
+document.getElementById('dashFiltroFornecedor').addEventListener('change', renderDashboard);
 ['fornFiltroFornecedor','fornFiltroObra','fornFiltroSituacao','fornFiltroDe','fornFiltroAte'].forEach(id => {
   document.getElementById(id).addEventListener('change', renderResumoFornecedor);
 });
@@ -9991,7 +10044,10 @@ document.getElementById('btnExportXlsx2').addEventListener('click', () => {
 });
 
 /* ============ RELATÓRIO HTML (Dashboard + Resumo por Obra) ============ */
-function buildReportHtml() {
+function buildReportHtml(fornecedor) {
+  return comFornecedor(fornecedor || '', () => buildReportHtmlConteudo(fornecedor || ''));
+}
+function buildReportHtmlConteudo(fornecedorFiltro) {
   const now = new Date();
   const geradoEm = now.toLocaleString('pt-BR');
 
@@ -10008,7 +10064,7 @@ function buildReportHtml() {
     { label: 'Qtd. entregue (líquida)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
     { label: 'Devolvido (total)', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
     { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) },
-    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: 'saldo combinado em tanque' },
+    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
   ];
   const kpiHtml = kpis.map(k => `
     <div class="kpi">
@@ -10035,6 +10091,28 @@ function buildReportHtml() {
       <div class="po-row"><span>Saldo (R$)</span><b>${fmtR(s.saldoValor)}</b></div>
     </div>`;
   }).join('') || `<p class="hint">Nenhum pedido de compra cadastrado.</p>`;
+
+  // Resumo por fornecedor: só faz sentido no relatório geral (com mais de um).
+  const fornResumo = fornecedorFiltro ? [] : resumoPorFornecedor();
+  const fornSectionHtml = fornResumo.length > 1 ? `
+  <h2 class="section-title">Resumo por fornecedor</h2>
+  <table>
+    <thead><tr>
+      <th>Fornecedor</th><th class="num">Pedidos</th><th class="num">Contratado (t)</th><th class="num">Entregue líq. (t)</th>
+      <th class="num">Devolvido (t)</th><th class="num">Saldo (t)</th><th class="num">Saldo (R$)</th><th class="num">Execução</th>
+    </tr></thead>
+    <tbody>
+      ${fornResumo.map(x => `<tr>
+        <td>${escapeHtml(x.nome)}</td><td class="num">${x.pedidos.length}</td><td class="num">${fmtT(x.contratado)}</td>
+        <td class="num">${fmtT(x.entregueQtd)}</td><td class="num">${x.devolvidoQtd > 0 ? fmtT(x.devolvidoQtd) : '—'}</td>
+        <td class="num">${fmtT(x.saldoQtd)}</td><td class="num">${fmtR(x.saldoValor)}</td><td class="num">${x.pct.toFixed(1)}%</td>
+      </tr>`).join('')}
+      <tr><td>TOTAL</td><td class="num">${fornResumo.reduce((a,x)=>a+x.pedidos.length,0)}</td>
+        <td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.contratado,0))}</td><td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.entregueQtd,0))}</td>
+        <td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.devolvidoQtd,0))}</td><td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.saldoQtd,0))}</td>
+        <td class="num">${fmtR(fornResumo.reduce((a,x)=>a+x.saldoValor,0))}</td><td class="num"></td></tr>
+    </tbody>
+  </table>` : '';
 
   const obras = resumoPorObra();
   const totalQtdObras = obras.reduce((s,o) => s + o.qtd, 0);
@@ -10063,7 +10141,7 @@ function buildReportHtml() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Relatório de Saldo — CAP · ${escapeHtml(todayIso())}</title>
+<title>Relatório de Saldo — CAP${fornecedorFiltro ? ' · ' + escapeHtml(fornecedorFiltro) : ''} · ${escapeHtml(todayIso())}</title>
 <style>
   :root {
     --surface-0: #f9f9f7; --surface-1: #fcfcfb; --surface-2: #ffffff;
@@ -10120,13 +10198,16 @@ function buildReportHtml() {
   <div class="report-header">
     <div>
       <h1>Relatório de Saldo — CAP <span style="color:var(--text-muted); font-weight:400;">(Cimento Asfáltico de Petróleo)</span></h1>
-      <p>Gerado em ${escapeHtml(geradoEm)} · Controle de Saldo CAP</p>
+      ${fornecedorFiltro ? `<p style="font-size:14px;color:var(--text-primary);font-weight:600;margin-bottom:4px;">Fornecedor: ${escapeHtml(fornecedorFiltro)}</p>` : ''}
+      <p>Gerado em ${escapeHtml(geradoEm)} · Controle de Saldo CAP${fornecedorFiltro ? '' : ' · todos os fornecedores'}</p>
     </div>
     <div class="no-print"><button onclick="window.print()">🖨 Imprimir / Salvar PDF</button></div>
   </div>
 
   <h2 class="section-title">Visão geral</h2>
   <div class="kpi-grid">${kpiHtml}</div>
+
+  ${fornSectionHtml}
 
   <h2 class="section-title">Saldo por Pedido de Compra</h2>
   <div class="po-grid">${poCardsHtml}</div>
@@ -10172,10 +10253,32 @@ function buildReportHtml() {
 </html>`;
 }
 
+function atualizarResumoRelatorio() {
+  const forn = document.getElementById('relFiltroFornecedor').value;
+  const info = comFornecedor(forn, () => ({
+    pedidos: state.pedidos.length,
+    saldo: state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoQtd, 0)
+  }));
+  document.getElementById('relFiltroResumo').textContent =
+    `${forn ? 'Só este fornecedor' : 'Relatório geral, com resumo por fornecedor'}: ${info.pedidos} pedido(s), saldo a entregar de ${fmtT(info.saldo)}.`;
+}
 document.getElementById('btnGerarRelatorio').addEventListener('click', () => {
-  const html = buildReportHtml();
-  downloadFile(`relatorio_saldo_cap_${todayIso()}.html`, html, 'text/html');
-  toast('Relatório gerado');
+  const sel = document.getElementById('relFiltroFornecedor');
+  fillFornecedorSelect(sel);
+  // Já abre com o fornecedor escolhido no Dashboard, se houver.
+  const dashForn = document.getElementById('dashFiltroFornecedor').value;
+  if (dashForn && [...sel.options].some(o => o.value === dashForn)) sel.value = dashForn;
+  atualizarResumoRelatorio();
+  openModal('modalRelatorio');
+});
+document.getElementById('relFiltroFornecedor').addEventListener('change', atualizarResumoRelatorio);
+document.getElementById('btnConfirmarRelatorio').addEventListener('click', () => {
+  const forn = document.getElementById('relFiltroFornecedor').value;
+  const html = buildReportHtml(forn);
+  const slug = forn ? '_' + forn.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40).toLowerCase() : '';
+  downloadFile(`relatorio_saldo_cap${slug}_${todayIso()}.html`, html, 'text/html');
+  closeModal('modalRelatorio');
+  toast(forn ? `Relatório de ${forn} gerado` : 'Relatório gerado');
 });
 
 /* ============ LEITURA AUTOMÁTICA DE PDF (Pedido de Compra / Nota Fiscal) ============ */
