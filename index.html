@@ -1188,6 +1188,21 @@ footer.appfoot{
 .modal.wide{ max-width:860px; }
 .modal h3{ font-family: var(--font-display); font-size: 16px; font-weight:600; margin:0 0 14px; color: var(--text); }
 .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+/* Cadastro de centro de custo do devedor (Lançar Crédito) */
+.cc-hint{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; margin-top:6px; font-size:11.5px; line-height:1.4; color:var(--text-faint); }
+.cc-hint.vazio #credito-obraHintTxt{ color:var(--yellow); }
+.cc-add-btn{ background:none; border:none; padding:0; margin:0; font:inherit; font-size:11.5px; color:var(--yellow); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+.cc-add-btn:hover{ color:var(--text); }
+.cc-add-btn:focus-visible{ outline:2px solid var(--yellow); outline-offset:2px; border-radius:2px; }
+#modalNovoCentroCusto .form-field{ margin-bottom:12px; }
+#modalNovoCentroCusto .form-field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-mut); margin-bottom:5px; }
+#modalNovoCentroCusto .form-field input{ width:100%; box-sizing:border-box; }
+.cc-modal-sub{ font-size:12px; color:var(--text-mut); line-height:1.5; margin:-4px 0 14px; }
+.cc-modal-grid{ display:grid; grid-template-columns:110px 1fr; gap:0 12px; }
+@media (max-width:480px){ .cc-modal-grid{ grid-template-columns:1fr; } }
+.cc-preview{ font-size:12px; color:var(--text-dim); min-height:16px; }
+.cc-preview b{ color:var(--text); font-weight:600; }
+.cc-msg{ display:block; font-size:12px; color:var(--bad); margin-top:6px; min-height:0; }
 .pedido-info-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
@@ -2178,7 +2193,7 @@ footer.appfoot{
           <div class="form-grid">
             <div class="form-field"><label>Empresa beneficiária (credora)</label><input type="text" id="credito-fBeneficiaria" placeholder="Ex.: AMETA Engenharia Ltda" list="credito-dlBeneficiaria"></div>
             <div class="form-field"><label>Empresa devedora</label><input type="text" id="credito-fEmpresa" placeholder="Ex.: AMETA Construções Ltda" list="credito-dlEmpresa"></div>
-            <div class="form-field"><label>Obra vinculada ao devedor</label><select id="credito-fObra"><option value="">Selecione...</option></select></div>
+            <div class="form-field"><label>Obra vinculada ao devedor</label><select id="credito-fObra"><option value="">Selecione...</option></select><div class="cc-hint" id="credito-obraHint"><span id="credito-obraHintTxt"></span><button type="button" class="cc-add-btn" id="credito-btnNovoCC">+ Cadastrar centro de custo</button></div></div>
             <div class="form-field"><label>Valor do crédito (R$)</label><input type="number" id="credito-fValor" step="0.01" min="0" placeholder="0,00"></div>
             <div class="form-field"><label>Data de disponibilidade</label><input type="date" id="credito-fData"></div>
             <div class="form-field"><label>Descrição</label><input type="text" id="credito-fDescricao" placeholder="Ex.: Crédito por devolução de material"></div>
@@ -2249,6 +2264,24 @@ footer.appfoot{
         <div id="verPedidoVinculadoConteudo"></div>
         <div class="modal-actions">
           <button class="ghost" id="btnFecharVerPedidoVinculado">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modalNovoCentroCusto">
+      <div class="modal">
+        <h3>Cadastrar centro de custo do devedor</h3>
+        <p class="cc-modal-sub">Use quando a obra da empresa devedora ainda não existe na base do Sienge nem em créditos anteriores. O código é o que liga o crédito aos pedidos de compra na aba Vincular Pedido, então informe o mesmo código usado no Sienge, se houver.</p>
+        <div class="form-field"><label>Empresa devedora</label><input type="text" id="cc-fEmpresa" list="credito-dlEmpresa" placeholder="Ex.: Consórcio Liberdade"></div>
+        <div class="cc-modal-grid">
+          <div class="form-field"><label>Código</label><input type="text" id="cc-fCodigo" placeholder="Ex.: 215" maxlength="20"></div>
+          <div class="form-field"><label>Nome da obra</label><input type="text" id="cc-fNome" placeholder="Ex.: Contrato 3 - BR-316 - Lote 2"></div>
+        </div>
+        <div class="cc-preview" id="cc-preview"></div>
+        <span id="cc-formMsg" class="cc-msg"></span>
+        <div class="modal-actions">
+          <button class="ghost" id="cc-btnCancelar">Cancelar</button>
+          <button class="primary" id="cc-btnSalvar">Cadastrar centro de custo</button>
         </div>
       </div>
     </div>
@@ -6932,6 +6965,11 @@ async function addRecord(){
    ============================================================ */
 let creditos = [];
 let vinculosCredito = [];
+// Centros de custo cadastrados manualmente para a empresa devedora, quando a
+// obra não existe na base do Sienge nem em créditos anteriores. Tabela
+// "creditos_centros_custo" no Supabase (mesmas regras de acesso de
+// creditos_obra: leitura para logados, escrita para admin/supervisor).
+let centrosCustoCredito = [];
 let auditoria = [];
 let perfisMap = {};
 let auditoriaLimit = 100;
@@ -6989,6 +7027,32 @@ async function loadCreditos(){
     console.error('Falha ao carregar créditos (é preciso estar logado para ver esta aba):', e);
     creditos = [];
   }
+}
+function centroCustoLabel(codigo, nome){
+  const c = String(codigo||'').trim(), n = String(nome||'').trim();
+  return c && n ? `${c} - ${n}` : (c || n);
+}
+async function loadCentrosCustoCredito(){
+  try{
+    const { data, error } = await window.SB.from('creditos_centros_custo').select('*').order('codigo', { ascending:true });
+    if(error) throw error;
+    centrosCustoCredito = (data||[]).map(r=>({
+      id: r.id,
+      empresaDevedora: r.empresa_devedora || '',
+      codigo: r.codigo || '',
+      nome: r.nome || '',
+      label: centroCustoLabel(r.codigo, r.nome)
+    }));
+  }catch(e){
+    console.error('Falha ao carregar centros de custo cadastrados (a tabela creditos_centros_custo existe?):', e);
+    centrosCustoCredito = [];
+  }
+}
+async function insertCentroCustoCredito(cc){
+  const { error } = await window.SB.from('creditos_centros_custo').insert({
+    empresa_devedora: cc.empresaDevedora, codigo: cc.codigo, nome: cc.nome
+  });
+  if(error) throw error;
 }
 async function loadVinculosCredito(){
   try{
@@ -7217,7 +7281,7 @@ function populateCreditoDatalists(){
   // apareça selecionado corretamente ao editar). Ao digitar a empresa
   // devedora, as obras já usadas por ela em créditos anteriores aparecem
   // separadas no topo, como sugestão — sem impedir escolher outra.
-  const obrasDisponiveis = uniqueSorted([...(state.rows||[]).map(r=>r.obraLabel), ...creditos.map(c=>c.obra)]);
+  const obrasDisponiveis = uniqueSorted([...(state.rows||[]).map(r=>r.obraLabel), ...creditos.map(c=>c.obra), ...centrosCustoCredito.map(cc=>cc.label)]);
   const empresaDigitada = (document.getElementById('credito-fEmpresa')||{}).value || '';
 
   const selObraForm = document.getElementById('credito-fObra');
@@ -7226,9 +7290,10 @@ function populateCreditoDatalists(){
     const empresaNorm = empresaDigitada.trim().toLowerCase();
     let html = '<option value="">Selecione...</option>';
     if(empresaNorm){
-      const obrasDaEmpresa = new Set(
-        creditos.filter(c=>(c.empresaDevedora||'').trim().toLowerCase()===empresaNorm).map(c=>c.obra)
-      );
+      const obrasDaEmpresa = new Set([
+        ...creditos.filter(c=>(c.empresaDevedora||'').trim().toLowerCase()===empresaNorm).map(c=>c.obra),
+        ...centrosCustoCredito.filter(cc=>cc.empresaDevedora.trim().toLowerCase()===empresaNorm).map(cc=>cc.label)
+      ]);
       const sugeridas = obrasDisponiveis.filter(o=>obrasDaEmpresa.has(o));
       const outras = obrasDisponiveis.filter(o=>!obrasDaEmpresa.has(o));
       if(sugeridas.length){
@@ -7240,9 +7305,12 @@ function populateCreditoDatalists(){
     } else {
       html += obrasDisponiveis.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
     }
+    html += '<option value="__novo_cc__">+ Cadastrar novo centro de custo…</option>';
     selObraForm.innerHTML = html;
-    if([...selObraForm.options].some(o=>o.value===atual)) selObraForm.value = atual;
+    if(atual !== '__novo_cc__' && [...selObraForm.options].some(o=>o.value===atual)) selObraForm.value = atual;
+    selObraForm.dataset.anterior = selObraForm.value;
   }
+  atualizarHintCentroCusto();
 
   const fObra = document.getElementById('fCreditoObra');
   if(fObra){
@@ -7699,6 +7767,7 @@ window.renderCreditos = renderCreditos;
 // creditos_obra/creditos_vinculos exige usuário logado, é preciso buscar
 // de novo a cada mudança de sessão, não só uma vez no carregamento da página.
 window.refreshCreditosAposLogin = async function(){
+  await loadCentrosCustoCredito();
   await loadCreditos();
   await loadVinculosCredito();
   renderCreditos();
@@ -7735,12 +7804,108 @@ function cancelEditCredito(){
   document.getElementById('credito-formMsg').textContent = '';
 }
 
+// Aviso abaixo do campo "Obra vinculada ao devedor": quando a empresa
+// devedora digitada ainda não tem nenhum centro de custo associado (nem em
+// créditos anteriores, nem cadastrado), destaca o atalho de cadastro.
+function atualizarHintCentroCusto(){
+  const hint = document.getElementById('credito-obraHint');
+  const txt = document.getElementById('credito-obraHintTxt');
+  if(!hint || !txt) return;
+  const empresa = ((document.getElementById('credito-fEmpresa')||{}).value || '').trim();
+  const norm = empresa.toLowerCase();
+  const temObra = norm && (
+    creditos.some(c=>(c.empresaDevedora||'').trim().toLowerCase()===norm) ||
+    centrosCustoCredito.some(cc=>cc.empresaDevedora.trim().toLowerCase()===norm)
+  );
+  if(empresa && !temObra){
+    hint.classList.add('vazio');
+    txt.textContent = `Nenhum centro de custo vinculado a ${empresa}.`;
+  } else {
+    hint.classList.remove('vazio');
+    txt.textContent = '';
+  }
+}
+function abrirModalCentroCusto(){
+  const modal = document.getElementById('modalNovoCentroCusto');
+  document.getElementById('cc-fEmpresa').value = (document.getElementById('credito-fEmpresa').value || '').trim();
+  document.getElementById('cc-fCodigo').value = '';
+  document.getElementById('cc-fNome').value = '';
+  document.getElementById('cc-formMsg').textContent = '';
+  atualizarPreviewCentroCusto();
+  modal.classList.add('open');
+  const primeiroVazio = document.getElementById('cc-fEmpresa').value ? 'cc-fCodigo' : 'cc-fEmpresa';
+  setTimeout(()=> document.getElementById(primeiroVazio).focus(), 0);
+}
+function fecharModalCentroCusto(){
+  document.getElementById('modalNovoCentroCusto').classList.remove('open');
+}
+function atualizarPreviewCentroCusto(){
+  const label = centroCustoLabel(document.getElementById('cc-fCodigo').value, document.getElementById('cc-fNome').value);
+  document.getElementById('cc-preview').innerHTML = label && document.getElementById('cc-fCodigo').value.trim() && document.getElementById('cc-fNome').value.trim()
+    ? `Vai aparecer como: <b>${esc(label)}</b>` : '';
+}
+async function salvarCentroCusto(){
+  const msg = document.getElementById('cc-formMsg');
+  const btn = document.getElementById('cc-btnSalvar');
+  msg.textContent = '';
+  const empresaDevedora = document.getElementById('cc-fEmpresa').value.trim();
+  const codigo = document.getElementById('cc-fCodigo').value.trim();
+  const nome = document.getElementById('cc-fNome').value.trim();
+  if(!empresaDevedora || !codigo || !nome){
+    msg.textContent = 'Informe a empresa devedora, o código e o nome da obra.';
+    return;
+  }
+  if(/\s/.test(codigo)){
+    msg.textContent = 'O código não pode ter espaços — ele é usado para ligar o crédito aos pedidos de compra.';
+    return;
+  }
+  const label = centroCustoLabel(codigo, nome);
+  const empresaNorm = empresaDevedora.toLowerCase();
+  const jaCadastrado = centrosCustoCredito.find(cc=>cc.empresaDevedora.trim().toLowerCase()===empresaNorm && cc.codigo.toLowerCase()===codigo.toLowerCase());
+  if(jaCadastrado){
+    msg.textContent = `O código ${codigo} já está cadastrado para ${empresaDevedora} como "${jaCadastrado.label}".`;
+    return;
+  }
+  // Se o mesmo código já existe na base do Sienge com outro nome, avisa:
+  // os pedidos desse código serão tratados como da mesma obra no vínculo.
+  const noSienge = uniqueSorted((state.rows||[]).map(r=>r.obraLabel)).find(o=>codigoObra(o)===codigo && o!==label);
+  if(noSienge && !confirm(`O código ${codigo} já existe no Sienge como "${noSienge}".\n\nNa aba Vincular Pedido, os pedidos dessa obra poderão ser vinculados a este crédito. Cadastrar mesmo assim?`)) return;
+
+  btn.disabled = true;
+  try{
+    await insertCentroCustoCredito({ empresaDevedora, codigo, nome });
+  }catch(e){
+    console.error('Falha ao cadastrar centro de custo:', e);
+    const m = String((e && (e.message||e.details)) || '');
+    msg.textContent = /does not exist|relation|schema cache/i.test(m)
+      ? 'A tabela creditos_centros_custo ainda não existe no Supabase. Rode o script de criação antes de usar o cadastro.'
+      : 'Não foi possível cadastrar. Verifique se você está logado como administrador ou supervisor.';
+    btn.disabled = false;
+    return;
+  }
+  btn.disabled = false;
+  await loadCentrosCustoCredito();
+  // Preenche o formulário de crédito com a empresa e a obra recém-cadastrada.
+  document.getElementById('credito-fEmpresa').value = empresaDevedora;
+  populateCreditoDatalists();
+  const sel = document.getElementById('credito-fObra');
+  sel.value = label;
+  sel.dataset.anterior = label;
+  fecharModalCentroCusto();
+  const fMsg = document.getElementById('credito-formMsg');
+  fMsg.style.color = 'var(--good, #0ca30c)';
+  fMsg.textContent = `Centro de custo ${label} cadastrado e selecionado.`;
+  setTimeout(()=>{ if(fMsg.textContent.startsWith('Centro de custo')){ fMsg.textContent=''; fMsg.style.color=''; } }, 4000);
+}
+
 async function addCredito(){
   const msg = document.getElementById('credito-formMsg');
   msg.textContent = '';
+  msg.style.color = '';
   const empresaBeneficiaria = document.getElementById('credito-fBeneficiaria').value.trim();
   const empresaDevedora = document.getElementById('credito-fEmpresa').value.trim();
-  const obra = document.getElementById('credito-fObra').value.trim();
+  const obraSel = document.getElementById('credito-fObra').value.trim();
+  const obra = obraSel === '__novo_cc__' ? '' : obraSel;
   const valor = parseFloat(document.getElementById('credito-fValor').value);
   const data = document.getElementById('credito-fData').value;
   const descricao = document.getElementById('credito-fDescricao').value.trim();
@@ -8032,6 +8197,7 @@ async function init(){
   await window.loadCriticosRules();
   await loadCriticosColapso();
   await loadAbaAtiva();
+  await loadCentrosCustoCredito();
   await loadCreditos();
   await loadVinculosCredito();
   renderAll();
@@ -8049,6 +8215,26 @@ async function init(){
 
   document.getElementById('vinculo-fCredito').addEventListener('change', ()=>{ populateCreditoDatalists(); renderPedidoSearchResults(); });
   document.getElementById('credito-fEmpresa').addEventListener('input', populateCreditoDatalists);
+  document.getElementById('credito-fObra').addEventListener('change', (ev)=>{
+    const sel = ev.target;
+    if(sel.value === '__novo_cc__'){
+      sel.value = sel.dataset.anterior || '';
+      abrirModalCentroCusto();
+    } else {
+      sel.dataset.anterior = sel.value;
+    }
+  });
+  document.getElementById('credito-btnNovoCC').addEventListener('click', abrirModalCentroCusto);
+  document.getElementById('cc-btnSalvar').addEventListener('click', salvarCentroCusto);
+  document.getElementById('cc-btnCancelar').addEventListener('click', fecharModalCentroCusto);
+  document.getElementById('cc-fCodigo').addEventListener('input', atualizarPreviewCentroCusto);
+  document.getElementById('cc-fNome').addEventListener('input', atualizarPreviewCentroCusto);
+  ['cc-fEmpresa','cc-fCodigo','cc-fNome'].forEach(id=> document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') salvarCentroCusto(); }));
+  (function(){
+    const modal = document.getElementById('modalNovoCentroCusto');
+    modal.addEventListener('click', e=>{ if(e.target===modal) fecharModalCentroCusto(); });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape' && modal.classList.contains('open')) fecharModalCentroCusto(); });
+  })();
   document.getElementById('vinculo-fPedido').addEventListener('input', renderPedidoSearchResults);
   document.getElementById('vinculo-fPedido').addEventListener('focus', renderPedidoSearchResults);
   document.addEventListener('click', (ev)=>{
