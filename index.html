@@ -1344,6 +1344,16 @@ footer.appfoot{
 #tab-creditos-cap input:focus, #tab-creditos-cap select:focus { outline: 2px solid var(--yellow-dim); outline-offset: 1px; }
 #tab-creditos-cap label { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); display: block; margin-bottom: 4px; font-weight: 500; }
 #tab-creditos-cap .field { margin-bottom: 10px; }
+/* Forma de controle do pedido CAP */
+#tab-creditos-cap .ctrl-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#tab-creditos-cap .ctrl-toggle label { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; cursor: pointer; background: var(--asphalt-3); margin: 0; text-transform: none; letter-spacing: 0; }
+#tab-creditos-cap .ctrl-toggle input { width: auto; margin: 2px 0 0; accent-color: var(--yellow); }
+#tab-creditos-cap .ctrl-toggle span { display: flex; flex-direction: column; gap: 2px; }
+#tab-creditos-cap .ctrl-toggle b { font-size: 12.5px; color: var(--text); font-weight: 600; }
+#tab-creditos-cap .ctrl-toggle small { font-size: 11px; color: var(--text-faint); }
+#tab-creditos-cap .ctrl-toggle label:has(input:checked) { border-color: var(--yellow); }
+#tab-creditos-cap .badge.qtd { background: rgba(255,255,255,.07); color: var(--text-dim); }
+#tab-creditos-cap .so-qtd-hint { font-size: 11.5px; color: var(--text-faint); margin: -4px 0 10px; }
 #tab-creditos-cap .field-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 10px; }
 #tab-creditos-cap button.btn {
   font-family: var(--font-body); font-weight: 600; font-size: 12.8px;
@@ -2590,12 +2600,19 @@ footer.appfoot{
         <datalist id="fornecedorList"></datalist>
       </div>
     </div>
+    <div class="field">
+      <label>Forma de controle</label>
+      <div class="ctrl-toggle" role="radiogroup" aria-label="Forma de controle do pedido">
+        <label><input type="radio" name="pedidoControle" value="qtd_valor" checked><span><b>Quantidade e valor</b><small>Saldo em toneladas e em R$</small></span></label>
+        <label><input type="radio" name="pedidoControle" value="qtd"><span><b>Apenas quantidade</b><small>Saldo só em toneladas, sem R$</small></span></label>
+      </div>
+    </div>
     <div class="field-row">
       <div class="field">
         <label>Qtd. contratada (t)</label>
         <input type="number" id="pedidoQtd" step="0.01" min="0" placeholder="0,00">
       </div>
-      <div class="field">
+      <div class="field" id="pedidoPrecoField">
         <label>Preço por tonelada (R$/t)</label>
         <input type="number" id="pedidoPreco" step="0.01" min="0" placeholder="0,00">
       </div>
@@ -8669,6 +8686,9 @@ function capPedidoFromDb(row) {
     fornecedor: row.fornecedor || '',
     qtdContratada: Number(row.qtd_contratada) || 0,
     precoTon: Number(row.preco_ton) || 0,
+    // Forma de controle: true = quantidade e valor (padrão, pedidos antigos);
+    // false = apenas quantidade (sem R$ no saldo, entregas e devoluções).
+    controleValor: row.controle_valor !== false,
     dataRecebimento: row.data_recebimento,
     anexoNome: row.anexo_nome || null
   };
@@ -8742,13 +8762,13 @@ async function insertCapPedido(p) {
   try {
     const { error } = await window.SB.from('cap_pedidos').insert({
       numero: p.numero, fornecedor: p.fornecedor || null, qtd_contratada: p.qtdContratada,
-      preco_ton: p.precoTon, data_recebimento: p.dataRecebimento || null, anexo_nome: p.anexoNome || null
+      preco_ton: p.precoTon, controle_valor: p.controleValor !== false, data_recebimento: p.dataRecebimento || null, anexo_nome: p.anexoNome || null
     });
     if (error) throw error;
     return true;
   } catch (e) {
     console.error('Falha ao cadastrar pedido:', e);
-    alert('Não foi possível salvar o pedido. Verifique se você está logado como administrador ou supervisor.');
+    alert(/controle_valor/.test(String(e && e.message)) ? 'A coluna controle_valor ainda não existe em cap_pedidos. Rode o script de atualização no Supabase.' : 'Não foi possível salvar o pedido. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
 }
@@ -8756,13 +8776,13 @@ async function updateCapPedido(id, p) {
   try {
     const { error } = await window.SB.from('cap_pedidos').update({
       numero: p.numero, fornecedor: p.fornecedor || null, qtd_contratada: p.qtdContratada,
-      preco_ton: p.precoTon, data_recebimento: p.dataRecebimento || null, anexo_nome: p.anexoNome || null
+      preco_ton: p.precoTon, controle_valor: p.controleValor !== false, data_recebimento: p.dataRecebimento || null, anexo_nome: p.anexoNome || null
     }).eq('id', id);
     if (error) throw error;
     return true;
   } catch (e) {
     console.error('Falha ao atualizar pedido:', e);
-    alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
+    alert(/controle_valor/.test(String(e && e.message)) ? 'A coluna controle_valor ainda não existe em cap_pedidos. Rode o script de atualização no Supabase.' : 'Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
 }
@@ -8877,20 +8897,27 @@ function devolvidoQtdDaEntrega(entregaId, ignorarDevolucaoId) {
     .reduce((s,d) => s + Number(d.qtd||0), 0);
 }
 
+// Pedidos "apenas quantidade" não entram em nenhum valor em R$: preço,
+// entregas e devoluções vinculadas a eles contam como R$ 0.
+function soQuantidade(p) { return !!p && p.controleValor === false; }
+function precoEfetivo(p) { return soQuantidade(p) ? 0 : Number(p && p.precoTon || 0); }
+function valorEfetivo(mov) { return soQuantidade(pedidoById(mov.pedidoId)) ? 0 : Number(mov.valor || 0); }
+function fmtRPedido(p, v) { return soQuantidade(p) ? '<span class="hint">—</span>' : fmtR(v); }
+
 function pedidoStats(p) {
   const ents = entregasDoPedido(p.id);
   const devs = devolucoesDoPedido(p.id);
   const entregueQtdBruto = ents.reduce((s,e) => s + Number(e.qtd||0), 0);
-  const entregueValorBruto = ents.reduce((s,e) => s + Number(e.valor||0), 0);
+  const entregueValorBruto = ents.reduce((s,e) => s + valorEfetivo(e), 0);
   const devolvidoQtd = devs.reduce((s,d) => s + Number(d.qtd||0), 0);
-  const devolvidoValor = devs.reduce((s,d) => s + Number(d.valor||0), 0);
+  const devolvidoValor = devs.reduce((s,d) => s + valorEfetivo(d), 0);
   const entregueQtd = entregueQtdBruto - devolvidoQtd;
   const entregueValor = entregueValorBruto - devolvidoValor;
-  const valorTotal = p.qtdContratada * p.precoTon;
+  const valorTotal = p.qtdContratada * precoEfetivo(p);
   const saldoQtd = p.qtdContratada - entregueQtd;
   const saldoValor = valorTotal - entregueValor;
   const pct = p.qtdContratada > 0 ? Math.min(100, (entregueQtd / p.qtdContratada) * 100) : 0;
-  return { entregueQtdBruto, entregueValorBruto, devolvidoQtd, devolvidoValor, entregueQtd, entregueValor, valorTotal, saldoQtd, saldoValor, pct };
+  return { entregueQtdBruto, entregueValorBruto, devolvidoQtd, devolvidoValor, entregueQtd, entregueValor, valorTotal, saldoQtd, saldoValor, pct, soQtd: soQuantidade(p) };
 }
 
 function estoqueLedger() {
@@ -8923,7 +8950,7 @@ function estoqueLedger() {
   });
 
   let saldo = opening;
-  let saldoValor = state.pedidos.filter(p=>!p.dataRecebimento).reduce((s,p)=>s+p.qtdContratada*p.precoTon,0);
+  let saldoValor = state.pedidos.filter(p=>!p.dataRecebimento).reduce((s,p)=>s+p.qtdContratada*precoEfetivo(p),0);
   // approximate R$ value per ton using weighted avg price of stock currently "in": simplistic FIFO not tracked, so
   // we show R$ saldo per event using the price of the pedido tied to that movement.
   const rows = [];
@@ -8936,15 +8963,15 @@ function estoqueLedger() {
     let priceMov = 0;
     if (ev.tipo === 'Recebimento') {
       const p = state.pedidos.find(pp => ev.desc.includes(pp.numero) && pp.dataRecebimento === ev.data);
-      priceMov = p ? ev.mov * p.precoTon : 0;
+      priceMov = p ? ev.mov * precoEfetivo(p) : 0;
     } else if (ev.tipo === 'Devolução') {
       const match = (state.devolucoes||[]).find(d => ev.desc.startsWith('Devolução NF ' + (d.nf || '—')));
       const p = match ? pedidoById(match.pedidoId) : null;
-      priceMov = (match && match.valor) ? Number(match.valor) : (p ? ev.mov * p.precoTon : ev.mov * 6200);
+      priceMov = soQuantidade(p) ? 0 : (match && match.valor) ? Number(match.valor) : (p ? ev.mov * p.precoTon : ev.mov * 6200);
     } else {
       const match = state.entregas.find(e => ev.desc.startsWith('NF ' + e.nf));
       const p = match ? pedidoById(match.pedidoId) : null;
-      priceMov = p ? ev.mov * p.precoTon : ev.mov * 6200;
+      priceMov = soQuantidade(p) ? 0 : (p ? ev.mov * p.precoTon : ev.mov * 6200);
     }
     saldoValor += priceMov;
     rows.push({ data: ev.data, tipo: ev.tipo, desc: ev.desc, mov: ev.mov, saldo, saldoValor });
@@ -8959,7 +8986,7 @@ function resumoPorObra() {
     if (!map.has(key)) map.set(key, { local: key, qtd: 0, valor: 0, count: 0, devolvidoQtd: 0, devolvidoValor: 0 });
     const o = map.get(key);
     o.qtd += Number(e.qtd||0);
-    o.valor += Number(e.valor||0);
+    o.valor += valorEfetivo(e);
     o.count += 1;
   });
   (state.devolucoes||[]).forEach(d => {
@@ -8967,9 +8994,9 @@ function resumoPorObra() {
     if (!map.has(key)) map.set(key, { local: key, qtd: 0, valor: 0, count: 0, devolvidoQtd: 0, devolvidoValor: 0 });
     const o = map.get(key);
     o.devolvidoQtd += Number(d.qtd||0);
-    o.devolvidoValor += Number(d.valor||0);
+    o.devolvidoValor += valorEfetivo(d);
     o.qtd -= Number(d.qtd||0);
-    o.valor -= Number(d.valor||0);
+    o.valor -= valorEfetivo(d);
   });
   return Array.from(map.values()).sort((a,b) => b.qtd - a.qtd);
 }
@@ -9019,7 +9046,7 @@ function renderDashboardConteudo(fornecedorFiltro) {
     { label: 'Qtd. contratada (total)', value: fmtT(totalContratado), sub: state.pedidos.length + ' pedido(s)' },
     { label: 'Qtd. entregue (líquida)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
     { label: 'Devolvido (total)', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
-    { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) },
+    { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) + (state.pedidos.some(soQuantidade) ? ' · R$ só de pedidos com valor' : '') },
     { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
   ];
   document.getElementById('dashKpis').innerHTML = kpis.map(k => `
@@ -9042,7 +9069,7 @@ function renderPoCard(p) {
   <div class="po-card">
     <div class="po-head">
       <span class="num">Pedido ${p.numero}</span>
-      <span class="price">${fmtR(p.precoTon)}/t</span>
+      ${s.soQtd ? '<span class="badge qtd">Apenas quantidade</span>' : `<span class="price">${fmtR(p.precoTon)}/t</span>`}
     </div>
     <div class="po-row"><span>Fornecedor</span><b>${p.fornecedor ? escapeHtml(p.fornecedor) : '<span class="hint">não informado</span>'}</b></div>
     <div class="po-row"><span>Contratado</span><b class="tabular">${fmtT(p.qtdContratada)}</b></div>
@@ -9050,7 +9077,7 @@ function renderPoCard(p) {
     ${s.devolvidoQtd > 0 ? `<div class="po-row"><span>Devolvido</span><b class="tabular" style="color:var(--amber);">${fmtT(s.devolvidoQtd)}</b></div>` : ''}
     <div class="bar-track"><div class="bar-fill" style="width:${s.pct.toFixed(1)}%; background:${low ? 'var(--red)' : 'var(--yellow)'};"></div></div>
     <div class="po-row"><span>Saldo restante</span><b class="tabular">${fmtT(s.saldoQtd)}</b></div>
-    <div class="po-row"><span>Saldo (R$)</span><b class="tabular">${fmtR(s.saldoValor)}</b></div>
+    ${s.soQtd ? '' : `<div class="po-row"><span>Saldo (R$)</span><b class="tabular">${fmtR(s.saldoValor)}</b></div>`}
     <div style="margin-top:6px;">
       ${low ? `<span class="badge low">⚠ Saldo baixo</span>` : `<span class="badge ok">✓ Saldo disponível</span>`}
     </div>
@@ -9079,15 +9106,15 @@ function renderPedidos() {
   tbody.innerHTML = state.pedidos.map(p => {
     const s = pedidoStats(p);
     return `<tr>
-      <td><b>${escapeHtml(p.numero)}</b>${p.anexoNome ? ` <span title="${escapeHtml(p.anexoNome)}" style="color:var(--text-faint);">📎</span>` : ''}</td>
+      <td><b>${escapeHtml(p.numero)}</b>${p.anexoNome ? ` <span title="${escapeHtml(p.anexoNome)}" style="color:var(--text-faint);">📎</span>` : ''}${s.soQtd ? ' <span class="badge qtd" title="Controle apenas por quantidade">só qtd.</span>' : ''}</td>
       <td>${p.fornecedor ? escapeHtml(p.fornecedor) : '<span class="hint">—</span>'}</td>
-      <td class="tabular">${fmtR(p.precoTon)}</td>
+      <td class="tabular">${fmtRPedido(p, p.precoTon)}</td>
       <td class="num tabular">${fmtT(p.qtdContratada)}</td>
-      <td class="num tabular">${fmtR(s.valorTotal)}</td>
+      <td class="num tabular">${fmtRPedido(p, s.valorTotal)}</td>
       <td class="num tabular">${fmtT(s.entregueQtd)}</td>
       <td class="num tabular">${s.devolvidoQtd > 0 ? fmtT(s.devolvidoQtd) : '<span class="hint">—</span>'}</td>
       <td class="num tabular">${fmtT(s.saldoQtd)}</td>
-      <td class="num tabular">${fmtR(s.saldoValor)}</td>
+      <td class="num tabular">${fmtRPedido(p, s.saldoValor)}</td>
       <td class="row-actions">
         <button title="Editar" class="gestor-credito-only" onclick="openPedidoModal('${p.id}')">✎</button>
         <button title="Excluir" class="danger gestor-credito-only" onclick="deletePedido('${p.id}')">🗑</button>
@@ -9125,7 +9152,7 @@ function renderEntregas() {
       <td class="num tabular">${fmtT(e.qtd)}</td>
       <td>${escapeHtml(e.local||'—')}</td>
       <td>${fmtDate(e.dataEntrega)}</td>
-      <td class="num tabular">${fmtR(e.valor)}</td>
+      <td class="num tabular">${fmtRPedido(p, e.valor)}</td>
       <td class="row-actions">
         <button title="Editar" class="gestor-credito-only" onclick="openEntregaModal('${e.id}')">✎</button>
         <button title="Registrar devolução / estornar" class="pode-lancar-cap-only" onclick="estornarEntrega('${e.id}')">↩</button>
@@ -9324,9 +9351,9 @@ function resumoPorFornecedor(f) {
     if (recorte && !ents.length && !devs.length) return;
 
     const brutoQtd = ents.reduce((a,e) => a + Number(e.qtd||0), 0);
-    const brutoValor = ents.reduce((a,e) => a + Number(e.valor||0), 0);
+    const brutoValor = ents.reduce((a,e) => a + valorEfetivo(e), 0);
     const devQtd = devs.reduce((a,d) => a + Number(d.qtd||0), 0);
-    const devValor = devs.reduce((a,d) => a + Number(d.valor||0), 0);
+    const devValor = devs.reduce((a,d) => a + valorEfetivo(d), 0);
     const ped = {
       p, s, aberto,
       numEntregas: ents.length,
@@ -9341,6 +9368,7 @@ function resumoPorFornecedor(f) {
     const contratado = sum(x => x.p.qtdContratada);
     const valorContratado = sum(x => x.s.valorTotal);
     const entregueTotal = sum(x => x.s.entregueQtd);
+    const contratadoComValor = sum(x => x.s.soQtd ? 0 : x.p.qtdContratada);
     return {
       nome: g.nome,
       pedidos: g.pedidos.sort((a,b) => String(a.p.numero).localeCompare(String(b.p.numero), 'pt-BR', { numeric:true })),
@@ -9351,7 +9379,8 @@ function resumoPorFornecedor(f) {
       numEntregas: sum(x => x.numEntregas),
       saldoQtd: sum(x => x.s.saldoQtd),
       saldoValor: sum(x => x.s.saldoValor),
-      precoMedio: contratado > 0 ? valorContratado / contratado : 0,
+      precoMedio: contratadoComValor > 0 ? valorContratado / contratadoComValor : 0,
+      soQtd: contratadoComValor === 0,
       pct: contratado > 0 ? Math.min(100, entregueTotal / contratado * 100) : 0
     };
   }).sort((a,b) => b.contratado - a.contratado);
@@ -9422,11 +9451,11 @@ function renderResumoFornecedor() {
       <td class="num tabular">${fmtR(x.entregueValor)}</td>
       <td class="num tabular">${fmtT(x.saldoQtd)}</td>
       <td class="num tabular">${fmtR(x.saldoValor)}</td>
-      <td class="num tabular">${fmtR(x.precoMedio)}</td>
+      <td class="num tabular">${x.soQtd ? '<span class="hint">só qtd.</span>' : fmtR(x.precoMedio)}</td>
       <td>${fornExecCell(x.pct)}</td>
     </tr>`;
     const subs = aberto ? x.pedidos.map(d => `<tr class="forn-sub">
-      <td>Pedido ${escapeHtml(d.p.numero)}${d.aberto ? '' : ' <span class="badge ok">encerrado</span>'}</td>
+      <td>Pedido ${escapeHtml(d.p.numero)}${d.s.soQtd ? ' <span class="badge qtd">só qtd.</span>' : ''}${d.aberto ? '' : ' <span class="badge ok">encerrado</span>'}</td>
       <td class="num tabular">${d.numEntregas} entr.</td>
       <td class="num tabular">${fmtT(d.p.qtdContratada)}</td>
       <td class="num tabular">${fmtR(d.s.valorTotal)}</td>
@@ -9435,7 +9464,7 @@ function renderResumoFornecedor() {
       <td class="num tabular">${fmtR(d.entregueValor)}</td>
       <td class="num tabular">${fmtT(d.s.saldoQtd)}</td>
       <td class="num tabular">${fmtR(d.s.saldoValor)}</td>
-      <td class="num tabular">${fmtR(d.p.precoTon)}</td>
+      <td class="num tabular">${fmtRPedido(d.p, d.p.precoTon)}</td>
       <td>${fornExecCell(d.s.pct)}</td>
     </tr>`).join('') : '';
     return linha + subs;
@@ -9452,7 +9481,7 @@ function renderResumoFornecedor() {
     <td class="num tabular">${fmtR(tot('entregueValor'))}</td>
     <td class="num tabular">${fmtT(tot('saldoQtd'))}</td>
     <td class="num tabular">${fmtR(tot('saldoValor'))}</td>
-    <td class="num tabular">${fmtR(tContr > 0 ? tValor / tContr : 0)}</td>
+    <td class="num tabular">${(() => { const q = lista.reduce((a,x) => a + x.pedidos.reduce((b,d) => b + (d.s.soQtd ? 0 : d.p.qtdContratada), 0), 0); return q > 0 ? fmtR(tValor / q) : '<span class="hint">—</span>'; })()}</td>
     <td>${fornExecCell(tContr > 0 ? Math.min(100, tEntTotal / tContr * 100) : 0)}</td>
   </tr>`;
 }
@@ -9461,7 +9490,7 @@ function renderResumoFornecedor() {
 function renderDevolucoes() {
   const devs = (state.devolucoes||[]).slice().sort((a,b) => (b.data||'').localeCompare(a.data||''));
   const totalQtd = devs.reduce((s,d) => s + Number(d.qtd||0), 0);
-  const totalValor = devs.reduce((s,d) => s + Number(d.valor||0), 0);
+  const totalValor = devs.reduce((s,d) => s + valorEfetivo(d), 0);
   const comEntrega = devs.filter(d => d.entregaId).length;
 
   document.getElementById('devolucoesKpis').innerHTML = `
@@ -9485,7 +9514,7 @@ function renderDevolucoes() {
       <td>${p ? escapeHtml(p.numero) : '<span class="hint">—</span>'}</td>
       <td>${entOrig ? 'NF ' + escapeHtml(entOrig.nf) : '<span class="hint">—</span>'}</td>
       <td class="num tabular" style="color:var(--amber);">${fmtT(d.qtd)}</td>
-      <td class="num tabular">${fmtR(d.valor)}</td>
+      <td class="num tabular">${fmtRPedido(p, d.valor)}</td>
       <td>${escapeHtml(d.local||'—')}</td>
       <td>${d.motivo ? escapeHtml(d.motivo) : '<span class="hint">—</span>'}</td>
       <td class="row-actions">
@@ -9567,7 +9596,8 @@ function openPedidoModal(id) {
     const p = pedidoById(id);
     document.getElementById('pedidoNumero').value = p.numero;
     document.getElementById('pedidoFornecedor').value = p.fornecedor || '';
-    document.getElementById('pedidoPreco').value = p.precoTon;
+    document.getElementById('pedidoPreco').value = p.precoTon || '';
+    setPedidoControle(p.controleValor === false ? 'qtd' : 'qtd_valor');
     document.getElementById('pedidoQtd').value = p.qtdContratada;
     document.getElementById('pedidoDataRecebimento').value = p.dataRecebimento || '';
     pedidoAnexoNomeAtual = p.anexoNome || null;
@@ -9577,6 +9607,7 @@ function openPedidoModal(id) {
     document.getElementById('pedidoNumero').value = '';
     document.getElementById('pedidoFornecedor').value = '';
     document.getElementById('pedidoPreco').value = '';
+    setPedidoControle('qtd_valor');
     document.getElementById('pedidoQtd').value = '';
     document.getElementById('pedidoDataRecebimento').value = '';
     pedidoAnexoNomeAtual = null;
@@ -9586,26 +9617,43 @@ function openPedidoModal(id) {
   updatePedidoPreview();
   openModal('modalPedido');
 }
+function getPedidoControle() {
+  const r = document.querySelector('input[name="pedidoControle"]:checked');
+  return r ? r.value : 'qtd_valor';
+}
+function setPedidoControle(v) {
+  document.querySelectorAll('input[name="pedidoControle"]').forEach(r => { r.checked = r.value === v; });
+  applyPedidoControle();
+}
+function applyPedidoControle() {
+  const soQtd = getPedidoControle() === 'qtd';
+  document.getElementById('pedidoPrecoField').style.display = soQtd ? 'none' : '';
+  updatePedidoPreview();
+}
 function updatePedidoPreview() {
   const q = Number(document.getElementById('pedidoQtd').value || 0);
   const pr = Number(document.getElementById('pedidoPreco').value || 0);
-  document.getElementById('pedidoValorPreview').textContent = `Valor total do pedido: ${fmtR(q*pr)}`;
+  document.getElementById('pedidoValorPreview').textContent = getPedidoControle() === 'qtd'
+    ? `Controle apenas por quantidade: saldo acompanhado só em toneladas (${fmtT(q)} contratadas). Entregas e devoluções deste pedido não terão valor em R$.`
+    : `Valor total do pedido: ${fmtR(q*pr)}`;
 }
+document.querySelectorAll('input[name="pedidoControle"]').forEach(r => r.addEventListener('change', applyPedidoControle));
 ['pedidoQtd','pedidoPreco'].forEach(id => document.getElementById(id).addEventListener('input', updatePedidoPreview));
 
 document.getElementById('btnSalvarPedido').addEventListener('click', async () => {
   const id = document.getElementById('pedidoEditId').value;
   const numero = document.getElementById('pedidoNumero').value.trim();
   const fornecedor = document.getElementById('pedidoFornecedor').value.trim();
-  const preco = Number(document.getElementById('pedidoPreco').value);
+  const controleValor = getPedidoControle() !== 'qtd';
+  const preco = controleValor ? Number(document.getElementById('pedidoPreco').value) : 0;
   const qtd = Number(document.getElementById('pedidoQtd').value);
   const dataRecebimento = document.getElementById('pedidoDataRecebimento').value || null;
 
   if (!numero) { toast('Informe o número do pedido'); return; }
   if (!(qtd > 0)) { toast('Informe a quantidade contratada'); return; }
-  if (!(preco > 0)) { toast('Informe o preço por tonelada'); return; }
+  if (controleValor && !(preco > 0)) { toast('Informe o preço por tonelada'); return; }
 
-  const payload = { numero, fornecedor, precoTon: preco, qtdContratada: qtd, dataRecebimento, anexoNome: pedidoAnexoNomeAtual };
+  const payload = { numero, fornecedor, precoTon: preco, controleValor, qtdContratada: qtd, dataRecebimento, anexoNome: pedidoAnexoNomeAtual };
   const btn = document.getElementById('btnSalvarPedido');
   btn.disabled = true;
   const ok = id ? await updateCapPedido(id, payload) : await insertCapPedido(payload);
@@ -9681,7 +9729,27 @@ function openEntregaModal(id) {
   openModal('modalEntrega');
 }
 
+// Esconde o campo Valor (R$) de entregas/devoluções quando o pedido
+// vinculado é controlado apenas por quantidade — o valor fica zerado.
+function syncValorPorControle(valorId, pedidoId) {
+  const input = document.getElementById(valorId);
+  const field = input.closest('.field');
+  const p = pedidoId ? pedidoById(pedidoId) : null;
+  const soQtd = soQuantidade(p);
+  field.style.display = soQtd ? 'none' : '';
+  if (soQtd) input.value = '0';
+  else if (input.value === '0') input.value = '';
+  let hint = field.parentElement.nextElementSibling;
+  if (!hint || !hint.classList || !hint.classList.contains('so-qtd-hint')) {
+    hint = document.createElement('div');
+    hint.className = 'so-qtd-hint';
+    field.parentElement.after(hint);
+  }
+  hint.textContent = soQtd ? `Pedido ${p.numero} é controlado apenas por quantidade — sem valor em R$.` : '';
+  hint.style.display = soQtd ? '' : 'none';
+}
 function updateEntregaPreview() {
+  syncValorPorControle('entregaValor', document.getElementById('entregaPedido').value);
   const pedidoId = document.getElementById('entregaPedido').value;
   const qtd = Number(document.getElementById('entregaQtd').value || 0);
   const p = pedidoId ? pedidoById(pedidoId) : null;
@@ -9698,7 +9766,7 @@ document.getElementById('entregaPedido').addEventListener('change', () => {
   const qtdField = document.getElementById('entregaQtd');
   const valorField = document.getElementById('entregaValor');
   const p = pedidoId ? pedidoById(pedidoId) : null;
-  if (p && qtdField.value && !valorField.value) {
+  if (p && !soQuantidade(p) && qtdField.value && !valorField.value) {
     valorField.value = (Number(qtdField.value) * p.precoTon).toFixed(2);
   }
   updateEntregaPreview();
@@ -9707,7 +9775,7 @@ document.getElementById('entregaQtd').addEventListener('input', () => {
   const pedidoId = document.getElementById('entregaPedido').value;
   const p = pedidoId ? pedidoById(pedidoId) : null;
   const qtd = Number(document.getElementById('entregaQtd').value || 0);
-  if (p) document.getElementById('entregaValor').value = (qtd * p.precoTon).toFixed(2);
+  if (p && !soQuantidade(p)) document.getElementById('entregaValor').value = (qtd * p.precoTon).toFixed(2);
   updateEntregaPreview();
 });
 
@@ -9824,7 +9892,7 @@ function openDevolucaoModal(id, fromEntregaId) {
     document.getElementById('devolucaoNf').value = '';
     document.getElementById('devolucaoQtd').value = disponivel > 0 ? disponivel.toFixed(2) : '';
     const p = e ? pedidoById(e.pedidoId) : null;
-    document.getElementById('devolucaoValor').value = (p && disponivel > 0) ? (disponivel * p.precoTon).toFixed(2) : '';
+    document.getElementById('devolucaoValor').value = (p && !soQuantidade(p) && disponivel > 0) ? (disponivel * p.precoTon).toFixed(2) : '';
     document.getElementById('devolucaoLocal').value = e ? (e.local || '') : '';
     document.getElementById('devolucaoDataDevolucao').value = todayIso();
     document.getElementById('devolucaoMotivo').value = 'Estorno da entrega NF ' + (e ? e.nf : '');
@@ -9864,7 +9932,7 @@ document.getElementById('devolucaoEntrega').addEventListener('change', () => {
     if (!qtdField.value) qtdField.value = disponivel > 0 ? disponivel.toFixed(2) : '';
     const p = pedidoById(e.pedidoId);
     const valorField = document.getElementById('devolucaoValor');
-    if (!valorField.value && p) valorField.value = (Number(qtdField.value||0) * p.precoTon).toFixed(2);
+    if (!valorField.value && p && !soQuantidade(p)) valorField.value = (Number(qtdField.value||0) * p.precoTon).toFixed(2);
     if (!document.getElementById('devolucaoLocal').value) document.getElementById('devolucaoLocal').value = e.local || '';
   }
   updateDevolucaoPreview();
@@ -9872,6 +9940,7 @@ document.getElementById('devolucaoEntrega').addEventListener('change', () => {
 document.getElementById('devolucaoQtd').addEventListener('input', updateDevolucaoPreview);
 
 function updateDevolucaoPreview() {
+  syncValorPorControle('devolucaoValor', document.getElementById('devolucaoPedido').value);
   const pedidoId = document.getElementById('devolucaoPedido').value;
   const entregaId = document.getElementById('devolucaoEntrega').value;
   const qtd = Number(document.getElementById('devolucaoQtd').value || 0);
@@ -9980,7 +10049,8 @@ function exportXlsx() {
   const pedidosRows = state.pedidos.map(p => {
     const s = pedidoStats(p);
     return {
-      'Pedido': p.numero, 'Fornecedor': p.fornecedor || '', 'Preço/t (R$)': p.precoTon, 'Qtd. contratada (t)': p.qtdContratada,
+      'Pedido': p.numero, 'Fornecedor': p.fornecedor || '', 'Controle': s.soQtd ? 'Apenas quantidade' : 'Quantidade e valor',
+      'Preço/t (R$)': s.soQtd ? '' : p.precoTon, 'Qtd. contratada (t)': p.qtdContratada,
       'Valor total (R$)': s.valorTotal, 'Entregue bruto (t)': s.entregueQtdBruto, 'Devolvido (t)': s.devolvidoQtd,
       'Entregue líquido (t)': s.entregueQtd, 'Entregue líquido (R$)': s.entregueValor,
       'Saldo (t)': s.saldoQtd, 'Saldo (R$)': s.saldoValor, 'Data recebimento': p.dataRecebimento || ''
@@ -10080,7 +10150,7 @@ function buildReportHtmlConteudo(fornecedorFiltro) {
     <div class="po-card">
       <div class="po-head">
         <span class="po-num">Pedido ${escapeHtml(p.numero)}</span>
-        <span class="po-price">${fmtR(p.precoTon)}/t</span>
+        <span class="po-price">${s.soQtd ? 'Apenas quantidade' : fmtR(p.precoTon) + '/t'}</span>
       </div>
       <div class="po-row"><span>Fornecedor</span><b>${p.fornecedor ? escapeHtml(p.fornecedor) : 'não informado'}</b></div>
       <div class="po-row"><span>Contratado</span><b>${fmtT(p.qtdContratada)}</b></div>
@@ -10088,7 +10158,7 @@ function buildReportHtmlConteudo(fornecedorFiltro) {
       ${s.devolvidoQtd > 0 ? `<div class="po-row"><span>Devolvido</span><b>${fmtT(s.devolvidoQtd)}</b></div>` : ''}
       <div class="bar-track"><div class="bar-fill" style="width:${s.pct.toFixed(1)}%; background:${low ? '#d03b3b' : '#2a78d6'};"></div></div>
       <div class="po-row"><span>Saldo restante</span><b>${fmtT(s.saldoQtd)}</b></div>
-      <div class="po-row"><span>Saldo (R$)</span><b>${fmtR(s.saldoValor)}</b></div>
+      ${s.soQtd ? '' : `<div class="po-row"><span>Saldo (R$)</span><b>${fmtR(s.saldoValor)}</b></div>`}
     </div>`;
   }).join('') || `<p class="hint">Nenhum pedido de compra cadastrado.</p>`;
 
