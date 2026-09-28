@@ -1307,6 +1307,33 @@ footer.appfoot{
 #tab-creditos-cap .row-actions button:hover { background: var(--asphalt-3); color: var(--yellow); }
 #tab-creditos-cap .row-actions button.danger:hover { color: var(--red); }
 #tab-creditos-cap .empty-row td { text-align: center; color: var(--text-faint); padding: 24px; }
+/* Resumo por Fornecedor */
+#tab-creditos-cap .forn-filters { align-items: flex-end; }
+#tab-creditos-cap .forn-f { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--text-faint); }
+#tab-creditos-cap .forn-f select { min-width: 180px; }
+#tab-creditos-cap .forn-note { font-size: 11.5px; color: var(--text-dim); margin: -4px 0 12px; line-height: 1.5; }
+#tab-creditos-cap .forn-note:empty { display: none; }
+#tab-creditos-cap .forn-note b { color: var(--yellow); font-weight: 600; }
+#tab-creditos-cap .forn-row { cursor: pointer; }
+#tab-creditos-cap .forn-table td { white-space: nowrap; }
+#tab-creditos-cap .forn-row td:first-child { font-weight: 600; }
+#tab-creditos-cap .forn-caret { display: inline-block; width: 14px; color: var(--text-faint); transition: transform .15s; }
+#tab-creditos-cap .forn-row.open .forn-caret { transform: rotate(90deg); color: var(--yellow); }
+#tab-creditos-cap .forn-sub td { background: rgba(255,255,255,.02); color: var(--text-dim); font-size: 12px; }
+#tab-creditos-cap .forn-sub td:first-child { padding-left: 34px; }
+#tab-creditos-cap tfoot td { padding: 11px 12px; border-top: 1px solid var(--line); font-weight: 600; color: var(--text); }
+#tab-creditos-cap .forn-exec { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+#tab-creditos-cap .forn-exec .bar-track { flex: 1; margin: 0; height: 6px; }
+#tab-creditos-cap .forn-exec span { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 38px; text-align: right; }
+#tab-creditos-cap .forn-chart-row { display: grid; grid-template-columns: minmax(140px, 260px) 1fr 150px; gap: 12px; align-items: center; margin: 9px 0; font-size: 12.5px; }
+#tab-creditos-cap .forn-chart-row .lbl { color: var(--text-dim); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tab-creditos-cap .forn-stack { display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: var(--asphalt-3); }
+#tab-creditos-cap .forn-stack .ent { background: var(--yellow); }
+#tab-creditos-cap .forn-stack .sal { background: repeating-linear-gradient(135deg, rgba(245,196,51,.28) 0 4px, rgba(245,196,51,.12) 4px 8px); }
+#tab-creditos-cap .forn-chart-row .val { font-family: var(--font-mono); font-size: 11.5px; color: var(--text); }
+#tab-creditos-cap .forn-legend { display: flex; gap: 16px; font-size: 11.5px; color: var(--text-dim); margin-top: 10px; }
+#tab-creditos-cap .forn-legend i { display: inline-block; width: 12px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+@media (max-width: 640px) { #tab-creditos-cap .forn-chart-row { grid-template-columns: 1fr; gap: 4px; } #tab-creditos-cap .forn-chart-row .lbl { text-align: left; } }
 #tab-creditos-cap .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; justify-content: space-between; }
 #tab-creditos-cap .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 #tab-creditos-cap .filters input, #tab-creditos-cap .filters select { font-size: 12.5px; padding: 7px 9px; }
@@ -2355,6 +2382,7 @@ footer.appfoot{
   <button data-view="devolucoes">Devoluções / Estorno</button>
   <button data-view="estoque">Estoque</button>
   <button data-view="resumo">Resumo por Obra</button>
+  <button data-view="fornecedor">Resumo por Fornecedor</button>
   <button data-view="dados">Dados</button>
 </nav>
 
@@ -2474,6 +2502,37 @@ footer.appfoot{
           <th class="num">Devolvido (t)</th><th class="num">Valor líquido (R$)</th><th class="num">% do total</th>
         </tr></thead>
         <tbody id="resumoTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RESUMO POR FORNECEDOR -->
+  <section class="view" id="view-fornecedor">
+    <div class="toolbar">
+      <div class="filters forn-filters">
+        <label class="forn-f"><span>Fornecedor</span><select id="fornFiltroFornecedor"><option value="">Todos os fornecedores</option></select></label>
+        <label class="forn-f"><span>Obra de entrega</span><select id="fornFiltroObra"><option value="">Todas as obras</option></select></label>
+        <label class="forn-f"><span>Situação do pedido</span><select id="fornFiltroSituacao"><option value="">Todos</option><option value="aberto">Com saldo a entregar</option><option value="encerrado">Encerrados (saldo zerado)</option></select></label>
+        <label class="forn-f"><span>Entregas de</span><input type="date" id="fornFiltroDe"></label>
+        <label class="forn-f"><span>até</span><input type="date" id="fornFiltroAte"></label>
+        <button class="btn ghost" id="fornBtnLimpar" type="button">Limpar filtros</button>
+      </div>
+    </div>
+    <div class="forn-note" id="fornNote"></div>
+    <div class="kpi-grid" id="fornKpis"></div>
+    <div class="card">
+      <h2>Execução por fornecedor <span class="muted">(entregue líquido × saldo a entregar, em toneladas)</span></h2>
+      <div id="fornChart"></div>
+    </div>
+    <div class="card table-wrap">
+      <table class="forn-table">
+        <thead><tr>
+          <th>Fornecedor</th><th class="num">Pedidos</th><th class="num">Contratado (t)</th><th class="num">Valor contratado</th>
+          <th class="num">Entregue líq. (t)</th><th class="num">Devolvido (t)</th><th class="num">Valor entregue</th>
+          <th class="num">Saldo (t)</th><th class="num">Saldo (R$)</th><th class="num">Preço médio/t</th><th>Execução</th>
+        </tr></thead>
+        <tbody id="fornTbody"></tbody>
+        <tfoot id="fornTfoot"></tfoot>
       </table>
     </div>
   </section>
@@ -9160,6 +9219,192 @@ function renderResumo() {
   }
 }
 
+/* ============ RENDER: RESUMO POR FORNECEDOR ============
+   Contratado e saldo são sempre do pedido inteiro (é o que ainda falta o
+   fornecedor entregar). Os filtros de obra e período recortam só as
+   movimentações (entregas e devoluções) — e, quando usados, mostram apenas
+   pedidos que tiveram movimento naquele recorte. */
+const fornAbertos = new Set();
+const FORN_SEM_NOME = '(fornecedor não informado)';
+function fornNome(p) { return (p.fornecedor || '').trim() || FORN_SEM_NOME; }
+
+function getFornFiltros() {
+  return {
+    fornecedor: document.getElementById('fornFiltroFornecedor').value,
+    obra: document.getElementById('fornFiltroObra').value,
+    situacao: document.getElementById('fornFiltroSituacao').value,
+    de: document.getElementById('fornFiltroDe').value,
+    ate: document.getElementById('fornFiltroAte').value
+  };
+}
+
+function populateFornFiltros() {
+  const selF = document.getElementById('fornFiltroFornecedor');
+  const curF = selF.value;
+  const forns = Array.from(new Set(state.pedidos.map(fornNome))).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  selF.innerHTML = '<option value="">Todos os fornecedores</option>' + forns.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+  if (forns.includes(curF)) selF.value = curF;
+
+  const selO = document.getElementById('fornFiltroObra');
+  const curO = selO.value;
+  const obras = Array.from(new Set([...state.entregas.map(e => e.local), ...(state.devolucoes||[]).map(d => d.local)].filter(Boolean))).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  selO.innerHTML = '<option value="">Todas as obras</option>' + obras.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+  if (obras.includes(curO)) selO.value = curO;
+}
+
+function resumoPorFornecedor(f) {
+  f = f || { fornecedor:'', obra:'', situacao:'', de:'', ate:'' };
+  const recorte = !!(f.obra || f.de || f.ate);
+  const movOk = (local, data) =>
+    (!f.obra || local === f.obra) && (!f.de || (data || '') >= f.de) && (!f.ate || (data || '') <= f.ate);
+
+  const map = new Map();
+  state.pedidos.forEach(p => {
+    const nome = fornNome(p);
+    if (f.fornecedor && nome !== f.fornecedor) return;
+    const s = pedidoStats(p);
+    const aberto = s.saldoQtd > 0.005;
+    if (f.situacao === 'aberto' && !aberto) return;
+    if (f.situacao === 'encerrado' && aberto) return;
+
+    const ents = entregasDoPedido(p.id).filter(e => movOk(e.local, e.data));
+    const devs = devolucoesDoPedido(p.id).filter(d => movOk(d.local, d.data));
+    if (recorte && !ents.length && !devs.length) return;
+
+    const brutoQtd = ents.reduce((a,e) => a + Number(e.qtd||0), 0);
+    const brutoValor = ents.reduce((a,e) => a + Number(e.valor||0), 0);
+    const devQtd = devs.reduce((a,d) => a + Number(d.qtd||0), 0);
+    const devValor = devs.reduce((a,d) => a + Number(d.valor||0), 0);
+    const ped = {
+      p, s, aberto,
+      numEntregas: ents.length,
+      entregueQtd: brutoQtd - devQtd, entregueValor: brutoValor - devValor, devolvidoQtd: devQtd
+    };
+    if (!map.has(nome)) map.set(nome, { nome, pedidos: [] });
+    map.get(nome).pedidos.push(ped);
+  });
+
+  return Array.from(map.values()).map(g => {
+    const sum = fn => g.pedidos.reduce((a,x) => a + fn(x), 0);
+    const contratado = sum(x => x.p.qtdContratada);
+    const valorContratado = sum(x => x.s.valorTotal);
+    const entregueTotal = sum(x => x.s.entregueQtd);
+    return {
+      nome: g.nome,
+      pedidos: g.pedidos.sort((a,b) => String(a.p.numero).localeCompare(String(b.p.numero), 'pt-BR', { numeric:true })),
+      contratado, valorContratado, entregueTotal,
+      entregueQtd: sum(x => x.entregueQtd),
+      entregueValor: sum(x => x.entregueValor),
+      devolvidoQtd: sum(x => x.devolvidoQtd),
+      numEntregas: sum(x => x.numEntregas),
+      saldoQtd: sum(x => x.s.saldoQtd),
+      saldoValor: sum(x => x.s.saldoValor),
+      precoMedio: contratado > 0 ? valorContratado / contratado : 0,
+      pct: contratado > 0 ? Math.min(100, entregueTotal / contratado * 100) : 0
+    };
+  }).sort((a,b) => b.contratado - a.contratado);
+}
+
+function fornExecCell(pct) {
+  const low = pct >= 85;
+  return `<div class="forn-exec"><div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${low ? 'var(--red)' : 'var(--yellow)'};"></div></div><span>${pct.toFixed(0)}%</span></div>`;
+}
+
+function renderResumoFornecedor() {
+  populateFornFiltros();
+  const f = getFornFiltros();
+  const recorte = !!(f.obra || f.de || f.ate);
+  const lista = resumoPorFornecedor(f);
+
+  const partes = [];
+  if (f.obra) partes.push(`obra <b>${escapeHtml(f.obra)}</b>`);
+  if (f.de || f.ate) partes.push(`período <b>${f.de ? fmtDate(f.de) : 'início'} a ${f.ate ? fmtDate(f.ate) : 'hoje'}</b>`);
+  document.getElementById('fornNote').innerHTML = recorte
+    ? `Entregas e devoluções filtradas por ${partes.join(' e ')}. Contratado, saldo e execução continuam sendo do pedido inteiro, e só aparecem pedidos com movimento nesse recorte.`
+    : '';
+
+  const tot = k => lista.reduce((a,x) => a + x[k], 0);
+  const nPedidos = lista.reduce((a,x) => a + x.pedidos.length, 0);
+  document.getElementById('fornKpis').innerHTML = `
+    <div class="kpi"><div class="label">Fornecedores</div><div class="value tabular">${lista.length}</div><div class="sub">${nPedidos} pedido(s)</div></div>
+    <div class="kpi"><div class="label">Qtd. contratada</div><div class="value tabular">${fmtT(tot('contratado'))}</div><div class="sub">${fmtR(tot('valorContratado'))}</div></div>
+    <div class="kpi"><div class="label">Entregue líquido${recorte ? ' (recorte)' : ''}</div><div class="value tabular">${fmtT(tot('entregueQtd'))}</div><div class="sub">${tot('numEntregas')} entrega(s) · ${fmtR(tot('entregueValor'))}</div></div>
+    <div class="kpi"><div class="label">Saldo a entregar</div><div class="value tabular">${fmtT(tot('saldoQtd'))}</div><div class="sub">${fmtR(tot('saldoValor'))}</div></div>
+  `;
+
+  const chart = document.getElementById('fornChart');
+  if (!lista.length) {
+    chart.innerHTML = '<div class="hint">Nenhum fornecedor para os filtros escolhidos.</div>';
+  } else {
+    const max = Math.max(...lista.map(x => Math.max(x.contratado, x.entregueTotal)), 0.0001);
+    chart.innerHTML = lista.map(x => {
+      const ent = Math.max(0, x.entregueTotal), sal = Math.max(0, x.saldoQtd);
+      return `<div class="forn-chart-row">
+        <div class="lbl" title="${escapeHtml(x.nome)}">${escapeHtml(x.nome)}</div>
+        <div class="forn-stack" title="Entregue ${fmtT(ent)} · Saldo ${fmtT(sal)}">
+          <div class="ent" style="width:${(ent/max*100).toFixed(2)}%"></div>
+          <div class="sal" style="width:${(sal/max*100).toFixed(2)}%"></div>
+        </div>
+        <div class="val">${fmtNum(ent)} / ${fmtT(x.contratado)}</div>
+      </div>`;
+    }).join('') + `<div class="forn-legend"><span><i style="background:var(--yellow)"></i>Entregue líquido</span><span><i style="background:rgba(245,196,51,.28)"></i>Saldo a entregar</span></div>`;
+  }
+
+  const tbody = document.getElementById('fornTbody');
+  const tfoot = document.getElementById('fornTfoot');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="11">Nenhum pedido de compra para os filtros escolhidos.</td></tr>`;
+    tfoot.innerHTML = '';
+    return;
+  }
+  const dash = '<span class="hint">—</span>';
+  tbody.innerHTML = lista.map(x => {
+    const aberto = fornAbertos.has(x.nome);
+    const linha = `<tr class="forn-row${aberto ? ' open' : ''}" data-forn="${escapeHtml(x.nome)}" title="Clique para ver os pedidos">
+      <td><span class="forn-caret">▸</span>${escapeHtml(x.nome)}</td>
+      <td class="num tabular">${x.pedidos.length}</td>
+      <td class="num tabular">${fmtT(x.contratado)}</td>
+      <td class="num tabular">${fmtR(x.valorContratado)}</td>
+      <td class="num tabular">${fmtT(x.entregueQtd)}</td>
+      <td class="num tabular">${x.devolvidoQtd > 0 ? fmtT(x.devolvidoQtd) : dash}</td>
+      <td class="num tabular">${fmtR(x.entregueValor)}</td>
+      <td class="num tabular">${fmtT(x.saldoQtd)}</td>
+      <td class="num tabular">${fmtR(x.saldoValor)}</td>
+      <td class="num tabular">${fmtR(x.precoMedio)}</td>
+      <td>${fornExecCell(x.pct)}</td>
+    </tr>`;
+    const subs = aberto ? x.pedidos.map(d => `<tr class="forn-sub">
+      <td>Pedido ${escapeHtml(d.p.numero)}${d.aberto ? '' : ' <span class="badge ok">encerrado</span>'}</td>
+      <td class="num tabular">${d.numEntregas} entr.</td>
+      <td class="num tabular">${fmtT(d.p.qtdContratada)}</td>
+      <td class="num tabular">${fmtR(d.s.valorTotal)}</td>
+      <td class="num tabular">${fmtT(d.entregueQtd)}</td>
+      <td class="num tabular">${d.devolvidoQtd > 0 ? fmtT(d.devolvidoQtd) : dash}</td>
+      <td class="num tabular">${fmtR(d.entregueValor)}</td>
+      <td class="num tabular">${fmtT(d.s.saldoQtd)}</td>
+      <td class="num tabular">${fmtR(d.s.saldoValor)}</td>
+      <td class="num tabular">${fmtR(d.p.precoTon)}</td>
+      <td>${fornExecCell(d.s.pct)}</td>
+    </tr>`).join('') : '';
+    return linha + subs;
+  }).join('');
+
+  const tContr = tot('contratado'), tValor = tot('valorContratado'), tEntTotal = tot('entregueTotal');
+  tfoot.innerHTML = `<tr>
+    <td>Total</td>
+    <td class="num tabular">${nPedidos}</td>
+    <td class="num tabular">${fmtT(tContr)}</td>
+    <td class="num tabular">${fmtR(tValor)}</td>
+    <td class="num tabular">${fmtT(tot('entregueQtd'))}</td>
+    <td class="num tabular">${fmtT(tot('devolvidoQtd'))}</td>
+    <td class="num tabular">${fmtR(tot('entregueValor'))}</td>
+    <td class="num tabular">${fmtT(tot('saldoQtd'))}</td>
+    <td class="num tabular">${fmtR(tot('saldoValor'))}</td>
+    <td class="num tabular">${fmtR(tContr > 0 ? tValor / tContr : 0)}</td>
+    <td>${fornExecCell(tContr > 0 ? Math.min(100, tEntTotal / tContr * 100) : 0)}</td>
+  </tr>`;
+}
+
 /* ============ RENDER: DEVOLUÇÕES / ESTORNO ============ */
 function renderDevolucoes() {
   const devs = (state.devolucoes||[]).slice().sort((a,b) => (b.data||'').localeCompare(a.data||''));
@@ -9218,6 +9463,7 @@ function renderAll() {
   renderDevolucoes();
   renderEstoque();
   renderResumo();
+  renderResumoFornecedor();
   renderDados();
   if (typeof window.renderCreditosDashboard === 'function') window.renderCreditosDashboard();
 }
@@ -9649,6 +9895,21 @@ async function deleteDevolucao(id) {
   document.getElementById(id).addEventListener('change', renderEntregas);
 });
 
+['fornFiltroFornecedor','fornFiltroObra','fornFiltroSituacao','fornFiltroDe','fornFiltroAte'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderResumoFornecedor);
+});
+document.getElementById('fornBtnLimpar').addEventListener('click', () => {
+  ['fornFiltroFornecedor','fornFiltroObra','fornFiltroSituacao','fornFiltroDe','fornFiltroAte'].forEach(id => { document.getElementById(id).value = ''; });
+  renderResumoFornecedor();
+});
+document.getElementById('fornTbody').addEventListener('click', ev => {
+  const tr = ev.target.closest('.forn-row');
+  if (!tr) return;
+  const nome = tr.dataset.forn;
+  if (fornAbertos.has(nome)) fornAbertos.delete(nome); else fornAbertos.add(nome);
+  renderResumoFornecedor();
+});
+
 /* ============ JSON EXPORT / IMPORT ============ */
 function downloadFile(filename, content, mime) {
   const blob = new Blob([content], { type: mime });
@@ -9704,6 +9965,14 @@ function exportXlsx() {
     'Obra': o.local, 'Nº entregas': o.count, 'Qtd líquida (t)': o.qtd, 'Devolvido (t)': o.devolvidoQtd, 'Valor líquido (R$)': o.valor
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumoRows), 'Resumo por Obra');
+
+  const fornRows = resumoPorFornecedor().map(x => ({
+    'Fornecedor': x.nome, 'Pedidos': x.pedidos.map(d => d.p.numero).join(', '), 'Qtd. contratada (t)': x.contratado,
+    'Valor contratado (R$)': x.valorContratado, 'Entregue líquido (t)': x.entregueQtd, 'Devolvido (t)': x.devolvidoQtd,
+    'Valor entregue (R$)': x.entregueValor, 'Saldo (t)': x.saldoQtd, 'Saldo (R$)': x.saldoValor,
+    'Preço médio/t (R$)': x.precoMedio, 'Execução (%)': Number(x.pct.toFixed(1))
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fornRows), 'Resumo por Fornecedor');
 
   const stamp = todayIso();
   XLSX.writeFile(wb, `saldo_cap_${stamp}.xlsx`);
