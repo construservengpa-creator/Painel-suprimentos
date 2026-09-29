@@ -10870,6 +10870,8 @@ initCap();
   .j-msg .j-kpi-n { font-size: 26px; }
   .j-msg .j-kpi-l { font-size: 11px; margin-top: 2px; }
   .j-empty { color: var(--j-apagado); margin: auto; text-align: center; padding: 0 16px; }
+  .j-msg.com-grafico { width: 92%; }
+  .j-grafico { position: relative; height: 230px; margin-top: 10px; white-space: normal; }
   #jarvis-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--j-linha); }
   #jarvis-input, #jarvis-stage-input {
     flex: 1; min-width: 0; padding: 10px 12px; border-radius: 8px;
@@ -11125,14 +11127,65 @@ window.JARVIS_CONFIG = {
     return box;
   }
 
-  function addMsg(text, cls, kpis) {
+  function addMsg(text, cls, kpis, grafico) {
     log.querySelector(".j-empty")?.remove();
     const el = document.createElement("div");
     el.className = "j-msg " + cls;
     if (kpis && kpis.length) el.append(criarKpis(kpis, false));
     el.append(document.createTextNode(text));
+    const g = criarGrafico(grafico);
+    if (g) { el.classList.add("com-grafico"); el.append(g); }
     log.appendChild(el);
     log.scrollTop = log.scrollHeight;
+  }
+
+  // Gráfico pedido pelo usuário e montado pela IA (usa o Chart.js já carregado no painel)
+  function criarGrafico(g) {
+    if (!g || !Array.isArray(g.rotulos) || !Array.isArray(g.series) || typeof Chart === "undefined") return null;
+    const box = document.createElement("div");
+    box.className = "j-grafico";
+    const cv = document.createElement("canvas");
+    cv.setAttribute("role", "img");
+    cv.setAttribute("aria-label", g.titulo || "Gráfico do Jarvis");
+    box.append(cv);
+    const css = getComputedStyle(panel);
+    const cor = (v, alt) => css.getPropertyValue(v).trim() || alt;
+    const amarelo = cor("--j-amarelo", "#f5c431"), texto = cor("--j-texto", "#e8e8e8"), linha = cor("--j-linha", "#2c2e33");
+    const paleta = [amarelo, "#4fc3f7", "#81c784", "#ff8a65", "#ba68c8", "#90a4ae", "#ffd54f", "#4db6ac"];
+    const pizza = g.tipo === "pie";
+    const fmt = (v) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    setTimeout(() => {
+      try {
+        new Chart(cv, {
+          type: g.tipo,
+          data: {
+            labels: g.rotulos,
+            datasets: g.series.map((s, i) => ({
+              label: s.nome,
+              data: s.valores,
+              backgroundColor: pizza ? g.rotulos.map((_, j) => paleta[j % paleta.length]) : paleta[i % paleta.length],
+              borderColor: pizza ? "transparent" : paleta[i % paleta.length],
+              tension: 0.3,
+            })),
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: { display: !!g.titulo, text: g.titulo, color: texto },
+              legend: { display: pizza || g.series.length > 1, labels: { color: texto } },
+              tooltip: { callbacks: { label: (c) => (c.dataset.label ? c.dataset.label + ": " : "") + fmt(typeof c.parsed === "number" ? c.parsed : c.parsed.y) } },
+            },
+            scales: pizza ? {} : {
+              x: { ticks: { color: texto }, grid: { color: linha } },
+              y: { ticks: { color: texto, callback: fmt }, grid: { color: linha } },
+            },
+          },
+        });
+        log.scrollTop = log.scrollHeight;
+      } catch (_) { box.remove(); }
+    }, 0);
+    return box;
   }
 
   /* ---------- voz de saída, com texto que aparece junto com a fala ---------- */
@@ -11794,9 +11847,10 @@ window.JARVIS_CONFIG = {
     const token = await cfg.getToken();
     if (!token) throw new Error("Faça login no painel para usar o Jarvis.");
 
-    // 1) regras locais (grátis)
+    // 1) regras locais (grátis), exceto quando o pedido precisa da IA (gráfico, análise, internet...)
     const q = norm(texto);
-    for (const it of INTENCOES) {
+    const precisaIA = /grafico|compar|analis|explic|detalh|pesquis|internet|noticia|clima|previsao do tempo|dolar|cambio|por que|porque|tendencia|evolucao|ranking|resumo (de|do|da|dos|das|por)|por (obra|mes|fornecedor|comprador)/.test(q);
+    for (const it of precisaIA ? [] : INTENCOES) {
       if (!it.when(q)) continue;
       try {
         const r = await it.fn(q);
@@ -11817,7 +11871,7 @@ window.JARVIS_CONFIG = {
       }
       throw new Error(d.error || "Erro ao falar com o Jarvis.");
     }
-    return { texto: d.reply };
+    return { texto: d.reply, grafico: d.grafico || null };
   }
 
   async function enviar(texto) {
@@ -11833,7 +11887,7 @@ window.JARVIS_CONFIG = {
       const res = await responder(texto);
       const limpo = String(res.texto).replace(/[*_#`]/g, "");
       history.push({ role: "assistant", content: limpo });
-      addMsg(limpo, "bot", res.kpis);
+      addMsg(limpo, "bot", res.kpis, res.grafico);
       if (palco) mostrarResposta(limpo, res.kpis);
       setState("idle");
       falar(limpo);
