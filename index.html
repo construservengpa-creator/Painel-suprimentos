@@ -7636,7 +7636,7 @@ async function reconciliarVinculosComNotasFiscais(){
     // Pedido encerrado (totalmente entregue, saldo cancelado ou cancelado):
     // o vínculo vira "realizado" com o valor das notas. Pedido ainda
     // parcialmente atendido: continua "previsto", só atualiza o faturado.
-    const encerrado = (p) => p.situacoes.length > 0 && p.situacoes.every(s => /totalmente entregue|saldo cancelado|^cancelad/i.test(s));
+    const encerrado = (p) => p.situacoes.length > 0 && p.situacoes.every(s => /totalmente entregue|atendida integralmente|sem saldo|saldo cancelado|^cancelad/i.test(s));
     for(const v of pendentes){
       const pedido = pedidosPorNumero.get(String(v.numPedido));
       if(!pedido || !(pedido.valorTotal > 0)) continue;
