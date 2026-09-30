@@ -12442,6 +12442,11 @@ function analyze(c,ref){
   c.diasEsg=c.ritmo?c.saldo/c.ritmo:null;
   c.dtEsg=c.diasEsg!=null?iso(new Date(ref.getTime()+Math.ceil(c.diasEsg)*DAY)):null;
   c.proj=c.ritmo&&c.diasRest!=null?c.medido+c.ritmo*Math.max(0,c.diasRest):null;
+  c.fonteRitmo='historico';
+  if(CRIT[c.id]){const k=critOf(c),pp=planoParcela(c,k,ref);
+    if(pp){c.fonteRitmo='parcela';c.nRestParc=pp.nRest;c.mensal=pp.p*30.4/(PER_DIAS[k.periodicidade]||30.4);c.ritmo=c.mensal/30.4;
+      c.dtEsg=pp.fim?iso(pp.fim):null;c.diasEsg=pp.fim?Math.max(0,days(ref,pp.fim)):0;
+      c.proj=c.medido+pp.p*Math.min(pp.nRest,pp.F)+(pp.nRest>pp.F?pp.p*(pp.nRest-pp.F):0);}}
   const mp=[],mq=[],me=[];
   if(c.ativo&&fim){
     const T=CFG, tol=T.tolSaldo/100, rel=T.saldoRel/100, dr=c.diasRest, esgotado=c.pSaldo<=tol;
@@ -12735,7 +12740,7 @@ function openD(id){
      <dt>Total</dt><dd class="ctr-mono">${brl(c.total)}</dd>
      <dt>Medido</dt><dd class="ctr-mono">${brl(c.medido)}</dd>
      <dt>Saldo</dt><dd class="ctr-mono">${brl(c.saldo)} (${pct(c.pSaldo)})</dd>
-     <dt>Média mensal</dt><dd class="ctr-mono">${c.mensal?brl(c.mensal):'—'}</dd>
+     <dt>${c.fonteRitmo==='parcela'?'Parcela (critério)':'Média mensal'}</dt><dd class="ctr-mono">${c.mensal?brl(c.mensal):'—'}${c.fonteRitmo==='parcela'?` <span style="color:var(--text-dim)">(${c.nRestParc} restantes)</span>`:''}</dd>
      <dt>Saldo acaba em</dt><dd class="ctr-mono">${c.dtEsg?br(c.dtEsg):'—'}</dd>
      <dt>Projeção no término</dt><dd class="ctr-mono">${c.proj!=null?brl(c.proj)+' ('+pct(c.total?c.proj/c.total:0)+')':'—'}</dd>
      <dt>Responsável</dt><dd>${esc(c.responsavel)}</dd>
@@ -12826,6 +12831,18 @@ function baseMedicao(c){
   const n=SNAPS.filter(s=>s.resumo&&s.resumo[c.id]).length;
   return n>=2?first:null; // sem mudança entre posições: nada medido desde a primeira
 }
+// Parcelas iguais com valor da parcela cadastrado: nº de parcelas restantes = saldo ÷ parcela.
+// Se sobram mais parcelas do que datas futuras na vigência, as excedentes estão atrasadas;
+// se sobram menos, o saldo acaba antes do término.
+function planoParcela(c,k,ref,cuts){
+  if(!(k.base_valor==='Parcelas iguais'&&+k.valor_parcela>0)||!['Mensal','Quinzenal','Semanal'].includes(k.periodicidade))return null;
+  cuts=cuts||cortesOf(c,k);if(!cuts.length)return null;
+  const p=+k.valor_parcela, nRest=Math.max(0,Math.round(c.saldo/p));
+  const fut=cuts.filter(x=>x.emissao>=ref), F=fut.length;
+  const pend=(nRest>=F?cuts.slice(Math.max(0,cuts.length-nRest)):fut.slice(0,nRest)).map(x=>Object.assign({},x));
+  let rest=c.saldo;pend.forEach((x,i)=>{x.v=i===pend.length-1?rest:Math.min(rest,p);rest=Math.max(0,rest-x.v)});
+  return {p,nRest,F,pend,sobra:nRest<F,semSaldo:nRest<F?fut[nRest].corte:null,fim:pend.length?pend[pend.length-1].corte:null};
+}
 function agendaOf(c,ref){
   const k=critOf(c), cuts=cortesOf(c,k), tol=Math.max(1,c.total*CFG.tolSaldo/100);
   const ag={k,cuts,pend:[],atr:[],next:null,status:'fim',base:null,msg:''};
@@ -12833,22 +12850,28 @@ function agendaOf(c,ref){
   if(c.nec==='encerrar'){ag.status='encerrar';ag.msg='Vencido há muito tempo: fora da agenda';return ag}
   if(c.saldo<=tol){ag.status='fim';ag.msg='Saldo medido; sem medições previstas';return ag}
   if(!cuts.length){ag.status='semprev';ag.msg=k.periodicidade==='Por etapa'?'Cadastre as etapas com data':'Vigência sem datas válidas';return ag}
-  if(k.base_valor==='Parcelas iguais'||k.periodicidade==='Por etapa'||k.periodicidade==='Parcela única'){
+  const pp=planoParcela(c,k,ref,cuts);
+  if(pp){
+    // parcela conhecida: o saldo diz quantas parcelas faltam (saldo ÷ parcela)
+    ag.pend=pp.pend;ag.atr=pp.pend.filter(x=>x.emissao<ref);ag.nRest=pp.nRest;
+    if(pp.sobra)ag.msg=`O saldo cobre ${plural(pp.nRest,'parcela','parcelas')} e a vigência ainda tem ${pp.F}: faltará saldo a partir de ${br(pp.semSaldo)}`;
+  } else if(k.periodicidade==='Por etapa'||k.periodicidade==='Parcela única'){
     const semV=cuts.filter(x=>x.v==null).length, somaV=cuts.reduce((s,x)=>s+(x.v||0),0);
-    const parc=k.valor_parcela?+k.valor_parcela:Math.max(0,(c.total-somaV))/(semV||1);
+    const parc=Math.max(0,(c.total-somaV))/(semV||1);
     cuts.forEach(x=>{if(x.v==null)x.v=parc});
     let acc=0,idx=cuts.length;
     for(let i=0;i<cuts.length;i++){acc+=cuts[i].v;if(acc>c.medido+0.5*cuts[i].v){idx=i;break}}
     ag.pend=cuts.slice(idx);
     ag.atr=ag.pend.filter(x=>x.emissao<ref);
   } else {
+    // parcela desconhecida (ou por avanço): atraso só pelo histórico de importações
     const per=PER_DIAS[k.periodicidade]||30.4;
     const b=baseMedicao(c);ag.base=b;
     const bD=b?toD(b):null;
     ag.pend=cuts.filter(x=>x.emissao>=(bD||ref));
     ag.atr=bD?ag.pend.filter(x=>x.emissao<ref):[];
     const fut=Math.max(1,ag.pend.length);
-    const est=c.mensal?c.mensal*per/30.4:c.saldo/fut;
+    const est=k.base_valor==='Parcelas iguais'||!c.mensal?c.saldo/fut:c.mensal*per/30.4;
     let rest=c.saldo;ag.pend.forEach(x=>{x.v=Math.min(rest,est);rest=Math.max(0,rest-x.v)});
   }
   ag.next=ag.pend.find(x=>x.emissao>=ref)||null;
@@ -12912,6 +12935,7 @@ function xlsAgenda(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d2.length?d2:[{'Situação':'Nada previsto'}]),'Agenda');
   XLSX.writeFile(wb,'agenda_medicoes_'+POS.data_ref+'.xlsx');
 }
+function recalc(){if(!POS)return;ALL=build(POS.dados,POS.data_ref);computeAgenda()}
 async function saveCriterio(c,vals){
   const row=Object.assign({contrato_key:c.id,contrato:c.contrato,empresa_cod:c.empresaCod??null},vals);
   const { data, error } = await SB.from('contratos_criterios').upsert(row,{onConflict:'contrato_key'}).select().single();
@@ -12926,7 +12950,7 @@ async function aplicarLote(){
   const rows=alvo.map(c=>Object.assign({contrato_key:c.id,contrato:c.contrato,empresa_cod:c.empresaCod??null},v));
   for(let i=0;i<rows.length;i+=200){const { data, error } = await SB.from('contratos_criterios').upsert(rows.slice(i,i+200),{onConflict:'contrato_key'}).select();
     if(error){alert('Não foi possível aplicar: '+error.message);break}(data||[]).forEach(r=>CRIT[r.contrato_key]=r)}
-  computeAgenda();render();
+  recalc();render();
 }
 function critForm(c){
   const k=c.ag?c.ag.k:critOf(c), pode=isGestor(), dis=pode?'':'disabled';
@@ -12972,7 +12996,7 @@ function wireCritForm(c){
     sv.disabled=true;
     try{
       await saveCriterio(c,{periodicidade:p,referencia:$('#ctrCRef').value,dia_corte:+$('#ctrCDia').value||null,prazo_emissao_dias:+$('#ctrCPz').value||0,base_valor:(p==='Por etapa'||p==='Parcela única')?'Parcelas iguais':$('#ctrCBase').value,valor_parcela:$('#ctrCVp').value===''?null:Number($('#ctrCVp').value),etapas,observacoes:$('#ctrCOb').value.trim()||null});
-      computeAgenda();render();openD(c.id);const s=$('#ctrCSaved');if(s){s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600)}
+      recalc();render();openD(c.id);const s=$('#ctrCSaved');if(s){s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600)}
     }catch(e){alert('Não foi possível salvar o critério: '+(e.message||e));sv.disabled=false}
   };
 }
