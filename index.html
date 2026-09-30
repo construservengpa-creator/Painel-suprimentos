@@ -10872,6 +10872,8 @@ initCap();
   .j-empty { color: var(--j-apagado); margin: auto; text-align: center; padding: 0 16px; }
   .j-msg.com-grafico { width: 92%; }
   .j-grafico { position: relative; height: 230px; margin-top: 10px; white-space: normal; }
+  #jarvis-stage .j-grafico { width: min(100%, 860px); height: clamp(260px, 42vh, 480px); margin: 0 0 18px; }
+  @media (max-width: 760px) { #jarvis-stage .j-grafico { height: 250px; } }
   #jarvis-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--j-linha); }
   #jarvis-input, #jarvis-stage-input {
     flex: 1; min-width: 0; padding: 10px 12px; border-radius: 8px;
@@ -11140,7 +11142,7 @@ window.JARVIS_CONFIG = {
   }
 
   // Gráfico pedido pelo usuário e montado pela IA (usa o Chart.js já carregado no painel)
-  function criarGrafico(g) {
+  function criarGrafico(g, grande = false) {
     if (!g || !Array.isArray(g.rotulos) || !Array.isArray(g.series) || typeof Chart === "undefined") return null;
     const box = document.createElement("div");
     box.className = "j-grafico";
@@ -11154,6 +11156,7 @@ window.JARVIS_CONFIG = {
     const paleta = [amarelo, "#4fc3f7", "#81c784", "#ff8a65", "#ba68c8", "#90a4ae", "#ffd54f", "#4db6ac"];
     const pizza = g.tipo === "pie";
     const fmt = (v) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    const fonte = { size: grande ? 15 : 11 };
     setTimeout(() => {
       try {
         new Chart(cv, {
@@ -11172,17 +11175,17 @@ window.JARVIS_CONFIG = {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              title: { display: !!g.titulo, text: g.titulo, color: texto },
-              legend: { display: pizza || g.series.length > 1, labels: { color: texto } },
+              title: { display: !!g.titulo, text: g.titulo, color: texto, font: { size: grande ? 20 : 13, weight: "600" } },
+              legend: { display: pizza || g.series.length > 1, labels: { color: texto, font: fonte } },
               tooltip: { callbacks: { label: (c) => (c.dataset.label ? c.dataset.label + ": " : "") + fmt(typeof c.parsed === "number" ? c.parsed : c.parsed.y) } },
             },
             scales: pizza ? {} : {
-              x: { ticks: { color: texto }, grid: { color: linha } },
-              y: { ticks: { color: texto, callback: fmt }, grid: { color: linha } },
+              x: { ticks: { color: texto, font: fonte }, grid: { color: linha } },
+              y: { ticks: { color: texto, font: fonte, callback: fmt }, grid: { color: linha } },
             },
           },
         });
-        log.scrollTop = log.scrollHeight;
+        if (!grande) log.scrollTop = log.scrollHeight;
       } catch (_) { box.remove(); }
     }, 0);
     return box;
@@ -11282,9 +11285,11 @@ window.JARVIS_CONFIG = {
     stQ.textContent = ""; stKpis.replaceChildren(); stAns.textContent = "";
     stAns.classList.remove("digitando", "erro"); stBoot.replaceChildren();
   }
-  function mostrarResposta(texto, kpis) {
+  function mostrarResposta(texto, kpis, grafico) {
     stBoot.replaceChildren(); stKpis.replaceChildren();
     if (kpis && kpis.length) stKpis.append(criarKpis(kpis, true));
+    const g = criarGrafico(grafico, true);
+    if (g) stKpis.append(g);
     escrever(texto);
   }
   async function iniciarPalco() {
@@ -11888,7 +11893,7 @@ window.JARVIS_CONFIG = {
       const limpo = String(res.texto).replace(/[*_#`]/g, "");
       history.push({ role: "assistant", content: limpo });
       addMsg(limpo, "bot", res.kpis, res.grafico);
-      if (palco) mostrarResposta(limpo, res.kpis);
+      if (palco) mostrarResposta(limpo, res.kpis, res.grafico);
       setState("idle");
       falar(limpo);
     } catch (e) {
