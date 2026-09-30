@@ -1547,6 +1547,10 @@ table.data.ctr-tbl tr.ctr-agday td span{color:var(--text-dim);font-weight:400;te
 .ctr-lote{margin-bottom:16px;}
 body.is-admin .ctr-lote.gestor-credito-only,body.is-supervisor .ctr-lote.gestor-credito-only{display:block !important;}
 body.is-admin .ctr-lote.gestor-credito-only[hidden],body.is-supervisor .ctr-lote.gestor-credito-only[hidden]{display:none !important;}
+
+.ctr-frm label.ctr-chk{display:flex;flex-direction:row;align-items:center;gap:8px;color:var(--text);font-size:13px;}
+.ctr-frm label.ctr-chk input{width:auto;}
+body.is-admin .ctr-notif.admin-only{display:block !important;}
 </style>
 </head>
 <body>
@@ -3018,6 +3022,29 @@ body.is-admin .ctr-lote.gestor-credito-only[hidden],body.is-supervisor .ctr-lote
       <div class="ctr-msg" id="ctrImpMsg"></div>
     </div>
     <p class="ctr-note ctr-logged logged-non-gestor" id="ctrSoGestor">A importação é feita por administradores e supervisores.</p>
+    <div class="ctr-card admin-only ctr-notif" style="margin-bottom:16px">
+      <header><h3>Notificação por WhatsApp</h3><p>Dias úteis às 07:30: críticos quando houver novidade; segunda-feira, resumo semanal</p></header>
+      <div class="ctr-body">
+        <div class="ctr-frm" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+          <label>Telefone com DDI e DDD<input type="text" id="ctrNTel" placeholder="+5591999999999"></label>
+          <label>Apikey do CallMeBot<input type="text" id="ctrNKey" placeholder="enviada pelo bot no WhatsApp"></label>
+          <label>Vencendo em até (dias), no resumo<input type="number" id="ctrNJan" min="1" max="180"></label>
+          <label class="ctr-chk"><input type="checkbox" id="ctrNAtivo"> Notificação ativa</label>
+          <label class="ctr-chk"><input type="checkbox" id="ctrNDia"> Aviso diário de críticos</label>
+          <label class="ctr-chk"><input type="checkbox" id="ctrNSem"> Resumo semanal (segunda)</label>
+          <label class="ctr-chk full"><input type="checkbox" id="ctrNRep"> Repetir os críticos todo dia, mesmo sem novidade</label>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn primary small" id="ctrNSave">Salvar</button>
+          <button class="btn small" id="ctrNTeste">Enviar teste agora</button>
+          <span class="ctr-ok" id="ctrNOk">Salvo</span>
+        </div>
+        <div class="ctr-msg" id="ctrNMsg"></div>
+        <p class="ctr-note" style="margin-top:12px">Para obter a apikey (gratuita, uso pessoal): siga as instruções em <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener" style="color:var(--yellow)">callmebot.com</a>. Salve o número do bot nos contatos, envie a ele pelo WhatsApp a frase <b>I allow callmebot to send me messages</b> e aguarde a resposta com a apikey.</p>
+        <div class="ctr-sec" style="margin-top:12px">Últimos envios</div>
+        <div class="table-scroll"><table class="data" id="ctrNLog"></table></div>
+      </div>
+    </div>
     <div class="ctr-card" style="margin-bottom:16px">
       <header><h3>Posições importadas</h3><p>Cada importação vira uma posição no histórico de medições</p></header>
       <div class="ctr-body"><div class="table-scroll"><table class="data" id="ctrTPos"></table></div></div>
@@ -12671,6 +12698,7 @@ function renderMedicoes(){
 
 /* ---------- importar / regras / posições ---------- */
 function renderImportar(){
+  loadNotif();
   $('#ctrTPos').innerHTML='<thead><tr><th>Posição</th><th>Arquivo</th><th class="num">Contratos</th><th>Importado em</th><th></th></tr></thead><tbody>'+
     (SNAPS.slice().reverse().map(s=>`<tr><td class="mono">${br(s.data_ref)}</td><td>${esc(s.nome_arquivo||'')}</td><td class="num">${s.total_contratos??'—'}</td><td class="mono">${s.importado_em?new Date(s.importado_em).toLocaleString('pt-BR'):'—'}</td><td><button class="btn small admin-only" data-del="${s.id}" data-ref="${esc(s.data_ref)}">Excluir</button></td></tr>`).join('')||'<tr><td colspan="5" class="ctr-mt">Nenhuma posição importada.</td></tr>')+'</tbody>';
   $$('#ctrTPos [data-del]').forEach(b=>b.onclick=async()=>{
@@ -13000,6 +13028,42 @@ function wireCritForm(c){
     }catch(e){alert('Não foi possível salvar o critério: '+(e.message||e));sv.disabled=false}
   };
 }
+
+
+/* ---------- notificação por WhatsApp (admin) ---------- */
+async function loadNotif(){
+  if(!isAdmin())return;
+  const [cf,lg]=await Promise.all([
+    SB.from('contratos_notif_config').select('ativo,telefone,apikey,diario,semanal,diario_repetir,janela_dias').eq('id',1).maybeSingle(),
+    SB.from('contratos_notif_log').select('enviado_em,tipo,origem,status,erro').order('enviado_em',{ascending:false}).limit(12)
+  ]);
+  if(cf.data){const d=cf.data;$('#ctrNTel').value=d.telefone||'';$('#ctrNKey').value=d.apikey||'';$('#ctrNJan').value=d.janela_dias;
+    $('#ctrNAtivo').checked=d.ativo;$('#ctrNDia').checked=d.diario;$('#ctrNSem').checked=d.semanal;$('#ctrNRep').checked=d.diario_repetir}
+  const ST={enviado:'ok',erro:'crit',sem_novidade:'off',desativado:'off'};
+  const TX={enviado:'Enviado',erro:'Erro',sem_novidade:'Sem novidade',desativado:'Desativado'};
+  $('#ctrNLog').innerHTML='<thead><tr><th>Quando</th><th>Tipo</th><th>Origem</th><th>Situação</th><th>Detalhe</th></tr></thead><tbody>'+
+    ((lg.data||[]).map(l=>`<tr><td class="mono">${new Date(l.enviado_em).toLocaleString('pt-BR')}</td><td>${esc(l.tipo)}</td><td>${l.origem==='cron'?'automático':'manual'}</td><td><span class="ctr-tag ${ST[l.status]||'off'}">${TX[l.status]||esc(l.status)}</span></td><td><span class="ctr-subtxt">${esc(l.erro||'')}</span></td></tr>`).join('')||'<tr><td colspan="5" class="ctr-mt">Nenhum envio ainda.</td></tr>')+'</tbody>';
+}
+function nmsg(t,ok){const m=$('#ctrNMsg');m.innerHTML=t;m.className='ctr-msg on '+(ok?'ok':'err')}
+$('#ctrNSave').onclick=async()=>{
+  const tel=$('#ctrNTel').value.replace(/[^\d+]/g,'');
+  if($('#ctrNAtivo').checked&&(!/^\+\d{12,13}$/.test(tel)||!$('#ctrNKey').value.trim())){nmsg('Para ativar, informe o telefone no formato +55DDDnúmero e a apikey.');return}
+  const { error } = await SB.from('contratos_notif_config').update({telefone:tel||null,apikey:$('#ctrNKey').value.trim()||null,janela_dias:+$('#ctrNJan').value||30,
+    ativo:$('#ctrNAtivo').checked,diario:$('#ctrNDia').checked,semanal:$('#ctrNSem').checked,diario_repetir:$('#ctrNRep').checked,atualizado_em:new Date().toISOString()}).eq('id',1);
+  if(error){nmsg('Não foi possível salvar: '+esc(error.message));return}
+  $('#ctrNTel').value=tel;$('#ctrNMsg').className='ctr-msg';const s=$('#ctrNOk');s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600);
+};
+$('#ctrNTeste').onclick=async()=>{
+  const b=$('#ctrNTeste');b.disabled=true;nmsg('Enviando…',true);
+  try{
+    const { data, error } = await SB.functions.invoke('notificar-contratos',{body:{modo:'teste'}});
+    let msg=data&&data.erro;
+    if(error){try{const j=await error.context.json();msg=j.erro||error.message}catch(_){msg=error.message}}
+    if(msg)nmsg('Não foi enviado: '+esc(msg)+'. Salve o telefone e a apikey antes do teste.');
+    else nmsg('Mensagem de teste enviada. Confira o WhatsApp.',true);
+  }catch(e){nmsg('Não foi enviado: '+esc(e.message||e))}
+  b.disabled=false;loadNotif();
+};
 
 /* ---------- navegação / ligação com o painel ---------- */
 function goTab(t){const b=document.querySelector(`.tab-btn[data-tab="${t}"]`);if(b)b.click()}
