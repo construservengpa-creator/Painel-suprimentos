@@ -7405,12 +7405,16 @@ function vinculoRowFromDb(row){
 // Valor que efetivamente conta contra o saldo do crédito: enquanto não
 // tem nota fiscal, é o previsto (reservado); quando a nota aparece, vira
 // o realizado (valor real); se o vínculo foi cancelado, não conta nada.
+// Pedido parcialmente entregue: o vínculo continua "previsto" (a reserva do
+// restante do pedido segue valendo), mas já guarda em valorRealizado o que
+// foi faturado até agora; o efetivo é o maior entre previsto e faturado.
 function vinculoValorEfetivo(v){
   if(v.status === 'cancelado') return 0;
   if(v.status === 'realizado') return v.valorRealizado;
-  return v.valorPrevisto;
+  return Math.max(v.valorPrevisto||0, v.valorRealizado||0);
 }
-function vinculoStatusBadge(status){
+function vinculoStatusBadge(status, v){
+  if(status==='previsto' && v && v.valorRealizado>0.005) return `<span class="badge dentro" title="Pedido parcialmente entregue: R$ ${fmtMoney(v.valorRealizado)} já faturado; o restante continua reservado">Parcial · R$ ${fmtMoney(v.valorRealizado)} faturado</span>`;
   if(status==='realizado') return '<span class="badge dentro">Realizado</span>';
   if(status==='cancelado') return '<span class="badge sem-data">Cancelado</span>';
   return '<span class="badge hoje">Previsto</span>';
@@ -7556,10 +7560,10 @@ function creditoAbatido(creditoId){
 // (com nota fiscal confirmada) — pra não apresentar um valor reservado
 // como se já tivesse sido abatido de verdade.
 function creditoReservado(creditoId){
-  return vinculosDoCredito(creditoId).filter(v=>v.status==='previsto').reduce((s,v)=>s+v.valorPrevisto,0);
+  return vinculosDoCredito(creditoId).filter(v=>v.status==='previsto').reduce((s,v)=>s+Math.max(0,(v.valorPrevisto||0)-(v.valorRealizado||0)),0);
 }
 function creditoRealizadoAbatido(creditoId){
-  return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado').reduce((s,v)=>s+v.valorRealizado,0);
+  return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado'||v.status==='previsto').reduce((s,v)=>s+(v.valorRealizado||0),0);
 }
 function creditoSaldo(c){
   return c.valorTotal - creditoAbatido(c.id);
@@ -7584,8 +7588,9 @@ function getPedidosUnicos(){
   (state.rows||[]).forEach(r=>{
     if(!r.numPedido) return;
     if(!map.has(r.numPedido)){
-      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'', valorTotal:0, notas:[], _notasVistas:new Set() });
+      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'', valorTotal:0, notas:[], _notasVistas:new Set(), _situacoes:new Set() });
     }
+    if(r.situacaoPedido) map.get(r.numPedido)._situacoes.add(String(r.situacaoPedido).trim());
     // O Sienge não traz um "valor do pedido" único, só o valor de cada nota
     // fiscal emitida contra ele — um pedido pode ter várias linhas de
     // insumo repetindo a mesma nota, então contamos por nota fiscal distinta
@@ -7605,7 +7610,7 @@ function getPedidosUnicos(){
     }
   });
   return [...map.values()]
-    .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, notas:p.notas }))
+    .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, notas:p.notas, situacoes:[...p._situacoes] }))
     .sort((a,b)=>String(a.numPedido).localeCompare(String(b.numPedido),'pt-BR',{numeric:true}));
 }
 
@@ -7628,13 +7633,18 @@ async function reconciliarVinculosComNotasFiscais(){
   try{
     const pedidosPorNumero = new Map(getPedidosUnicos().map(p=>[String(p.numPedido), p]));
     let algumAtualizado = false;
+    // Pedido encerrado (totalmente entregue, saldo cancelado ou cancelado):
+    // o vínculo vira "realizado" com o valor das notas. Pedido ainda
+    // parcialmente atendido: continua "previsto", só atualiza o faturado.
+    const encerrado = (p) => p.situacoes.length > 0 && p.situacoes.every(s => /totalmente entregue|saldo cancelado|^cancelad/i.test(s));
     for(const v of pendentes){
       const pedido = pedidosPorNumero.get(String(v.numPedido));
       if(!pedido || !(pedido.valorTotal > 0)) continue;
-      const ok = await updateVinculoCredito(v.id, Object.assign({}, v, {
-        valorRealizado: pedido.valorTotal,
-        status: 'realizado'
-      }));
+      let novo = null;
+      if(encerrado(pedido)) novo = { valorRealizado: pedido.valorTotal, status: 'realizado' };
+      else if(Math.abs((v.valorRealizado||0) - pedido.valorTotal) > 0.005) novo = { valorRealizado: pedido.valorTotal };
+      if(!novo) continue;
+      const ok = await updateVinculoCredito(v.id, Object.assign({}, v, novo));
       if(ok) algumAtualizado = true;
     }
     if(algumAtualizado){
@@ -7968,7 +7978,7 @@ function renderCreditos(){
           <td class="txt">${esc(v.obraPedido)}</td>
           <td class="txt">${esc(v.fornecedor)}</td>
           <td class="txt">${esc(notasDoPedidoFormatadas(v.numPedido))||'—'}</td>
-          <td>${vinculoStatusBadge(v.status)}</td>
+          <td>${vinculoStatusBadge(v.status, v)}</td>
           <td>R$ ${fmtMoney(vinculoValorEfetivo(v))}</td>
           <td>${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</td>
           <td class="txt">${esc(v.observacao)||'—'}</td>
@@ -8041,7 +8051,7 @@ function renderVinculosLista(){
       <td>${esc(v.numPedido)}</td>
       <td class="txt">${esc(v.obraPedido)}</td>
       <td class="txt">${esc(v.fornecedor)}</td>
-      <td>${vinculoStatusBadge(v.status)}</td>
+      <td>${vinculoStatusBadge(v.status, v)}</td>
       <td>R$ ${fmtMoney(vinculoValorEfetivo(v))}</td>
       <td>${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</td>
       <td class="txt">${esc(v.observacao)||'—'}</td>
@@ -8169,6 +8179,9 @@ window.refreshCreditosAposLogin = async function(){
   await loadCreditos();
   await loadVinculosCredito();
   renderCreditos();
+  // o relatório do Sienge pode ter carregado antes do login/dos vínculos:
+  // nesse caso a reconciliação do loadRows saiu sem fazer nada — roda de novo
+  if(state.rows && state.rows.length) reconciliarVinculosComNotasFiscais();
 };
 
 function startEditCredito(id){
@@ -8473,7 +8486,7 @@ function resumoAuditoria(a){
       return mudou.length ? `Alterou crédito de ${novo.obra||antigo.obra}: ${mudou.join('; ')}` : `Alterou crédito de ${novo.obra||antigo.obra}`;
     }
   } else if(a.tabela === 'creditos_vinculos'){
-    const efetivoRaw = (row) => !row ? 0 : (row.status==='cancelado' ? 0 : row.status==='realizado' ? Number(row.valor_realizado)||0 : Number(row.valor_previsto)||0);
+    const efetivoRaw = (row) => !row ? 0 : (row.status==='cancelado' ? 0 : row.status==='realizado' ? Number(row.valor_realizado)||0 : Math.max(Number(row.valor_previsto)||0, Number(row.valor_realizado)||0));
     if(a.operacao === 'INSERT') return `Vinculou pedido ${novo.num_pedido||'—'} (R$ ${fmtMoney(efetivoRaw(novo))}, ${novo.status||'previsto'})`;
     if(a.operacao === 'DELETE') return `Removeu vínculo do pedido ${antigo.num_pedido||'—'} (R$ ${fmtMoney(efetivoRaw(antigo))})`;
     if(a.operacao === 'UPDATE'){
@@ -11782,7 +11795,7 @@ window.JARVIS_CONFIG = {
   async function creditos() {
     const [cr, vi] = await Promise.all([todas("creditos_obra"), todas("creditos_vinculos")]);
     if (!cr.length) return "Não há créditos cadastrados, ou você não tem acesso a eles.";
-    const efetivo = (v) => (v.status === "cancelado" ? 0 : v.status === "realizado" ? Number(v.valor_realizado) || 0 : Number(v.valor_previsto) || 0);
+    const efetivo = (v) => (v.status === "cancelado" ? 0 : v.status === "realizado" ? Number(v.valor_realizado) || 0 : Math.max(Number(v.valor_previsto) || 0, Number(v.valor_realizado) || 0));
     const usado = (id) => vi.filter((v) => v.credito_id === id).reduce((s, v) => s + efetivo(v), 0);
     const total = soma(cr, "valor_total");
     const abatido = cr.reduce((s, c) => s + usado(c.id), 0);
