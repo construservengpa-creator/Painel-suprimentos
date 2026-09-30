@@ -1429,6 +1429,125 @@ footer.appfoot{
 #tab-creditos-cap .bar-chart .bc-row { grid-template-columns:90px 1fr 70px; }
 }
 </style>
+<style>
+/* ============================================================
+   CONTROLE DE CONTRATOS (módulo) — prefixo .ctr / #ctr*
+   ============================================================ */
+body:not(.is-logged) .ctr-logged{display:none !important;}
+.ctr-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:16px;}
+.ctr-head h2{font-family:var(--font-display);font-size:21px;font-weight:600;margin:0;letter-spacing:.01em;}
+.ctr-head .ctr-sub{display:block;font:500 12px var(--font-body);color:var(--text-dim);margin-top:3px;letter-spacing:0;}
+#ctrFiltros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#ctrFiltros .ctr-pos{font-size:12px;color:var(--text-dim);margin-right:4px;}
+#ctrFiltros .ctr-pos b{font-family:var(--font-mono);color:var(--text);}
+#ctrFiltros select{max-width:260px;}
+.ctr-empty-state{background:var(--asphalt-2);border:1px dashed var(--line);border-radius:8px;padding:28px;text-align:center;color:var(--text-dim);font-size:13.5px;line-height:1.6;}
+.ctr-kpi-hot .kpi-value{color:var(--red);}
+.ctr-kpi-warm .kpi-value{color:#FF9447;}
+.ctr-kpi-card button.ctr-lnk{margin-top:8px;}
+.ctr-lnk{border:0;background:none;color:var(--yellow);cursor:pointer;padding:0;font:600 12px var(--font-body);}
+.ctr-grid2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin-bottom:16px;}
+.ctr-card{background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;min-width:0;}
+.ctr-card>header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 16px 0;}
+.ctr-card>header h3{font:600 15px var(--font-display);margin:0;letter-spacing:.03em;}
+.ctr-card>header p{margin:0;color:var(--text-dim);font-size:12px;}
+.ctr-card .ctr-body{padding:12px 16px 16px;}
+.ctr-map-wrap{position:relative;}
+.ctr-map svg{width:100%;height:auto;display:block;}
+.ctr-map .ctr-dot{cursor:pointer;stroke:var(--asphalt-2);stroke-width:1;}
+.ctr-map .ctr-dot:hover{stroke:#fff;stroke-width:2;}
+.ctr-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text-dim);margin-top:8px;}
+.ctr-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;}
+.ctr-tip{position:absolute;pointer-events:none;background:var(--asphalt-3);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:12px;max-width:270px;display:none;z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.4);}
+.ctr-tip b{font-family:var(--font-mono);}
+.ctr-venc .ctr-it{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;align-items:center;}
+.ctr-venc .ctr-it:last-child{border-bottom:0;}
+.ctr-venc .ctr-d{font:600 12px var(--font-mono);text-align:center;padding:4px 0;border-radius:5px;background:var(--asphalt-3);}
+.ctr-venc .ctr-d.crit{color:var(--red);}.ctr-venc .ctr-d.alto{color:#FF9447;}
+.ctr-venc b{font:600 12px var(--font-mono);}
+.ctr-subtxt{color:var(--text-dim);font-size:12px;display:block;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+table.data.ctr-tbl tbody tr{cursor:pointer;}
+table.data.ctr-tbl td.num,table.data.ctr-tbl th.num{text-align:right;font-variant-numeric:tabular-nums;}
+table.data.ctr-tbl td.mono{font-family:var(--font-mono);font-size:12px;}
+.ctr-rg{width:130px;display:grid;gap:3px;}
+.ctr-rg .b{height:6px;border-radius:3px;background:var(--asphalt-3);position:relative;overflow:hidden;}
+.ctr-rg .b i{position:absolute;inset:0 auto 0 0;border-radius:3px;}
+.ctr-rg .t i{background:var(--text-dim);}.ctr-rg .t.over i{background:var(--red);}
+.ctr-rg .m i{background:var(--yellow);}
+.ctr-rg span{font:11px var(--font-mono);color:var(--text-dim);display:flex;justify-content:space-between;}
+.ctr-tag{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap;border:1px solid transparent;}
+.ctr-tag.crit{background:rgba(208,59,59,.18);color:#ff6b6b;}
+.ctr-tag.alto{background:rgba(255,148,71,.16);color:#FF9447;}
+.ctr-tag.aten{background:rgba(245,196,51,.14);color:var(--yellow);}
+.ctr-tag.ok{background:rgba(12,163,12,.16);color:#3ccf5a;}
+.ctr-tag.off{background:var(--asphalt-3);color:var(--text-dim);}
+.ctr-tag.st{border-color:var(--line);color:var(--text);font-weight:500;background:transparent;}
+.ctr-tags{display:flex;gap:4px;flex-wrap:wrap;}
+.ctr-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+.ctr-toolbar input[type=text]{flex:1 1 240px;}
+.ctr-count{font-size:12px;color:var(--text-dim);margin-left:auto;}
+.ctr-seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+.ctr-seg button{border:0;background:var(--asphalt-2);padding:8px 13px;cursor:pointer;color:var(--text-dim);font:600 12.5px var(--font-body);}
+.ctr-seg button.on{background:var(--yellow);color:#1A1E24;}
+.ctr-board{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px;}
+.ctr-bcol{min-width:0;background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:120px;}
+.ctr-bcol>h4{font:600 14px var(--font-display);letter-spacing:.03em;margin:0;padding:12px 12px 8px;display:flex;justify-content:space-between;border-bottom:1px solid var(--line);}
+.ctr-bcol>h4 em{font:600 12px var(--font-mono);font-style:normal;color:var(--text-dim);}
+.ctr-bcol .ctr-items{padding:8px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-content:start;}
+.ctr-ad{background:var(--asphalt-3);border:1px solid var(--line);border-left:3px solid var(--text-faint);border-radius:6px;padding:9px 10px;cursor:pointer;}
+.ctr-ad.crit{border-left-color:var(--red);}.ctr-ad.alto{border-left-color:#FF9447;}.ctr-ad.aten{border-left-color:var(--yellow);}
+.ctr-ad .h{display:flex;justify-content:space-between;gap:6px;font:600 12px var(--font-mono);}
+.ctr-ad .h .ctr-tag{flex:0 0 auto;}
+.ctr-ad .f{font-size:12px;margin:3px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ctr-ad .r{font-size:11px;color:var(--text-dim);}
+.ctr-mt{color:var(--text-dim);font-size:13px;padding:16px;text-align:center;}
+.ctr-note{font-size:12.5px;color:var(--text-dim);line-height:1.6;}
+.ctr-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900;}
+.ctr-scrim.on{opacity:1;pointer-events:auto;}
+.ctr-drawer{position:fixed;top:0;right:0;height:100%;width:min(560px,100%);background:var(--asphalt);border-left:1px solid var(--line);z-index:901;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;}
+.ctr-drawer.on{transform:none;}
+.ctr-drawer header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start;}
+.ctr-drawer header h3{margin:0;font:600 21px var(--font-display);}
+.ctr-drawer header p{margin:2px 0 0;color:var(--text-dim);font-size:12px;}
+.ctr-drawer .ctr-x{margin-left:auto;border:0;background:none;font-size:24px;cursor:pointer;color:var(--text-dim);line-height:1;}
+.ctr-drawer .ctr-db{overflow:auto;padding:16px 20px 30px;flex:1;}
+.ctr-dl{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:13px;margin:0 0 14px;}
+.ctr-dl dt{color:var(--text-dim);}.ctr-dl dd{margin:0;}
+.ctr-mono{font-family:var(--font-mono);font-size:12.5px;}
+.ctr-sec{font:600 14px var(--font-display);letter-spacing:.04em;margin:18px 0 8px;padding-top:14px;border-top:1px solid var(--line);}
+.ctr-bar .row{display:grid;grid-template-columns:70px 1fr 60px;align-items:center;gap:10px;font-size:12px;margin-bottom:6px;}
+.ctr-bar .trk{height:10px;background:var(--asphalt-3);border-radius:5px;position:relative;overflow:hidden;}
+.ctr-bar .trk i{position:absolute;inset:0 auto 0 0;}
+.ctr-mot{display:grid;gap:6px;margin:0;padding:0;list-style:none;}
+.ctr-mot li{font-size:13px;padding:8px 10px;border-radius:6px;background:var(--asphalt-2);border-left:3px solid var(--text-faint);}
+.ctr-mot li.crit{border-left-color:var(--red);}.ctr-mot li.alto{border-left-color:#FF9447;}.ctr-mot li.aten{border-left-color:var(--yellow);}
+.ctr-frm{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ctr-frm label{display:grid;gap:4px;font-size:12px;color:var(--text-dim);}
+.ctr-frm .full{grid-column:1/-1;}
+.ctr-frm input,.ctr-frm select,.ctr-frm textarea{background:var(--asphalt-2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px 10px;font:13px var(--font-body);width:100%;}
+.ctr-frm textarea{min-height:64px;resize:vertical;}
+.ctr-frm :disabled{opacity:.6;cursor:not-allowed;}
+.ctr-ok{font-size:12px;color:#3ccf5a;margin-left:8px;opacity:0;transition:opacity .2s;}
+.ctr-ok.on{opacity:1;}
+.ctr-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
+.ctr-rules label{display:grid;gap:4px;font-size:13px;}
+.ctr-rules label small{color:var(--text-dim);font-size:12px;}
+.ctr-rules input{background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px 10px;}
+.ctr-msg{padding:10px 12px;border-radius:6px;background:var(--asphalt-2);border:1px solid var(--line);font-size:13px;margin-top:12px;display:none;}
+.ctr-msg.on{display:block;}
+.ctr-msg.ok{border-color:var(--teal);}.ctr-msg.err{border-color:var(--red);}
+@media (max-width:1000px){.ctr-grid2{grid-template-columns:1fr;}}
+@media (max-width:640px){.ctr-dl{grid-template-columns:110px 1fr;}.ctr-frm{grid-template-columns:1fr;}}
+@media print{.ctr-drawer,.ctr-scrim{display:none;}}
+.logged-non-gestor{display:none;}
+body.is-logged:not(.is-admin):not(.is-supervisor) .logged-non-gestor{display:block;}
+
+table.data.ctr-tbl tr.ctr-agday td{background:var(--asphalt-3);font:600 12px var(--font-mono);color:var(--yellow);text-transform:capitalize;padding:7px 12px;cursor:default;}
+table.data.ctr-tbl tr.ctr-agday td span{color:var(--text-dim);font-weight:400;text-transform:none;margin-left:6px;}
+.ctr-lote{margin-bottom:16px;}
+body.is-admin .ctr-lote.gestor-credito-only,body.is-supervisor .ctr-lote.gestor-credito-only{display:block !important;}
+body.is-admin .ctr-lote.gestor-credito-only[hidden],body.is-supervisor .ctr-lote.gestor-credito-only[hidden]{display:none !important;}
+</style>
 </head>
 <body>
 <div id="colFilterDropdown" class="col-filter-dropdown">
@@ -1535,6 +1654,16 @@ footer.appfoot{
       <div class="nav-submenu">
         <button class="tab-btn gestor-credito-only" data-tab="creditos"><span class="tab-label">Crédito entre Obras</span></button>
         <button class="tab-btn gestor-credito-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
+      </div>
+    </div>
+    <div class="nav-group ctr-logged" data-group="contratos">
+      <button class="tab-btn nav-group-btn" data-tab="contratos-geral" title="Contratos"><span class="tab-icon">📑</span><span class="tab-label">Contratos</span><span class="count-pill" id="ctrCountPill" style="display:none">0</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <div class="nav-submenu">
+        <button class="tab-btn" data-tab="contratos-lista"><span class="tab-label">Lista de contratos</span></button>
+        <button class="tab-btn" data-tab="contratos-agenda"><span class="tab-label">Agenda de medições</span></button>
+        <button class="tab-btn" data-tab="contratos-aditivos"><span class="tab-label">Aditivos</span></button>
+        <button class="tab-btn" data-tab="contratos-medicoes"><span class="tab-label">Medições</span></button>
+        <button class="tab-btn" data-tab="contratos-importar"><span class="tab-label">Importar e regras</span></button>
       </div>
     </div>
     <button class="tab-btn" data-tab="admin"><span class="tab-icon">🔐</span><span class="tab-label">Administração</span></button>
@@ -2769,6 +2898,149 @@ footer.appfoot{
   </section>
 
   <!-- ===================== ADMINISTRAÇÃO ===================== -->
+
+  <!-- ===================== CONTROLE DE CONTRATOS ===================== -->
+  <section class="tab-panel" id="tab-contratos-geral">
+    <div class="ctr-head"><h2>Controle de Contratos<span class="ctr-sub">Visão geral dos contratos ativos e da necessidade de aditivos</span></h2><div class="ctr-fslot"></div></div>
+    <div class="ctr-state"></div>
+    <div class="ctr-when-data">
+      <div class="kpi-grid" id="ctrKpis"></div>
+      <div class="ctr-grid2">
+        <div class="ctr-card">
+          <header><h3>Mapa de aditivos</h3><p>Cada ponto é um contrato ativo: prazo decorrido × valor medido. Clique para abrir.</p></header>
+          <div class="ctr-body ctr-map-wrap"><div class="ctr-map" id="ctrMap"></div><div class="ctr-tip" id="ctrTip"></div>
+            <div class="ctr-legend"><span><i style="background:var(--red)"></i>Crítico</span><span><i style="background:#FF9447"></i>Alto</span><span><i style="background:var(--yellow)"></i>Atenção</span><span><i style="background:var(--teal)"></i>Em dia</span><span>Tamanho = valor do contrato (escala log)</span></div>
+          </div>
+        </div>
+        <div class="ctr-card">
+          <header><h3>Vencimentos</h3><p>Vencidos recentes com saldo e os próximos 60 dias</p></header>
+          <div class="ctr-body"><div class="ctr-venc" id="ctrVenc"></div></div>
+        </div>
+      </div>
+      <div class="ctr-card">
+        <header><h3>Por obra</h3><p>Clique numa obra para filtrar</p></header>
+        <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl" id="ctrTObras"></table></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-contratos-lista">
+    <div class="ctr-head"><h2>Contratos<span class="ctr-sub">Prazo decorrido × valor medido por contrato</span></h2><div class="ctr-fslot"></div></div>
+    <div class="ctr-state"></div>
+    <div class="ctr-when-data">
+      <div class="ctr-toolbar">
+        <input type="text" id="ctrQ" placeholder="Buscar contrato, fornecedor, objeto, CNPJ…">
+        <select id="ctrFSit"><option value="ativos">Ativos</option></select>
+        <select id="ctrFTipo"><option value="">Todos os tipos</option></select>
+        <select id="ctrFNec"><option value="">Qualquer necessidade</option><option value="prazo">Aditivo de prazo</option><option value="quant">Aditivo de quantidade</option><option value="ambos">Prazo e quantidade</option><option value="encerrar">Encerrar ou aditar</option><option value="any">Qualquer aditivo</option><option value="ok">Sem necessidade</option></select>
+        <button class="btn small" id="ctrExpXls">Exportar Excel</button>
+        <span class="ctr-count" id="ctrCCount"></span>
+      </div>
+      <div class="table-scroll"><table class="data ctr-tbl" id="ctrTCtr"></table></div>
+      <div style="text-align:center;margin-top:10px"><button class="btn small" id="ctrMore" hidden>Mostrar mais</button></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-contratos-agenda">
+    <div class="ctr-head"><h2>Agenda de medições<span class="ctr-sub">Quando emitir cada medição, pelo critério de pagamento do contrato</span></h2><div class="ctr-fslot"></div></div>
+    <div class="ctr-state"></div>
+    <div class="ctr-when-data">
+      <div class="ctr-toolbar">
+        <div class="ctr-seg" id="ctrSegHor"><button data-h="7">7 dias</button><button data-h="15">15 dias</button><button data-h="30" class="on">30 dias</button><button data-h="60">60 dias</button><button data-h="90">90 dias</button></div>
+        <select id="ctrAgResp"><option value="">Todos os responsáveis</option></select>
+        <select id="ctrAgOrig"><option value="">Critério cadastrado ou padrão</option><option value="cad">Só cadastrados</option><option value="pad">Só usando o padrão</option></select>
+        <button class="btn small gestor-credito-only" id="ctrLtBtn">Critério em lote</button>
+        <button class="btn small" id="ctrAgExp">Exportar Excel</button>
+        <span class="ctr-count" id="ctrAgCount"></span>
+      </div>
+      <div class="ctr-card gestor-credito-only ctr-lote" id="ctrLote" hidden>
+        <header><h3>Aplicar critério em lote</h3><p>Vale para os contratos ativos do filtro atual (empresa, obra, responsável)</p></header>
+        <div class="ctr-body ctr-frm" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+          <label>Periodicidade<select id="ctrLtPer"><option>Mensal</option><option>Quinzenal</option><option>Semanal</option></select></label>
+          <label>Referência do corte<select id="ctrLtRef"><option>Dia fixo</option><option>Aniversário do contrato</option></select></label>
+          <label>Dia de corte<input type="number" id="ctrLtDia" min="1" max="31" value="25"></label>
+          <label>Emitir após o corte (dias)<input type="number" id="ctrLtPz" min="0" max="90" value="5"></label>
+          <label>Valor de cada medição<select id="ctrLtBase"><option>Por avanço</option><option>Parcelas iguais</option></select></label>
+          <label style="align-self:end;flex-direction:row;display:flex;gap:6px;align-items:center"><input type="checkbox" id="ctrLtSob" style="width:auto"> Substituir critérios já cadastrados</label>
+          <div class="full"><button class="btn primary small" id="ctrLtAplicar">Aplicar aos contratos do filtro</button></div>
+        </div>
+      </div>
+      <div class="kpi-grid" id="ctrAgKpis"></div>
+      <div class="ctr-card" style="margin-bottom:16px">
+        <header><h3>Em atraso</h3><p>Data de emissão já passou e a medição não aparece no Sienge</p></header>
+        <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl" id="ctrAgAtr"></table></div></div>
+      </div>
+      <div class="ctr-card">
+        <header><h3>Próximas emissões</h3><p>Ordenadas pela data em que a medição deve ser emitida</p></header>
+        <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl" id="ctrAgFut"></table></div></div>
+      </div>
+      <p class="ctr-note" style="margin-top:12px">Sem critério cadastrado, locações seguem mensal no aniversário do contrato com parcelas iguais, e os demais contratos seguem corte mensal no dia padrão, com valor pelo ritmo de medição. "Em atraso" em parcelas iguais compara o valor que já deveria estar medido com o medido no Sienge; em contratos por avanço, usa a data da última medição identificada entre as importações, por isso só aparece a partir da segunda importação.</p>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-contratos-aditivos">
+    <div class="ctr-head"><h2>Aditivos<span class="ctr-sub">Andamento dos aditivos apontados pelas regras</span></h2><div class="ctr-fslot"></div></div>
+    <div class="ctr-state"></div>
+    <div class="ctr-when-data">
+      <div class="ctr-toolbar">
+        <div class="ctr-seg" id="ctrSegAd"><button data-t="" class="on">Todos</button><button data-t="prazo">Prazo</button><button data-t="quant">Quantidade</button><button data-t="encerrar">Encerrar</button></div>
+        <select id="ctrFSev"><option value="">Todas as severidades</option><option value="crit">Crítico</option><option value="alto">Alto ou crítico</option></select>
+        <button class="btn small" id="ctrExpAd">Exportar Excel</button>
+        <span class="ctr-count" id="ctrAdCount"></span>
+      </div>
+      <div class="ctr-board" id="ctrBoard"></div>
+      <p class="ctr-note" style="margin-top:12px">Contratos entram aqui quando as regras apontam necessidade de aditivo. O andamento é compartilhado por todos os usuários; só administradores e supervisores alteram. Numa nova importação, contratos com prazo ou valor aumentados no Sienge são marcados como assinados automaticamente.</p>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-contratos-medicoes">
+    <div class="ctr-head"><h2>Medições<span class="ctr-sub">O que foi medido entre duas posições importadas</span></h2><div class="ctr-fslot"></div></div>
+    <div class="ctr-state"></div>
+    <div class="ctr-when-data">
+      <div class="ctr-toolbar">
+        <label class="ctr-note">De <select id="ctrSnapA"></select></label>
+        <label class="ctr-note">até <select id="ctrSnapB"></select></label>
+        <span class="ctr-count" id="ctrMCount"></span>
+      </div>
+      <div id="ctrMedBody"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-contratos-importar">
+    <div class="ctr-head"><h2>Importar e regras<span class="ctr-sub">Relatório de contratos do Sienge e limites dos alertas</span></h2></div>
+    <div class="ctr-state"></div>
+    <div class="gestor-credito-only section" style="margin-bottom:16px">
+      <label class="file-drop" id="ctrDrop" style="display:block;position:relative">
+        <input type="file" id="ctrFile" accept=".xlsx,.xls">
+        <b>Importar relatório de contratos do Sienge</b><br>
+        Arraste o .xlsx aqui ou clique para escolher. A data da posição vem do nome do arquivo (sienge_relatorio-AAAAMMDD…); importar de novo a mesma data substitui a posição.
+      </label>
+      <div class="ctr-msg" id="ctrImpMsg"></div>
+    </div>
+    <p class="ctr-note ctr-logged logged-non-gestor" id="ctrSoGestor">A importação é feita por administradores e supervisores.</p>
+    <div class="ctr-card" style="margin-bottom:16px">
+      <header><h3>Posições importadas</h3><p>Cada importação vira uma posição no histórico de medições</p></header>
+      <div class="ctr-body"><div class="table-scroll"><table class="data" id="ctrTPos"></table></div></div>
+    </div>
+    <div class="ctr-card" style="margin-bottom:16px">
+      <header><h3>Regras de alerta</h3><p>Valem para todos os usuários; só administradores alteram</p></header>
+      <div class="ctr-body">
+        <div class="ctr-rules" id="ctrRules"></div>
+        <div class="admin-only" style="margin-top:14px"><button class="btn primary small" id="ctrSaveRules">Salvar regras</button> <button class="btn small" id="ctrResetRules">Voltar ao padrão</button><span class="ctr-ok" id="ctrRulesOk">Regras salvas</span></div>
+      </div>
+    </div>
+    <div class="ctr-card">
+      <header><h3>Como a necessidade é calculada</h3></header>
+      <div class="ctr-body ctr-note">
+        <p><b>Prazo decorrido</b> = dias desde o início ÷ duração do contrato. <b>Medido</b> = Total medido ÷ Total. O <b>ritmo</b> é o valor medido por dia dentro da vigência; com ele se projeta quando o saldo acaba.</p>
+        <p><b>Aditivo de prazo</b>: vencido com saldo, vencendo dentro da janela com saldo relevante, ou ritmo que não consome o saldo até o término.</p>
+        <p><b>Encerrar ou aditar</b>: vencido há mais tempo que o limite e ainda com saldo; em geral é contrato que ficou aberto no Sienge.</p>
+        <p><b>Aditivo de quantidade/valor</b>: medido acima do limite com prazo correndo, saldo esgotado antes do término, ou ritmo que esgota o saldo antes do término.</p>
+        <p>Contratos em mais de uma obra no relatório (rateio) são somados numa linha por empresa + número. Ativos = Pendente, Parcialmente medido e Totalmente medido, exceto reprovados.</p>
+      </div>
+    </div>
+  </section>
+
   <section class="tab-panel" id="tab-admin">
     <div class="section anon-only">
       <div class="form-card">
@@ -5465,7 +5737,8 @@ function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); re
    ============================================================ */
 var navTabGroupMap = {
   overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos',
-  'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos'
+  'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos',
+  'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos'
 };
 
 /* ---- menu principal: recolher/expandir a barra lateral ---- */
@@ -5503,6 +5776,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     var targetTab = btn.getAttribute('data-tab');
     document.getElementById('tab-'+targetTab).classList.add('active');
     if(targetTab === 'creditos-dashboard' && typeof renderCreditosDashboard === 'function') renderCreditosDashboard();
+    if(targetTab.indexOf('contratos-') === 0 && window.CTR) window.CTR.show(targetTab);
 
     var groupName = navTabGroupMap[targetTab];
     document.querySelectorAll('.nav-group').forEach(function(g){
@@ -8514,6 +8788,7 @@ init();
     }
     if(isAdmin) loadUsuarios(); else { const tb = document.getElementById('usuariosTableBody'); if(tb) tb.innerHTML = ''; }
     if(typeof window.refreshCreditosAposLogin === 'function') window.refreshCreditosAposLogin();
+    if(typeof window.refreshContratosAposLogin === 'function') window.refreshContratosAposLogin();
   }
 
   document.getElementById('btnLogin').addEventListener('click', async ()=>{
@@ -12030,6 +12305,719 @@ window.JARVIS_CONFIG = {
   stage.querySelectorAll(".j-chip[data-q]").forEach((b) => b.addEventListener("click", () => enviar(b.dataset.q)));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && palco) fecharPalco(); });
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && palco) fecharPalco(); });
+})();
+</script>
+
+
+<!-- ===================== CONTROLE DE CONTRATOS · gaveta de detalhe ===================== -->
+<div class="ctr-scrim" id="ctrScrim"></div>
+<aside class="ctr-drawer" id="ctrDrawer" aria-hidden="true">
+  <header><div><h3 id="ctrDT"></h3><p id="ctrDS"></p></div><button class="ctr-x" id="ctrDX" aria-label="Fechar">×</button></header>
+  <div class="ctr-db" id="ctrDB"></div>
+</aside>
+<div id="ctrFiltros"><span class="ctr-pos">Posição <b id="ctrPosData">—</b></span><select id="ctrEmp" aria-label="Empresa"></select><select id="ctrObra" aria-label="Obra"></select></div>
+
+<script>
+/* ============================================================
+   CONTROLE DE CONTRATOS — módulo do Painel de Suprimentos
+   Fonte: relatório de contratos do Sienge (.xlsx).
+   Supabase: contratos_posicoes (posições importadas),
+             contratos_aditivos (andamento), contratos_regras.
+   Leitura: usuário logado. Importar/editar aditivo: admin ou
+   supervisor (private.is_gestor_credito). Regras e exclusão: admin.
+   ============================================================ */
+(function(){
+'use strict';
+const SB=window.SB;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const DAY=864e5;
+const FIELDS=['contrato','obraCod','obra','fornecedor','cnpj','objeto','empresaCod','empresa','dtContrato','dtInicio','dtTermino','situacao','autorizacao','responsavel','tipo','total','medido','saldo','aberto','dtAlt','descAlt'];
+const DEF={janelaCrit:30,janelaAten:90,saldoRel:10,tolSaldo:2,limAlto:80,limCrit:95,folga:15,semMed:45,vencAntigo:120,corteDia:25,prazoEmissao:5};
+const RULES=[
+ ['janelaCrit','Janela de vencimento (dias)','Vence dentro desta janela com saldo relevante: aditivo de prazo'],
+ ['janelaAten','Horizonte de projeção (dias)','Até quantos dias antes do término a projeção de ritmo gera alerta'],
+ ['saldoRel','Saldo relevante (%)','Saldo acima deste percentual conta como relevante para prazo'],
+ ['tolSaldo','Saldo residual (%)','Abaixo disto o saldo é tratado como esgotado'],
+ ['limAlto','Medido: alerta alto (%)','Medido acima disto, com prazo correndo, pede aditivo de quantidade'],
+ ['limCrit','Medido: crítico (%)','Medido acima disto é crítico'],
+ ['folga','Folga (dias)','Tolerância entre esgotamento projetado e término'],
+ ['semMed','Sem medição (dias)','Ativo sem nenhuma medição após este prazo gera atenção'],
+ ['vencAntigo','Vencido antigo (dias)','Vencido há mais que isto vira "Encerrar ou aditar"'],
+ ['corteDia','Dia de corte padrão','Corte mensal usado por contratos sem critério cadastrado (locações usam o aniversário)'],
+ ['prazoEmissao','Emissão após o corte (dias)','Prazo padrão entre o corte e a emissão da medição']
+];
+const STATUS=['A analisar','Em elaboração','Em aprovação','Assinado','Dispensado'];
+const SEVR={crit:3,alto:2,aten:1,ok:0,off:-1};
+const SEVL={crit:'Crítico',alto:'Alto',aten:'Atenção',ok:'Em dia',off:'Inativo'};
+const NECL={prazo:'Prazo',quant:'Quantidade',ambos:'Prazo + quantidade',encerrar:'Encerrar ou aditar',ok:'Sem necessidade',off:'—'};
+const FLAG=['prazo','quant','ambos','encerrar'];
+const COR={crit:'var(--red)',alto:'#FF9447',aten:'var(--yellow)',ok:'var(--teal)'};
+
+let CFG=Object.assign({},DEF);
+let POS=null;        // posição atual {id,data_ref,nome_arquivo,dados}
+let SNAPS=[];        // [{id,data_ref,nome_arquivo,importado_em,resumo}]
+let AD={};           // contrato_key -> linha de contratos_aditivos
+let CRIT={};         // contrato_key -> linha de contratos_criterios
+let ALL=[];
+let STATE='idle';    // idle | loading | nologin | empty | ready | error
+let ERRMSG='';
+let VIEW='contratos-geral';
+let loadedOnce=false;
+
+/* ---------- formatação ---------- */
+const nf=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const brl=v=>nf.format(v||0);
+const brlC=v=>{const a=Math.abs(v||0);if(a>=1e9)return 'R$ '+(v/1e9).toLocaleString('pt-BR',{maximumFractionDigits:2})+' bi';if(a>=1e6)return 'R$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi';if(a>=1e3)return 'R$ '+(v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil';return brl(v)};
+const pct=v=>v==null||!isFinite(v)?'—':(v*100).toLocaleString('pt-BR',{maximumFractionDigits:0})+'%';
+const toD=s=>{if(!s)return null;const d=new Date(String(s).slice(0,10)+'T00:00:00');return isNaN(d)?null:d};
+const iso=d=>d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'):null;
+const br=s=>{const d=typeof s==='string'?toD(s):s;return d?String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear():'—'};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const days=(a,b)=>Math.round((b-a)/DAY);
+const plural=(n,s,p)=>n+' '+(Math.abs(n)===1?s:p);
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\*/g,'').trim().toLowerCase().replace(/\s+/g,' ');
+const isGestor=()=>document.body.classList.contains('is-admin')||document.body.classList.contains('is-supervisor');
+const isAdmin=()=>document.body.classList.contains('is-admin');
+
+/* ---------- leitura do relatório do Sienge ---------- */
+const HMAP={'contrato':'contrato','cod. obra':'obraCod','obra':'obra','fornecedor':'fornecedor','cpf/cnpj fornecedor':'cnpj','objeto do contrato':'objeto','cod. empresa':'empresaCod','nome da empresa':'empresa','data do contrato':'dtContrato','data de inicio':'dtInicio','data de termino':'dtTermino','situacao do contrato':'situacao','situacao de autorizacao':'autorizacao','responsavel':'responsavel','tipo do contrato':'tipo','total':'total','total medido':'medido','saldo':'saldo','total em aberto':'aberto','data da alteracao de situacao':'dtAlt','descricao da alteracao de situacao':'descAlt'};
+function cellDate(v){
+  if(v==null||v==='')return null;
+  if(v instanceof Date)return iso(v);
+  if(typeof v==='number'){const d=new Date(Math.round((v-25569)*DAY));return iso(new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()))}
+  const m=String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  const d=new Date(v);return isNaN(d)?null:iso(d);
+}
+function cellNum(v){if(v==null||v==='')return 0;if(typeof v==='number')return v;const s=String(v).replace(/[R$\s]/g,'');const n=Number(s.includes(',')?s.replace(/\./g,'').replace(',','.'):s);return isNaN(n)?0:n}
+function parseSheet(wb){
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  const hi=aoa.findIndex(r=>r&&r.some(c=>norm(c)==='contrato')&&r.some(c=>norm(c)==='total medido'));
+  if(hi<0)throw new Error('não encontrei as colunas "Contrato" e "Total Medido". Confira se é o relatório de contratos do Sienge.');
+  const idx={};aoa[hi].map(norm).forEach((h,i)=>{const k=HMAP[h];if(k&&idx[k]==null)idx[k]=i});
+  const miss=['contrato','total','medido','dtInicio','dtTermino','situacao'].filter(k=>idx[k]==null);
+  if(miss.length)throw new Error('colunas ausentes no relatório: '+miss.join(', '));
+  const rows=[];
+  for(let r=hi+1;r<aoa.length;r++){
+    const a=aoa[r];if(!a||a[idx.contrato]==null||String(a[idx.contrato]).trim()==='')continue;
+    rows.push(FIELDS.map(k=>{const v=idx[k]==null?null:a[idx[k]];
+      if(k.startsWith('dt'))return cellDate(v);
+      if(['total','medido','saldo','aberto'].includes(k))return Math.round(cellNum(v)*100)/100;
+      if(k==='obraCod'||k==='empresaCod'){const n=parseInt(v,10);return isNaN(n)?null:n}
+      return v==null?null:String(v).replace(/\uFFFD/g,'?').replace(/\s+/g,' ').trim().slice(0,k==='objeto'?280:200)}));
+  }
+  return rows;
+}
+
+/* ---------- consolidação + análise ---------- */
+function build(ds,ref){
+  const F=ds.fields||FIELDS, map=new Map();
+  for(const r of ds.rows){
+    const o={};F.forEach((k,i)=>o[k]=r[i]);
+    const id=(o.empresaCod??'x')+'|'+o.contrato;
+    let c=map.get(id);
+    if(!c){c=Object.assign({},o,{id,obras:[],total:0,medido:0,saldo:0,aberto:0,hasSaldo:false});map.set(id,c)}
+    if(o.obra&&!c.obras.includes(o.obra))c.obras.push(o.obra);
+    c.total+=o.total||0;c.medido+=o.medido||0;c.aberto+=o.aberto||0;
+    if(o.saldo!=null){c.saldo+=o.saldo;c.hasSaldo=true}
+    if(o.dtInicio&&(!c.dtInicio||o.dtInicio<c.dtInicio))c.dtInicio=o.dtInicio;
+    if(o.dtTermino&&(!c.dtTermino||o.dtTermino>c.dtTermino))c.dtTermino=o.dtTermino;
+  }
+  const R=toD(ref);
+  return [...map.values()].map(c=>{c.obra=c.obras.join(' / ');return analyze(c,R)});
+}
+function analyze(c,ref){
+  const ini=toD(c.dtInicio), fim=toD(c.dtTermino);
+  const sit=norm(c.situacao);
+  c.ativo=['parcialmente medido','pendente','totalmente medido'].includes(sit)&&norm(c.autorizacao)!=='reprovada';
+  if(!c.hasSaldo)c.saldo=Math.max(0,c.total-c.medido);
+  c.dur=ini&&fim?Math.max(1,days(ini,fim)):null;
+  c.dec=ini?days(ini,ref):null;
+  c.diasRest=fim?days(ref,fim):null;
+  c.pPrazo=c.dur&&c.dec!=null?Math.max(0,c.dec/c.dur):null;
+  c.pMed=c.total>0?c.medido/c.total:0;
+  c.pSaldo=c.total>0?c.saldo/c.total:0;
+  c.ritmo=c.dec>0&&c.medido>0?c.medido/Math.min(c.dec,c.dur||c.dec):0;
+  c.mensal=c.ritmo*30.4;
+  c.diasEsg=c.ritmo?c.saldo/c.ritmo:null;
+  c.dtEsg=c.diasEsg!=null?iso(new Date(ref.getTime()+Math.ceil(c.diasEsg)*DAY)):null;
+  c.proj=c.ritmo&&c.diasRest!=null?c.medido+c.ritmo*Math.max(0,c.diasRest):null;
+  const mp=[],mq=[],me=[];
+  if(c.ativo&&fim){
+    const T=CFG, tol=T.tolSaldo/100, rel=T.saldoRel/100, dr=c.diasRest, esgotado=c.pSaldo<=tol;
+    if(dr<0&&!esgotado&&-dr>T.vencAntigo)me.push(['aten',`Vencido há ${plural(-dr,'dia','dias')} com ${pct(c.pSaldo)} de saldo (${brl(c.saldo)}). Encerrar no Sienge ou formalizar aditivo`]);
+    else if(dr<0&&!esgotado)mp.push(['crit',`Vencido há ${plural(-dr,'dia','dias')} com ${pct(c.pSaldo)} de saldo (${brl(c.saldo)})`]);
+    else if(dr>=0&&dr<=T.janelaCrit&&c.pSaldo>rel)mp.push([dr<=T.janelaCrit/2?'crit':'alto',`Vence em ${plural(dr,'dia','dias')} com ${pct(c.pSaldo)} de saldo`]);
+    else if(dr>=0&&c.ritmo&&!esgotado&&dr<=T.janelaAten&&c.diasEsg>dr+T.folga)mp.push(['aten',`No ritmo atual o saldo dura até ${br(c.dtEsg)}, ${plural(Math.round(c.diasEsg-dr),'dia','dias')} depois do término`]);
+    if(c.medido===0&&c.dec!=null&&c.dec>T.semMed&&dr>=0)mp.push(['aten',`Nenhuma medição em ${c.dec} dias de contrato`]);
+    if(dr>T.folga){
+      if(esgotado)mq.push(['crit',`Saldo esgotado com ${plural(dr,'dia','dias')} de prazo pela frente`]);
+      else if(c.pMed>=T.limCrit/100)mq.push(['crit',`${pct(c.pMed)} medido com ${pct(Math.max(0,1-c.pPrazo))} do prazo restante`]);
+      else if(c.pMed>=T.limAlto/100)mq.push(['alto',`${pct(c.pMed)} medido com ${plural(dr,'dia','dias')} de prazo restantes`]);
+      else if(c.ritmo&&c.diasEsg+T.folga<dr)mq.push([c.diasEsg<=T.janelaCrit?'alto':'aten',`No ritmo atual o saldo acaba em ${br(c.dtEsg)}, ${plural(Math.round(dr-c.diasEsg),'dia','dias')} antes do término`]);
+    }
+    if(sit==='totalmente medido'&&!mq.length&&dr>=0)mq.push(['aten','Totalmente medido ainda dentro do prazo: encerrar ou aditar']);
+  }
+  c.motP=mp;c.motQ=mq;c.motE=me;
+  const sv=a=>a.reduce((m,x)=>SEVR[x[0]]>SEVR[m]?x[0]:m,'ok');
+  const pReal=mp.some(x=>!x[1].startsWith('Nenhuma medição'));
+  c.nec=!c.ativo?'off':(pReal&&mq.length?'ambos':pReal?'prazo':mq.length?'quant':me.length?'encerrar':'ok');
+  c.sev=!c.ativo?'off':[sv(mp),sv(mq),me.length?'aten':'ok'].reduce((m,x)=>SEVR[x]>SEVR[m]?x:m,'ok');
+  c.sugData=null;c.sugValor=null;
+  if(c.nec==='prazo'||c.nec==='ambos'){
+    if(c.ritmo&&c.diasEsg!=null)c.sugData=iso(new Date(Math.max(ref.getTime()+Math.ceil(c.diasEsg)*DAY,fim.getTime()+30*DAY)));
+    else c.sugData=iso(new Date(Math.max(ref.getTime(),fim.getTime())+Math.max(30,Math.round((c.dur||90)*c.pSaldo))*DAY));
+  }
+  if(c.nec==='quant'||c.nec==='ambos'){const need=c.ritmo?c.ritmo*Math.max(0,c.diasRest)-c.saldo:0;c.sugValor=need>0?Math.ceil(need/100)*100:null}
+  return c;
+}
+const resumoOf=list=>Object.fromEntries(list.map(c=>[c.id,[+c.medido.toFixed(2),+c.total.toFixed(2),c.dtTermino,c.contrato,(c.fornecedor||'').slice(0,60),c.obra.slice(0,60)]]));
+
+/* ---------- Supabase ---------- */
+async function loadAll(){
+  STATE='loading';paintState();
+  try{
+    const { data:{ session } } = await SB.auth.getSession();
+    if(!session){STATE='nologin';ALL=[];paintState();return}
+    const [rg,pos,snaps,ads,crs]=await Promise.all([
+      SB.from('contratos_regras').select('regras').eq('id',1).maybeSingle(),
+      SB.from('contratos_posicoes').select('id,data_ref,nome_arquivo,dados').order('data_ref',{ascending:false}).limit(1).maybeSingle(),
+      SB.from('contratos_posicoes').select('id,data_ref,nome_arquivo,importado_em,total_contratos,resumo').order('data_ref',{ascending:true}),
+      SB.from('contratos_aditivos').select('*'),
+      SB.from('contratos_criterios').select('*')
+    ]);
+    for(const r of [rg,pos,snaps,ads,crs])if(r.error)throw r.error;
+    CFG=Object.assign({},DEF,(rg.data&&rg.data.regras)||{});
+    POS=pos.data||null;SNAPS=snaps.data||[];
+    AD=Object.fromEntries((ads.data||[]).map(a=>[a.contrato_key,a]));
+    CRIT=Object.fromEntries((crs.data||[]).map(a=>[a.contrato_key,a]));
+    ALL=POS?build(POS.dados,POS.data_ref):[];
+    computeAgenda();
+    STATE=POS?'ready':'empty';loadedOnce=true;
+  }catch(e){console.error('Contratos:',e);STATE='error';ERRMSG=e.message||String(e)}
+  refreshFilters();fillStatic();paintState();render();
+}
+async function saveAditivo(c,vals){
+  const row=Object.assign({contrato_key:c.id,contrato:c.contrato,empresa_cod:c.empresaCod??null},vals);
+  const { data, error } = await SB.from('contratos_aditivos').upsert(row,{onConflict:'contrato_key'}).select().single();
+  if(error)throw error;AD[c.id]=data;return data;
+}
+
+/* ---------- estados (sem login / vazio / erro) ---------- */
+function paintState(){
+  const txt={loading:'Carregando contratos…',nologin:'Entre com seu usuário para ver os contratos.',empty:'Nenhuma posição importada ainda. '+(isGestor()?'Importe o relatório de contratos do Sienge em "Importar e regras".':'Um administrador ou supervisor precisa importar o relatório de contratos do Sienge.'),error:'Não foi possível carregar os contratos: '+esc(ERRMSG)+'. Recarregue a página; se continuar, verifique se a migração do banco foi aplicada.'}[STATE];
+  $$('[id^="tab-contratos-"] .ctr-state').forEach(el=>{
+    const isImp=el.closest('#tab-contratos-importar');
+    el.innerHTML=txt&&!(isImp&&STATE==='empty')?`<div class="ctr-empty-state">${txt}</div>`:'';
+  });
+  $$('[id^="tab-contratos-"] .ctr-when-data').forEach(el=>el.style.display=STATE==='ready'?'':'none');
+  $('#ctrPosData').textContent=POS?br(POS.data_ref):'—';
+  $('#ctrFiltros').style.display=STATE==='ready'?'':'none';
+}
+
+/* ---------- filtros ---------- */
+function fillSel(sel,vals,label){const cur=sel.value;sel.innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');if(vals.includes(cur))sel.value=cur}
+function refreshFilters(){
+  fillSel($('#ctrEmp'),[...new Set(ALL.map(c=>c.empresa).filter(Boolean))].sort(),'Todas as empresas');
+  const e=$('#ctrEmp').value;
+  fillSel($('#ctrObra'),[...new Set(ALL.filter(c=>!e||c.empresa===e).flatMap(c=>c.obras))].sort(),'Todas as obras');
+  fillSel($('#ctrFTipo'),[...new Set(ALL.map(c=>c.tipo).filter(Boolean))].sort(),'Todos os tipos');
+}
+function fillStatic(){
+  const s=[...new Set(ALL.map(c=>c.situacao).filter(Boolean))].sort(), cur=$('#ctrFSit').value||'ativos';
+  $('#ctrFSit').innerHTML='<option value="ativos">Ativos</option><option value="">Todas as situações</option>'+s.map(x=>`<option>${esc(x)}</option>`).join('');
+  $('#ctrFSit').value=[...$('#ctrFSit').options].some(o=>o.value===cur)?cur:'ativos';
+  renderRules();
+}
+const scope=()=>{const e=$('#ctrEmp').value,o=$('#ctrObra').value;return ALL.filter(c=>(!e||c.empresa===e)&&(!o||c.obras.includes(o)))};
+
+/* ---------- visão geral ---------- */
+function renderGeral(){
+  const S=scope(), A=S.filter(c=>c.ativo), sum=(a,k)=>a.reduce((s,c)=>s+(c[k]||0),0);
+  const nP=A.filter(c=>c.nec==='prazo'||c.nec==='ambos').length, nQ=A.filter(c=>c.nec==='quant'||c.nec==='ambos').length;
+  const nC=A.filter(c=>c.sev==='crit').length, nE=A.filter(c=>c.nec==='encerrar').length, tot=sum(A,'total'), med=sum(A,'medido');
+  $('#ctrKpis').innerHTML=`
+   <div class="kpi-card c-total"><p class="kpi-label">Contratos ativos</p><div class="kpi-value">${A.length}</div><div class="kpi-foot">de ${S.length} no relatório</div></div>
+   <div class="kpi-card c-solic"><p class="kpi-label">Valor contratado ativo</p><div class="kpi-value">${brlC(tot)}</div><div class="kpi-foot">${pct(tot?med/tot:0)} medido</div></div>
+   <div class="kpi-card c-crit"><p class="kpi-label">Saldo a medir</p><div class="kpi-value">${brlC(sum(A,'saldo'))}</div><div class="kpi-foot">Medido ${brlC(med)}</div></div>
+   <div class="kpi-card c-late ${nC?'ctr-kpi-hot':''}"><p class="kpi-label">Críticos</p><div class="kpi-value">${nC}</div><div class="kpi-foot">${nE} vencidos antigos para encerrar ou aditar</div></div>
+   <div class="kpi-card c-ped ctr-kpi-warm ctr-kpi-card"><p class="kpi-label">Pedem aditivo de prazo</p><div class="kpi-value">${nP}</div><button class="ctr-lnk" data-go="prazo">Ver lista</button></div>
+   <div class="kpi-card c-ped ctr-kpi-warm ctr-kpi-card"><p class="kpi-label">Pedem aditivo de quantidade</p><div class="kpi-value">${nQ}</div><button class="ctr-lnk" data-go="quant">Ver lista</button></div>`;
+  $$('#ctrKpis [data-go]').forEach(b=>b.onclick=()=>{$('#ctrFNec').value=b.dataset.go;$('#ctrFSit').value='ativos';goTab('contratos-lista')});
+  renderMap(A);
+  const V=A.filter(c=>c.diasRest!=null&&c.nec!=='encerrar'&&((c.diasRest<0&&c.pSaldo>CFG.tolSaldo/100)||(c.diasRest>=0&&c.diasRest<=60))).sort((a,b)=>a.diasRest-b.diasRest);
+  const vh=V.slice(0,12).map(c=>`<div class="ctr-it" data-id="${esc(c.id)}"><div class="ctr-d ${c.diasRest<0?'crit':c.diasRest<=CFG.janelaCrit?'alto':''}">${c.diasRest<0?c.diasRest+'d':br(c.dtTermino).slice(0,5)}</div><div style="min-width:0"><b>${esc(c.contrato)}</b> <span class="ctr-subtxt">${esc(c.fornecedor)} · ${esc(c.obra)}</span></div><div>${necTag(c)}</div></div>`).join('');
+  $('#ctrVenc').innerHTML=vh?vh+(V.length>12?`<div style="text-align:center;margin-top:8px"><button class="ctr-lnk" id="ctrVMore">Mais ${V.length-12} na lista de contratos</button></div>`:''):'<div class="ctr-mt">Nada vencido ou vencendo nos próximos 60 dias.</div>';
+  $$('#ctrVenc .ctr-it').forEach(e=>e.onclick=()=>openD(e.dataset.id));
+  const vm=$('#ctrVMore');if(vm)vm.onclick=()=>{$('#ctrFNec').value='';$('#ctrFSit').value='ativos';sortC={k:'diasRest',d:1};goTab('contratos-lista')};
+  const g=new Map();
+  for(const c of A)for(const o of c.obras){let x=g.get(o);if(!x){x={o,n:0,t:0,m:0,s:0,p:0,q:0,cr:0};g.set(o,x)}const k=c.obras.length;x.n++;x.t+=c.total/k;x.m+=c.medido/k;x.s+=c.saldo/k;if(c.nec==='prazo'||c.nec==='ambos')x.p++;if(c.nec==='quant'||c.nec==='ambos')x.q++;if(c.sev==='crit')x.cr++}
+  const G=[...g.values()].sort((a,b)=>b.cr-a.cr||(b.p+b.q)-(a.p+a.q)||b.s-a.s);
+  $('#ctrTObras').innerHTML=`<thead><tr><th>Obra</th><th class="num">Ativos</th><th class="num">Contratado</th><th class="num">Medido</th><th class="num">Saldo</th><th class="num">Prazo</th><th class="num">Quantidade</th><th class="num">Críticos</th></tr></thead><tbody>`+
+   (G.map(x=>`<tr data-o="${esc(x.o)}"><td>${esc(x.o)}</td><td class="num">${x.n}</td><td class="num">${brlC(x.t)}</td><td class="num">${pct(x.t?x.m/x.t:0)}</td><td class="num">${brlC(x.s)}</td><td class="num">${x.p||'—'}</td><td class="num">${x.q||'—'}</td><td class="num">${x.cr?`<span class="ctr-tag crit">${x.cr}</span>`:'—'}</td></tr>`).join('')||'<tr><td colspan="8" class="ctr-mt">Sem contratos ativos neste filtro.</td></tr>')+'</tbody>';
+  $$('#ctrTObras tbody tr[data-o]').forEach(r=>r.onclick=()=>{$('#ctrObra').value=r.dataset.o;render()});
+}
+function renderMap(A){
+  const W=640,H=400,L=46,R=16,T=14,B=38,xm=1.3,ym=1.1;
+  const X=v=>L+Math.min(v,xm)/xm*(W-L-R), Y=v=>T+(1-Math.min(v,ym)/ym)*(H-T-B);
+  const pts=A.filter(c=>c.pPrazo!=null).sort((a,b)=>b.total-a.total);
+  const lmax=Math.log10(Math.max(10,...pts.map(c=>c.total)));
+  const mono='font-family="JetBrains Mono,monospace"';
+  let g=`<rect x="${X(1)}" y="${T}" width="${X(xm)-X(1)}" height="${H-T-B}" fill="var(--red)" opacity=".08"/>`+
+    `<polygon points="${X(0)},${Y(.2)} ${X(.9)},${Y(1.1)} ${X(0)},${Y(1.1)}" fill="#FF9447" opacity=".07"/>`+
+    `<polygon points="${X(.3)},${Y(0)} ${X(1)},${Y(0)} ${X(1)},${Y(.7)}" fill="var(--blue)" opacity=".07"/>`;
+  for(const v of [0,.25,.5,.75,1])g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--text-dim)" ${mono}>${v*100}%</text>`;
+  for(const v of [0,.25,.5,.75,1,1.25])g+=`<line y1="${T}" y2="${H-B}" x1="${X(v)}" x2="${X(v)}" stroke="var(--line)" ${v===1?'stroke-width="1.5" stroke-dasharray="4 3"':''}/><text x="${X(v)}" y="${H-B+16}" text-anchor="middle" font-size="11" fill="var(--text-dim)" ${mono}>${v===1.25?'>120%':v*100+'%'}</text>`;
+  g+=`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="var(--text-dim)" stroke-dasharray="2 4"/>`+
+    `<text x="${X(.03)}" y="${Y(1.03)}" font-size="11" fill="#FF9447">Medição adiantada: risco de quantidade</text>`+
+    `<text x="${X(.98)}" y="${Y(.04)}" font-size="11" fill="var(--blue)" text-anchor="end">Medição atrasada: risco de prazo</text>`+
+    `<text x="${X(1.15)}" y="${T+14}" font-size="11" fill="var(--red)" text-anchor="middle">Vencidos</text>`+
+    `<text x="${(L+W-R)/2}" y="${H-4}" text-anchor="middle" font-size="11" fill="var(--text-dim)">Prazo decorrido</text>`+
+    `<text transform="translate(12 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle" font-size="11" fill="var(--text-dim)">Valor medido</text>`;
+  for(const c of pts){const r=3+Math.max(0,(Math.log10(Math.max(1,c.total))-3)/((lmax-3)||1))*11;const jx=c.pPrazo>xm?(((c.id.length*37)%17)-8)*.004:0;
+    g+=`<circle class="ctr-dot" data-id="${esc(c.id)}" cx="${X(c.pPrazo+jx)}" cy="${Y(c.pMed)}" r="${r.toFixed(1)}" fill="${COR[c.sev]||'var(--text-faint)'}" fill-opacity=".75"/>`}
+  $('#ctrMap').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Mapa de contratos: prazo decorrido por valor medido">${g}</svg>`;
+  const tip=$('#ctrTip'), wrap=$('.ctr-map-wrap'), byId=new Map(pts.map(c=>[c.id,c]));
+  $$('#ctrMap .ctr-dot').forEach(d=>{
+    d.addEventListener('mousemove',e=>{const c=byId.get(d.dataset.id),rc=wrap.getBoundingClientRect();tip.style.display='block';tip.innerHTML=`<b>${esc(c.contrato)}</b> · ${esc(c.fornecedor)}<br>${esc(c.obra)}<br>Prazo ${pct(c.pPrazo)} · Medido ${pct(c.pMed)} · Saldo ${brlC(c.saldo)}<br>Término ${br(c.dtTermino)}`;let x=e.clientX-rc.left+14;if(x+270>rc.width)x=e.clientX-rc.left-280;tip.style.left=x+'px';tip.style.top=(e.clientY-rc.top+10)+'px'});
+    d.addEventListener('mouseleave',()=>tip.style.display='none');
+    d.addEventListener('click',()=>{tip.style.display='none';openD(d.dataset.id)});
+  });
+}
+
+/* ---------- lista ---------- */
+let sortC={k:'sev',d:-1}, limC=150;
+const rg=c=>{const p=c.pPrazo||0;return `<div class="ctr-rg" title="Prazo ${pct(c.pPrazo)} · Medido ${pct(c.pMed)}"><div class="b t ${p>1?'over':''}"><i style="width:${Math.min(100,p*100)}%"></i></div><div class="b m"><i style="width:${Math.min(100,c.pMed*100)}%"></i></div><span><em>P ${pct(c.pPrazo)}</em><em>M ${pct(c.pMed)}</em></span></div>`};
+const necTag=c=>c.nec==='off'?`<span class="ctr-tag off">${esc(c.situacao)}</span>`:c.nec==='ok'?'<span class="ctr-tag ok">Em dia</span>':`<span class="ctr-tag ${c.sev}">${NECL[c.nec]}</span>`;
+const stTag=c=>{const a=AD[c.id];return a&&a.status?`<span class="ctr-tag st">${esc(a.status)}</span>`:''};
+function filtC(){
+  const q=norm($('#ctrQ').value), s=$('#ctrFSit').value, t=$('#ctrFTipo').value, n=$('#ctrFNec').value;
+  return scope().filter(c=>(!s||(s==='ativos'?c.ativo:c.situacao===s))&&(!t||c.tipo===t)&&
+    (!n||(n==='any'?FLAG.includes(c.nec):n==='prazo'?(c.nec==='prazo'||c.nec==='ambos'):n==='quant'?(c.nec==='quant'||c.nec==='ambos'):c.nec===n))&&
+    (!q||norm([c.contrato,c.fornecedor,c.objeto,c.cnpj,c.obra,c.responsavel].join(' ')).includes(q)));
+}
+function sorter(k,d){return(a,b)=>{let x=a[k],y=b[k];if(k==='sev'){x=SEVR[a.sev]*1e3+(a.diasRest!=null?-a.diasRest/1e3:0);y=SEVR[b.sev]*1e3+(b.diasRest!=null?-b.diasRest/1e3:0)}if(x==null)return 1;if(y==null)return -1;return(typeof x==='string'?x.localeCompare(y,'pt-BR',{numeric:true}):x-y)*d}}
+function renderLista(){
+  const L=filtC().sort(sorter(sortC.k,sortC.d));
+  const cols=[['contrato','Contrato'],['fornecedor','Fornecedor / objeto'],['obra','Obra'],['dtTermino','Término'],['diasRest','Dias',1],['agNext','Próx. medição'],['pPrazo','Prazo × medido'],['total','Total',1],['saldo','Saldo',1],['sev','Necessidade']];
+  $('#ctrTCtr').innerHTML='<thead><tr>'+cols.map(([k,l,n])=>`<th data-k="${k}" class="sortable ${sortC.k===k?'active':''} ${n?'num':''}">${l} <span class="sort-arrow">${sortC.k===k?(sortC.d>0?'▲':'▼'):'▼'}</span></th>`).join('')+'</tr></thead><tbody>'+
+   (L.slice(0,limC).map(c=>`<tr data-id="${esc(c.id)}"><td class="mono">${esc(c.contrato)}</td><td>${esc(c.fornecedor)}<span class="ctr-subtxt">${esc(c.objeto)}</span></td><td><span class="ctr-subtxt" style="max-width:200px">${esc(c.obra)}</span></td><td class="mono">${br(c.dtTermino)}</td><td class="num mono" style="color:${c.ativo&&c.diasRest<0?'var(--red)':'inherit'}">${c.diasRest??'—'}</td><td class="mono" style="color:${c.ag&&c.ag.status==='atraso'?'var(--red)':'inherit'}">${c.agNext?br(c.agNext):'—'}</td><td>${rg(c)}</td><td class="num">${brlC(c.total)}</td><td class="num">${brlC(c.saldo)}</td><td><div class="ctr-tags">${necTag(c)}${stTag(c)}</div></td></tr>`).join('')||'<tr><td colspan="10" class="ctr-mt">Nenhum contrato com esses filtros.</td></tr>')+'</tbody>';
+  $('#ctrCCount').textContent=plural(L.length,'contrato','contratos');
+  $('#ctrMore').hidden=L.length<=limC;
+  $$('#ctrTCtr th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortC=sortC.k===k?{k,d:-sortC.d}:{k,d:['total','saldo','sev','pPrazo'].includes(k)?-1:1};renderLista()});
+  $$('#ctrTCtr tbody tr[data-id]').forEach(r=>r.onclick=()=>openD(r.dataset.id));
+}
+
+/* ---------- aditivos ---------- */
+let adTipo='';
+function adList(){
+  const sv=$('#ctrFSev').value;
+  return scope().filter(c=>{
+    const a=AD[c.id], flagged=FLAG.includes(c.nec);
+    if(!flagged&&!(a&&a.status&&a.status!=='A analisar'))return false;
+    const tp=a&&a.tipo;
+    if(adTipo==='prazo'&&!(c.nec==='prazo'||c.nec==='ambos'||tp==='Prazo'||tp==='Prazo e valor'))return false;
+    if(adTipo==='quant'&&!(c.nec==='quant'||c.nec==='ambos'||tp==='Valor/quantidade'||tp==='Prazo e valor'))return false;
+    if(adTipo==='encerrar'&&c.nec!=='encerrar')return false;
+    if(sv==='crit'&&c.sev!=='crit')return false;
+    if(sv==='alto'&&!(c.sev==='crit'||c.sev==='alto'))return false;
+    return true;
+  });
+}
+function renderAditivos(){
+  const L=adList(), by=Object.fromEntries(STATUS.map(s=>[s,[]]));
+  for(const c of L){const s=(AD[c.id]&&AD[c.id].status)||'A analisar';(by[s]||by['A analisar']).push(c)}
+  $('#ctrBoard').innerHTML=STATUS.map(s=>{const it=by[s].sort((a,b)=>SEVR[b.sev]-SEVR[a.sev]||(a.diasRest??9e9)-(b.diasRest??9e9));
+    return `<div class="ctr-bcol"><h4>${s}<em>${it.length}</em></h4><div class="ctr-items">${it.slice(0,60).map(c=>{const m=[...c.motP,...c.motQ,...c.motE].sort((x,y)=>SEVR[y[0]]-SEVR[x[0]])[0];
+      return `<div class="ctr-ad ${c.sev}" data-id="${esc(c.id)}"><div class="h"><span>${esc(c.contrato)}</span><span class="ctr-tag ${FLAG.includes(c.nec)?c.sev:'off'}">${NECL[c.nec]}</span></div><div class="f">${esc(c.fornecedor)}</div><div class="r">${m?esc(m[1]):esc(c.situacao)}</div></div>`}).join('')||'<div class="ctr-mt">Vazio</div>'}${it.length>60?`<div class="ctr-mt">+${it.length-60}: use a lista de contratos</div>`:''}</div></div>`}).join('');
+  $$('#ctrBoard .ctr-ad').forEach(e=>e.onclick=()=>openD(e.dataset.id));
+  $('#ctrAdCount').textContent=plural(L.length,'contrato','contratos');
+}
+function updatePill(){
+  const n=ALL.filter(c=>FLAG.includes(c.nec)&&c.sev==='crit'&&!(AD[c.id]&&['Assinado','Dispensado','Em aprovação','Em elaboração'].includes(AD[c.id].status))).length;
+  const p=$('#ctrCountPill');p.textContent=n;p.style.display=n?'':'none';
+}
+
+/* ---------- medições ---------- */
+function renderMedicoes(){
+  const sa=$('#ctrSnapA'),sb=$('#ctrSnapB'),va=sa.value,vb=sb.value;
+  const opts=SNAPS.map((s,i)=>`<option value="${i}">${br(s.data_ref)}</option>`).join('');
+  sa.innerHTML=opts;sb.innerHTML=opts;
+  sa.value=va&&SNAPS[va]?va:String(Math.max(0,SNAPS.length-2));sb.value=vb&&SNAPS[vb]?vb:String(SNAPS.length-1);
+  const body=$('#ctrMedBody');
+  if(SNAPS.length<2){
+    const S=scope().filter(c=>c.ativo&&c.mensal>0).sort((a,b)=>b.mensal-a.mensal);
+    body.innerHTML=`<p class="ctr-note" style="margin-top:0">Há só uma posição importada (${br(SNAPS[0]&&SNAPS[0].data_ref)}). Com a próxima importação aparece o que foi medido entre as duas datas e quais aditivos foram formalizados no Sienge. Por enquanto, a média mensal medida por contrato desde o início:</p>
+    <div class="table-scroll"><table class="data ctr-tbl"><thead><tr><th>Contrato</th><th>Fornecedor</th><th>Obra</th><th class="num">Média mensal</th><th class="num">Medido</th><th class="num">Saldo</th><th class="num">Meses p/ esgotar</th></tr></thead><tbody>${S.slice(0,150).map(c=>`<tr data-id="${esc(c.id)}"><td class="mono">${esc(c.contrato)}</td><td>${esc(c.fornecedor)}</td><td><span class="ctr-subtxt" style="max-width:200px">${esc(c.obra)}</span></td><td class="num">${brl(c.mensal)}</td><td class="num">${brlC(c.medido)}</td><td class="num">${brlC(c.saldo)}</td><td class="num mono">${(c.saldo/c.mensal).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td></tr>`).join('')}</tbody></table></div>`;
+    $('#ctrMCount').textContent='';
+  } else {
+    const A=SNAPS[+sa.value],B=SNAPS[+sb.value], inScope=new Set(scope().map(c=>c.id)), known=new Set(ALL.map(c=>c.id));
+    const rows=[];let tot=0,nAd=0;
+    for(const id in B.resumo){if(known.has(id)&&!inScope.has(id))continue;const b=B.resumo[id],a=A.resumo[id];
+      const dm=b[0]-(a?a[0]:0), dv=a?b[1]-a[1]:0, dp=a&&a[2]&&b[2]?days(toD(a[2]),toD(b[2])):0;
+      if(Math.abs(dm)>0.01||dv>1||dp>0){rows.push({id,b,a,dm,dv,dp});tot+=dm;if(dv>1||dp>0)nAd++}}
+    rows.sort((x,y)=>(y.dv>1||y.dp>0)-(x.dv>1||x.dp>0)||y.dm-x.dm);
+    body.innerHTML=`<div class="kpi-grid"><div class="kpi-card c-solic"><p class="kpi-label">Medido no período</p><div class="kpi-value">${brlC(tot)}</div><div class="kpi-foot">${br(A.data_ref)} a ${br(B.data_ref)}</div></div><div class="kpi-card c-total"><p class="kpi-label">Contratos medidos</p><div class="kpi-value">${rows.filter(r=>r.dm>0.01).length}</div></div><div class="kpi-card c-crit"><p class="kpi-label">Aditivos formalizados</p><div class="kpi-value">${nAd}</div><div class="kpi-foot">prazo ou valor aumentado no Sienge</div></div></div>
+    <div class="table-scroll"><table class="data ctr-tbl"><thead><tr><th>Contrato</th><th>Fornecedor</th><th>Obra</th><th class="num">Medido antes</th><th class="num">Medição no período</th><th class="num">Medido agora</th><th>Aditivo detectado</th></tr></thead><tbody>${rows.slice(0,300).map(r=>`<tr data-id="${esc(r.id)}"><td class="mono">${esc(r.b[3])}</td><td>${esc(r.b[4])}</td><td><span class="ctr-subtxt" style="max-width:200px">${esc(r.b[5])}</span></td><td class="num">${r.a?brl(r.a[0]):'novo'}</td><td class="num" style="font-weight:600">${brl(r.dm)}</td><td class="num">${brl(r.b[0])}</td><td>${[r.dp>0?`<span class="ctr-tag ok">Prazo +${r.dp}d</span>`:'',r.dv>1?`<span class="ctr-tag ok">Valor +${brlC(r.dv)}</span>`:''].join(' ')||'—'}</td></tr>`).join('')||'<tr><td colspan="7" class="ctr-mt">Nenhuma medição entre essas posições.</td></tr>'}</tbody></table></div>`;
+    $('#ctrMCount').textContent=plural(SNAPS.length,'posição importada','posições importadas');
+  }
+  $$('#ctrMedBody tbody tr[data-id]').forEach(r=>r.onclick=()=>{if(ALL.some(c=>c.id===r.dataset.id))openD(r.dataset.id)});
+}
+
+/* ---------- importar / regras / posições ---------- */
+function renderImportar(){
+  $('#ctrTPos').innerHTML='<thead><tr><th>Posição</th><th>Arquivo</th><th class="num">Contratos</th><th>Importado em</th><th></th></tr></thead><tbody>'+
+    (SNAPS.slice().reverse().map(s=>`<tr><td class="mono">${br(s.data_ref)}</td><td>${esc(s.nome_arquivo||'')}</td><td class="num">${s.total_contratos??'—'}</td><td class="mono">${s.importado_em?new Date(s.importado_em).toLocaleString('pt-BR'):'—'}</td><td><button class="btn small admin-only" data-del="${s.id}" data-ref="${esc(s.data_ref)}">Excluir</button></td></tr>`).join('')||'<tr><td colspan="5" class="ctr-mt">Nenhuma posição importada.</td></tr>')+'</tbody>';
+  $$('#ctrTPos [data-del]').forEach(b=>b.onclick=async()=>{
+    if(!confirm(`Excluir a posição de ${br(b.dataset.ref)}? O histórico de medições dessa data será perdido.`))return;
+    const { error } = await SB.from('contratos_posicoes').delete().eq('id',+b.dataset.del);
+    if(error){alert('Não foi possível excluir: '+error.message);return}
+    await loadAll();
+  });
+  renderRules();
+}
+function renderRules(){
+  const dis=isAdmin()?'':'disabled';
+  $('#ctrRules').innerHTML=RULES.map(([k,l,h])=>`<label>${l}<input type="number" min="0" data-k="${k}" value="${CFG[k]}" ${dis}><small>${h}</small></label>`).join('');
+}
+function msg(t,ok){const m=$('#ctrImpMsg');m.innerHTML=t;m.className='ctr-msg on '+(ok?'ok':'err')}
+async function importFile(f){
+  if(typeof XLSX==='undefined'){msg('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  if(!isGestor()){msg('Só administradores e supervisores importam o relatório.');return}
+  msg('Lendo '+esc(f.name)+'…',true);
+  try{
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:false});
+    const rows=parseSheet(wb);if(!rows.length)throw new Error('o relatório não tem linhas de contrato.');
+    const m=f.name.match(/(20\d{2})(\d{2})(\d{2})/);
+    const ref=m?`${m[1]}-${m[2]}-${m[3]}`:iso(new Date());
+    const dados={fields:FIELDS,rows}, list=build(dados,ref);
+    // aditivos formalizados desde a posição anterior
+    const prev=SNAPS.filter(s=>s.data_ref<ref).slice(-1)[0];
+    const auto=[];
+    if(prev)for(const c of list){const p=prev.resumo[c.id];if(!p)continue;
+      const dv=c.total-p[1], dp=p[2]&&c.dtTermino?days(toD(p[2]),toD(c.dtTermino)):0;
+      if(dv>1||dp>0){const a=AD[c.id];if(a&&a.status==='Assinado')continue;
+        const nota=`Detectado no Sienge em ${br(ref)}: `+[dp>0?`prazo +${dp} dias`:'',dv>1?`valor +${brl(dv)}`:''].filter(Boolean).join(', ');
+        auto.push({contrato_key:c.id,contrato:c.contrato,empresa_cod:c.empresaCod??null,status:'Assinado',automatico:true,
+          tipo:dp>0&&dv>1?'Prazo e valor':dp>0?'Prazo':'Valor/quantidade',
+          nova_data:dp>0?c.dtTermino:(a?a.nova_data:null),valor_acrescimo:dv>1?Math.round(dv*100)/100:(a?a.valor_acrescimo:null),
+          observacoes:((a&&a.observacoes?a.observacoes+'\n':'')+nota).trim()})}}
+    const { error } = await SB.from('contratos_posicoes').upsert({data_ref:ref,nome_arquivo:f.name,total_linhas:rows.length,total_contratos:list.length,dados,resumo:resumoOf(list)},{onConflict:'data_ref'});
+    if(error)throw error;
+    let autoErr='';
+    if(auto.length){const r=await SB.from('contratos_aditivos').upsert(auto,{onConflict:'contrato_key'});if(r.error)autoErr=' Não foi possível marcar os aditivos detectados: '+esc(r.error.message)+'.'}
+    await loadAll();
+    msg(`Importado <b>${esc(f.name)}</b>: ${rows.length} linhas, ${list.length} contratos, posição de <b>${br(ref)}</b>.${m?'':' A data foi tirada de hoje porque o nome do arquivo não traz a data do relatório.'}${auto.length&&!autoErr?` ${plural(auto.length,'aditivo formalizado foi detectado e marcado','aditivos formalizados foram detectados e marcados')} como assinado.`:''}${autoErr}`,true);
+  }catch(e){console.error(e);msg('Não foi possível importar: '+esc(e.message||String(e)))}
+}
+
+/* ---------- gaveta de detalhe ---------- */
+let curId=null;
+function openD(id){
+  const c=ALL.find(x=>x.id===id);if(!c)return;curId=id;
+  const a=AD[id]||{}, pode=isGestor();
+  $('#ctrDT').textContent=c.contrato;
+  $('#ctrDS').textContent=(c.fornecedor||'')+' · '+c.obra;
+  const hist=SNAPS.filter(s=>s.resumo&&s.resumo[id]).map(s=>[s.data_ref,s.resumo[id]]);
+  const mot=[...c.motP.map(m=>[m[0],'Prazo: '+m[1]]),...c.motQ.map(m=>[m[0],'Quantidade: '+m[1]]),...c.motE];
+  const tipoDef=a.tipo||(c.nec==='ambos'?'Prazo e valor':c.nec==='prazo'?'Prazo':c.nec==='quant'?'Valor/quantidade':'');
+  const dis=pode?'':'disabled';
+  $('#ctrDB').innerHTML=`
+   <div class="ctr-tags" style="margin-bottom:12px">${necTag(c)}${c.ativo?`<span class="ctr-tag off">${esc(c.situacao)}</span>`:''}${c.autorizacao&&c.autorizacao!=='Aprovada'?`<span class="ctr-tag alto">${esc(c.autorizacao)}</span>`:''}</div>
+   <div class="ctr-bar">
+     <div class="row"><span>Prazo</span><div class="trk"><i style="width:${Math.min(100,(c.pPrazo||0)*100)}%;background:${(c.pPrazo||0)>1?'var(--red)':'var(--text-dim)'}"></i></div><b class="ctr-mono">${pct(c.pPrazo)}</b></div>
+     <div class="row"><span>Medido</span><div class="trk"><i style="width:${Math.min(100,c.pMed*100)}%;background:var(--yellow)"></i></div><b class="ctr-mono">${pct(c.pMed)}</b></div>
+   </div>
+   <dl class="ctr-dl">
+     <dt>Empresa</dt><dd>${esc(c.empresa)}</dd>
+     <dt>Tipo</dt><dd>${esc(c.tipo)}</dd>
+     <dt>Vigência</dt><dd class="ctr-mono">${br(c.dtInicio)} a ${br(c.dtTermino)} ${c.diasRest!=null?`<span style="color:${c.diasRest<0?'var(--red)':'var(--text-dim)'}">(${c.diasRest<0?'venceu há '+(-c.diasRest):'faltam '+c.diasRest} d)</span>`:''}</dd>
+     <dt>Total</dt><dd class="ctr-mono">${brl(c.total)}</dd>
+     <dt>Medido</dt><dd class="ctr-mono">${brl(c.medido)}</dd>
+     <dt>Saldo</dt><dd class="ctr-mono">${brl(c.saldo)} (${pct(c.pSaldo)})</dd>
+     <dt>Média mensal</dt><dd class="ctr-mono">${c.mensal?brl(c.mensal):'—'}</dd>
+     <dt>Saldo acaba em</dt><dd class="ctr-mono">${c.dtEsg?br(c.dtEsg):'—'}</dd>
+     <dt>Projeção no término</dt><dd class="ctr-mono">${c.proj!=null?brl(c.proj)+' ('+pct(c.total?c.proj/c.total:0)+')':'—'}</dd>
+     <dt>Responsável</dt><dd>${esc(c.responsavel)}</dd>
+     <dt>CPF/CNPJ</dt><dd class="ctr-mono">${esc(c.cnpj)}</dd>
+     <dt>Objeto</dt><dd>${esc(c.objeto)}</dd>
+     ${c.descAlt?`<dt>Última alteração</dt><dd>${esc(c.descAlt)}${c.dtAlt?' <span class="ctr-mono" style="color:var(--text-dim)">('+br(c.dtAlt)+')</span>':''}</dd>`:''}
+   </dl>
+   <div class="ctr-sec">Por que precisa de aditivo</div>
+   ${mot.length?`<ul class="ctr-mot">${mot.map(m=>`<li class="${m[0]}">${esc(m[1])}</li>`).join('')}</ul>`:`<p class="ctr-note">${c.ativo?'Prazo e medição estão compatíveis. Nenhum aditivo indicado pelas regras atuais.':'Contrato '+esc((c.situacao||'').toLowerCase())+'; fora do acompanhamento.'}</p>`}
+   ${(c.sugData||c.sugValor)?`<p class="ctr-note" style="margin-top:8px">Sugestão pelo ritmo atual: ${c.sugData?`nova data de término <b class="ctr-mono">${br(c.sugData)}</b>`:''}${c.sugData&&c.sugValor?' e ':''}${c.sugValor?`acréscimo de <b class="ctr-mono">${brl(c.sugValor)}</b> (+${pct(c.sugValor/c.total)})`:''}.</p>`:''}
+   ${critForm(c)}
+   <div class="ctr-sec">Controle do aditivo</div>
+   <div class="ctr-frm">
+     <label>Status<select id="ctrASt" ${dis}>${STATUS.map(s=>`<option ${((a.status||'A analisar')===s)?'selected':''}>${s}</option>`).join('')}</select></label>
+     <label>Tipo<select id="ctrATp" ${dis}>${['','Prazo','Valor/quantidade','Prazo e valor'].map(s=>`<option value="${s}" ${tipoDef===s?'selected':''}>${s||'—'}</option>`).join('')}</select></label>
+     <label>Nova data de término<input type="date" id="ctrADt" value="${esc(a.nova_data||c.sugData||'')}" ${dis}></label>
+     <label>Valor do acréscimo (R$)<input type="number" step="0.01" id="ctrAVl" value="${esc(a.valor_acrescimo??c.sugValor??'')}" ${dis}></label>
+     <label class="full">Observações<textarea id="ctrAOb" placeholder="Número do aditivo, quem está tratando, pendências…" ${dis}>${esc(a.observacoes||'')}</textarea></label>
+   </div>
+   <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${pode?'<button class="btn primary small" id="ctrASave">Salvar controle</button>':'<span class="ctr-note">Só administradores e supervisores alteram o controle.</span>'}${a.atualizado_em?`<span class="ctr-note">Atualizado ${new Date(a.atualizado_em).toLocaleString('pt-BR')}${a.automatico?' (detectado no Sienge)':''}</span>`:''}<span class="ctr-ok" id="ctrASaved">Controle salvo</span></div>
+   ${hist.length>1?`<div class="ctr-sec">Histórico nas importações</div><div class="table-scroll"><table class="data"><thead><tr><th>Posição</th><th class="num">Total</th><th class="num">Medido</th><th class="num">Medição</th><th>Término</th></tr></thead><tbody>${hist.map((h,i)=>`<tr><td class="ctr-mono">${br(h[0])}</td><td class="num">${brl(h[1][1])}</td><td class="num">${brl(h[1][0])}</td><td class="num">${i?brl(h[1][0]-hist[i-1][1][0]):'—'}</td><td class="ctr-mono">${br(h[1][2])}</td></tr>`).join('')}</tbody></table></div>`:''}`;
+  wireCritForm(c);
+  const sv=$('#ctrASave');
+  if(sv)sv.onclick=async()=>{
+    sv.disabled=true;
+    try{
+      await saveAditivo(c,{status:$('#ctrASt').value,tipo:$('#ctrATp').value||null,nova_data:$('#ctrADt').value||null,valor_acrescimo:$('#ctrAVl').value===''?null:Number($('#ctrAVl').value),observacoes:$('#ctrAOb').value.trim()||null,automatico:false});
+      render();openD(id);const s=$('#ctrASaved');s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600);
+    }catch(e){alert('Não foi possível salvar: '+(e.message||e));sv.disabled=false}
+  };
+  $('#ctrDrawer').classList.add('on');$('#ctrScrim').classList.add('on');$('#ctrDrawer').setAttribute('aria-hidden','false');
+}
+function closeD(){$('#ctrDrawer').classList.remove('on');$('#ctrScrim').classList.remove('on');$('#ctrDrawer').setAttribute('aria-hidden','true');curId=null}
+$('#ctrDX').onclick=closeD;$('#ctrScrim').onclick=closeD;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&curId)closeD()});
+
+/* ---------- exportação ---------- */
+function xls(list,name){
+  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  const data=list.map(c=>{const a=AD[c.id]||{};return{'Contrato':c.contrato,'Empresa':c.empresa,'Obra':c.obra,'Fornecedor':c.fornecedor,'CPF/CNPJ':c.cnpj,'Tipo':c.tipo,'Situação':c.situacao,'Início':br(c.dtInicio),'Término':br(c.dtTermino),'Dias restantes':c.diasRest,'% prazo':c.pPrazo!=null?+(c.pPrazo*100).toFixed(1):null,'% medido':+(c.pMed*100).toFixed(1),'Total':c.total,'Medido':c.medido,'Saldo':c.saldo,'Média mensal':+c.mensal.toFixed(2),'Saldo acaba em':c.dtEsg?br(c.dtEsg):'','Necessidade':NECL[c.nec],'Severidade':SEVL[c.sev],'Motivos':[...c.motP,...c.motQ,...c.motE].map(m=>m[1]).join(' | '),'Nova data sugerida':c.sugData?br(c.sugData):'','Acréscimo sugerido':c.sugValor||'','Status aditivo':a.status||'','Tipo aditivo':a.tipo||'','Nova data (controle)':a.nova_data?br(a.nova_data):'','Acréscimo (controle)':a.valor_acrescimo??'','Observações':a.observacoes||'','Responsável':c.responsavel,'Próxima medição':c.agNext?br(c.agNext):'','Situação da medição':c.ag?AGL[c.ag.status]:'','Critério de pagamento':c.ag?critTxt(c.ag.k):'','Origem do critério':c.ag?(c.ag.k.cadastrado?'Cadastrado':'Padrão'):''}});
+  const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Contratos');
+  XLSX.writeFile(wb,name+'_'+(POS?POS.data_ref:'')+'.xlsx');
+}
+
+
+/* ---------- critério de pagamento + agenda de medições ---------- */
+const PERIODOS=['Mensal','Quinzenal','Semanal','Por etapa','Parcela única'];
+const REFS=['Dia fixo','Aniversário do contrato'];
+const BASES=['Por avanço','Parcelas iguais'];
+const PER_DIAS={'Mensal':30.4,'Quinzenal':15,'Semanal':7};
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const dim=(y,m)=>new Date(y,m+1,0).getDate();
+const addMonths=(d,k)=>{const y=d.getFullYear(),m=d.getMonth()+k,yy=y+Math.floor(m/12),mm=((m%12)+12)%12;return new Date(yy,mm,Math.min(d.getDate(),dim(yy,mm)))};
+const dayOf=(y,m,D)=>new Date(y,m,Math.min(D,dim(y,m)));
+const brW=d=>d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).replace('.','');
+
+function critOf(c){
+  const k=CRIT[c.id];
+  if(k)return Object.assign({cadastrado:true},k);
+  const loc=norm(c.tipo).includes('locacao');
+  return {cadastrado:false,periodicidade:'Mensal',referencia:loc?'Aniversário do contrato':'Dia fixo',dia_corte:CFG.corteDia,prazo_emissao_dias:CFG.prazoEmissao,base_valor:loc?'Parcelas iguais':'Por avanço',valor_parcela:null,etapas:null};
+}
+function cortesOf(c,k){
+  const ini=toD(c.dtInicio), fim=toD(c.dtTermino);
+  if(!ini||!fim||fim<ini)return [];
+  let d=[];const D=Math.min(31,Math.max(1,+k.dia_corte||CFG.corteDia)), aniv=k.referencia==='Aniversário do contrato';
+  const fechar=()=>{const last=d[d.length-1];if(last&&Math.abs(days(last.d,fim))<=3)last.d=fim;else if(!last||last.d<fim)d.push({d:fim})};
+  if(k.periodicidade==='Parcela única'){d=[{d:fim}]}
+  else if(k.periodicidade==='Por etapa'){d=(k.etapas||[]).map(e=>({d:toD(e.data),v:e.valor!=null&&e.valor!==''?+e.valor:null,desc:e.descricao||''})).filter(x=>x.d).sort((a,b)=>a.d-b.d)}
+  else if(k.periodicidade==='Semanal'){for(let i=1;i<600;i++){const x=addDays(ini,7*i);if(x>=fim)break;d.push({d:x})}fechar()}
+  else if(k.periodicidade==='Quinzenal'){
+    if(aniv){for(let i=1;i<600;i++){const x=addDays(ini,15*i);if(x>=fim)break;d.push({d:x})}}
+    else{for(let i=0;i<400;i++){const b=addMonths(new Date(ini.getFullYear(),ini.getMonth(),1),i);for(const dd of [D,Math.min(D+15,dim(b.getFullYear(),b.getMonth()))].sort((a,b)=>a-b)){const x=dayOf(b.getFullYear(),b.getMonth(),dd);if(x>ini&&x<fim)d.push({d:x})}if(b>fim)break}}
+    fechar();
+  } else {
+    if(aniv){for(let i=1;i<400;i++){const x=addMonths(ini,i);if(x>=fim)break;d.push({d:x})}}
+    else{for(let i=0;i<400;i++){const b=addMonths(new Date(ini.getFullYear(),ini.getMonth(),1),i);if(b>fim)break;const x=dayOf(b.getFullYear(),b.getMonth(),D);if(x>ini&&x<fim)d.push({d:x})}}
+    fechar();
+  }
+  const pz=+k.prazo_emissao_dias||0;
+  return d.map((x,i)=>({n:i+1,corte:x.d,emissao:addDays(x.d,pz),v:x.v??null,desc:x.desc||''}));
+}
+// data da última medição conhecida pelo histórico de importações
+function baseMedicao(c){
+  let prev=null,base=null,first=null;
+  for(const s of SNAPS){const r=s.resumo&&s.resumo[c.id];if(!r)continue;if(first==null)first=s.data_ref;if(prev!=null&&r[0]>prev+0.01)base=s.data_ref;prev=r[0]}
+  if(base)return base;
+  const n=SNAPS.filter(s=>s.resumo&&s.resumo[c.id]).length;
+  return n>=2?first:null; // sem mudança entre posições: nada medido desde a primeira
+}
+function agendaOf(c,ref){
+  const k=critOf(c), cuts=cortesOf(c,k), tol=Math.max(1,c.total*CFG.tolSaldo/100);
+  const ag={k,cuts,pend:[],atr:[],next:null,status:'fim',base:null,msg:''};
+  if(!c.ativo){ag.status='inativo';return ag}
+  if(c.nec==='encerrar'){ag.status='encerrar';ag.msg='Vencido há muito tempo: fora da agenda';return ag}
+  if(c.saldo<=tol){ag.status='fim';ag.msg='Saldo medido; sem medições previstas';return ag}
+  if(!cuts.length){ag.status='semprev';ag.msg=k.periodicidade==='Por etapa'?'Cadastre as etapas com data':'Vigência sem datas válidas';return ag}
+  if(k.base_valor==='Parcelas iguais'||k.periodicidade==='Por etapa'||k.periodicidade==='Parcela única'){
+    const semV=cuts.filter(x=>x.v==null).length, somaV=cuts.reduce((s,x)=>s+(x.v||0),0);
+    const parc=k.valor_parcela?+k.valor_parcela:Math.max(0,(c.total-somaV))/(semV||1);
+    cuts.forEach(x=>{if(x.v==null)x.v=parc});
+    let acc=0,idx=cuts.length;
+    for(let i=0;i<cuts.length;i++){acc+=cuts[i].v;if(acc>c.medido+0.5*cuts[i].v){idx=i;break}}
+    ag.pend=cuts.slice(idx);
+    ag.atr=ag.pend.filter(x=>x.emissao<ref);
+  } else {
+    const per=PER_DIAS[k.periodicidade]||30.4;
+    const b=baseMedicao(c);ag.base=b;
+    const bD=b?toD(b):null;
+    ag.pend=cuts.filter(x=>x.emissao>=(bD||ref));
+    ag.atr=bD?ag.pend.filter(x=>x.emissao<ref):[];
+    const fut=Math.max(1,ag.pend.length);
+    const est=c.mensal?c.mensal*per/30.4:c.saldo/fut;
+    let rest=c.saldo;ag.pend.forEach(x=>{x.v=Math.min(rest,est);rest=Math.max(0,rest-x.v)});
+  }
+  ag.next=ag.pend.find(x=>x.emissao>=ref)||null;
+  const dn=ag.next?days(ref,ag.next.emissao):null;
+  if(ag.atr.length)ag.status='atraso';
+  else if(!ag.pend.length){ag.status='semprev';ag.msg='Saldo sem medição prevista na vigência: rever prazo ou critério'}
+  else if(dn!=null&&dn<=7)ag.status='semana';
+  else if(dn!=null&&dn<=30)ag.status='mes';
+  else ag.status='futuro';
+  return ag;
+}
+function computeAgenda(){if(!POS)return;const ref=toD(POS.data_ref);ALL.forEach(c=>{const g=agendaOf(c,ref);c.ag=g;c.agNext=g.atr.length?iso(g.atr[0].emissao):g.next?iso(g.next.emissao):null})}
+const AGL={atraso:'Em atraso',semana:'Emitir em até 7 dias',mes:'Próximos 30 dias',futuro:'Mais adiante',semprev:'Sem previsão',fim:'Concluído',encerrar:'Fora da agenda',inativo:'Inativo'};
+const AGS={atraso:'crit',semana:'alto',mes:'aten',futuro:'ok',semprev:'off',fim:'off',encerrar:'off',inativo:'off'};
+const agTag=c=>c.ag?`<span class="ctr-tag ${AGS[c.ag.status]}">${AGL[c.ag.status]}</span>`:'';
+const critTxt=k=>k.periodicidade==='Por etapa'?`Por etapa (${(k.etapas||[]).length})`:k.periodicidade==='Parcela única'?'Parcela única':`${k.periodicidade} · ${k.referencia==='Dia fixo'?'corte dia '+(k.dia_corte||CFG.corteDia):'aniversário'} · +${k.prazo_emissao_dias}d · ${k.base_valor==='Parcelas iguais'?'parcelas iguais':'por avanço'}`;
+
+let agHor=30, agResp='', agOrig='';
+function agScope(){return scope().filter(c=>c.ativo&&c.ag&&(!agResp||c.responsavel===agResp)&&(!agOrig||(agOrig==='cad'?c.ag.k.cadastrado:!c.ag.k.cadastrado)))}
+function agItems(){
+  const ref=toD(POS.data_ref), lim=addDays(ref,agHor), L=agScope(), atr=[], fut=[];
+  for(const c of L){
+    if(c.ag.atr.length)atr.push({c,desde:c.ag.atr[0].emissao,n:c.ag.atr.length,v:c.ag.atr.reduce((s,x)=>s+x.v,0)});
+    for(const x of c.ag.pend)if(x.emissao>=ref&&x.emissao<=lim)fut.push({c,x});
+  }
+  atr.sort((a,b)=>a.desde-b.desde);fut.sort((a,b)=>a.x.emissao-b.x.emissao||b.x.v-a.x.v);
+  return {atr,fut,L};
+}
+function renderAgenda(){
+  const sel=$('#ctrAgResp'),cur=sel.value;
+  const resp=[...new Set(scope().filter(c=>c.ativo).map(c=>c.responsavel).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todos os responsáveis</option>'+resp.map(r=>`<option ${r===cur?'selected':''}>${esc(r)}</option>`).join('');
+  const {atr,fut,L}=agItems(), ref=toD(POS.data_ref);
+  const sem=fut.filter(i=>days(ref,i.x.emissao)<=7);
+  const semCrit=L.filter(c=>!c.ag.k.cadastrado).length;
+  const vf=fut.reduce((s,i)=>s+i.x.v,0);
+  $('#ctrAgKpis').innerHTML=`
+   <div class="kpi-card c-late ${atr.length?'ctr-kpi-hot':''}"><p class="kpi-label">Medições em atraso</p><div class="kpi-value">${atr.length}</div><div class="kpi-foot">${brlC(atr.reduce((s,a)=>s+a.v,0))} estimados</div></div>
+   <div class="kpi-card c-ped ctr-kpi-warm"><p class="kpi-label">Emitir em até 7 dias</p><div class="kpi-value">${sem.length}</div><div class="kpi-foot">${brlC(sem.reduce((s,i)=>s+i.x.v,0))} previstos</div></div>
+   <div class="kpi-card c-solic"><p class="kpi-label">Próximos ${agHor} dias</p><div class="kpi-value">${fut.length}</div><div class="kpi-foot">${brlC(vf)} previstos</div></div>
+   <div class="kpi-card c-total"><p class="kpi-label">Usando critério padrão</p><div class="kpi-value">${semCrit}</div><div class="kpi-foot">de ${L.length} contratos ativos no filtro</div></div>`;
+  const row=(c,cols)=>`<tr data-id="${esc(c.id)}">${cols}</tr>`;
+  $('#ctrAgAtr').innerHTML=`<thead><tr><th>Atrasada desde</th><th>Contrato</th><th>Fornecedor</th><th>Obra</th><th>Responsável</th><th class="num">Medições</th><th class="num">Valor estimado</th><th>Critério</th></tr></thead><tbody>`+
+    (atr.map(a=>row(a.c,`<td class="mono" style="color:var(--red)">${br(a.desde)} <span class="ctr-subtxt" style="display:inline">(${days(a.desde,ref)} d)</span></td><td class="mono">${esc(a.c.contrato)}</td><td>${esc(a.c.fornecedor)}</td><td><span class="ctr-subtxt" style="max-width:190px">${esc(a.c.obra)}</span></td><td>${esc(a.c.responsavel)}</td><td class="num">${a.n}</td><td class="num">${brl(a.v)}</td><td><span class="ctr-tag ${a.c.ag.k.cadastrado?'st':'off'}">${a.c.ag.k.cadastrado?'Cadastrado':'Padrão'}</span></td>`)).join('')||'<tr><td colspan="8" class="ctr-mt">Nenhuma medição em atraso neste filtro.</td></tr>')+'</tbody>';
+  let h='',lastD='';
+  for(const i of fut){const key=iso(i.x.emissao);
+    if(key!==lastD){lastD=key;const dd=days(ref,i.x.emissao);h+=`<tr class="ctr-agday"><td colspan="8">${brW(i.x.emissao)} <span>${dd===0?'hoje':dd===1?'amanhã':'em '+dd+' dias'}</span></td></tr>`}
+    h+=row(i.c,`<td class="mono">${br(i.x.emissao)}</td><td class="mono">${esc(i.c.contrato)}</td><td>${esc(i.c.fornecedor)}${i.x.desc?`<span class="ctr-subtxt">${esc(i.x.desc)}</span>`:''}</td><td><span class="ctr-subtxt" style="max-width:190px">${esc(i.c.obra)}</span></td><td>${esc(i.c.responsavel)}</td><td class="num mono">${i.x.n}ª · corte ${br(i.x.corte).slice(0,5)}</td><td class="num">${brl(i.x.v)}</td><td><span class="ctr-tag ${i.c.ag.k.cadastrado?'st':'off'}">${i.c.ag.k.cadastrado?'Cadastrado':'Padrão'}</span></td>`)}
+  $('#ctrAgFut').innerHTML=`<thead><tr><th>Emitir em</th><th>Contrato</th><th>Fornecedor</th><th>Obra</th><th>Responsável</th><th class="num">Medição</th><th class="num">Valor previsto</th><th>Critério</th></tr></thead><tbody>${h||`<tr><td colspan="8" class="ctr-mt">Nenhuma medição prevista nos próximos ${agHor} dias.</td></tr>`}</tbody>`;
+  $('#ctrAgCount').textContent=`Posição ${br(POS.data_ref)}`;
+  $$('#ctrAgAtr tbody tr[data-id],#ctrAgFut tbody tr[data-id]').forEach(r=>r.onclick=()=>openD(r.dataset.id));
+}
+function xlsAgenda(){
+  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  const {atr,fut}=agItems();
+  const base=c=>({'Contrato':c.contrato,'Fornecedor':c.fornecedor,'Obra':c.obra,'Empresa':c.empresa,'Responsável':c.responsavel,'Critério':critTxt(c.ag.k),'Origem do critério':c.ag.k.cadastrado?'Cadastrado':'Padrão'});
+  const d1=atr.map(a=>Object.assign({'Situação':'Em atraso','Emitir em':br(a.desde),'Medições':a.n,'Valor estimado':+a.v.toFixed(2)},base(a.c)));
+  const d2=fut.map(i=>Object.assign({'Situação':AGL[i.c.ag.status],'Emitir em':br(i.x.emissao),'Corte':br(i.x.corte),'Medição nº':i.x.n,'Valor previsto':+i.x.v.toFixed(2),'Etapa':i.x.desc},base(i.c)));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d1.length?d1:[{'Situação':'Nenhuma medição em atraso'}]),'Em atraso');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d2.length?d2:[{'Situação':'Nada previsto'}]),'Agenda');
+  XLSX.writeFile(wb,'agenda_medicoes_'+POS.data_ref+'.xlsx');
+}
+async function saveCriterio(c,vals){
+  const row=Object.assign({contrato_key:c.id,contrato:c.contrato,empresa_cod:c.empresaCod??null},vals);
+  const { data, error } = await SB.from('contratos_criterios').upsert(row,{onConflict:'contrato_key'}).select().single();
+  if(error)throw error;CRIT[c.id]=data;return data;
+}
+async function aplicarLote(){
+  const sob=$('#ctrLtSob').checked;
+  const alvo=agScope().filter(c=>sob||!c.ag.k.cadastrado);
+  if(!alvo.length){alert('Nenhum contrato no filtro atual para receber o critério.');return}
+  const v={periodicidade:$('#ctrLtPer').value,referencia:$('#ctrLtRef').value,dia_corte:+$('#ctrLtDia').value||null,prazo_emissao_dias:+$('#ctrLtPz').value||0,base_valor:$('#ctrLtBase').value};
+  if(!confirm(`Aplicar "${critTxt(v)}" a ${plural(alvo.length,'contrato','contratos')} do filtro atual${sob?', substituindo critérios já cadastrados':''}?`))return;
+  const rows=alvo.map(c=>Object.assign({contrato_key:c.id,contrato:c.contrato,empresa_cod:c.empresaCod??null},v));
+  for(let i=0;i<rows.length;i+=200){const { data, error } = await SB.from('contratos_criterios').upsert(rows.slice(i,i+200),{onConflict:'contrato_key'}).select();
+    if(error){alert('Não foi possível aplicar: '+error.message);break}(data||[]).forEach(r=>CRIT[r.contrato_key]=r)}
+  computeAgenda();render();
+}
+function critForm(c){
+  const k=c.ag?c.ag.k:critOf(c), pode=isGestor(), dis=pode?'':'disabled';
+  const et=(k.etapas||[]).map(e=>`${br(e.data)}; ${e.valor??''}; ${e.descricao||''}`).join('\n');
+  const opt=(arr,v)=>arr.map(s=>`<option ${s===v?'selected':''}>${s}</option>`).join('');
+  const ag=c.ag||{}, ref=POS?toD(POS.data_ref):new Date();
+  const prox=(ag.pend||[]).filter(x=>x.emissao>=ref).slice(0,6);
+  return `
+   <div class="ctr-sec">Critério de pagamento e próximas medições</div>
+   <p class="ctr-note" style="margin:0 0 8px">${k.cadastrado?'Critério cadastrado.':'Usando o critério padrão para '+esc((c.tipo||'').toLowerCase())+'. Ajuste e salve para cadastrar.'} ${c.ag?agTag(c):''} ${ag.msg?esc(ag.msg):''}${ag.base?` Última medição identificada nas importações: ${br(ag.base)}.`:''}</p>
+   ${ag.atr&&ag.atr.length?`<ul class="ctr-mot" style="margin-bottom:8px"><li class="crit">${plural(ag.atr.length,'medição atrasada','medições atrasadas')} desde ${br(ag.atr[0].emissao)} (${brl(ag.atr.reduce((s,x)=>s+x.v,0))} estimados)</li></ul>`:''}
+   ${prox.length?`<div class="table-scroll" style="margin-bottom:10px"><table class="data"><thead><tr><th>Nº</th><th>Corte</th><th>Emitir em</th><th class="num">Valor previsto</th></tr></thead><tbody>${prox.map(x=>`<tr><td class="ctr-mono">${x.n}ª</td><td class="ctr-mono">${br(x.corte)}</td><td class="ctr-mono">${br(x.emissao)}</td><td class="num">${brl(x.v)}${x.desc?` <span class="ctr-subtxt" style="display:inline">${esc(x.desc)}</span>`:''}</td></tr>`).join('')}</tbody></table></div>`:''}
+   <div class="ctr-frm" id="ctrCrFrm">
+     <label>Periodicidade<select id="ctrCPer" ${dis}>${opt(PERIODOS,k.periodicidade)}</select></label>
+     <label class="ctr-cr-per">Referência do corte<select id="ctrCRef" ${dis}>${opt(REFS,k.referencia)}</select></label>
+     <label class="ctr-cr-per ctr-cr-dia">Dia de corte<input type="number" min="1" max="31" id="ctrCDia" value="${esc(k.dia_corte??CFG.corteDia)}" ${dis}></label>
+     <label>Emitir quantos dias após o corte<input type="number" min="0" max="90" id="ctrCPz" value="${esc(k.prazo_emissao_dias??CFG.prazoEmissao)}" ${dis}></label>
+     <label class="ctr-cr-per">Valor de cada medição<select id="ctrCBase" ${dis}>${opt(BASES,k.base_valor)}</select></label>
+     <label class="ctr-cr-per ctr-cr-parc">Valor da parcela (R$, opcional)<input type="number" step="0.01" id="ctrCVp" value="${esc(k.valor_parcela??'')}" placeholder="Total ÷ nº de medições" ${dis}></label>
+     <label class="full ctr-cr-et">Etapas: uma por linha, "data; valor; descrição"<textarea id="ctrCEt" placeholder="15/11/2026; 50000; Mobilização&#10;15/01/2027; 120000; Base e sub-base" ${dis}>${esc(et)}</textarea></label>
+     <label class="full">Observações do critério<textarea id="ctrCOb" placeholder="Cláusula do contrato, condição para liberar a medição…" ${dis}>${esc(k.observacoes||'')}</textarea></label>
+   </div>
+   <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${pode?'<button class="btn primary small" id="ctrCSave">Salvar critério</button>':'<span class="ctr-note">Só administradores e supervisores cadastram critérios.</span>'}<span class="ctr-ok" id="ctrCSaved">Critério salvo</span></div>`;
+}
+function wireCritForm(c){
+  const per=$('#ctrCPer');if(!per)return;
+  const upd=()=>{const p=per.value, et=p==='Por etapa', un=p==='Parcela única';
+    $$('.ctr-cr-per').forEach(e=>e.style.display=et||un?'none':'');
+    $('.ctr-cr-dia').style.display=et||un||$('#ctrCRef').value!=='Dia fixo'?'none':'';
+    $('.ctr-cr-parc').style.display=et||un||$('#ctrCBase').value!=='Parcelas iguais'?'none':'';
+    $('.ctr-cr-et').style.display=et?'':'none'};
+  [per,$('#ctrCRef'),$('#ctrCBase')].forEach(e=>e.addEventListener('change',upd));upd();
+  const sv=$('#ctrCSave');if(!sv)return;
+  sv.onclick=async()=>{
+    const p=per.value;let etapas=null;
+    if(p==='Por etapa'){
+      etapas=[];const bad=[];
+      $('#ctrCEt').value.split('\n').map(s=>s.trim()).filter(Boolean).forEach((ln,i)=>{const [d,v,...ds]=ln.split(';').map(x=>x.trim());const dt=cellDate(d);if(!dt){bad.push(i+1);return}
+        etapas.push({data:dt,valor:v?cellNum(v):null,descricao:ds.join('; ')||null})});
+      if(bad.length){alert('Data inválida na(s) linha(s) '+bad.join(', ')+'. Use dd/mm/aaaa; valor; descrição.');return}
+      if(!etapas.length){alert('Cadastre ao menos uma etapa.');return}
+    }
+    sv.disabled=true;
+    try{
+      await saveCriterio(c,{periodicidade:p,referencia:$('#ctrCRef').value,dia_corte:+$('#ctrCDia').value||null,prazo_emissao_dias:+$('#ctrCPz').value||0,base_valor:(p==='Por etapa'||p==='Parcela única')?'Parcelas iguais':$('#ctrCBase').value,valor_parcela:$('#ctrCVp').value===''?null:Number($('#ctrCVp').value),etapas,observacoes:$('#ctrCOb').value.trim()||null});
+      computeAgenda();render();openD(c.id);const s=$('#ctrCSaved');if(s){s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600)}
+    }catch(e){alert('Não foi possível salvar o critério: '+(e.message||e));sv.disabled=false}
+  };
+}
+
+/* ---------- navegação / ligação com o painel ---------- */
+function goTab(t){const b=document.querySelector(`.tab-btn[data-tab="${t}"]`);if(b)b.click()}
+function render(){
+  if(STATE!=='ready'){if(VIEW==='contratos-importar')renderImportar();return}
+  updatePill();
+  ({'contratos-geral':renderGeral,'contratos-lista':renderLista,'contratos-agenda':renderAgenda,'contratos-aditivos':renderAditivos,'contratos-medicoes':renderMedicoes,'contratos-importar':renderImportar}[VIEW]||(()=>{}))();
+}
+function show(tab){
+  VIEW=tab;
+  const slot=document.querySelector(`#tab-${tab} .ctr-fslot`);
+  if(slot)slot.appendChild($('#ctrFiltros'));
+  if(!loadedOnce&&STATE!=='loading')loadAll();else{paintState();render()}
+}
+window.CTR={show,reload:loadAll};
+window.refreshContratosAposLogin=function(){loadedOnce=false;POS=null;SNAPS=[];AD={};CRIT={};ALL=[];STATE='idle';updatePill();
+  if(document.body.classList.contains('is-logged'))loadAll();else{STATE='nologin';paintState()}};
+
+$('#ctrEmp').onchange=()=>{refreshFilters();limC=150;render()};
+$('#ctrObra').onchange=()=>{limC=150;render()};
+['#ctrQ','#ctrFSit','#ctrFTipo','#ctrFNec'].forEach(s=>$(s).addEventListener(s==='#ctrQ'?'input':'change',()=>{limC=150;renderLista()}));
+$('#ctrMore').onclick=()=>{limC+=150;renderLista()};
+$('#ctrFSev').onchange=renderAditivos;
+$$('#ctrSegAd button').forEach(b=>b.onclick=()=>{$$('#ctrSegAd button').forEach(x=>x.classList.toggle('on',x===b));adTipo=b.dataset.t;renderAditivos()});
+$$('#ctrSegHor button').forEach(b=>b.onclick=()=>{$$('#ctrSegHor button').forEach(x=>x.classList.toggle('on',x===b));agHor=+b.dataset.h;renderAgenda()});
+$('#ctrAgResp').onchange=e=>{agResp=e.target.value;renderAgenda()};
+$('#ctrAgOrig').onchange=e=>{agOrig=e.target.value;renderAgenda()};
+$('#ctrAgExp').onclick=xlsAgenda;
+$('#ctrLtBtn').onclick=()=>{const p=$('#ctrLote');p.hidden=!p.hidden};
+$('#ctrLtAplicar').onclick=aplicarLote;
+$('#ctrSnapA').onchange=renderMedicoes;$('#ctrSnapB').onchange=renderMedicoes;
+$('#ctrExpXls').onclick=()=>xls(filtC().sort(sorter(sortC.k,sortC.d)),'contratos');
+$('#ctrExpAd').onclick=()=>xls(adList(),'aditivos');
+$('#ctrFile').onchange=e=>{if(e.target.files[0])importFile(e.target.files[0]);e.target.value=''};
+$('#ctrSaveRules').onclick=async()=>{
+  const n=Object.assign({},CFG);$$('#ctrRules input').forEach(i=>{const v=Number(i.value);if(!isNaN(v))n[i.dataset.k]=v});
+  const { error } = await SB.from('contratos_regras').update({regras:n,atualizado_em:new Date().toISOString()}).eq('id',1);
+  if(error){alert('Não foi possível salvar as regras: '+error.message);return}
+  CFG=n;if(POS){ALL=build(POS.dados,POS.data_ref);computeAgenda()}render();const s=$('#ctrRulesOk');s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600);
+};
+$('#ctrResetRules').onclick=()=>{CFG=Object.assign({},DEF);renderRules()};
+paintState();
 })();
 </script>
 
