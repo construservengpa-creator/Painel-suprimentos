@@ -3026,7 +3026,7 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
       <header><h3>Notificação por WhatsApp</h3><p>Dias úteis às 07:30: críticos quando houver novidade; segunda-feira, resumo semanal</p></header>
       <div class="ctr-body">
         <div class="ctr-frm" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-          <label>Telefone com DDI e DDD<input type="text" id="ctrNTel" placeholder="+5591999999999"></label>
+          <label>Telefone (igual ao que o CallMeBot mostrou)<input type="text" id="ctrNTel" placeholder="ex.: 559183883120"></label>
           <label>Apikey do CallMeBot<input type="text" id="ctrNKey" placeholder="enviada pelo bot no WhatsApp"></label>
           <label>Vencendo em até (dias), no resumo<input type="number" id="ctrNJan" min="1" max="180"></label>
           <label class="ctr-chk"><input type="checkbox" id="ctrNAtivo"> Notificação ativa</label>
@@ -3040,7 +3040,7 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
           <span class="ctr-ok" id="ctrNOk">Salvo</span>
         </div>
         <div class="ctr-msg" id="ctrNMsg"></div>
-        <p class="ctr-note" style="margin-top:12px">Para obter a apikey (gratuita, uso pessoal): siga as instruções em <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener" style="color:var(--yellow)">callmebot.com</a>. Salve o número do bot nos contatos, envie a ele pelo WhatsApp a frase <b>I allow callmebot to send me messages</b> e aguarde a resposta com a apikey.</p>
+        <p class="ctr-note" style="margin-top:12px">Para obter a apikey (gratuita, uso pessoal): siga as instruções em <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener" style="color:var(--yellow)">callmebot.com</a>. Salve o número do bot nos contatos, envie a ele pelo WhatsApp a frase <b>I allow callmebot to send me messages</b> e aguarde a resposta com a apikey. Use o telefone exatamente como aparece na mensagem de ativação ("Activated for …"): muitas contas de WhatsApp no Brasil são registradas sem o 9 inicial.</p>
         <div class="ctr-sec" style="margin-top:12px">Últimos envios</div>
         <div class="table-scroll"><table class="data" id="ctrNLog"></table></div>
       </div>
@@ -13046,9 +13046,14 @@ async function loadNotif(){
 }
 function nmsg(t,ok){const m=$('#ctrNMsg');m.innerHTML=t;m.className='ctr-msg on '+(ok?'ok':'err')}
 $('#ctrNSave').onclick=async()=>{
-  const tel=$('#ctrNTel').value.replace(/[^\d+]/g,'');
-  if($('#ctrNAtivo').checked&&(!/^\+\d{12,13}$/.test(tel)||!$('#ctrNKey').value.trim())){nmsg('Para ativar, informe o telefone no formato +55DDDnúmero e a apikey.');return}
-  const { error } = await SB.from('contratos_notif_config').update({telefone:tel||null,apikey:$('#ctrNKey').value.trim()||null,janela_dias:+$('#ctrNJan').value||30,
+  let tel=$('#ctrNTel').value.replace(/\D/g,'');
+  if(tel.length===10||tel.length===11)tel='55'+tel;          // digitou só DDD + número
+  tel=tel?'+'+tel:'';
+  const key=$('#ctrNKey').value.trim(), faltas=[];
+  if(tel&&!/^\+55\d{10,11}$/.test(tel))faltas.push('o telefone deve ter DDI 55 + DDD + número (ex.: 5591983883120)');
+  if($('#ctrNAtivo').checked){if(!tel)faltas.push('informe o telefone');if(!key)faltas.push('informe a apikey que o CallMeBot enviou no WhatsApp')}
+  if(faltas.length){nmsg('Para salvar: '+faltas.join('; ')+'. Se ainda não tem a apikey, desmarque "Notificação ativa" para salvar o resto.');return}
+  const { error } = await SB.from('contratos_notif_config').update({telefone:tel||null,apikey:key||null,janela_dias:+$('#ctrNJan').value||30,
     ativo:$('#ctrNAtivo').checked,diario:$('#ctrNDia').checked,semanal:$('#ctrNSem').checked,diario_repetir:$('#ctrNRep').checked,atualizado_em:new Date().toISOString()}).eq('id',1);
   if(error){nmsg('Não foi possível salvar: '+esc(error.message));return}
   $('#ctrNTel').value=tel;$('#ctrNMsg').className='ctr-msg';const s=$('#ctrNOk');s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600);
