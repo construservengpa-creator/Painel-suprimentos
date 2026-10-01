@@ -1552,6 +1552,43 @@ body.is-admin .ctr-lote.gestor-credito-only[hidden],body.is-supervisor .ctr-lote
 .ctr-frm label.ctr-chk input{width:auto;}
 body.is-admin .ctr-notif.admin-only{display:block !important;}
 </style>
+<style>
+/* ---- Créditos: relatório (utilização e vínculos) ---- */
+#tab-creditos .cr-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--text-mut);margin:0 0 10px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);}
+#tab-creditos .cr-legend b{color:var(--text);}
+#tab-creditos .cr-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+#tab-creditos .cr-dot.fat{background:var(--teal);} #tab-creditos .cr-dot.res{background:var(--amber);} #tab-creditos .cr-dot.liv{background:var(--surface-3,#3a3f47);border:1px solid var(--line);}
+#tab-creditos .cr-who{font-weight:600;color:var(--text);line-height:1.35;}
+#tab-creditos .cr-who .arrow{color:var(--text-faint);font-weight:400;margin:0 4px;}
+#tab-creditos .cr-sub{display:block;font-size:11.5px;color:var(--text-mut);margin-top:2px;line-height:1.4;}
+#tab-creditos .cr-bar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--surface-3,#3a3f47);min-width:180px;margin:2px 0 6px;}
+#tab-creditos .cr-bar i{display:block;height:100%;}
+#tab-creditos .cr-bar i.fat{background:var(--teal);} #tab-creditos .cr-bar i.res{background:var(--amber);}
+#tab-creditos .cr-num{font-family:var(--font-mono);font-size:11.5px;line-height:1.55;white-space:nowrap;}
+#tab-creditos .cr-num .lbl{color:var(--text-mut);font-family:var(--font-body);}
+#tab-creditos td .saldo-pill{white-space:nowrap;}
+#tab-creditos .vinculos-mini td.txt{min-width:210px;}
+#tab-creditos .vinculos-mini td:first-child .cr-sub{white-space:nowrap;}
+#tab-creditos .cr-big{font-family:var(--font-mono);font-weight:600;font-size:13px;white-space:nowrap;}
+#tab-creditos .cr-detail-head{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:baseline;margin:0 0 10px;font-size:12.5px;color:var(--text-mut);}
+#tab-creditos .cr-detail-head b{font-family:var(--font-mono);color:var(--text);}
+#tab-creditos .cr-detail-head .eq{color:var(--text-faint);}
+#tab-creditos .vinculos-mini td.num,#tab-creditos .vinculos-mini th.num{text-align:right;white-space:nowrap;}
+#tab-creditos .vinculos-mini td .cr-sub{font-family:var(--font-body);}
+#tab-creditos .vinculos-mini tfoot td{border-top:1px solid var(--line);font-weight:700;padding-top:8px;}
+#tab-creditos .cr-st{display:inline-block;font-family:var(--font-body);font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap;}
+#tab-creditos .cr-st.ok{background:rgba(12,163,12,.16);color:var(--teal);}
+#tab-creditos .cr-st.fat{background:rgba(90,169,255,.15);color:var(--blue,#5aa9ff);}
+#tab-creditos .cr-st.res{background:rgba(250,178,25,.15);color:var(--amber);}
+#tab-creditos .cr-st.off{background:rgba(92,101,112,.2);color:var(--text-mut);}
+#tab-creditos .cr-nf{display:block;font-size:11.5px;white-space:nowrap;}
+#tab-creditos .cr-pct{font-size:10.5px;color:var(--text-mut);font-family:var(--font-body);}
+@media print{
+  #tab-creditos .cr-bar{border:1px solid #999;}
+  #tab-creditos .cr-bar i.fat{background:#2e7d32 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #tab-creditos .cr-bar i.res{background:#f9a825 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
 </head>
 <body>
 <div id="colFilterDropdown" class="col-filter-dropdown">
@@ -2339,10 +2376,15 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
             <button class="ghost no-print" id="credito-btnPrint">🖨 Relatório</button>
           </div>
         </div>
+        <div class="cr-legend">
+          <span><span class="cr-dot fat"></span><b>Faturado</b>: notas fiscais emitidas nos pedidos vinculados (abatimento confirmado)</span>
+          <span><span class="cr-dot res"></span><b>Reservado</b>: parte dos pedidos ainda sem nota (comprometido, mas não faturado)</span>
+          <span><span class="cr-dot liv"></span><b>Saldo livre</b>: valor do crédito disponível para novos pedidos</span>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th class="no-print"></th><th>Empresa beneficiária</th><th>Empresa devedora</th><th>Obra do devedor</th><th>Valor total</th><th>Comprometido</th><th>Saldo</th><th>Disponível a partir de</th><th>Descrição</th><th class="no-print"></th></tr>
+              <tr><th class="no-print"></th><th>Crédito (credora ← devedora)</th><th>Valor do crédito</th><th>Utilização</th><th>Saldo livre</th><th>Disponível desde</th><th class="no-print"></th></tr>
             </thead>
             <tbody id="creditoTableBody"></tbody>
           </table>
@@ -7605,7 +7647,7 @@ function getPedidosUnicos(){
       if(!p._notasVistas.has(chaveNota)){
         p._notasVistas.add(chaveNota);
         p.valorTotal += valor;
-        p.notas.push({ numero: numNota || '(sem número)', valor });
+        p.notas.push({ numero: numNota || '(sem número)', valor, data: normLabel(r.dataNotaFiscal)||'' });
       }
     }
   });
@@ -7810,6 +7852,7 @@ function notasDoPedidoFormatadas(numPedido){
 }
 
 function toggleCreditoDetail(id){
+  id = String(id);
   if(creditoDetailOpen.has(id)) creditoDetailOpen.delete(id); else creditoDetailOpen.add(id);
   renderCreditos();
 }
@@ -7942,49 +7985,80 @@ function renderCreditos(){
   const tbody = document.getElementById('creditoTableBody');
   if(!tbody) return;
   if(!lista.length){
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum crédito lançado com esse filtro.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum crédito lançado com esse filtro.</td></tr>`;
     return;
   }
 
   let html = '';
+  const pedidosMap = new Map(getPedidosUnicos().map(p=>[String(p.numPedido), p]));
+  const pct = (v,t)=> t>0 ? (v/t*100) : 0;
+  const pctTxt = (v,t)=> t>0 ? (v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '0%';
   lista.forEach(c=>{
     const reservado = creditoReservado(c.id);
-    const realizado = creditoRealizadoAbatido(c.id);
-    const abatido = reservado + realizado;
-    const saldo = c.valorTotal - abatido;
-    const isOpen = creditoDetailOpen.has(c.id);
+    const faturado = creditoRealizadoAbatido(c.id);
+    const saldo = c.valorTotal - reservado - faturado;
+    const isOpen = creditoDetailOpen.has(String(c.id));
     const vinculos = vinculosDoCredito(c.id);
-    const abatidoDetalhe = reservado>0.005 && realizado>0.005
-      ? `<br><span style="font-size:10.5px;color:var(--text-faint);font-weight:400;">R$ ${fmtMoney(realizado)} realizado + R$ ${fmtMoney(reservado)} reservado</span>`
-      : (reservado>0.005 ? `<br><span style="font-size:10.5px;color:var(--amber);font-weight:400;">reservado (sem nota ainda)</span>` : '');
+    const pf = Math.min(100, pct(faturado, c.valorTotal)), pr = Math.min(100-pf, pct(reservado, c.valorTotal));
     html += `<tr>
-      <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}">${isOpen?'▾':'▸'}</button></td>
-      <td class="txt">${esc(c.empresaBeneficiaria)||'—'}</td>
-      <td class="txt">${esc(c.empresaDevedora)||'—'}</td>
-      <td class="txt">${esc(c.obra)}</td>
-      <td>R$ ${fmtMoney(c.valorTotal)}</td>
-      <td>R$ ${fmtMoney(abatido)}${abatidoDetalhe}</td>
-      <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span></td>
+      <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}" title="Ver pedidos vinculados">${isOpen?'▾':'▸'}</button></td>
+      <td class="txt">
+        <span class="cr-who">${esc(c.empresaBeneficiaria)||'—'}<span class="arrow">←</span>${esc(c.empresaDevedora)||'—'}</span>
+        <span class="cr-sub">Obra ${esc(c.obra)}${c.descricao?` · ${esc(c.descricao)}`:''}</span>
+        <span class="cr-sub">${vinculos.length ? `${vinculos.length} pedido(s) vinculado(s)` : 'Nenhum pedido vinculado'}</span>
+      </td>
+      <td><span class="cr-big">R$ ${fmtMoney(c.valorTotal)}</span></td>
+      <td>
+        <div class="cr-bar" title="Faturado ${pctTxt(faturado,c.valorTotal)} · Reservado ${pctTxt(reservado,c.valorTotal)} · Livre ${pctTxt(Math.max(0,saldo),c.valorTotal)}"><i class="fat" style="width:${pf}%"></i><i class="res" style="width:${pr}%"></i></div>
+        <div class="cr-num"><span class="cr-dot fat"></span><span class="lbl">Faturado</span> R$ ${fmtMoney(faturado)} <span class="cr-pct">(${pctTxt(faturado,c.valorTotal)})</span></div>
+        <div class="cr-num"><span class="cr-dot res"></span><span class="lbl">Reservado</span> R$ ${fmtMoney(reservado)} <span class="cr-pct">(${pctTxt(reservado,c.valorTotal)})</span></div>
+      </td>
+      <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span><span class="cr-sub">${pctTxt(Math.max(0,saldo),c.valorTotal)} do crédito</span></td>
       <td>${c.dataDisponibilidade?fmtBRDate(c.dataDisponibilidade):'—'}</td>
-      <td class="txt">${esc(c.descricao)||'—'}</td>
       <td class="no-print"><button class="ghost gestor-credito-only" data-edit-credito="${c.id}">Editar</button> <button class="danger gestor-credito-only" data-del-credito="${c.id}">Excluir</button></td>
-    </tr>
-    <tr class="credito-detail-row ${isOpen?'open':''}"><td colspan="10">
-      ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
-          <th>Pedido</th><th>Obra</th><th>Fornecedor</th><th>Nota Fiscal</th><th>Status</th><th>Valor</th><th>Data</th><th>Observação</th><th class="no-print"></th>
-        </tr></thead><tbody>
-        ${vinculos.map(v=>`<tr>
-          <td>${esc(v.numPedido)}</td>
-          <td class="txt">${esc(v.obraPedido)}</td>
-          <td class="txt">${esc(v.fornecedor)}</td>
-          <td class="txt">${esc(notasDoPedidoFormatadas(v.numPedido))||'—'}</td>
-          <td>${vinculoStatusBadge(v.status, v)}</td>
-          <td>R$ ${fmtMoney(vinculoValorEfetivo(v))}</td>
-          <td>${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</td>
-          <td class="txt">${esc(v.observacao)||'—'}</td>
+    </tr>`;
+    // ---- detalhe: pedidos vinculados ----
+    let tPrev=0,tFat=0,tRes=0,tEf=0;
+    const linhas = vinculos.map(v=>{
+      const ped = pedidosMap.get(String(v.numPedido));
+      const cancel = v.status==='cancelado';
+      const fat = cancel ? 0 : (v.valorRealizado||0);
+      const res = (!cancel && v.status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-fat) : 0;
+      const ef = vinculoValorEfetivo(v);
+      tPrev += cancel?0:(v.valorPrevisto||0); tFat += fat; tRes += res; tEf += ef;
+      let st;
+      if(cancel) st = '<span class="cr-st off">Cancelado</span>';
+      else if(v.status==='realizado') st = '<span class="cr-st ok" title="Pedido encerrado no Sienge: vale o valor das notas">Concluído</span>';
+      else if(fat>0.005) st = `<span class="cr-st fat" title="Pedido com entrega parcial: o restante continua reservado">Em faturamento · ${pctTxt(fat, v.valorPrevisto)}</span>`;
+      else st = '<span class="cr-st res">Aguardando nota</span>';
+      const sit = ped && ped.situacoes && ped.situacoes.length ? ped.situacoes.join(' / ') : (ped ? '' : 'não está no relatório atual');
+      const nfs = ped && ped.notas && ped.notas.length
+        ? ped.notas.map(n=>`<span class="cr-nf">${esc(n.numero)} · R$ ${fmtMoney(n.valor)}${n.data?` <span class="cr-pct">${esc(n.data)}</span>`:''}</span>`).join('')
+        : '<span class="cr-sub">—</span>';
+      const obraDif = v.obraPedido && codigoObra(v.obraPedido)!==codigoObra(c.obra) ? `<span class="cr-sub">Obra ${esc(v.obraPedido)}</span>` : '';
+      return `<tr>
+          <td><b>${esc(v.numPedido)}</b><span class="cr-sub">vinculado em ${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</span></td>
+          <td class="txt">${esc(v.fornecedor)||'—'}${v.observacao?`<span class="cr-sub">${esc(v.observacao)}</span>`:''}${obraDif}</td>
+          <td>${st}${sit?`<span class="cr-sub">Sienge: ${esc(sit)}</span>`:''}</td>
+          <td class="num">R$ ${fmtMoney(v.valorPrevisto||0)}</td>
+          <td class="num">${nfs}${fat>0.005 && ped && Math.abs(ped.valorTotal-fat)>0.005 ? `<span class="cr-sub">considerado: R$ ${fmtMoney(fat)}</span>`:''}</td>
+          <td class="num">${res>0.005?`R$ ${fmtMoney(res)}`:'—'}</td>
+          <td class="num"><b>R$ ${fmtMoney(ef)}</b></td>
           <td class="no-print"><button class="credito-toggle gestor-credito-only" data-edit-vinculo="${v.id}" title="Editar vínculo">✎</button><button class="credito-toggle gestor-credito-only" data-del-vinculo="${v.id}" title="Remover vínculo">✕</button></td>
-        </tr>`).join('')}
-        </tbody></table>`
+        </tr>`;
+    }).join('');
+    html += `<tr class="credito-detail-row ${isOpen?'open':''}"><td colspan="7">
+      <div class="cr-detail-head">
+        <span>Crédito <b>R$ ${fmtMoney(c.valorTotal)}</b></span><span class="eq">=</span>
+        <span><span class="cr-dot fat"></span>faturado <b>R$ ${fmtMoney(faturado)}</b></span><span class="eq">+</span>
+        <span><span class="cr-dot res"></span>reservado <b>R$ ${fmtMoney(reservado)}</b></span><span class="eq">+</span>
+        <span><span class="cr-dot liv"></span>saldo livre <b>R$ ${fmtMoney(saldo)}</b></span>
+      </div>
+      ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
+          <th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="num">Previsto no pedido</th><th class="num">Faturado (notas)</th><th class="num">Ainda reservado</th><th class="num">Conta no crédito</th><th class="no-print"></th>
+        </tr></thead><tbody>${linhas}</tbody>
+        <tfoot><tr><td colspan="3">Total dos pedidos vinculados</td><td class="num">R$ ${fmtMoney(tPrev)}</td><td class="num">R$ ${fmtMoney(tFat)}</td><td class="num">R$ ${fmtMoney(tRes)}</td><td class="num">R$ ${fmtMoney(tEf)}</td><td class="no-print"></td></tr></tfoot>
+        </table>`
         : `<div class="empty-mini">Nenhum pedido vinculado a este crédito ainda.</div>`}
     </td></tr>`;
   });
