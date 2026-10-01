@@ -2373,6 +2373,8 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
           <div class="toolbar">
             <span class="count-badge" id="creditoCountBadge">0 créditos</span>
             <button class="ghost no-print" id="credito-btnExportExcel">⬇ Exportar Excel</button>
+            <button class="ghost no-print gestor-credito-only" id="credito-btnImportNotas" title="Relatório do Sienge com as notas fiscais de cada pedido (Pedido, Nota Fiscal, Emissão, Total atendido nota, Saldo do pedido)">⬆ Importar notas do Sienge</button>
+            <input type="file" id="credito-fileNotas" accept=".xlsx,.xls,.csv" style="display:none">
             <button class="ghost no-print" id="credito-btnPrint">🖨 Relatório</button>
           </div>
         </div>
@@ -7498,6 +7500,26 @@ async function insertCentroCustoCredito(cc){
   });
   if(error) throw error;
 }
+// Notas fiscais por pedido importadas do relatório "Pedido x Nota Fiscal" do
+// Sienge (tabela creditos_notas). O relatório principal traz só uma nota por
+// item de pedido; estas completam as demais notas do mesmo pedido.
+let notasExtrasCredito = new Map();   // num_pedido -> [{numero, valor, data, chave, saldoPedido}]
+const chaveNotaFiscal = (n)=>{ const m = String(n||'').match(/\d{3,}/); return m ? String(Number(m[0])) : ''; };
+async function loadNotasExtrasCredito(){
+  try{
+    const { data, error } = await window.SB.from('creditos_notas').select('num_pedido,nota,nota_key,emissao,valor,saldo_pedido,importado_em');
+    if(error) throw error;
+    const m = new Map();
+    (data||[]).forEach(n=>{
+      const k = String(n.num_pedido).trim();
+      if(!m.has(k)) m.set(k, []);
+      m.get(k).push({ numero:n.nota, valor:Number(n.valor)||0, data:n.emissao?fmtBRDate(n.emissao):'', chave:String(Number(n.nota_key)), saldoPedido:n.saldo_pedido==null?null:Number(n.saldo_pedido), importadoEm:n.importado_em });
+    });
+    notasExtrasCredito = m;
+  }catch(e){
+    console.error('Falha ao carregar notas complementares:', e);
+  }
+}
 async function loadVinculosCredito(){
   try{
     const { data, error } = await window.SB.from('creditos_vinculos').select('*').order('data_vinculo', { ascending:false });
@@ -7643,7 +7665,7 @@ function getPedidosUnicos(){
     const valor = parseNumBR(r.valorNota);
     const numNota = normLabel(r.numNotaFiscal);
     if(valor > 0){
-      const chaveNota = numNota || ('linha-'+p._notasVistas.size);
+      const chaveNota = chaveNotaFiscal(numNota) || numNota || ('linha-'+p._notasVistas.size);
       if(!p._notasVistas.has(chaveNota)){
         p._notasVistas.add(chaveNota);
         p.valorTotal += valor;
@@ -7651,9 +7673,175 @@ function getPedidosUnicos(){
       }
     }
   });
+  // completa com as notas do relatório Pedido x Nota Fiscal (sem duplicar)
+  notasExtrasCredito.forEach((lista, num)=>{
+    let p = map.get(num);
+    if(!p){
+      p = { numPedido:num, obra:'', fornecedor:'', comprador:'', valorTotal:0, notas:[], _notasVistas:new Set(), _situacoes:new Set() };
+      map.set(num, p);
+    }
+    lista.forEach(n=>{
+      if(n.saldoPedido!=null && (!p._saldoEm || n.importadoEm >= p._saldoEm)){ p._saldoPedido = n.saldoPedido; p._saldoEm = n.importadoEm; }
+      if(!n.chave || p._notasVistas.has(n.chave) || !(n.valor>0)) return;
+      p._notasVistas.add(n.chave);
+      p.valorTotal += n.valor;
+      p.notas.push({ numero:n.numero, valor:n.valor, data:n.data });
+    });
+  });
   return [...map.values()]
-    .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, notas:p.notas, situacoes:[...p._situacoes] }))
+    .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, notas:p.notas, situacoes:[...p._situacoes], saldoPedido:p._saldoPedido==null?null:p._saldoPedido }))
     .sort((a,b)=>String(a.numPedido).localeCompare(String(b.numPedido),'pt-BR',{numeric:true}));
+}
+
+
+// ---------- Importação do relatório "Pedido x Nota Fiscal" do Sienge ----------
+async function importarNotasPedidoSienge(file){
+  if(typeof XLSX === 'undefined'){ alert('A biblioteca de Excel não carregou. Recarregue a página.'); return; }
+  try{
+    const wb = XLSX.read(await file.arrayBuffer(), { type:'array', cellDates:true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const aoa = XLSX.utils.sheet_to_json(ws, { header:1, raw:true, defval:null });
+    const nz = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+    const hi = aoa.findIndex(r => r && r.some(c => nz(c)==='pedido') && r.some(c => nz(c).includes('nota fiscal')));
+    if(hi < 0) throw new Error('não encontrei as colunas "Pedido" e "Nota Fiscal". Use o relatório do Sienge com as notas fiscais de cada pedido.');
+    const H = aoa[hi].map(nz), col = f => H.findIndex(f);
+    const iP = col(h=>h==='pedido'), iN = col(h=>h.includes('nota fiscal')), iE = col(h=>h.includes('emissao')),
+          iV = col(h=>h.includes('total atendido')), iS = col(h=>h.includes('saldo')),
+          iT = col(h=>h.startsWith('total') && h.includes('pedido') && !h.includes('atendido')),
+          iC = col(h=>h.includes('contrato')), iF = col(h=>h.includes('fornecedor')), iSit = col(h=>h.includes('situacao'));
+    if(iV < 0) throw new Error('não encontrei a coluna "Total atendido nota".');
+    const num = v => typeof v === 'number' ? v : parseNumBR(v);
+    const dt = v => {
+      if(!v) return null;
+      if(v instanceof Date) return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+      const m = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : null;
+    };
+    const vistos = new Map();
+    for(let r = hi+1; r < aoa.length; r++){
+      const a = aoa[r]; if(!a) continue;
+      const ped = a[iP]==null ? '' : String(a[iP]).replace(/\.0+$/,'').trim();
+      const nota = a[iN]==null ? '' : String(a[iN]).replace(/\s+/g,' ').trim();
+      const chave = chaveNotaFiscal(nota);
+      if(!/^\d+$/.test(ped) || !chave) continue;
+      const k = ped+'|'+chave;
+      if(vistos.has(k)) continue;           // a mesma nota se repete uma linha por parcela
+      vistos.set(k, { num_pedido:ped, nota, nota_key:chave, emissao:iE>=0?dt(a[iE]):null, valor:Math.round(num(a[iV])*100)/100,
+        fornecedor:iF>=0&&a[iF]!=null?String(a[iF]).trim():null, contrato:iC>=0&&a[iC]!=null?String(a[iC]).trim():null,
+        total_pedido:iT>=0&&a[iT]!=null?num(a[iT]):null, saldo_pedido:iS>=0&&a[iS]!=null?num(a[iS]):null,
+        situacao:iSit>=0&&a[iSit]!=null?String(a[iSit]).trim():null, arquivo:file.name, importado_em:new Date().toISOString() });
+    }
+    const linhas = [...vistos.values()];
+    if(!linhas.length) throw new Error('nenhuma nota fiscal encontrada no arquivo.');
+    for(let i=0;i<linhas.length;i+=500){
+      const { error } = await window.SB.from('creditos_notas').upsert(linhas.slice(i,i+500), { onConflict:'num_pedido,nota_key' });
+      if(error) throw error;
+    }
+    await loadNotasExtrasCredito();
+    await reconciliarVinculosComNotasFiscais();
+    await loadVinculosCredito();
+    renderCreditos();
+    const peds = new Set(linhas.map(l=>l.num_pedido));
+    const afetados = vinculosCredito.filter(v=>peds.has(String(v.numPedido))).length;
+    alert(`Importadas ${linhas.length} nota(s) fiscal(is) de ${peds.size} pedido(s).` + (afetados ? `\n${afetados} pedido(s) vinculado(s) a créditos foram recalculados.` : '\nNenhum desses pedidos está vinculado a um crédito.'));
+  }catch(e){
+    console.error('Falha ao importar notas:', e);
+    alert('Não foi possível importar as notas: ' + (e.message || e));
+  }
+}
+
+// ---------- Relatório de créditos em A4 ----------
+function imprimirRelatorioCreditos(){
+  const lista = getCreditosFiltrados();
+  const pedidosMap = new Map(getPedidosUnicos().map(p=>[String(p.numPedido), p]));
+  const e = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const m = v => 'R$ ' + fmtMoney(v||0);
+  const pc = (v,t) => t>0 ? (v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '0%';
+  let gT=0,gF=0,gR=0;
+  const blocos = lista.map(c=>{
+    const res = creditoReservado(c.id), fat = creditoRealizadoAbatido(c.id), sal = c.valorTotal - res - fat;
+    gT += c.valorTotal; gF += fat; gR += res;
+    const pf = c.valorTotal>0 ? Math.min(100, fat/c.valorTotal*100) : 0, pr = c.valorTotal>0 ? Math.min(100-pf, res/c.valorTotal*100) : 0;
+    const vs = vinculosDoCredito(c.id);
+    let tP=0,tF=0,tR=0,tE=0;
+    const linhas = vs.map(v=>{
+      const ped = pedidosMap.get(String(v.numPedido)), cancel = v.status==='cancelado';
+      const f = cancel?0:(v.valorRealizado||0), r = (!cancel && v.status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-f) : 0, ef = vinculoValorEfetivo(v);
+      tP += cancel?0:(v.valorPrevisto||0); tF += f; tR += r; tE += ef;
+      const st = cancel ? 'Cancelado' : v.status==='realizado' ? 'Concluído' : f>0.005 ? 'Em faturamento · '+pc(f, v.valorPrevisto) : 'Aguardando nota';
+      const stc = cancel ? 'off' : v.status==='realizado' ? 'ok' : f>0.005 ? 'fat' : 'res';
+      const sit = ped && ped.situacoes && ped.situacoes.length ? ped.situacoes.join(' / ') : '';
+      const nfs = ped && ped.notas && ped.notas.length ? ped.notas.map(n=>`<div class="nf">${e(n.numero)}${n.data?` · ${e(n.data)}`:''}<span>${m(n.valor)}</span></div>`).join('') : '<div class="mut">sem nota</div>';
+      return `<tr>
+        <td><b>${e(v.numPedido)}</b><div class="mut">${v.dataVinculo?fmtBRDate(v.dataVinculo):''}</div></td>
+        <td>${e(v.fornecedor)}${v.observacao?`<div class="mut">${e(v.observacao)}</div>`:''}</td>
+        <td><span class="st ${stc}">${st}</span>${sit?`<div class="mut">Sienge: ${e(sit)}</div>`:''}${ped&&ped.saldoPedido!=null?`<div class="mut">Saldo do pedido: ${m(ped.saldoPedido)}</div>`:''}</td>
+        <td class="n">${m(v.valorPrevisto)}</td>
+        <td class="n">${nfs}</td>
+        <td class="n">${r>0.005?m(r):'—'}</td>
+        <td class="n"><b>${m(ef)}</b></td></tr>`;
+    }).join('');
+    return `<section class="cred">
+      <div class="ch">
+        <div><div class="who">${e(c.empresaBeneficiaria)||'—'} <span class="mut">←</span> ${e(c.empresaDevedora)||'—'}</div>
+          <div class="mut">Obra ${e(c.obra)}${c.descricao?' · '+e(c.descricao):''} · disponível desde ${c.dataDisponibilidade?fmtBRDate(c.dataDisponibilidade):'—'}</div></div>
+        <div class="cv">${m(c.valorTotal)}</div>
+      </div>
+      <div class="bar"><i class="f" style="width:${pf}%"></i><i class="r" style="width:${pr}%"></i></div>
+      <div class="eq"><span><i class="d f"></i>Faturado <b>${m(fat)}</b> (${pc(fat,c.valorTotal)})</span><span><i class="d r"></i>Reservado <b>${m(res)}</b> (${pc(res,c.valorTotal)})</span><span><i class="d l"></i>Saldo livre <b>${m(sal)}</b> (${pc(Math.max(0,sal),c.valorTotal)})</span></div>
+      ${vs.length ? `<table><colgroup><col style="width:9.5%"><col style="width:16.5%"><col style="width:15%"><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:13%"></colgroup>
+        <thead><tr><th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="n">Previsto</th><th class="n">Faturado (notas)</th><th class="n">Reservado</th><th class="n">Conta no crédito</th></tr></thead>
+        <tbody>${linhas}</tbody>
+        <tfoot><tr><td colspan="3">Total dos pedidos vinculados</td><td class="n">${m(tP)}</td><td class="n">${m(tF)}</td><td class="n">${m(tR)}</td><td class="n">${m(tE)}</td></tr></tfoot></table>`
+      : '<div class="mut" style="padding:6px 0">Nenhum pedido vinculado a este crédito.</div>'}
+    </section>`;
+  }).join('');
+  const gS = gT - gF - gR, agora = new Date();
+  const doc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Controle de Crédito entre Obras</title><style>
+    @page{size:A4 portrait;margin:11mm 10mm 12mm;}
+    *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:8.6pt;color:#1d2228;margin:0;}
+    h1{font-size:14pt;margin:0;font-weight:700;letter-spacing:.2px;}
+    .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d2228;padding-bottom:5px;margin-bottom:8px;}
+    .top .mut{text-align:right;}
+    .mut{color:#667080;font-size:7.6pt;line-height:1.35;}
+    .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px;}
+    .kp div{border:1px solid #d5d9df;border-radius:4px;padding:5px 7px;}
+    .kp b{display:block;font-size:10.5pt;margin-top:1px;}
+    .leg{font-size:7.4pt;color:#4b5563;margin:0 0 9px;line-height:1.45;}
+    .cred{border:1px solid #cfd4da;border-radius:5px;padding:7px 8px 6px;margin:0 0 9px;break-inside:auto;}
+    .ch{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;break-after:avoid;}
+    .who{font-weight:700;font-size:9.6pt;}
+    .cv{font-weight:700;font-size:11pt;white-space:nowrap;}
+    .bar{display:flex;height:6px;background:#e6e9ed;border-radius:3px;overflow:hidden;margin:5px 0 4px;}
+    .bar i{display:block;height:100%;} .f{background:#2e7d32;} .r{background:#f2a900;} .l{background:#d6dae0;}
+    .eq{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:7.8pt;margin-bottom:5px;}
+    .d{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;vertical-align:0;}
+    table{width:100%;border-collapse:collapse;table-layout:fixed;}
+    th{font-size:7pt;text-transform:uppercase;letter-spacing:.3px;color:#4b5563;text-align:left;border-bottom:1px solid #9aa3ad;padding:3px 4px;}
+    td{padding:4px 4px;border-bottom:1px solid #e3e6ea;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere;}
+    tr{break-inside:avoid;}
+    thead{display:table-header-group;}
+    .n{text-align:right;}
+    td.n{white-space:nowrap;font-size:8pt;}
+    tfoot td{font-weight:700;border-top:1px solid #9aa3ad;border-bottom:0;}
+    .nf{font-size:7.3pt;line-height:1.3;white-space:normal;text-align:right;margin-bottom:2px;}
+    .nf span{display:block;white-space:nowrap;font-weight:600;}
+    .st{display:inline-block;font-size:7pt;font-weight:700;padding:1px 5px;border-radius:7px;}
+    .st.ok{background:#e3f2e5;color:#2e7d32;} .st.fat{background:#e3eefc;color:#1d5fb4;} .st.res{background:#fff3d6;color:#8a6100;} .st.off{background:#eceef1;color:#667080;}
+    .foot{margin-top:6px;font-size:7pt;color:#8a929c;}
+  </style></head><body>
+    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos</div><h1>Controle de Crédito entre Obras</h1></div>
+      <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${lista.length} crédito(s)</div></div>
+    <div class="kp"><div><span class="mut">Total dos créditos</span><b>${m(gT)}</b></div><div><span class="mut">Faturado (notas)</span><b>${m(gF)}</b></div><div><span class="mut">Reservado em pedidos</span><b>${m(gR)}</b></div><div><span class="mut">Saldo livre</span><b>${m(gS)}</b></div></div>
+    <div class="leg"><i class="d f"></i><b>Faturado</b>: notas fiscais emitidas nos pedidos vinculados (abatimento confirmado). <i class="d r"></i><b>Reservado</b>: parte dos pedidos ainda sem nota. <i class="d l"></i><b>Saldo livre</b>: crédito disponível para novos pedidos. Pedido parcialmente entregue continua reservando o restante até ser encerrado no Sienge.</div>
+    ${blocos || '<div class="mut">Nenhum crédito com o filtro atual.</div>'}
+    <div class="foot">Fonte: relatórios do Sienge importados no Painel de Suprimentos (pedidos e notas fiscais por pedido).</div>
+  </body></html>`;
+  const fr = document.createElement('iframe');
+  fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(fr);
+  const d = fr.contentWindow.document; d.open(); d.write(doc); d.close();
+  setTimeout(()=>{ fr.contentWindow.focus(); fr.contentWindow.print(); setTimeout(()=>fr.remove(), 1500); }, 350);
 }
 
 let reconciliandoVinculos = false;
@@ -7683,7 +7871,7 @@ async function reconciliarVinculosComNotasFiscais(){
       const pedido = pedidosPorNumero.get(String(v.numPedido));
       if(!pedido || !(pedido.valorTotal > 0)) continue;
       let novo = null;
-      if(encerrado(pedido)) novo = { valorRealizado: pedido.valorTotal, status: 'realizado' };
+      if(encerrado(pedido) || (pedido.saldoPedido!=null && pedido.saldoPedido <= 0.01)) novo = { valorRealizado: pedido.valorTotal, status: 'realizado' };
       else if(Math.abs((v.valorRealizado||0) - pedido.valorTotal) > 0.005) novo = { valorRealizado: pedido.valorTotal };
       if(!novo) continue;
       const ok = await updateVinculoCredito(v.id, Object.assign({}, v, novo));
@@ -8252,6 +8440,7 @@ window.refreshCreditosAposLogin = async function(){
   await loadCentrosCustoCredito();
   await loadCreditos();
   await loadVinculosCredito();
+  await loadNotasExtrasCredito();
   renderCreditos();
   // o relatório do Sienge pode ter carregado antes do login/dos vínculos:
   // nesse caso a reconciliação do loadRows saiu sem fazer nada — roda de novo
@@ -8685,6 +8874,7 @@ async function init(){
   await loadCentrosCustoCredito();
   await loadCreditos();
   await loadVinculosCredito();
+  await loadNotasExtrasCredito();
   renderAll();
   renderCreditos();
   applyTiposColapso();
@@ -8735,7 +8925,12 @@ async function init(){
   document.getElementById('fCreditoObra').addEventListener('change', renderCreditos);
   document.getElementById('fCreditoSaldo').addEventListener('change', renderCreditos);
   document.getElementById('credito-btnExportExcel').addEventListener('click', exportCreditosExcel);
-  document.getElementById('credito-btnPrint').addEventListener('click', ()=>{ setCreditoTab('lista'); window.print(); });
+  document.getElementById('credito-btnPrint').addEventListener('click', ()=>{ setCreditoTab('lista'); imprimirRelatorioCreditos(); });
+  document.getElementById('credito-btnImportNotas').addEventListener('click', ()=> document.getElementById('credito-fileNotas').click());
+  document.getElementById('credito-fileNotas').addEventListener('change', async (e)=>{
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if(f) await importarNotasPedidoSienge(f);
+  });
   document.querySelectorAll('.credito-tab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> setCreditoTab(btn.getAttribute('data-ctab')));
   });
