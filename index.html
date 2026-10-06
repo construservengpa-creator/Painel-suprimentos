@@ -22,6 +22,46 @@
   window.SB = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   /* ============================================================
+     PERFIL DE ACESSO E ASSUNTOS ("TEMAS") DO PAINEL
+     Fonte única usada pelas abas, pelo chat e pelo Jarvis para saber o
+     que o usuário logado pode ver. É preenchido no login (refreshAuthUI)
+     e avisa os módulos pelo evento "perfil-atualizado".
+     Isto só controla o que APARECE na tela: a regra que vale de verdade
+     é repetida no servidor (função private.tema_liberado, políticas das
+     tabelas e Edge Function do Jarvis).
+       geral, suprimentos, fluxo, criticos, cotacoes -> qualquer usuário logado
+       contratos -> logado que não seja Convidado
+       cap       -> admin, supervisor ou operador avançado
+       creditos  -> admin ou supervisor
+     ============================================================ */
+  window.TEMAS_PAINEL = {
+    geral:'Geral', suprimentos:'Suprimentos', fluxo:'Conformidade do fluxo', criticos:'Insumos críticos',
+    cotacoes:'Cotações', contratos:'Contratos', cap:'CAP', creditos:'Crédito entre obras'
+  };
+  window.TEMA_DA_ABA = {
+    overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', semnf:'suprimentos', fluxo:'fluxo',
+    prazoinsumos:'criticos', cotacoes:'cotacoes', 'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'cap',
+    'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-agenda':'contratos',
+    'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos', admin:'geral'
+  };
+  window.PERFIL = { logado:false, id:null, nome:'', isAdmin:false, isSupervisor:false, isOperador:false,
+                    isOperadorAvancado:false, isConvidado:false, jarvisLiberado:false, schemaNovo:true };
+  window.temaLiberado = function(tema){
+    const p = window.PERFIL;
+    if(!p.logado || !Object.prototype.hasOwnProperty.call(window.TEMAS_PAINEL, tema)) return false;
+    const gestor = p.isAdmin || p.isSupervisor;
+    if(tema === 'contratos') return !p.isConvidado;
+    if(tema === 'cap') return gestor || p.isOperadorAvancado;
+    if(tema === 'creditos') return gestor;
+    return true;
+  };
+  window.temasLiberados = function(){ return Object.keys(window.TEMAS_PAINEL).filter(window.temaLiberado); };
+  window.temaDaAbaAtiva = function(){
+    const ativa = document.querySelector('.tab-panel.active');
+    return (ativa && window.TEMA_DA_ABA[ativa.id.replace(/^tab-/, '')]) || 'geral';
+  };
+
+  /* ============================================================
      CLASSIFICAÇÃO DE INSUMO CRÍTICO (compartilhada entre os dois
      painéis desta página — "Prazo de Insumos Críticos" e "Preço
      Insumos Críticos").
@@ -1692,6 +1732,71 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
   #tab-fluxo .kpi-card,#tab-fluxo .chart-card,.fluxo-trilha{background:#fff;border-color:#bbb;}
   #tab-fluxo .kpi-value,#tab-fluxo .kpi-label,#tab-fluxo .kpi-foot,.fluxo-trilha *,#tab-fluxo .chart-title,#tab-fluxo .fluxo-sec-title,#tableFluxo td,#tableFluxo th{color:#000 !important;}
 }
+
+/* ==========================================================
+   PERFIL CONVIDADO · JARVIS POR USUÁRIO · CHAT DO PAINEL
+   ========================================================== */
+/* Convidado: só as abas abertas (as mesmas de quem não está logado). */
+body.is-convidado .ctr-logged{display:none !important;}
+/* Jarvis aparece só para quem tem o uso liberado. */
+body:not(.pode-jarvis) #jarvis-orb, body:not(.pode-jarvis) #jarvis-panel{display:none !important;}
+/* Banco ainda sem as colunas novas: esconde Convidado/Jarvis da gestão de usuários. */
+body.sem-schema-novo .col-perfil-novo{display:none;}
+
+.chat-toggle-btn{position:relative;display:none;}
+body.is-logged .chat-toggle-btn{display:inline-flex;align-items:center;gap:6px;}
+.chat-badge{
+  min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;
+  font:600 10.5px/18px var(--font-mono);text-align:center;display:none;
+}
+.chat-badge.on{display:inline-block;}
+.chat-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9980;display:none;}
+.chat-drawer{
+  position:fixed;top:0;right:0;bottom:0;width:min(430px,100vw);z-index:9985;
+  background:var(--asphalt);border-left:1px solid var(--line);box-shadow:-18px 0 40px rgba(0,0,0,.5);
+  display:none;flex-direction:column;
+}
+body.chat-aberto .chat-drawer{display:flex;}
+body.chat-aberto .chat-scrim{display:block;}
+/* com o chat aberto o botão do Jarvis ficaria por cima do campo de mensagem */
+body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !important;}
+.chat-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 16px 12px;border-bottom:1px solid var(--line);}
+.chat-head h2{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0;color:var(--text);letter-spacing:.02em;}
+.chat-head p{margin:3px 0 0;font-size:11.5px;color:var(--text-faint);}
+.chat-x{background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:5px;width:32px;height:32px;font-size:18px;line-height:1;cursor:pointer;flex:none;}
+.chat-x:hover{color:var(--text);border-color:var(--text-faint);}
+.chat-bar{display:flex;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);}
+.chat-bar select{flex:1;min-width:0;padding:6px 8px;font-size:12.5px;}
+.chat-bar .btn{flex:none;}
+.chat-log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.chat-vazio{margin:auto;text-align:center;color:var(--text-dim);font-size:13px;max-width:280px;line-height:1.5;}
+.chat-dia{align-self:center;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:4px 0;}
+.chat-mais{align-self:center;background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:5px;padding:5px 12px;font-size:11.5px;cursor:pointer;font-family:var(--font-body);}
+.chat-mais:hover{color:var(--text);border-color:var(--text-faint);}
+.chat-msg{max-width:88%;align-self:flex-start;background:var(--asphalt-2);border:1px solid var(--line);border-radius:10px 10px 10px 2px;padding:8px 11px 9px;}
+.chat-msg.minha{align-self:flex-end;background:var(--asphalt-3);border-color:var(--yellow-dim);border-radius:10px 10px 2px 10px;}
+.chat-msg-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px;}
+.chat-msg-top b{font-size:12.5px;color:var(--text);font-weight:600;}
+.chat-msg-top time{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);}
+.chat-tema{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.02em;padding:1px 7px;border-radius:20px;color:var(--chat-cor,var(--text-dim));background:color-mix(in srgb,var(--chat-cor,#8D97A3) 16%,transparent);}
+.chat-del{margin-left:auto;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-size:12px;padding:0 2px;}
+.chat-del:hover{color:var(--red);}
+.chat-msg-txt{font-size:13.5px;line-height:1.45;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;}
+.chat-aviso{padding:8px 16px;font-size:12px;color:var(--amber);border-top:1px solid var(--line);display:none;}
+.chat-aviso.on{display:block;}
+.chat-form{border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;}
+.chat-form-top{display:flex;align-items:center;gap:8px;}
+.chat-form-top label{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);}
+.chat-form-top select{flex:1;min-width:0;padding:6px 8px;font-size:12.5px;}
+.chat-form-row{display:flex;gap:8px;align-items:flex-end;}
+.chat-form textarea{
+  flex:1;min-width:0;resize:none;height:64px;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
+  border-radius:6px;padding:9px 10px;font:400 13.5px/1.4 var(--font-body);
+}
+.chat-form textarea:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;}
+.chat-form .btn{height:40px;}
+@media print{ .chat-drawer,.chat-scrim,.chat-toggle-btn{display:none !important;} }
+.j-chip[hidden]{display:none !important;}
 </style>
 </head>
 <body>
@@ -1775,6 +1880,7 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
           </div>
         </div>
       </div>
+      <button class="btn chat-toggle-btn no-print" id="chatToggle" type="button" title="Abrir o chat do painel">💬 Chat <span class="chat-badge" id="chatBadge">0</span></button>
       <button class="btn primary" id="btnPrint">🖨 Emitir relatório</button>
     </div>
   </header>
@@ -3382,11 +3488,12 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Nome</th><th>Administrador</th><th>Supervisor</th><th>Operador</th><th>Operador Avançado</th><th></th></tr>
+            <tr><th>Nome</th><th>Administrador</th><th>Supervisor</th><th>Operador</th><th>Operador Avançado</th><th class="col-perfil-novo" title="Só enxerga as abas abertas (as mesmas de quem não está logado), além do chat e do Jarvis, se liberado">Convidado</th><th class="col-perfil-novo" title="Libera o uso do Jarvis para este usuário">Jarvis</th><th></th></tr>
           </thead>
           <tbody id="usuariosTableBody"></tbody>
         </table>
       </div>
+      <p class="col-perfil-novo" style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;"><b>Convidado</b> entra no painel, usa o chat e (se liberado) o Jarvis, mas só enxerga as abas abertas — as mesmas de quem não está logado; Contratos, CAP e Crédito ficam fora, inclusive no chat e nas respostas do Jarvis. Toda conta nova criada pelo próprio usuário nasce como Convidado, até um administrador atribuir outro papel. <b>Jarvis</b> libera o assistente para o usuário; ele só responde sobre os assuntos que o papel do usuário alcança. Administradores sempre têm o Jarvis.</p>
       <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios. Supervisor pode lançar, editar e excluir créditos e vínculos, e também gerencia o CAP (incluir, editar, excluir). Operador pode lançar preços em Cotação de Insumos Críticos, mas não tem acesso ao Controle de CAP. Operador Avançado tem tudo que o Operador tem, mais acesso ao Controle de CAP — pode visualizar e incluir pedidos, entregas e devoluções, mas não pode editar nem excluir. Um usuário logado sem nenhum desses papéis é um "visitante": só enxerga Suprimentos, Entrega de Insumos Críticos e Cotação (leitura), sem lançar nada e sem ver Controle de Crédito nem CAP — é o papel padrão de quem cria a própria conta pelo site. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
     </div>
   </section>
@@ -9953,9 +10060,34 @@ init();
     }, 1500);
   });
 
+  // Cria a linha do próprio usuário em "perfis": sempre como Convidado, sem
+  // papéis e sem Jarvis (o banco recusa qualquer outra coisa). Se o banco
+  // ainda não tiver as colunas novas, grava no formato antigo.
+  async function criarPerfilProprio(id, nome){
+    const r = await window.SB.from('perfis').insert({ id, nome, is_convidado: true });
+    if(r.error && colunaAusente(r.error)){
+      await window.SB.from('perfis').insert({ id, nome, is_admin: false, is_supervisor: false, is_operador: false, is_operador_avancado: false });
+    }
+  }
+  const PERFIL_COLS_ANTIGAS = 'nome,is_admin,is_supervisor,is_operador,is_operador_avancado';
+  const PERFIL_COLS_NOVAS = PERFIL_COLS_ANTIGAS + ',is_convidado,jarvis_liberado';
+  const colunaAusente = (err)=> !!err && (err.code === '42703' || err.code === 'PGRST204' || /is_convidado|jarvis_liberado/.test(err.message || ''));
+  // schemaNovo = false quando o banco ainda não recebeu as colunas de
+  // Convidado/Jarvis: o painel segue funcionando como antes (sem convidado
+  // e com o Jarvis aberto a quem está logado).
+  async function lerPerfil(id){
+    let r = await window.SB.from('perfis').select(PERFIL_COLS_NOVAS).eq('id', id).maybeSingle();
+    if(!r.error) return { perfil: r.data, schemaNovo: true, falhou: false };
+    if(!colunaAusente(r.error)) return { perfil: null, schemaNovo: true, falhou: true };
+    r = await window.SB.from('perfis').select(PERFIL_COLS_ANTIGAS).eq('id', id).maybeSingle();
+    return { perfil: r.error ? null : r.data, schemaNovo: false, falhou: !!r.error };
+  }
+
   async function refreshAuthUI(){
     const { data: { session } } = await window.SB.auth.getSession();
     let isAdmin = false;
+    const P = { logado:false, id:null, nome:'', isAdmin:false, isSupervisor:false, isOperador:false,
+                isOperadorAvancado:false, isConvidado:false, jarvisLiberado:false, schemaNovo: window.PERFIL.schemaNovo };
     if(session && session.user){
       document.body.classList.add('is-logged');
       authLoggedOut.style.display = 'none';
@@ -9965,23 +10097,33 @@ init();
       let isOperador = false;
       let isOperadorAvancado = false;
       let nome = session.user.email;
+      let lido = { perfil:null, schemaNovo:true, falhou:true };
       try{
-        const { data: perfil } = await window.SB.from('perfis').select('nome,is_admin,is_supervisor,is_operador,is_operador_avancado').eq('id', session.user.id).single();
-        if(perfil){
-          isAdmin = !!perfil.is_admin;
-          isSupervisor = !!perfil.is_supervisor;
-          isOperador = !!perfil.is_operador;
-          isOperadorAvancado = !!perfil.is_operador_avancado;
-          if(perfil.nome) nome = perfil.nome;
-        } else {
-          await window.SB.from('perfis').insert({ id: session.user.id, nome: session.user.email, is_admin: false, is_supervisor: false, is_operador: false, is_operador_avancado: false });
+        lido = await lerPerfil(session.user.id);
+        if(!lido.perfil && !lido.falhou){
+          await criarPerfilProprio(session.user.id, session.user.email);
+          lido = await lerPerfil(session.user.id);
         }
-      }catch(e){ /* tabela perfis pode não ter linha ainda; segue sem papel */ }
+      }catch(e){ /* sem perfil legível: segue com o menor privilégio */ }
+      const perfil = lido.perfil;
+      if(perfil){
+        isAdmin = !!perfil.is_admin;
+        isSupervisor = !!perfil.is_supervisor;
+        isOperador = !!perfil.is_operador;
+        isOperadorAvancado = !!perfil.is_operador_avancado;
+        if(perfil.nome) nome = perfil.nome;
+      }
+      // Convidado: marcado como tal e sem papel de gestão. Sem linha em perfis
+      // também vale como convidado (mesma regra de private.is_convidado).
+      const isConvidado = lido.schemaNovo ? (perfil ? !!perfil.is_convidado && !(isAdmin || isSupervisor) : true) : false;
+      const jarvisLiberado = lido.schemaNovo ? (isAdmin || !!(perfil && perfil.jarvis_liberado)) : true;
+      Object.assign(P, { logado:true, id:session.user.id, nome, isAdmin, isSupervisor, isOperador, isOperadorAvancado,
+                         isConvidado, jarvisLiberado, schemaNovo: lido.schemaNovo });
       document.body.classList.toggle('is-admin', isAdmin);
       document.body.classList.toggle('is-supervisor', isSupervisor);
       document.body.classList.toggle('is-operador', isOperador);
       document.body.classList.toggle('is-operador-avancado', isOperadorAvancado);
-      const papel = isAdmin ? ' (admin)' : (isSupervisor ? ' (supervisor)' : (isOperadorAvancado ? ' (operador avançado)' : (isOperador ? ' (operador)' : ' (visitante)')));
+      const papel = isAdmin ? ' (admin)' : (isSupervisor ? ' (supervisor)' : (isConvidado ? ' (convidado)' : (isOperadorAvancado ? ' (operador avançado)' : (isOperador ? ' (operador)' : ' (visitante)'))));
       authWhoAmI.textContent = `${nome}${papel}`;
       authToggleBtn.textContent = `👤 ${nome}${papel}`;
     } else {
@@ -9995,9 +10137,21 @@ init();
       authToggleBtn.textContent = '👤 Entrar';
       currentUserId = null;
     }
+    window.PERFIL = P;
+    document.body.classList.toggle('is-convidado', P.isConvidado);
+    document.body.classList.toggle('pode-jarvis', P.logado && P.jarvisLiberado);
+    document.body.classList.toggle('sem-schema-novo', !P.schemaNovo);
+    // Quem está logado e parado numa aba que o perfil não alcança (ex.: virou
+    // convidado, ou trocou de usuário) volta para a visão geral.
+    if(P.logado && !window.temaLiberado(window.temaDaAbaAtiva())){
+      const inicio = document.querySelector('.tab-btn[data-tab="overview"]');
+      if(inicio) inicio.click();
+      document.querySelectorAll('.nav-group').forEach(g=>g.classList.remove('open'));
+    }
     if(isAdmin) loadUsuarios(); else { const tb = document.getElementById('usuariosTableBody'); if(tb) tb.innerHTML = ''; }
     if(typeof window.refreshCreditosAposLogin === 'function') window.refreshCreditosAposLogin();
     if(typeof window.refreshContratosAposLogin === 'function') window.refreshContratosAposLogin();
+    document.dispatchEvent(new CustomEvent('perfil-atualizado'));
   }
 
   document.getElementById('btnLogin').addEventListener('click', async ()=>{
@@ -10051,7 +10205,7 @@ init();
       return;
     }
     if(data && data.user){
-      try{ await window.SB.from('perfis').insert({ id: data.user.id, nome, is_admin: false, is_supervisor: false, is_operador: false, is_operador_avancado: false }); }catch(e){ /* perfil pode já existir ou sessão ainda não ativa */ }
+      try{ await criarPerfilProprio(data.user.id, nome); }catch(e){ /* perfil pode já existir ou sessão ainda não ativa */ }
     }
     cadNome.value = ''; cadEmail.value = ''; cadSenha.value = ''; cadSenhaConfirma.value = '';
     if(data && data.session){
@@ -10073,7 +10227,8 @@ init();
   // trancar fora sem querer.
   async function loadUsuarios(){
     try{
-      const { data, error } = await window.SB.from('perfis').select('id,nome,is_admin,is_supervisor,is_operador,is_operador_avancado').order('nome');
+      const cols = 'id,' + (window.PERFIL.schemaNovo ? PERFIL_COLS_NOVAS : PERFIL_COLS_ANTIGAS);
+      const { data, error } = await window.SB.from('perfis').select(cols).order('nome');
       if(error) throw error;
       renderUsuarios(data||[]);
     }catch(e){
@@ -10085,9 +10240,10 @@ init();
     const tbody = document.getElementById('usuariosTableBody');
     const badge = document.getElementById('usuariosCountBadge');
     if(!tbody) return;
+    const novo = window.PERFIL.schemaNovo;
     if(badge) badge.textContent = `${lista.length} usuário(s)`;
     if(!lista.length){
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum usuário encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-faint);padding:24px;">Nenhum usuário encontrado.</td></tr>`;
       return;
     }
     tbody.innerHTML = lista.map(u=>{
@@ -10098,9 +10254,23 @@ init();
         <td><input type="checkbox" class="usuario-supervisor" ${u.is_supervisor?'checked':''}></td>
         <td><input type="checkbox" class="usuario-operador" ${u.is_operador?'checked':''}></td>
         <td><input type="checkbox" class="usuario-operador-avancado" ${u.is_operador_avancado?'checked':''}></td>
+        <td class="col-perfil-novo"><input type="checkbox" class="usuario-convidado" ${u.is_convidado?'checked':''} ${ehVoceMesmo?'disabled title="Você não pode se tornar convidado."':''}></td>
+        <td class="col-perfil-novo"><input type="checkbox" class="usuario-jarvis" ${(u.jarvis_liberado||u.is_admin)?'checked':''}></td>
         <td><button class="primary" data-salvar-usuario="${u.id}">Salvar</button> <span class="usuario-msg" style="font-size:11px;color:var(--bad);margin-left:6px;"></span></td>
       </tr>`;
     }).join('');
+
+    // Convidado e os demais papéis não se misturam: marcar um desmarca o outro
+    // (só na tela; nada é gravado antes do "Salvar"). Administrador sempre tem
+    // o Jarvis, então a caixa fica travada para ele.
+    tbody.querySelectorAll('tr[data-usuario-row]').forEach(row=>{
+      const papeis = ['.usuario-admin','.usuario-supervisor','.usuario-operador','.usuario-operador-avancado'].map(s=>row.querySelector(s));
+      const conv = row.querySelector('.usuario-convidado'), jar = row.querySelector('.usuario-jarvis'), adm = row.querySelector('.usuario-admin');
+      const travarJarvis = ()=>{ if(adm.checked){ jar.checked = true; jar.disabled = true; jar.title = 'Administrador sempre tem acesso ao Jarvis.'; } else { jar.disabled = false; jar.title = ''; } };
+      conv.addEventListener('change', ()=>{ if(conv.checked) papeis.forEach(p=>{ if(!p.disabled) p.checked = false; }); travarJarvis(); });
+      papeis.forEach(p=>p.addEventListener('change', ()=>{ if(p.checked && !conv.disabled) conv.checked = false; travarJarvis(); }));
+      travarJarvis();
+    });
 
     tbody.querySelectorAll('[data-salvar-usuario]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
@@ -10115,7 +10285,12 @@ init();
         msgEl.textContent = '';
         if(!nome){ msgEl.textContent = 'Informe um nome.'; return; }
         try{
-          const { error } = await window.SB.from('perfis').update({ nome, is_admin: isAdminChk, is_supervisor: isSupervisorChk, is_operador: isOperadorChk, is_operador_avancado: isOperadorAvancadoChk }).eq('id', id);
+          const dados = { nome, is_admin: isAdminChk, is_supervisor: isSupervisorChk, is_operador: isOperadorChk, is_operador_avancado: isOperadorAvancadoChk };
+          if(novo){
+            dados.is_convidado = row.querySelector('.usuario-convidado').checked && !isAdminChk && !isSupervisorChk;
+            dados.jarvis_liberado = row.querySelector('.usuario-jarvis').checked || isAdminChk;
+          }
+          const { error } = await window.SB.from('perfis').update(dados).eq('id', id);
           if(error) throw error;
           msgEl.style.color = 'var(--good,#0ca30c)';
           msgEl.textContent = 'Salvo!';
@@ -12487,14 +12662,16 @@ initCap();
   </div>
   <div class="j-foot">
     <div class="j-chips">
-      <button type="button" class="j-chip" data-q="Como estamos?">Como estamos?</button>
-      <button type="button" class="j-chip" data-q="Pedidos atrasados">Pedidos atrasados</button>
-      <button type="button" class="j-chip" data-q="Solicitações por comprador">Solicitações por comprador</button>
-      <button type="button" class="j-chip" data-q="Entregas de combustíveis">Entregas de combustíveis</button>
-      <button type="button" class="j-chip" data-q="Insumos críticos fora do prazo">Insumos críticos fora do prazo</button>
-      <button type="button" class="j-chip" data-q="Saldo de CAP">Saldo de CAP</button>
-      <button type="button" class="j-chip" data-q="Última cotação de diesel">Última cotação de diesel</button>
-      <button type="button" class="j-chip" data-q="Saldo dos créditos">Saldo dos créditos</button>
+      <button type="button" class="j-chip" data-tema="suprimentos" data-q="Como estamos?">Como estamos?</button>
+      <button type="button" class="j-chip" data-tema="suprimentos" data-q="Pedidos atrasados">Pedidos atrasados</button>
+      <button type="button" class="j-chip" data-tema="suprimentos" data-q="Solicitações por comprador">Solicitações por comprador</button>
+      <button type="button" class="j-chip" data-tema="fluxo" data-q="Conformidade do fluxo">Conformidade do fluxo</button>
+      <button type="button" class="j-chip" data-tema="criticos" data-q="Entregas de combustíveis">Entregas de combustíveis</button>
+      <button type="button" class="j-chip" data-tema="criticos" data-q="Insumos críticos fora do prazo">Insumos críticos fora do prazo</button>
+      <button type="button" class="j-chip" data-tema="cotacoes" data-q="Última cotação de diesel">Última cotação de diesel</button>
+      <button type="button" class="j-chip" data-tema="contratos" data-q="Contratos que pedem aditivo">Contratos que pedem aditivo</button>
+      <button type="button" class="j-chip" data-tema="cap" data-q="Saldo de CAP">Saldo de CAP</button>
+      <button type="button" class="j-chip" data-tema="creditos" data-q="Saldo dos créditos">Saldo dos créditos</button>
     </div>
     <div class="j-row">
       <form id="jarvis-stage-form" autocomplete="off">
@@ -13308,46 +13485,213 @@ window.JARVIS_CONFIG = {
     return R(r, kpisExtra);
   }
 
+  // ----- Assuntos liberados por perfil -----
+  // A regra é a mesma das abas do painel e do chat (window.temaLiberado, definida
+  // no <head>); o servidor repete a checagem na Edge Function e nas políticas do
+  // banco, então esconder aqui é só para a resposta sair certa e na hora.
+  const temaOk = (t) => !t || (typeof window.temaLiberado === "function" ? window.temaLiberado(t) : true);
+  const nomeTema = (t) => (window.TEMAS_PAINEL && window.TEMAS_PAINEL[t]) || t;
+  const negado = (t) => ({ texto: `O assunto ${nomeTema(t)} não está liberado para o seu perfil. Se precisar desse acesso, fale com um administrador do painel.` });
+  // Palavras que identificam os assuntos fechados, mesmo quando a pergunta iria para a IA.
+  const PISTAS_TEMA = [
+    ["creditos", /\bcreditos?\b/],
+    ["cap", /\bcap\b/],
+    ["contratos", /\bcontratos?\b|\baditiv|\bmedic(ao|oes)\b/],
+  ];
+  const temaBloqueado = (q) => { for (const [t, re] of PISTAS_TEMA) if (re.test(q) && !temaOk(t)) return t; return null; };
+
+  // ----- Conformidade do fluxo (mesma base e mesmas regras da aba "Conformidade do Fluxo") -----
+  function fluxo(q) {
+    if (!linhas().length || typeof fluxoProcessos !== "function") return SEM_RELATORIO;
+    let procs = fluxoProcessos().procs.map((p) => Object.assign({}, p, { cls: fluxoClassificar(p, "emissao") })).filter((p) => p.cls !== "incompleto");
+    const desc = [];
+    const per = periodo(q);
+    if (per) { procs = procs.filter((p) => noPeriodo(iso(p.dn), per)); desc.push(`com nota fiscal emitida ${per.rotulo}`); }
+    const m = q.match(/(?:obra|centro de custo|\bcc)\s*(?:n[o°º.]?\s*)?(\d{1,4})\b/);
+    if (m) { procs = procs.filter((p) => String(p.obra).split(/[\s-]+/)[0] === m[1]); desc.push(`da obra ${m[1]}`); }
+    const quem = acharPessoa(q, procs, "comprador");
+    if (quem.length) { procs = procs.filter((p) => quem.includes(p.comprador)); desc.push(`do comprador ${juntar(quem.map((x) => String(x).split(" - ")[0]))}`); }
+    const d = desc.length ? " " + desc.join(" ") : "";
+    if (!procs.length) return `Não encontrei processos com solicitação, pedido e nota fiscal${d}.`;
+
+    const r = fluxoResumo(procs);
+    const pc = (v) => (v == null ? "0" : Math.round(v)) + "%";
+    const kp = [
+      { v: r.n, l: "processos", tom: "total" },
+      { v: Math.round(r.pctNormal || 0), l: "% em fluxo normal", tom: "bom" },
+      { v: r.desvio, l: "com desvio", tom: "ruim" },
+    ];
+
+    if (/tempo|demora|quantos dias|prazo medio|media de dias/.test(q)) {
+      const t = fluxoTempos(procs), dia = (s) => (s.n ? `${s.media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${s.media === 1 ? "dia" : "dias"}` : "sem dados");
+      let txt = `Tempos médios${d}: a solicitação leva ${dia(t.aprovSC)} para ser aprovada; o pedido é lançado ${dia(t.lancPed)} depois da aprovação da solicitação; a aprovação do pedido leva ${dia(t.aprovPed)}; e a entrega na obra acontece ${dia(t.nfEntrega)} depois da emissão da nota fiscal.`;
+      if (t.pedNF.fora) txt += ` Em ${plural(t.pedNF.fora, "nota", "notas")} a emissão veio antes da aprovação do pedido.`;
+      return R(txt, [
+        { v: Math.round(t.aprovSC.media || 0), l: "dias p/ aprovar a SC", tom: "neutro" },
+        { v: Math.round(t.lancPed.media || 0), l: "dias p/ lançar o pedido", tom: "neutro" },
+        { v: Math.round(t.aprovPed.media || 0), l: "dias p/ aprovar o pedido", tom: "neutro" },
+        { v: Math.round(t.nfEntrega.media || 0), l: "dias da NF à entrega", tom: "neutro" },
+      ]);
+    }
+
+    const ranking = (campo, rotulo) => {
+      const todos = fluxoAgrupar(procs, campo);
+      const minimo = todos.some((g) => g.n >= 20) ? 20 : 1;
+      const top = todos.filter((g) => g.n >= minimo).sort((a, b) => b.pct - a.pct || b.n - a.n).slice(0, 5);
+      return `${rotulo} com maior índice de desvio${d}${minimo > 1 ? `, entre os que têm pelo menos ${minimo} processos` : ""}: ` +
+        top.map((g) => `${String(g.nome).split(" - ").slice(0, campo === "obra" ? 2 : 1).join(" - ")}, ${pc(g.pct)}, ${g.desvio} de ${g.n}`).join("; ") + ".";
+    };
+    if (/comprador|quem|ranking/.test(q) && !quem.length) return R(ranking("comprador", "Compradores"), kp);
+    if (/por obra|por centro de custo|qual obra|quais obras|obras com/.test(q) && !m) return R(ranking("obra", "Obras"), kp);
+    if (/por mes|mensal|mes a mes|cada mes/.test(q)) {
+      const meses = fluxoAgrupar(procs, "mes").sort((a, b) => a.chave.localeCompare(b.chave)).slice(-6);
+      return R(`Índice de desvio por mês de emissão da nota${d}: ` + meses.map((g) => `${g.nome}, ${pc(g.pct)} de ${g.n}`).join("; ") + ".", kp);
+    }
+
+    let txt = `${r.n === 1 ? "O único processo" : `Dos ${fmtInt(r.n)} processos`} com solicitação, pedido e nota fiscal${d}, ${pc(r.pctNormal)} seguiram o fluxo normal e ${pc(r.pct)} tiveram desvio`;
+    const partes = [];
+    if (r.nfAntesSolic) partes.push(`${fmtInt(r.nfAntesSolic)} com nota fiscal antes da solicitação`);
+    if (r.nfAntesPedido) partes.push(`${fmtInt(r.nfAntesPedido)} com nota fiscal antes do pedido`);
+    if (r.pedidoAntesSolic) partes.push(`${fmtInt(r.pedidoAntesSolic)} com pedido antes da solicitação`);
+    txt += partes.length ? `: ${juntar(partes)}.` : ".";
+    if (r.aprovAposNF) txt += ` Além disso, em ${fmtInt(r.aprovAposNF)} processos de fluxo normal o pedido só foi aprovado depois da emissão da nota.`;
+    return R(txt, kp);
+  }
+
+  // ----- Contratos (mesmos dados e a mesma análise do menu "Contratos") -----
+  async function contratos(q) {
+    if (!window.CTR || typeof window.CTR.dados !== "function") return "Os contratos não estão disponíveis neste painel.";
+    let d = window.CTR.dados();
+    if (d.estado === "idle" || d.estado === "nologin") { try { await window.CTR.reload(); } catch (_) { /* segue com o estado que ficou */ } d = window.CTR.dados(); }
+    if (d.estado === "loading") { await espera(1500); d = window.CTR.dados(); }
+    if (d.estado === "empty") return "Ainda não há nenhuma posição de contratos importada no painel.";
+    if (d.estado !== "ready") return "Não consegui carregar os contratos agora. Abra o menu Contratos e tente de novo em instantes.";
+
+    const brData = (s) => fmtData(String(s || "").slice(0, 10));
+    const ativos = d.lista.filter((c) => c.ativo);
+    const necTxt = { prazo: "pede aditivo de prazo", quant: "pede aditivo de quantidade", ambos: "pede aditivo de prazo e de quantidade", encerrar: "precisa ser encerrado ou aditado", ok: "sem necessidade de aditivo", off: "inativo" };
+    const descC = (c) => `contrato ${c.contrato}, ${limpar(c.fornecedor) || "fornecedor não informado"}, obra ${c.obra}`;
+
+    // contrato citado pelo número
+    const mNum = q.match(/contrato\s*(?:numero\s*|n[o°º.]?\s*)?([a-z]{0,6}\s?[\/-]?\s?\d[\w./-]*)/);
+    if (mNum) {
+      const alvo = mNum[1].replace(/\s+/g, "");
+      const achados = d.lista.filter((c) => norm(String(c.contrato)).replace(/\s+/g, "") === alvo);
+      const lista = achados.length ? achados : d.lista.filter((c) => norm(String(c.contrato)).replace(/\s+/g, "").includes(alvo));
+      if (!lista.length) return `Não encontrei o contrato ${mNum[1]} na posição de ${brData(d.dataRef)}.`;
+      if (lista.length > 3) return `Encontrei ${lista.length} contratos com ${mNum[1]} no número. Diga o número completo, por exemplo: contrato ${lista[0].contrato}.`;
+      return lista.map((c) => {
+        let t = `O contrato ${c.contrato} é com ${limpar(c.fornecedor) || "fornecedor não informado"}, obra ${c.obra}, vigência de ${brData(c.dtInicio)} a ${brData(c.dtTermino)}. Valor de ${fmtR(c.total)}, ${Math.round((c.pMed || 0) * 100)}% medido e saldo de ${fmtR(c.saldo)}. Situação: ${c.situacao || "não informada"}.`;
+        if (c.ativo && c.diasRest != null) t += c.diasRest < 0 ? ` Está vencido há ${plural(-c.diasRest, "dia", "dias")}.` : ` Faltam ${plural(c.diasRest, "dia", "dias")} para o término.`;
+        if (c.ativo) t += ` Análise: ${necTxt[c.nec] || c.nec}.`;
+        return t;
+      }).join(" ");
+    }
+
+    // obra citada pelo código
+    let base = ativos, desc = "";
+    const mObra = q.match(/(?:obra|centro de custo|\bcc)\s*(?:n[o°º.]?\s*)?(\d{1,4})\b/);
+    if (mObra) { base = base.filter((c) => String(c.obraCod) === mObra[1] || (c.obras || []).some((o) => String(o).split(/[\s-]+/)[0] === mObra[1])); desc = ` da obra ${mObra[1]}`; }
+    if (!base.length) return `Não encontrei contratos ativos${desc}.`;
+    const soma2 = (a, k) => a.reduce((s, c) => s + (Number(c[k]) || 0), 0);
+    const prazo = base.filter((c) => c.nec === "prazo" || c.nec === "ambos"), quant = base.filter((c) => c.nec === "quant" || c.nec === "ambos");
+    const crit = base.filter((c) => c.sev === "crit"), encerrar = base.filter((c) => c.nec === "encerrar");
+
+    if (/medic/.test(q)) {
+      const atr = base.filter((c) => c.ag && c.ag.status === "atraso"), sem = base.filter((c) => c.ag && c.ag.status === "semana"), mes = base.filter((c) => c.ag && c.ag.status === "mes");
+      let t = `Na agenda de medições${desc}: ${plural(atr.length, "contrato com medição em atraso", "contratos com medição em atraso")}, ${plural(sem.length, "para emitir em até 7 dias", "para emitir em até 7 dias")} e ${plural(mes.length, "nos próximos 30 dias", "nos próximos 30 dias")}.`;
+      if (atr.length) t += " Em atraso: " + atr.slice(0, 3).map(descC).join("; ") + ".";
+      return R(t, [{ v: atr.length, l: "medições em atraso", tom: "ruim" }, { v: sem.length, l: "em até 7 dias", tom: "neutro" }, { v: mes.length, l: "em 30 dias", tom: "neutro" }]);
+    }
+    if (/venc/.test(q)) {
+      const dias = Number((q.match(/(\d+)\s*dias?/) || [])[1]) || 30;
+      const vencidos = base.filter((c) => c.diasRest != null && c.diasRest < 0 && c.nec !== "encerrar" && c.pSaldo > 0.02).sort((a, b) => a.diasRest - b.diasRest);
+      const vencendo = base.filter((c) => c.diasRest != null && c.diasRest >= 0 && c.diasRest <= dias).sort((a, b) => a.diasRest - b.diasRest);
+      let t = `${plural(vencendo.length, "contrato ativo vence", "contratos ativos vencem")} nos próximos ${dias} dias${desc} e ${plural(vencidos.length, "já está vencido com saldo", "já estão vencidos com saldo")}.`;
+      if (vencendo.length) t += " Os próximos: " + vencendo.slice(0, 3).map((c) => `${descC(c)}, em ${plural(c.diasRest, "dia", "dias")}`).join("; ") + ".";
+      return R(t, [{ v: vencendo.length, l: `vencem em ${dias} dias`, tom: "neutro" }, { v: vencidos.length, l: "vencidos com saldo", tom: "ruim" }]);
+    }
+    if (/aditiv|critic/.test(q)) {
+      let t = `Entre os ${fmtInt(base.length)} contratos ativos${desc}, ${plural(prazo.length, "pede aditivo de prazo", "pedem aditivo de prazo")} e ${plural(quant.length, "pede aditivo de quantidade", "pedem aditivo de quantidade")}.`;
+      if (encerrar.length) t += ` ${plural(encerrar.length, "está vencido há muito tempo e precisa ser encerrado ou aditado", "estão vencidos há muito tempo e precisam ser encerrados ou aditados")}.`;
+      t += ` ${plural(crit.length, "é crítico", "são críticos")}.`;
+      if (crit.length) t += " Críticos: " + crit.slice().sort((a, b) => (a.diasRest ?? 9e9) - (b.diasRest ?? 9e9)).slice(0, 3).map(descC).join("; ") + ".";
+      const andamento = {};
+      Object.values(d.aditivos || {}).forEach((a) => { if (a && a.status && a.status !== "A analisar") andamento[a.status] = (andamento[a.status] || 0) + 1; });
+      const partes = Object.entries(andamento).map(([s, n]) => `${n} ${s.toLowerCase()}`);
+      if (partes.length) t += ` Aditivos em andamento: ${juntar(partes)}.`;
+      return R(t, [{ v: crit.length, l: "críticos", tom: "ruim" }, { v: prazo.length, l: "aditivo de prazo", tom: "neutro" }, { v: quant.length, l: "aditivo de quantidade", tom: "neutro" }]);
+    }
+
+    const tot = soma2(base, "total"), med = soma2(base, "medido");
+    return R(`Há ${plural(base.length, "contrato ativo", "contratos ativos")}${desc} na posição de ${brData(d.dataRef)}, somando ${fmtR(tot)}, com ${tot ? Math.round((100 * med) / tot) : 0}% medido e saldo a medir de ${fmtR(soma2(base, "saldo"))}. ${plural(crit.length, "contrato é crítico", "contratos são críticos")}, ${plural(prazo.length, "pede aditivo de prazo", "pedem aditivo de prazo")} e ${plural(quant.length, "pede aditivo de quantidade", "pedem aditivo de quantidade")}.`,
+      [{ v: base.length, l: "contratos ativos", tom: "total" }, { v: soma2(base, "saldo"), l: "saldo a medir", f: "r", tom: "neutro" }, { v: crit.length, l: "críticos", tom: "ruim" }]);
+  }
+
   function ajuda() {
-    return "Sem usar IA, eu respondo sobre: CAP (entregas, devoluções, saldo e pedidos); créditos entre obras; cotações, como a última de diesel; solicitações pendentes, por comprador, obra ou número; pedidos com entrega pendente, atrasados ou previstos; pedidos sem nota fiscal há mais de X dias; e insumos críticos, como combustíveis, betuminosos e cimento. Para números de solicitação e pedido, diga por exemplo: solicitação 33724. Qualquer outra pergunta eu envio para a IA.";
+    const sei = [];
+    if (temaOk("suprimentos")) sei.push("solicitações pendentes, por comprador, obra ou número; pedidos com entrega pendente, atrasados ou previstos; pedidos sem nota fiscal há mais de X dias");
+    if (temaOk("fluxo")) sei.push("conformidade do fluxo solicitação, pedido e nota fiscal, com desvios por comprador, obra ou mês e os tempos médios de aprovação e lançamento");
+    if (temaOk("criticos")) sei.push("insumos críticos, como combustíveis, betuminosos e cimento");
+    if (temaOk("cotacoes")) sei.push("cotações, como a última de diesel");
+    if (temaOk("contratos")) sei.push("contratos, por número ou obra, com vencimentos, medições e necessidade de aditivo");
+    if (temaOk("cap")) sei.push("CAP (entregas, devoluções, saldo e pedidos)");
+    if (temaOk("creditos")) sei.push("créditos entre obras");
+    return `Sem usar IA, eu respondo sobre: ${sei.join("; ")}. Para números de solicitação e pedido, diga por exemplo: solicitação 33724. Qualquer outra pergunta eu envio para a IA. Só falo dos assuntos liberados para o seu perfil.`;
   }
 
   const temCap = (q) => /\bcap\b/.test(q);
   const capCtx = (q) => temCap(q) || PEDIDO_RE.test(q);
+  const FLUXO_RE = /\bfluxo\b|\bdesvios?\b|conformidade|(nf|nota fiscal|nota) antes|fora do fluxo|tempo (medio )?(de |para |da )?(aprovac|lancamento)/;
+  const CONTRATO_RE = /\bcontratos?\b|\baditiv|\bmedic(ao|oes)\b/;
+  // "tema" liga cada resposta pronta ao assunto do painel; "agrupa" marca as que já
+  // sabem responder "por obra / por comprador / por mês" sem precisar da IA.
   const INTENCOES = [
     { when: (q) => /(o que (voce|vc) (sabe|faz|pode)|\bajuda\b|\bcomandos\b)/.test(q), fn: ajuda },
-    { when: (q) => /nota(s)? fiscal|\bnf\b/.test(q), fn: semNotaFiscal },
-    { when: (q) => capCtx(q) && /devol|estorn/.test(q), fn: capDevolvido },
-    { when: (q) => capCtx(q) && /saldo|estoque|\bfalta|\bfaltam|restante|restam|a entregar|pendente/.test(q), fn: capSaldo },
-    { when: (q) => capCtx(q) && /entreg|receb|chegou|chegaram/.test(q), fn: capEntregue },
-    { when: (q) => temCap(q) && /pedido|contratad|contrato|fornecedor/.test(q), fn: capPedidos },
-    { when: (q) => /\bcredito/.test(q), fn: creditos },
-    { when: (q) => /cotac|\bpreco/.test(q), fn: cotacao },
-    { when: (q) => /critico|combust|diesel|gasolina|etanol|betumin|aglomerante|cimento/.test(q), fn: criticos },
-    { when: (q) => /solicita/.test(q), fn: solicitacoes },
-    { when: (q) => /\bpedido|entrega|fornecedor|previst/.test(q), fn: pedidos },
-    { when: (q) => temCap(q), fn: capResumo },
-    { when: (q) => FLAG_ATRASO.test(q), fn: foraDoPrazoGeral },
-    { when: (q) => /resumo|visao geral|panorama|indicadores|\bkpi|como (esta|estamos|anda)/.test(q), fn: resumoSienge },
+    { tema: "fluxo", agrupa: true, when: (q) => FLUXO_RE.test(q), fn: fluxo },
+    { tema: "suprimentos", when: (q) => /nota(s)? fiscal|\bnf\b/.test(q), fn: semNotaFiscal },
+    { tema: "cap", when: (q) => capCtx(q) && /devol|estorn/.test(q), fn: capDevolvido },
+    { tema: "cap", when: (q) => capCtx(q) && /saldo|estoque|\bfalta|\bfaltam|restante|restam|a entregar|pendente/.test(q), fn: capSaldo },
+    { tema: "cap", when: (q) => capCtx(q) && /entreg|receb|chegou|chegaram/.test(q), fn: capEntregue },
+    { tema: "cap", when: (q) => temCap(q) && /pedido|contratad|contrato|fornecedor/.test(q), fn: capPedidos },
+    { tema: "contratos", agrupa: true, when: (q) => CONTRATO_RE.test(q) && !temCap(q), fn: contratos },
+    { tema: "creditos", when: (q) => /\bcredito/.test(q), fn: creditos },
+    { tema: "cotacoes", when: (q) => /cotac|\bpreco/.test(q), fn: cotacao },
+    { tema: "criticos", when: (q) => /critico|combust|diesel|gasolina|etanol|betumin|aglomerante|cimento/.test(q), fn: criticos },
+    { tema: "suprimentos", when: (q) => /solicita/.test(q), fn: solicitacoes },
+    { tema: "suprimentos", when: (q) => /\bpedido|entrega|fornecedor|previst/.test(q), fn: pedidos },
+    { tema: "cap", when: (q) => temCap(q), fn: capResumo },
+    { tema: "suprimentos", when: (q) => FLAG_ATRASO.test(q), fn: foraDoPrazoGeral },
+    { tema: "suprimentos", when: (q) => /resumo|visao geral|panorama|indicadores|\bkpi|como (esta|estamos|anda)/.test(q), fn: resumoSienge },
   ];
 
   /* ---------- Envio ---------- */
   async function responder(texto) {
     const token = await cfg.getToken();
     if (!token) throw new Error("Faça login no painel para usar o Jarvis.");
+    const P = window.PERFIL || {};
+    if (P.schemaNovo && !(P.isAdmin || P.jarvisLiberado)) throw new Error("O Jarvis não está liberado para o seu usuário. Peça a liberação a um administrador do painel.");
+
+    const q = norm(texto);
+    // 0) assunto fechado para o perfil: recusa aqui mesmo, sem consultar nada
+    const fechado = temaBloqueado(q);
+    if (fechado) return negado(fechado);
 
     // 1) regras locais (grátis), exceto quando o pedido precisa da IA (gráfico, análise, internet...)
-    const q = norm(texto);
-    const precisaIA = /grafico|compar|analis|explic|detalh|pesquis|internet|noticia|clima|previsao do tempo|dolar|cambio|por que|porque|tendencia|evolucao|ranking|resumo (de|do|da|dos|das|por)|por (obra|mes|fornecedor|comprador)/.test(q);
-    for (const it of precisaIA ? [] : INTENCOES) {
+    const soIA = /grafico|compar|analis|explic|detalh|pesquis|internet|noticia|clima|previsao do tempo|dolar|cambio|por que|porque|tendencia|evolucao/.test(q);
+    const precisaIA = soIA || /ranking|resumo (de|do|da|dos|das|por)|por (obra|mes|fornecedor|comprador)/.test(q);
+    for (const it of INTENCOES) {
+      if (it.agrupa ? soIA : precisaIA) continue;
       if (!it.when(q)) continue;
+      if (!temaOk(it.tema)) return negado(it.tema);
       try {
         const r = await it.fn(q);
         if (r) return typeof r === "string" ? { texto: r } : r;
       } catch (_) { break; /* consulta local falhou: deixa a IA tentar, sem cair em outra regra */ }
     }
 
-    // 2) IA (só quando as regras não entendem a pergunta)
+    // 2) IA (só quando as regras não entendem a pergunta). O servidor confere de novo
+    //    a liberação do usuário e só deixa a IA consultar as tabelas do perfil dele.
     const r = await fetch(cfg.url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, apikey: cfg.anonKey },
@@ -13514,6 +13858,25 @@ window.JARVIS_CONFIG = {
   stage.querySelectorAll(".j-chip[data-q]").forEach((b) => b.addEventListener("click", () => enviar(b.dataset.q)));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && palco) fecharPalco(); });
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && palco) fecharPalco(); });
+
+  // Perfil mudou (login, logout, troca de usuário ou de papel): os atalhos passam a
+  // mostrar só os assuntos liberados e, se for outra pessoa, a conversa anterior some
+  // da tela e do histórico enviado à IA.
+  const LOG_VAZIO = log.innerHTML;
+  let donoDaConversa = null;
+  document.addEventListener("perfil-atualizado", () => {
+    const P = window.PERFIL || {};
+    stage.querySelectorAll(".j-chip[data-tema]").forEach((b) => { b.hidden = !temaOk(b.dataset.tema); });
+    const dono = P.logado ? P.id : null;
+    if (dono !== donoDaConversa) {
+      donoDaConversa = dono;
+      history.length = 0;
+      log.innerHTML = LOG_VAZIO;
+      panel.classList.remove("open");
+      if (palco) fecharPalco();
+    }
+    if (palco && !(P.logado && P.jarvisLiberado)) fecharPalco();
+  });
 })();
 </script>
 
@@ -14265,9 +14628,9 @@ function show(tab){
   if(slot)slot.appendChild($('#ctrFiltros'));
   if(!loadedOnce&&STATE!=='loading')loadAll();else{paintState();render()}
 }
-window.CTR={show,reload:loadAll};
+window.CTR={show,reload:loadAll,dados:()=>({estado:STATE,lista:ALL,aditivos:AD,dataRef:POS?POS.data_ref:null})};
 window.refreshContratosAposLogin=function(){loadedOnce=false;POS=null;SNAPS=[];AD={};CRIT={};ALL=[];STATE='idle';updatePill();
-  if(document.body.classList.contains('is-logged'))loadAll();else{STATE='nologin';paintState()}};
+  if(document.body.classList.contains('is-logged')&&!document.body.classList.contains('is-convidado'))loadAll();else{STATE='nologin';paintState()}};
 
 $('#ctrEmp').onchange=()=>{refreshFilters();limC=150;render()};
 $('#ctrObra').onchange=()=>{limC=150;render()};
@@ -14293,6 +14656,296 @@ $('#ctrSaveRules').onclick=async()=>{
 };
 $('#ctrResetRules').onclick=()=>{CFG=Object.assign({},DEF);renderRules()};
 paintState();
+})();
+</script>
+
+
+<!-- ===================== CHAT DO PAINEL (usuários logados) ===================== -->
+<div class="chat-scrim" id="chatScrim"></div>
+<aside class="chat-drawer" id="chatDrawer" aria-label="Chat do painel" aria-hidden="true">
+  <div class="chat-head">
+    <div>
+      <h2>Chat do painel</h2>
+      <p id="chatSub">Registro dos assuntos do painel entre os usuários logados.</p>
+    </div>
+    <button type="button" class="chat-x" id="chatFechar" aria-label="Fechar o chat">×</button>
+  </div>
+  <div class="chat-bar">
+    <select id="chatFiltro" aria-label="Filtrar por assunto"></select>
+    <button type="button" class="btn small" id="chatExportar" title="Baixar as mensagens exibidas em CSV">⬇ CSV</button>
+  </div>
+  <div class="chat-log" id="chatLog" aria-live="polite"></div>
+  <div class="chat-aviso" id="chatAviso"></div>
+  <form class="chat-form" id="chatForm" autocomplete="off">
+    <div class="chat-form-top">
+      <label for="chatAssunto">Assunto</label>
+      <select id="chatAssunto"></select>
+    </div>
+    <div class="chat-form-row">
+      <textarea id="chatTexto" maxlength="2000" placeholder="Escreva a mensagem (Enter envia, Shift+Enter quebra a linha)" aria-label="Mensagem"></textarea>
+      <button type="submit" class="btn primary" id="chatEnviar">Enviar</button>
+    </div>
+  </form>
+</aside>
+
+<script>
+/* ============================================================
+   CHAT DO PAINEL
+   Mensagens entre os usuários logados, cada uma marcada com o assunto
+   (aba) do painel a que se refere. Tabela chat_mensagens no Supabase:
+   o servidor grava autor, nome e data, e só entrega a cada usuário os
+   assuntos que o perfil dele alcança (private.tema_liberado) — convidado
+   não lê nem escreve em Contratos, CAP ou Crédito.
+   Mensagens novas chegam em tempo real (Realtime); uma checagem a cada
+   45 s cobre o caso de o tempo real estar indisponível.
+   ============================================================ */
+(function(){
+  const SB = window.SB;
+  const $ = (id)=>document.getElementById(id);
+  const drawer = $('chatDrawer'), log = $('chatLog'), form = $('chatForm'), texto = $('chatTexto');
+  const selAssunto = $('chatAssunto'), selFiltro = $('chatFiltro'), aviso = $('chatAviso'), btn = $('chatToggle'), badge = $('chatBadge');
+  const CORES = { geral:'#8D97A3', suprimentos:'#F5C433', fluxo:'#0CA30C', criticos:'#FF8A3D', cotacoes:'#4C8DFF', contratos:'#9B6BFF', cap:'#2FBF9F', creditos:'#E0507B' };
+  const PAGINA = 100, COLS = 'id,criado_em,autor_id,autor_nome,assunto,texto';
+  let msgs = [];            // em ordem crescente de id
+  let uid = null, canal = null, timer = null, temMais = false, indisponivel = false, enviando = false, assuntoManual = false;
+
+  const esc = (s)=>String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const aberto = ()=>document.body.classList.contains('chat-aberto');
+  const chaveLido = ()=>'painelChat.lido.' + uid;
+  const lerLido = ()=>{ try{ return Number(localStorage.getItem(chaveLido())) || 0; }catch(e){ return 0; } };
+  const gravarLido = (id)=>{ try{ localStorage.setItem(chaveLido(), String(id)); }catch(e){ /* sem armazenamento: o aviso de não lidas só vale nesta sessão */ } };
+  const tabelaAusente = (err)=> !!err && (err.code === '42P01' || err.code === 'PGRST205' || /chat_mensagens/.test(err.message || '') && /not find|does not exist|schema cache/i.test(err.message || ''));
+
+  function avisar(t){ aviso.textContent = t || ''; aviso.classList.toggle('on', !!t); }
+
+  function opcoesDeAssunto(){
+    const temas = window.temasLiberados();
+    const opt = (v,t)=>`<option value="${v}">${esc(t)}</option>`;
+    const atualA = selAssunto.value, atualF = selFiltro.value;
+    selAssunto.innerHTML = temas.map(t=>opt(t, window.TEMAS_PAINEL[t])).join('');
+    selFiltro.innerHTML = opt('', 'Todos os assuntos') + temas.map(t=>opt(t, window.TEMAS_PAINEL[t])).join('');
+    if(temas.includes(atualA)) selAssunto.value = atualA;
+    selFiltro.value = temas.includes(atualF) ? atualF : '';
+  }
+  // Sugere como assunto a aba em que a pessoa está (se o perfil alcança essa aba).
+  function sugerirAssunto(){
+    if(assuntoManual && texto.value.trim()) return;
+    const t = window.temaDaAbaAtiva();
+    selAssunto.value = window.temaLiberado(t) ? t : 'geral';
+    assuntoManual = false;
+  }
+
+  function naoLidas(){
+    const lido = lerLido();
+    return msgs.filter(m=>m.id > lido && m.autor_id !== uid).length;
+  }
+  function pintarBadge(){
+    const n = (uid && !aberto()) ? naoLidas() : 0;
+    badge.textContent = n > 99 ? '99+' : String(n);
+    badge.classList.toggle('on', n > 0);
+    btn.title = n ? `${n} mensagem(ns) nova(s)` : 'Abrir o chat do painel';
+  }
+  function marcarLido(){
+    if(msgs.length) gravarLido(msgs[msgs.length-1].id);
+    pintarBadge();
+  }
+
+  const diaDe = (d)=>d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+  function render(manterPosicao){
+    const filtro = selFiltro.value;
+    const lista = filtro ? msgs.filter(m=>m.assunto === filtro) : msgs;
+    const noFim = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+    const alturaAntes = log.scrollHeight, topoAntes = log.scrollTop;
+    if(indisponivel){
+      log.innerHTML = '<div class="chat-vazio">O chat ainda não foi ativado no servidor deste painel. Fale com um administrador.</div>';
+      return;
+    }
+    if(!lista.length){
+      log.innerHTML = `<div class="chat-vazio">${filtro ? 'Nenhuma mensagem neste assunto ainda.' : 'Nenhuma mensagem ainda. Escreva a primeira para registrar um assunto do painel.'}</div>`;
+      return;
+    }
+    const admin = window.PERFIL.isAdmin;
+    let html = temMais ? '<button type="button" class="chat-mais" id="chatMais">Carregar mensagens anteriores</button>' : '';
+    let ultimoDia = '';
+    lista.forEach(m=>{
+      const d = new Date(m.criado_em), dia = d.toDateString();
+      if(dia !== ultimoDia){ html += `<div class="chat-dia">${esc(diaDe(d))}</div>`; ultimoDia = dia; }
+      const minha = m.autor_id === uid;
+      html += `<div class="chat-msg${minha?' minha':''}" data-id="${m.id}">
+        <div class="chat-msg-top">
+          <b>${esc(minha ? 'Você' : (m.autor_nome || 'Usuário'))}</b>
+          <time datetime="${esc(m.criado_em)}">${d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</time>
+          <span class="chat-tema" style="--chat-cor:${CORES[m.assunto]||CORES.geral}">${esc(window.TEMAS_PAINEL[m.assunto] || m.assunto)}</span>
+          ${(minha || admin) ? `<button type="button" class="chat-del" data-del="${m.id}" title="Apagar mensagem" aria-label="Apagar mensagem">✕</button>` : ''}
+        </div>
+        <div class="chat-msg-txt">${esc(m.texto)}</div>
+      </div>`;
+    });
+    log.innerHTML = html;
+    if(manterPosicao) log.scrollTop = log.scrollHeight - alturaAntes + topoAntes;
+    else if(noFim || !render.jaRolou){ log.scrollTop = log.scrollHeight; render.jaRolou = true; }
+  }
+
+  function juntar(novas){
+    if(!novas || !novas.length) return false;
+    const tenho = new Set(msgs.map(m=>m.id));
+    const add = novas.filter(m=>m && !tenho.has(m.id));
+    if(!add.length) return false;
+    msgs = msgs.concat(add).sort((a,b)=>a.id-b.id);
+    return true;
+  }
+
+  async function carregar(){
+    const { data, error } = await SB.from('chat_mensagens').select(COLS).order('id', { ascending:false }).limit(PAGINA);
+    if(error){
+      if(tabelaAusente(error)){ indisponivel = true; form.style.display = 'none'; render(); pararTudo(); return; }
+      avisar('Não consegui carregar as mensagens. Verifique a conexão.');
+      return;
+    }
+    indisponivel = false; form.style.display = '';
+    avisar('');
+    msgs = (data || []).slice().reverse();
+    temMais = (data || []).length === PAGINA;
+    render.jaRolou = false;
+    render();
+    if(aberto()) marcarLido(); else pintarBadge();
+  }
+  async function carregarAnteriores(){
+    if(!msgs.length) return;
+    const { data, error } = await SB.from('chat_mensagens').select(COLS).lt('id', msgs[0].id).order('id', { ascending:false }).limit(PAGINA);
+    if(error){ avisar('Não consegui carregar as mensagens anteriores.'); return; }
+    temMais = (data || []).length === PAGINA;
+    juntar(data || []);
+    render(true);
+  }
+  // Busca só o que chegou depois da última mensagem conhecida.
+  async function buscarNovas(){
+    if(!uid || indisponivel) return;
+    const ultimo = msgs.length ? msgs[msgs.length-1].id : 0;
+    const { data, error } = await SB.from('chat_mensagens').select(COLS).gt('id', ultimo).order('id', { ascending:true }).limit(PAGINA);
+    if(error || !data) return;
+    if(juntar(data)){ render(); if(aberto()) marcarLido(); else pintarBadge(); }
+  }
+
+  function ligarTempoReal(){
+    desligarTempoReal();
+    try{
+      canal = SB.channel('chat-painel-' + uid)
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_mensagens' }, (p)=>{
+          if(p && p.new && window.temaLiberado(p.new.assunto) && juntar([p.new])){ render(); if(aberto()) marcarLido(); else pintarBadge(); }
+        })
+        .on('postgres_changes', { event:'DELETE', schema:'public', table:'chat_mensagens' }, (p)=>{
+          const id = p && p.old && p.old.id;
+          if(id == null) return;
+          const antes = msgs.length;
+          msgs = msgs.filter(m=>m.id !== id);
+          if(msgs.length !== antes){ render(); pintarBadge(); }
+        })
+        .subscribe();
+    }catch(e){ canal = null; /* sem tempo real: a checagem periódica cobre */ }
+    timer = setInterval(buscarNovas, 45000);
+  }
+  function desligarTempoReal(){
+    if(canal){ try{ SB.removeChannel(canal); }catch(e){ /* já removido */ } canal = null; }
+    if(timer){ clearInterval(timer); timer = null; }
+  }
+  function pararTudo(){ desligarTempoReal(); pintarBadge(); }
+
+  function abrir(){
+    if(!uid) return;
+    document.body.classList.add('chat-aberto');
+    drawer.setAttribute('aria-hidden', 'false');
+    sugerirAssunto();
+    render.jaRolou = false;
+    render();
+    marcarLido();
+    buscarNovas();
+    if(window.matchMedia('(pointer:fine)').matches) texto.focus();
+  }
+  function fechar(){
+    document.body.classList.remove('chat-aberto');
+    drawer.setAttribute('aria-hidden', 'true');
+    pintarBadge();
+  }
+
+  async function enviar(){
+    const t = texto.value.trim();
+    if(!t || enviando || !uid || indisponivel) return;
+    const assunto = selAssunto.value || 'geral';
+    if(!window.temaLiberado(assunto)){ avisar('Esse assunto não está liberado para o seu perfil.'); return; }
+    enviando = true; $('chatEnviar').disabled = true; avisar('');
+    const { data, error } = await SB.from('chat_mensagens').insert({ assunto, texto: t.slice(0, 2000) }).select(COLS).single();
+    enviando = false; $('chatEnviar').disabled = false;
+    if(error){
+      avisar(/row-level security|violates/i.test(error.message || '') ? 'Esse assunto não está liberado para o seu perfil.' : 'Não foi possível enviar. Verifique a conexão e tente de novo.');
+      return;
+    }
+    texto.value = ''; assuntoManual = false;
+    if(selFiltro.value && selFiltro.value !== assunto) selFiltro.value = '';
+    juntar([data]);
+    render.jaRolou = false;
+    render();
+    marcarLido();
+  }
+
+  async function apagar(id){
+    if(!confirm('Apagar esta mensagem? Ela some para todos.')) return;
+    const { error } = await SB.from('chat_mensagens').delete().eq('id', id);
+    if(error){ avisar('Não foi possível apagar a mensagem.'); return; }
+    msgs = msgs.filter(m=>m.id !== id);
+    render(); pintarBadge();
+  }
+
+  function exportar(){
+    const filtro = selFiltro.value;
+    const lista = filtro ? msgs.filter(m=>m.assunto === filtro) : msgs;
+    if(!lista.length){ alert('Não há mensagens para exportar.'); return; }
+    const q = (v)=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+    const linhas = [['Data','Hora','Autor','Assunto','Mensagem'].map(q).join(';')].concat(lista.map(m=>{
+      const d = new Date(m.criado_em);
+      return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), m.autor_nome, window.TEMAS_PAINEL[m.assunto]||m.assunto, m.texto].map(q).join(';');
+    }));
+    const blob = new Blob(['\uFEFF' + linhas.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = 'chat_painel.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }
+
+  /* ---- eventos ---- */
+  btn.addEventListener('click', ()=>{ aberto() ? fechar() : abrir(); });
+  $('chatFechar').addEventListener('click', fechar);
+  $('chatScrim').addEventListener('click', fechar);
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && aberto()) fechar(); });
+  form.addEventListener('submit', (e)=>{ e.preventDefault(); enviar(); });
+  texto.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); enviar(); } });
+  selAssunto.addEventListener('change', ()=>{ assuntoManual = true; });
+  selFiltro.addEventListener('change', ()=>{ render.jaRolou = false; render(); });
+  $('chatExportar').addEventListener('click', exportar);
+  log.addEventListener('click', (e)=>{
+    const del = e.target.closest('[data-del]');
+    if(del){ apagar(Number(del.getAttribute('data-del'))); return; }
+    if(e.target.closest('#chatMais')) carregarAnteriores();
+  });
+  // trocar de aba com o chat aberto atualiza a sugestão de assunto
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click', ()=>{ if(aberto()) setTimeout(sugerirAssunto, 0); }));
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) buscarNovas(); });
+
+  // Login, logout ou mudança de papel: recomeça com o que o novo perfil pode ver.
+  document.addEventListener('perfil-atualizado', ()=>{
+    const P = window.PERFIL;
+    const novoUid = P.logado ? P.id : null;
+    const temasAgora = P.logado ? window.temasLiberados().join(',') : '';
+    if(novoUid === uid && temasAgora === (opcoesDeAssunto.ultimo || '')){ pintarBadge(); return; }
+    opcoesDeAssunto.ultimo = temasAgora;
+    uid = novoUid;
+    msgs = []; temMais = false; indisponivel = false; form.style.display = '';
+    desligarTempoReal();
+    if(!uid){ fechar(); log.innerHTML = ''; pintarBadge(); return; }
+    opcoesDeAssunto();
+    sugerirAssunto();
+    carregar().then(()=>{ if(uid && !indisponivel) ligarTempoReal(); });
+  });
 })();
 </script>
 
