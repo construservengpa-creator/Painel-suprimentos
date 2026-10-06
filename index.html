@@ -1750,115 +1750,164 @@ body.is-logged .chat-toggle-btn{display:inline-flex;align-items:center;gap:6px;}
   font:600 10.5px/18px var(--font-mono);text-align:center;display:none;
 }
 .chat-badge.on{display:inline-block;}
-.chat-badge.direta{background:var(--yellow);color:#1A1E24;}
+.chat-badge.direta{background:#25D366;color:#0B141A;}
+
+/* ---- gaveta no estilo WhatsApp: lista de conversas + conversa aberta ---- */
 .chat-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9980;display:none;}
 .chat-drawer{
-  position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);z-index:9985;
-  background:var(--asphalt);border-left:1px solid var(--line);box-shadow:-18px 0 40px rgba(0,0,0,.5);
-  display:none;flex-direction:column;
+  --wa-fundo:#0B141A; --wa-painel:#111B21; --wa-cab:#202C33; --wa-linha:#2A3942; --wa-hover:#202C33;
+  --wa-eu:#005C4B; --wa-outro:#202C33; --wa-verde:#25D366; --wa-texto:#E9EDEF; --wa-sub:#8696A0;
+  position:fixed;top:0;right:0;bottom:0;width:min(860px,100vw);z-index:9985;
+  background:var(--wa-painel);border-left:1px solid var(--wa-linha);box-shadow:-18px 0 40px rgba(0,0,0,.5);
+  display:none;grid-template-columns:320px 1fr;color:var(--wa-texto);font-family:var(--font-body);
 }
-body.chat-aberto .chat-drawer{display:flex;}
+body.chat-aberto .chat-drawer{display:grid;}
 body.chat-aberto .chat-scrim{display:block;}
 /* com o chat aberto o botão do Jarvis ficaria por cima do campo de mensagem */
 body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !important;}
-.chat-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 16px 12px;border-bottom:1px solid var(--line);}
-.chat-head h2{font-family:var(--font-display);font-size:19px;font-weight:600;margin:0;color:var(--text);letter-spacing:.02em;}
-.chat-head p{margin:3px 0 0;font-size:11.5px;color:var(--text-faint);}
-.chat-x{background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:5px;width:32px;height:32px;font-size:18px;line-height:1;cursor:pointer;flex:none;}
-.chat-x:hover{color:var(--text);border-color:var(--text-faint);}
 
-/* abas de visão + filtros */
-.chat-abas{display:flex;gap:4px;padding:10px 16px 0;}
-.chat-aba{
-  flex:1;background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:6px;
-  padding:6px 8px;font:600 12px var(--font-body);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+.chat-lado{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--wa-linha);background:var(--wa-painel);}
+.chat-conv{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--wa-fundo);}
+.chat-cab{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 12px 8px 14px;background:var(--wa-cab);flex:none;}
+.chat-cab h2{flex:1;margin:0;font:600 17px var(--font-body);color:var(--wa-texto);}
+.chat-ico{
+  flex:none;width:36px;height:36px;border-radius:50%;border:none;background:transparent;color:var(--wa-sub);
+  font-size:18px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
 }
-.chat-aba:hover{color:var(--text);border-color:var(--text-faint);}
-.chat-aba[aria-selected="true"]{background:var(--asphalt-3);color:var(--text);border-color:var(--yellow-dim);}
-.chat-aba-n{min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--yellow);color:#1A1E24;font:600 10px/16px var(--font-mono);display:none;}
-.chat-aba-n.on{display:inline-block;}
-.chat-bar{display:flex;gap:8px;align-items:center;padding:8px 16px 10px;border-bottom:1px solid var(--line);}
-.chat-bar select{flex:1;min-width:0;padding:6px 8px;font-size:12.5px;}
-.chat-bar .btn{flex:none;}
+.chat-ico:hover{background:rgba(255,255,255,.07);color:var(--wa-texto);}
+.chat-ico[aria-pressed="true"]{color:var(--wa-verde);}
 
-.chat-log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
-.chat-vazio{margin:auto;text-align:center;color:var(--text-dim);font-size:13px;max-width:290px;line-height:1.5;}
-.chat-dia{align-self:center;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:6px 10px;margin:4px 0;border-radius:20px;background:var(--asphalt-2);}
-.chat-mais{align-self:center;background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:5px;padding:5px 12px;font-size:11.5px;cursor:pointer;font-family:var(--font-body);}
-.chat-mais:hover{color:var(--text);border-color:var(--text-faint);}
+.chat-avisos{display:none;flex-direction:column;gap:8px;padding:10px 16px 12px;background:var(--wa-painel);border-bottom:1px solid var(--wa-linha);font-size:12.5px;color:var(--wa-sub);}
+.chat-avisos.on{display:flex;}
+.chat-avisos label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.chat-avisos select{flex:1;padding:5px 6px;font-size:12.5px;}
+.chat-avisos input[type=checkbox]{accent-color:var(--wa-verde);}
+.chat-notif-btn{align-self:flex-start;background:transparent;border:1px solid var(--wa-verde);color:var(--wa-verde);border-radius:16px;padding:5px 12px;font:600 12px var(--font-body);cursor:pointer;}
+.chat-notif-st{font-size:11.5px;}
 
-.chat-item{display:flex;gap:8px;align-items:flex-end;max-width:92%;align-self:flex-start;}
-.chat-item.minha{align-self:flex-end;flex-direction:row-reverse;}
+.chat-busca{padding:8px 12px;flex:none;}
+.chat-busca input{
+  width:100%;padding:8px 14px;border-radius:8px;border:none;background:var(--wa-cab);color:var(--wa-texto);
+  font:400 13px var(--font-body);
+}
+.chat-busca input:focus{outline:1px solid var(--wa-verde);}
+.chat-lista{flex:1;overflow-y:auto;min-height:0;}
+.chat-secao{padding:14px 16px 6px;font-size:12px;color:var(--wa-verde);text-transform:uppercase;letter-spacing:.04em;}
+.chat-it{
+  width:100%;display:flex;align-items:center;gap:12px;padding:0 12px 0 14px;border:none;background:transparent;
+  color:inherit;text-align:left;cursor:pointer;font-family:inherit;
+}
+.chat-it:hover{background:var(--wa-hover);}
+.chat-it.ativa{background:#2A3942;}
+.chat-it-corpo{flex:1;min-width:0;padding:11px 0;border-bottom:1px solid var(--wa-linha);}
+.chat-it-l1,.chat-it-l2{display:flex;align-items:center;gap:8px;}
+.chat-it-l1 b{flex:1;min-width:0;font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--wa-texto);}
+.chat-it-l1 time{font-size:11.5px;color:var(--wa-sub);flex:none;}
+.chat-it-l2 span{flex:1;min-width:0;font-size:13px;color:var(--wa-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-it-n{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--wa-verde);color:#0B141A;font:600 11.5px/20px var(--font-body);text-align:center;}
+.chat-it.nao-lida .chat-it-l1 time{color:var(--wa-verde);}
+.chat-lista-vazia{padding:30px 20px;text-align:center;color:var(--wa-sub);font-size:13px;line-height:1.5;}
+
 .chat-av{
-  flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font:600 11.5px var(--font-body);color:#1A1E24;background:var(--av,#8D97A3);user-select:none;
+  flex:none;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font:600 14px var(--font-body);color:#0B141A;background:var(--av,#8696A0);user-select:none;
 }
-.chat-item.minha .chat-av{display:none;}
-.chat-msg{min-width:0;background:var(--asphalt-2);border:1px solid var(--line);border-radius:12px 12px 12px 3px;padding:7px 11px 8px;}
-.chat-item.minha .chat-msg{background:var(--asphalt-3);border-color:var(--yellow-dim);border-radius:12px 12px 3px 12px;}
-.chat-item.direta .chat-msg{border-style:dashed;}
-.chat-item.pra-mim .chat-msg{border:1px solid var(--yellow);box-shadow:inset 3px 0 0 var(--yellow);}
-.chat-msg-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;}
-.chat-msg-top b{font-size:12.5px;color:var(--text);font-weight:600;}
-.chat-para{font-size:11.5px;color:var(--yellow);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
-.chat-para.todos{color:var(--text-faint);font-weight:500;}
-.chat-tema{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.02em;padding:1px 7px;border-radius:20px;color:var(--chat-cor,var(--text-dim));background:color-mix(in srgb,var(--chat-cor,#8D97A3) 16%,transparent);}
-.chat-msg-txt{font-size:13.5px;line-height:1.45;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;}
-.chat-msg-pe{display:flex;align-items:center;gap:10px;margin-top:4px;}
-.chat-msg-pe time{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);}
-.chat-acao{background:transparent;border:none;color:var(--text-faint);cursor:pointer;font:500 11px var(--font-body);padding:0;opacity:0;transition:opacity .12s;}
-.chat-item:hover .chat-acao,.chat-acao:focus-visible{opacity:1;}
-@media (hover:none){ .chat-acao{opacity:1;} }
-.chat-acao:hover{color:var(--text);}
-.chat-acao.del:hover{color:var(--red);}
-.chat-item.minha .chat-msg-pe{justify-content:flex-end;}
+.chat-av.grupo{background:#6A7175;color:#D1D7DB;font-size:19px;}
+.chat-cab .chat-av{width:38px;height:38px;font-size:13px;}
+.chat-cab-txt{flex:1;min-width:0;}
+.chat-cab-txt b{display:block;font-weight:500;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-cab-txt small{display:block;font-size:12px;color:var(--wa-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-voltar{display:none;}
 
-.chat-aviso{padding:8px 16px;font-size:12px;color:var(--amber);border-top:1px solid var(--line);display:none;}
+.chat-log{
+  flex:1;overflow-y:auto;min-height:0;padding:14px 6% 10px;display:flex;flex-direction:column;gap:2px;
+  background-color:var(--wa-fundo);
+  background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);background-size:18px 18px;
+}
+.chat-vazio{margin:auto;text-align:center;color:var(--wa-sub);font-size:13.5px;max-width:320px;line-height:1.55;}
+.chat-vazio .chat-cadeado{display:inline-block;margin-top:10px;padding:6px 12px;border-radius:8px;background:#182229;color:#FFD279;font-size:12px;}
+.chat-dia{align-self:center;margin:10px 0 6px;padding:5px 12px;border-radius:8px;background:#182229;color:var(--wa-sub);font-size:12px;box-shadow:0 1px .5px rgba(0,0,0,.13);}
+.chat-mais{align-self:center;margin-bottom:6px;background:#182229;border:none;color:var(--wa-sub);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;}
+.chat-mais:hover{color:var(--wa-texto);}
+
+.chat-bolha{
+  position:relative;max-width:min(78%,560px);align-self:flex-start;background:var(--wa-outro);color:var(--wa-texto);
+  border-radius:8px;padding:6px 9px 8px;margin-top:6px;box-shadow:0 1px .5px rgba(0,0,0,.13);
+}
+.chat-bolha.minha{align-self:flex-end;background:var(--wa-eu);}
+.chat-bolha.seguida{margin-top:0;}
+.chat-bolha:not(.seguida)::before{
+  content:"";position:absolute;top:0;left:-7px;border-style:solid;border-width:0 8px 10px 0;border-color:transparent var(--wa-outro) transparent transparent;
+}
+.chat-bolha.minha:not(.seguida)::before{left:auto;right:-7px;border-width:0 0 10px 8px;border-color:transparent transparent transparent var(--wa-eu);}
+.chat-bolha.minha:not(.seguida){border-top-right-radius:0;}
+.chat-bolha:not(.minha):not(.seguida){border-top-left-radius:0;}
+.chat-autor{display:block;background:none;border:none;padding:0;margin:0 0 2px;font:600 12.5px var(--font-body);color:var(--av,#53BDEB);cursor:pointer;}
+.chat-autor:hover{text-decoration:underline;}
+.chat-txt{font-size:14px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere;}
+.chat-meta{float:right;display:inline-flex;align-items:center;gap:5px;margin:6px 0 -4px 12px;font-size:11px;color:rgba(233,237,239,.6);white-space:nowrap;}
+.chat-meta .chat-tema{font-size:10.5px;padding:0 6px;border-radius:8px;color:var(--chat-cor,#8696A0);background:color-mix(in srgb,var(--chat-cor,#8696A0) 18%,transparent);}
+.chat-meta .ok{color:#53BDEB;font-size:12px;letter-spacing:-3px;margin-right:3px;}
+.chat-del{
+  position:absolute;top:3px;right:4px;width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;
+  background:inherit;color:var(--wa-sub);font-size:12px;line-height:1;opacity:0;transition:opacity .12s;
+}
+.chat-bolha:hover .chat-del,.chat-del:focus-visible{opacity:1;}
+@media (hover:none){ .chat-del{opacity:.7;} }
+.chat-del:hover{color:#F15C6D;}
+
+.chat-aviso{padding:8px 16px;font-size:12.5px;color:#FFD279;background:#182229;display:none;flex:none;}
 .chat-aviso.on{display:block;}
-.chat-form{border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;background:var(--asphalt);}
-.chat-form-top{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 8px;}
-.chat-form-top label{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);}
-.chat-form-top select{min-width:0;width:100%;padding:6px 8px;font-size:12.5px;}
-.chat-form.sem-dest .chat-para-lbl,.chat-form.sem-dest #chatPara{display:none;}
-.chat-destino{
-  display:none;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:12px;line-height:1.35;
-  background:color-mix(in srgb,var(--yellow) 12%,transparent);border:1px solid var(--yellow-dim);color:var(--text);
+.chat-form{display:flex;align-items:flex-end;gap:8px;padding:8px 12px 10px;background:var(--wa-cab);flex:none;}
+.chat-caixa{flex:1;min-width:0;display:flex;align-items:flex-end;gap:6px;background:#2A3942;border-radius:10px;padding:5px 6px 5px 8px;}
+.chat-caixa select{
+  flex:none;max-width:130px;border:none;border-radius:6px;background:rgba(255,255,255,.06);color:var(--wa-sub);
+  font:500 11.5px var(--font-body);padding:5px 4px;margin-bottom:3px;cursor:pointer;
 }
-.chat-destino.on{display:flex;}
-.chat-destino span{flex:1;min-width:0;}
-.chat-destino button{background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;}
-.chat-destino button:hover{color:var(--text);}
-.chat-form-row{display:flex;gap:8px;align-items:flex-end;}
-.chat-form textarea{
-  flex:1;min-width:0;resize:none;height:42px;max-height:160px;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
-  border-radius:6px;padding:10px 10px;font:400 13.5px/1.4 var(--font-body);
+.chat-caixa textarea{
+  flex:1;min-width:0;resize:none;height:34px;max-height:140px;border:none;background:transparent;color:var(--wa-texto);
+  padding:7px 4px;font:400 14.5px/1.4 var(--font-body);
 }
-.chat-form textarea:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;}
-.chat-form .btn{height:42px;}
-.chat-form-pe{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-faint);font-family:var(--font-mono);}
+.chat-caixa textarea:focus{outline:none;}
+.chat-caixa textarea::placeholder{color:var(--wa-sub);}
+.chat-enviar{
+  flex:none;width:44px;height:44px;border-radius:50%;border:none;background:var(--wa-verde);color:#0B141A;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;font-size:18px;
+}
+.chat-enviar:disabled{opacity:.5;cursor:default;}
+.chat-escolha{margin:auto;text-align:center;color:var(--wa-sub);font-size:14px;line-height:1.6;padding:20px;}
+.chat-escolha b{display:block;color:var(--wa-texto);font-weight:400;font-size:22px;margin-bottom:6px;}
+.chat-conv.sem-conversa .chat-cab,.chat-conv.sem-conversa .chat-log,.chat-conv.sem-conversa .chat-form,.chat-conv.sem-conversa .chat-aviso{display:none;}
+.chat-conv:not(.sem-conversa) .chat-escolha{display:none;}
+.chat-lado .chat-fechar-lado{display:none;}
 
-/* avisos de mensagem nova */
-.chat-avisos{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--text-dim);}
-.chat-avisos label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
-.chat-avisos select{padding:4px 6px;font-size:12px;}
-.chat-avisos input[type=checkbox]{accent-color:var(--yellow);}
-.chat-notif-btn{background:transparent;border:1px solid var(--yellow-dim);color:var(--yellow);border-radius:5px;padding:4px 9px;font:600 11.5px var(--font-body);cursor:pointer;}
-.chat-notif-btn:hover{background:color-mix(in srgb,var(--yellow) 12%,transparent);}
-.chat-notif-st{font-size:11.5px;color:var(--text-faint);}
+/* tela estreita: uma coisa de cada vez, como no celular */
+@media (max-width:760px){
+  .chat-drawer{grid-template-columns:1fr;}
+  .chat-drawer .chat-conv{display:none;}
+  .chat-drawer.em-conversa .chat-lado{display:none;}
+  .chat-drawer.em-conversa .chat-conv{display:flex;}
+  .chat-voltar{display:inline-flex;}
+  .chat-lado .chat-fechar-lado{display:inline-flex;}
+  .chat-log{padding:12px 10px 8px;}
+  .chat-bolha{max-width:88%;}
+}
+
+/* avisos flutuantes de mensagem nova */
 .chat-toast-pilha{position:fixed;right:20px;bottom:96px;z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100vw - 32px));pointer-events:none;}
 .chat-toast{
   pointer-events:auto;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;cursor:pointer;
-  background:var(--asphalt-2);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.55);
+  background:#202C33;color:#E9EDEF;border:1px solid #2A3942;box-shadow:0 10px 30px rgba(0,0,0,.55);
   animation:chatToastIn .18s ease-out;
 }
-.chat-toast.direta{border-color:var(--yellow);box-shadow:inset 3px 0 0 var(--yellow),0 10px 30px rgba(0,0,0,.55);}
-.chat-toast .chat-av{width:28px;height:28px;font-size:11px;}
+.chat-toast.direta{box-shadow:inset 3px 0 0 #25D366,0 10px 30px rgba(0,0,0,.55);}
+.chat-toast .chat-av{width:32px;height:32px;font-size:12px;}
 .chat-toast-txt{flex:1;min-width:0;}
-.chat-toast-txt b{display:block;font-size:12.5px;color:var(--text);}
-.chat-toast-txt small{display:block;font-size:11px;color:var(--yellow);margin-bottom:2px;}
-.chat-toast-txt p{margin:0;font-size:12.5px;color:var(--text-dim);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-.chat-toast-x{background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;}
-.chat-toast-x:hover{color:var(--text);}
+.chat-toast-txt b{display:block;font-size:13px;font-weight:600;}
+.chat-toast-txt small{display:block;font-size:11px;color:#8696A0;margin-bottom:1px;}
+.chat-toast-txt p{margin:0;font-size:12.5px;color:#C9D1D6;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.chat-toast-x{background:transparent;border:none;color:#8696A0;cursor:pointer;font-size:15px;line-height:1;padding:0 2px;}
+.chat-toast-x:hover{color:#E9EDEF;}
 @keyframes chatToastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 @media (prefers-reduced-motion:reduce){ .chat-toast{animation:none;} }
 @media print{ .chat-drawer,.chat-scrim,.chat-toggle-btn,.chat-toast-pilha{display:none !important;} }
@@ -14731,66 +14780,59 @@ paintState();
 <!-- ===================== CHAT DO PAINEL (usuários logados) ===================== -->
 <div class="chat-scrim" id="chatScrim"></div>
 <aside class="chat-drawer" id="chatDrawer" aria-label="Chat do painel" aria-hidden="true">
-  <div class="chat-head">
-    <div>
-      <h2>Chat do painel</h2>
-      <p id="chatSub">Mensagens para todos ou diretas para um usuário.</p>
+  <section class="chat-lado" aria-label="Conversas">
+    <div class="chat-cab">
+      <h2>Conversas</h2>
+      <button type="button" class="chat-ico" id="chatAvisosBtn" aria-pressed="false" title="Avisos de mensagem nova">🔔</button>
+      <button type="button" class="chat-ico chat-fechar-lado" data-fechar aria-label="Fechar o chat">✕</button>
     </div>
-    <button type="button" class="chat-x" id="chatFechar" aria-label="Fechar o chat">×</button>
-  </div>
-  <div class="chat-avisos">
-    <label>🔔 Avisar <select id="chatAvisoNivel" aria-label="Quando avisar">
-      <option value="todas">todas as mensagens</option>
-      <option value="diretas">só diretas para mim</option>
-      <option value="nada">não avisar</option>
-    </select></label>
-    <label><input type="checkbox" id="chatSom"> 🔊 Som</label>
-    <button type="button" class="chat-notif-btn" id="chatNotifBtn" hidden>Ativar notificações do navegador</button>
-    <span class="chat-notif-st" id="chatNotifSt"></span>
-  </div>
-  <div class="chat-abas" role="tablist" aria-label="Quais mensagens mostrar">
-    <button type="button" class="chat-aba" role="tab" data-visao="todas" aria-selected="true">Todas</button>
-    <button type="button" class="chat-aba" role="tab" data-visao="abertas" aria-selected="false">Para todos</button>
-    <button type="button" class="chat-aba" role="tab" data-visao="diretas" aria-selected="false">🔒 Diretas <span class="chat-aba-n" id="chatDiretasN">0</span></button>
-  </div>
-  <div class="chat-bar">
-    <select id="chatFiltro" aria-label="Filtrar por assunto"></select>
-    <select id="chatPessoa" aria-label="Filtrar por pessoa"></select>
-    <button type="button" class="btn small" id="chatExportar" title="Baixar as mensagens exibidas em CSV">⬇ CSV</button>
-  </div>
-  <div class="chat-log" id="chatLog" aria-live="polite"></div>
-  <div class="chat-aviso" id="chatAviso"></div>
-  <form class="chat-form" id="chatForm" autocomplete="off">
-    <div class="chat-form-top">
-      <label for="chatPara" class="chat-para-lbl">Para</label>
-      <select id="chatPara"></select>
-      <label for="chatAssunto">Assunto</label>
-      <select id="chatAssunto"></select>
+    <div class="chat-avisos" id="chatAvisos">
+      <label>Avisar <select id="chatAvisoNivel" aria-label="Quando avisar">
+        <option value="todas">todas as mensagens</option>
+        <option value="diretas">só conversas particulares</option>
+        <option value="nada">não avisar</option>
+      </select></label>
+      <label><input type="checkbox" id="chatSom"> Tocar som</label>
+      <button type="button" class="chat-notif-btn" id="chatNotifBtn" hidden>Ativar notificações do navegador</button>
+      <span class="chat-notif-st" id="chatNotifSt"></span>
     </div>
-    <div class="chat-destino" id="chatDestino">
-      <span id="chatDestinoTxt"></span>
-      <button type="button" id="chatDestinoLimpar" title="Enviar para todos" aria-label="Enviar para todos">×</button>
+    <div class="chat-busca"><input type="search" id="chatBusca" placeholder="Pesquisar ou começar uma conversa" aria-label="Pesquisar conversa"></div>
+    <div class="chat-lista" id="chatLista"></div>
+  </section>
+  <section class="chat-conv sem-conversa" id="chatConv" aria-label="Conversa">
+    <div class="chat-cab">
+      <button type="button" class="chat-ico chat-voltar" id="chatVoltar" aria-label="Voltar para as conversas">←</button>
+      <div class="chat-av" id="chatConvAv"></div>
+      <div class="chat-cab-txt"><b id="chatConvNome"></b><small id="chatConvSub"></small></div>
+      <button type="button" class="chat-ico" id="chatExportar" title="Baixar esta conversa em CSV">⬇</button>
+      <button type="button" class="chat-ico" data-fechar aria-label="Fechar o chat">✕</button>
     </div>
-    <div class="chat-form-row">
-      <textarea id="chatTexto" maxlength="2000" rows="1" placeholder="Escreva a mensagem…" aria-label="Mensagem"></textarea>
-      <button type="submit" class="btn primary" id="chatEnviar">Enviar</button>
-    </div>
-    <div class="chat-form-pe"><span>Enter envia · Shift+Enter quebra a linha</span><span id="chatConta">0/2000</span></div>
-  </form>
+    <div class="chat-log" id="chatLog" aria-live="polite"></div>
+    <div class="chat-aviso" id="chatAviso"></div>
+    <form class="chat-form" id="chatForm" autocomplete="off">
+      <div class="chat-caixa">
+        <select id="chatAssunto" aria-label="Assunto da mensagem" title="Assunto (aba do painel) da mensagem"></select>
+        <textarea id="chatTexto" maxlength="2000" rows="1" placeholder="Mensagem" aria-label="Mensagem"></textarea>
+      </div>
+      <button type="submit" class="chat-enviar" id="chatEnviar" aria-label="Enviar">➤</button>
+    </form>
+    <div class="chat-escolha"><b>Chat do painel</b>Escolha uma conversa ao lado.<br>No <b style="display:inline;font-size:inherit">Grupo do painel</b> todos leem; nas conversas com uma pessoa, só vocês dois.</div>
+  </section>
 </aside>
 <div class="chat-toast-pilha" id="chatToasts" aria-live="polite"></div>
 
 <script>
 /* ============================================================
-   CHAT DO PAINEL
-   Mensagens entre os usuários logados, cada uma marcada com o assunto
-   (aba) do painel a que se refere e, opcionalmente, com um destinatário.
+   CHAT DO PAINEL (no jeito do WhatsApp)
+   À esquerda a lista de conversas: o "Grupo do painel" (mensagens para
+   todos) e uma conversa particular com cada usuário. À direita a conversa
+   aberta. Cada mensagem leva o assunto (aba) do painel a que se refere.
    Tabela chat_mensagens no Supabase: o servidor grava autor, nome e data,
    e só entrega a cada usuário os assuntos que o perfil dele alcança
    (private.tema_liberado) — convidado não lê nem escreve em Contratos,
-   CAP ou Crédito. Mensagem com destinatario_id é direta: só o autor e o
-   destinatário a leem, e o servidor recusa enviar para quem não alcança
-   o assunto. A lista de destinatários vem da função chat_destinatarios().
+   CAP ou Crédito. Mensagem com destinatario_id é particular: só o autor e
+   o destinatário a leem, e o servidor recusa enviar para quem não alcança
+   o assunto. A lista de pessoas vem da função chat_destinatarios().
    Mensagens novas chegam em tempo real (Realtime); uma checagem a cada
    45 s cobre o caso de o tempo real estar indisponível.
    ============================================================ */
@@ -14798,28 +14840,34 @@ paintState();
   const SB = window.SB;
   const $ = (id)=>document.getElementById(id);
   const drawer = $('chatDrawer'), log = $('chatLog'), form = $('chatForm'), texto = $('chatTexto');
-  const selAssunto = $('chatAssunto'), selFiltro = $('chatFiltro'), selPessoa = $('chatPessoa'), selPara = $('chatPara');
+  const lista = $('chatLista'), conv = $('chatConv'), selAssunto = $('chatAssunto'), busca = $('chatBusca');
   const aviso = $('chatAviso'), btn = $('chatToggle'), badge = $('chatBadge');
-  const CORES = { geral:'#8D97A3', suprimentos:'#F5C433', fluxo:'#0CA30C', criticos:'#FF8A3D', cotacoes:'#4C8DFF', contratos:'#9B6BFF', cap:'#2FBF9F', creditos:'#E0507B' };
-  const CORES_AV = ['#F5C433','#4C8DFF','#2FBF9F','#FF8A3D','#9B6BFF','#E0507B','#6CC24A','#5BC0EB','#F07167','#C9A227'];
+  const CORES = { geral:'#8696A0', suprimentos:'#F5C433', fluxo:'#25D366', criticos:'#FF8A3D', cotacoes:'#53BDEB', contratos:'#A78BFA', cap:'#2FBF9F', creditos:'#F15C6D' };
+  const CORES_AV = ['#F5C433','#53BDEB','#2FBF9F','#FF8A3D','#A78BFA','#F15C6D','#6CC24A','#5BC0EB','#F07167','#C9A227'];
   const PAGINA = 100, COLS = 'id,criado_em,autor_id,autor_nome,assunto,texto,destinatario_id,destinatario_nome';
+  const GRUPO = 'grupo';
   let msgs = [];            // em ordem crescente de id
   let usuarios = [];        // [{id, nome, temas:[...]}] — todos menos eu
-  let visao = 'todas';
+  let atual = null;         // conversa aberta: GRUPO, id de um usuário ou null
   let uid = null, canal = null, timer = null, temMais = false, indisponivel = false, enviando = false, assuntoManual = false;
+  let lidos = {};           // { conversa: último id lido }
 
   const esc = (s)=>String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const aberto = ()=>document.body.classList.contains('chat-aberto');
-  const chaveLido = ()=>'painelChat.lido.' + uid;
-  const lerLido = ()=>{ try{ return Number(localStorage.getItem(chaveLido())) || 0; }catch(e){ return 0; } };
-  const gravarLido = (id)=>{ try{ localStorage.setItem(chaveLido(), String(id)); }catch(e){ /* sem armazenamento: o aviso de não lidas só vale nesta sessão */ } };
+  const estreito = ()=>window.matchMedia('(max-width:760px)').matches;
   const tabelaAusente = (err)=> !!err && (err.code === '42P01' || err.code === 'PGRST205' || /chat_mensagens/.test(err.message || '') && /not find|does not exist|schema cache/i.test(err.message || ''));
   const usuario = (id)=>usuarios.find(u=>u.id === id);
   const nomeTema = (t)=>window.TEMAS_PAINEL[t] || t;
   // Mensagem visível para mim (o servidor já filtra; isto cobre o Realtime e a troca de usuário)
   const minhaConversa = (m)=>!m.destinatario_id || m.autor_id === uid || m.destinatario_id === uid;
-  // Com quem é a conversa direta (o "outro lado")
-  const outroLado = (m)=>m.autor_id === uid ? m.destinatario_id : m.autor_id;
+  // Conversa a que a mensagem pertence: o grupo ou a pessoa do outro lado
+  const chave = (m)=>!m.destinatario_id ? GRUPO : (m.autor_id === uid ? m.destinatario_id : m.autor_id);
+  function nomeDe(c){
+    if(c === GRUPO) return 'Grupo do painel';
+    const u = usuario(c); if(u) return u.nome;
+    const m = msgs.slice().reverse().find(x=>chave(x) === c);
+    return m ? (m.autor_id === c ? m.autor_nome : m.destinatario_nome) || 'Usuário' : 'Usuário';
+  }
 
   function iniciais(nome){
     const p = String(nome || '?').trim().split(/\s+/).filter(Boolean);
@@ -14830,109 +14878,107 @@ paintState();
     for(let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
     return CORES_AV[h % CORES_AV.length];
   }
+  const avatar = (c, cls)=> c === GRUPO
+    ? `<div class="chat-av grupo ${cls||''}">👥</div>`
+    : `<div class="chat-av ${cls||''}" style="--av:${corDe(c)}">${esc(iniciais(nomeDe(c)))}</div>`;
 
   function avisar(t){ aviso.textContent = t || ''; aviso.classList.toggle('on', !!t); }
 
-  /* ---- listas de seleção ---- */
-  function opcoesDeAssunto(){
-    const temas = window.temasLiberados();
-    const opt = (v,t)=>`<option value="${v}">${esc(t)}</option>`;
-    const atualA = selAssunto.value, atualF = selFiltro.value;
-    selAssunto.innerHTML = temas.map(t=>opt(t, nomeTema(t))).join('');
-    selFiltro.innerHTML = opt('', 'Todos os assuntos') + temas.map(t=>opt(t, nomeTema(t))).join('');
-    if(temas.includes(atualA)) selAssunto.value = atualA;
-    selFiltro.value = temas.includes(atualF) ? atualF : '';
+  /* ---- lidas / não lidas, por conversa ---- */
+  const chaveLidos = ()=>'painelChat.lidos.' + uid;
+  function lerLidos(){
+    try{
+      const salvo = JSON.parse(localStorage.getItem(chaveLidos()) || 'null');
+      if(salvo && typeof salvo === 'object') return salvo;
+      const antigo = Number(localStorage.getItem('painelChat.lido.' + uid)) || 0;  // versão anterior: um só marcador
+      return { _base: antigo };
+    }catch(e){ return {}; }
   }
-  function opcoesDePessoa(){
-    // "pendente" guarda o destinatário escolhido que não alcança o assunto atual,
-    // para voltar a ele se o assunto mudar para um que ele alcança.
-    const atualP = selPessoa.value, querido = selPara.value || selPara.dataset.pendente || '';
-    const assunto = selAssunto.value || 'geral';
-    selPessoa.innerHTML = '<option value="">Todas as pessoas</option>' +
-      usuarios.map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('');
-    selPessoa.value = usuario(atualP) ? atualP : '';
-    selPara.innerHTML = '<option value="">👥 Todos</option>' + usuarios.map(u=>{
-      const ok = u.temas.includes(assunto);
-      return `<option value="${u.id}"${ok?'':' disabled'}>🔒 ${esc(u.nome)}${ok?'':' — sem acesso a ' + esc(nomeTema(assunto))}</option>`;
-    }).join('');
-    const d = usuario(querido);
-    const estavaPendente = !!selPara.dataset.pendente;
-    if(d && d.temas.includes(assunto)){
-      selPara.value = querido;
-      delete selPara.dataset.pendente;
-      if(estavaPendente) avisar('');
-    } else {
-      selPara.value = '';
-      if(d){
-        selPara.dataset.pendente = querido;
-        avisar(`${d.nome} não tem acesso ao assunto ${nomeTema(assunto)}. Escolha outro assunto, ou outro destinatário em “Para”.`);
-      } else delete selPara.dataset.pendente;
-    }
-    pintarDestino();
+  function gravarLidos(){ try{ localStorage.setItem(chaveLidos(), JSON.stringify(lidos)); }catch(e){ /* sem armazenamento: vale só nesta sessão */ } }
+  const lidoDe = (c)=>lidos[c] != null ? lidos[c] : (lidos._base || 0);
+  const naoLidas = (c)=>msgs.filter(m=>m.autor_id !== uid && chave(m) === c && m.id > lidoDe(c));
+  function todasNaoLidas(){ return msgs.filter(m=>m.autor_id !== uid && m.id > lidoDe(chave(m))); }
+  function marcarLida(c){
+    const ult = msgs.filter(m=>chave(m) === c).pop();
+    if(ult && ult.id > lidoDe(c)){ lidos[c] = ult.id; gravarLidos(); }
   }
-  function pintarDestino(){
-    const d = usuario(selPara.value);
-    $('chatDestino').classList.toggle('on', !!d);
-    $('chatDestinoTxt').innerHTML = d ? `Mensagem direta para <b>${esc(d.nome)}</b> — só vocês dois veem.` : '';
-    texto.placeholder = d ? `Mensagem para ${d.nome}…` : 'Mensagem para todos…';
-  }
-  async function carregarUsuarios(){
-    const { data, error } = await SB.rpc('chat_destinatarios');
-    if(error){ usuarios = []; form.classList.add('sem-dest'); }
-    else { usuarios = (data || []).map(u=>({ id:u.id, nome:u.nome || 'Usuário', temas:u.temas || [] })); form.classList.remove('sem-dest'); }
-    opcoesDePessoa();
-  }
+  // A conversa aberta conta como lida enquanto está na tela.
+  function lendo(){ return atual && aberto() && !document.hidden && !(estreito() && !drawer.classList.contains('em-conversa')); }
 
-  // Sugere como assunto a aba em que a pessoa está (se o perfil alcança essa aba).
-  function sugerirAssunto(){
-    if(assuntoManual && texto.value.trim()) return;
-    const t = window.temaDaAbaAtiva();
-    selAssunto.value = window.temaLiberado(t) ? t : 'geral';
-    assuntoManual = false;
-    opcoesDePessoa();
-  }
-
-  /* ---- não lidas ---- */
-  function naoLidasLista(){
-    const lido = lerLido();
-    return msgs.filter(m=>m.id > lido && m.autor_id !== uid);
-  }
   function pintarBadge(){
-    const lista = (uid && !aberto()) ? naoLidasLista() : [];
-    const n = lista.length, diretas = lista.filter(m=>m.destinatario_id === uid).length;
+    const nl = uid ? todasNaoLidas() : [];
+    const n = nl.length, particulares = nl.filter(m=>m.destinatario_id === uid).length;
     badge.textContent = n > 99 ? '99+' : String(n);
     badge.classList.toggle('on', n > 0);
-    badge.classList.toggle('direta', diretas > 0);
-    btn.title = n ? `${n} mensagem(ns) nova(s)${diretas ? ` — ${diretas} direta(s) para você` : ''}` : 'Abrir o chat do painel';
+    badge.classList.toggle('direta', particulares > 0);
+    btn.title = n ? `${n} mensagem(ns) nova(s)${particulares ? ` — ${particulares} só para você` : ''}` : 'Abrir o chat do painel';
     document.title = n ? `(${n > 99 ? '99+' : n}) ${TITULO}` : TITULO;
   }
-  function marcarLido(){
-    if(msgs.length) gravarLido(msgs[msgs.length-1].id);
-    pintarBadge();
-  }
-  // Contador da aba "Diretas": diretas para mim que chegaram desde que abri o chat e ainda não vi nessa aba.
-  let vistoDiretas = 0;
-  function pintarAbaDiretas(){
-    const n = visao === 'diretas' ? 0 : msgs.filter(m=>m.destinatario_id === uid && m.id > vistoDiretas).length;
-    const el = $('chatDiretasN');
-    el.textContent = n > 99 ? '99+' : String(n);
-    el.classList.toggle('on', n > 0);
-  }
-  function verDiretas(){
-    const ult = msgs.filter(m=>m.destinatario_id === uid).pop();
-    if(ult) vistoDiretas = Math.max(vistoDiretas, ult.id);
+
+  /* ---- lista de conversas ---- */
+  const horaCurta = (d)=>{
+    const hoje = new Date(), ontem = new Date(); ontem.setDate(hoje.getDate()-1);
+    if(d.toDateString() === hoje.toDateString()) return d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    if(d.toDateString() === ontem.toDateString()) return 'Ontem';
+    return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+  };
+  function renderLista(){
+    if(indisponivel){ lista.innerHTML = '<div class="chat-lista-vazia">O chat ainda não foi ativado no servidor deste painel. Fale com um administrador.</div>'; return; }
+    const termo = busca.value.trim().toLowerCase();
+    const ultima = {};
+    msgs.forEach(m=>{ ultima[chave(m)] = m; });
+    const comMsg = Object.keys(ultima).filter(c=>c !== GRUPO).sort((a,b)=>ultima[b].id - ultima[a].id);
+    const conversas = [GRUPO].concat(comMsg);
+    const outros = usuarios.filter(u=>!ultima[u.id]).map(u=>u.id);
+    const bate = (c)=>!termo || nomeDe(c).toLowerCase().includes(termo);
+    const item = (c)=>{
+      const m = ultima[c], n = naoLidas(c).length;
+      let previa = c === GRUPO ? 'Mensagens para todos os usuários' : 'Conversa particular';
+      if(m){
+        const quem = m.autor_id === uid ? 'Você: ' : (c === GRUPO ? (m.autor_nome || 'Usuário').split(' ')[0] + ': ' : '');
+        previa = quem + String(m.texto || '').replace(/\s+/g, ' ');
+      }
+      return `<button type="button" class="chat-it${c === atual ? ' ativa' : ''}${n ? ' nao-lida' : ''}" data-conv="${esc(c)}">
+        ${avatar(c)}
+        <div class="chat-it-corpo">
+          <div class="chat-it-l1"><b>${esc(nomeDe(c))}</b>${m ? `<time>${esc(horaCurta(new Date(m.criado_em)))}</time>` : ''}</div>
+          <div class="chat-it-l2"><span>${esc(previa)}</span>${n ? `<em class="chat-it-n">${n > 99 ? '99+' : n}</em>` : ''}</div>
+        </div>
+      </button>`;
+    };
+    const a = conversas.filter(bate), b = outros.filter(bate);
+    let html = a.map(item).join('');
+    if(b.length) html += `<div class="chat-secao">${a.length > 1 || termo ? 'Outros contatos' : 'Contatos'}</div>` + b.map(item).join('');
+    if(!html) html = '<div class="chat-lista-vazia">Ninguém encontrado com esse nome.</div>';
+    lista.innerHTML = html;
   }
 
-  /* ---- lista de mensagens ---- */
-  function filtradas(){
-    const fa = selFiltro.value, fp = selPessoa.value;
-    return msgs.filter(m=>{
-      if(fa && m.assunto !== fa) return false;
-      if(visao === 'abertas' && m.destinatario_id) return false;
-      if(visao === 'diretas' && !m.destinatario_id) return false;
-      if(fp && m.autor_id !== fp && m.destinatario_id !== fp) return false;
-      return true;
-    });
+  /* ---- conversa aberta ---- */
+  // Assuntos possíveis na conversa: os meus e, se for particular, também os da outra pessoa.
+  function assuntosDaConversa(){
+    const meus = window.temasLiberados();
+    if(!atual || atual === GRUPO) return meus;
+    const u = usuario(atual);
+    return u ? meus.filter(t=>u.temas.includes(t)) : meus;
+  }
+  function opcoesDeAssunto(){
+    const temas = assuntosDaConversa(), antes = selAssunto.value;
+    selAssunto.innerHTML = temas.map(t=>`<option value="${t}"># ${esc(nomeTema(t))}</option>`).join('');
+    if(assuntoManual && temas.includes(antes)) selAssunto.value = antes;
+    else {
+      const t = window.temaDaAbaAtiva();
+      selAssunto.value = temas.includes(t) ? t : (temas.includes('geral') ? 'geral' : temas[0] || '');
+      assuntoManual = false;
+    }
+  }
+
+  function cabecalho(){
+    $('chatConvAv').outerHTML = avatar(atual).replace('class="chat-av', 'id="chatConvAv" class="chat-av');
+    $('chatConvNome').textContent = nomeDe(atual);
+    $('chatConvSub').textContent = atual === GRUPO
+      ? 'Todos os usuários do painel' + (usuarios.length ? ` · ${usuarios.length + 1} pessoas` : '')
+      : '🔒 Particular — só vocês dois veem';
+    texto.placeholder = atual === GRUPO ? 'Mensagem para todos' : `Mensagem para ${nomeDe(atual).split(' ')[0]}`;
   }
 
   const diaDe = (d)=>{
@@ -14941,55 +14987,64 @@ paintState();
     if(d.toDateString() === ontem.toDateString()) return 'Ontem';
     return d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
   };
-  function render(manterPosicao){
-    if(visao === 'diretas') verDiretas();
-    pintarAbaDiretas();
-    const lista = filtradas();
+  function renderConversa(manterPosicao){
+    if(!atual) return;
+    const itens = msgs.filter(m=>chave(m) === atual);
     const noFim = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
     const alturaAntes = log.scrollHeight, topoAntes = log.scrollTop;
-    if(indisponivel){
-      log.innerHTML = '<div class="chat-vazio">O chat ainda não foi ativado no servidor deste painel. Fale com um administrador.</div>';
-      return;
-    }
-    if(!lista.length){
-      const filtrando = selFiltro.value || selPessoa.value;
-      const txt = visao === 'diretas' && !filtrando
-        ? 'Nenhuma mensagem direta ainda. Escolha uma pessoa em “Para” para conversar só com ela.'
-        : filtrando || visao !== 'todas' ? 'Nenhuma mensagem com esses filtros.' : 'Nenhuma mensagem ainda. Escreva a primeira para registrar um assunto do painel.';
-      log.innerHTML = (temMais ? '<button type="button" class="chat-mais" id="chatMais">Carregar mensagens anteriores</button>' : '') + `<div class="chat-vazio">${txt}</div>`;
+    let html = temMais ? '<button type="button" class="chat-mais" id="chatMais">Carregar mensagens anteriores</button>' : '';
+    if(!itens.length){
+      html += atual === GRUPO
+        ? '<div class="chat-vazio">Nenhuma mensagem no grupo ainda.<br>O que você escrever aqui todos os usuários do painel leem.</div>'
+        : `<div class="chat-vazio">Nenhuma mensagem com ${esc(nomeDe(atual))} ainda.<br><span class="chat-cadeado">🔒 Só vocês dois veem esta conversa.</span></div>`;
+      log.innerHTML = html;
       return;
     }
     const admin = window.PERFIL.isAdmin;
-    let html = temMais ? '<button type="button" class="chat-mais" id="chatMais">Carregar mensagens anteriores</button>' : '';
-    let ultimoDia = '';
-    lista.forEach(m=>{
+    let ultimoDia = '', anterior = null;
+    itens.forEach(m=>{
       const d = new Date(m.criado_em), dia = d.toDateString();
-      if(dia !== ultimoDia){ html += `<div class="chat-dia">${esc(diaDe(d))}</div>`; ultimoDia = dia; }
-      const minha = m.autor_id === uid, direta = !!m.destinatario_id, praMim = m.destinatario_id === uid;
-      const autor = minha ? 'Você' : (m.autor_nome || 'Usuário');
-      const para = direta
-        ? `<span class="chat-para" title="Mensagem direta — só os dois veem">🔒 para ${esc(praMim ? 'você' : (m.destinatario_nome || 'Usuário'))}</span>`
-        : '<span class="chat-para todos">para todos</span>';
-      const cls = 'chat-item' + (minha ? ' minha' : '') + (direta ? ' direta' : '') + (praMim ? ' pra-mim' : '');
-      html += `<div class="${cls}" data-id="${m.id}">
-        <div class="chat-av" style="--av:${corDe(m.autor_id)}" title="${esc(m.autor_nome || 'Usuário')}">${esc(iniciais(m.autor_nome))}</div>
-        <div class="chat-msg">
-          <div class="chat-msg-top">
-            <b>${esc(autor)}</b>${para}
-            <span class="chat-tema" style="--chat-cor:${CORES[m.assunto]||CORES.geral}">${esc(nomeTema(m.assunto))}</span>
-          </div>
-          <div class="chat-msg-txt">${esc(m.texto)}</div>
-          <div class="chat-msg-pe">
-            <time datetime="${esc(m.criado_em)}" title="${esc(d.toLocaleString('pt-BR'))}">${d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</time>
-            ${(!minha || direta) ? `<button type="button" class="chat-acao" data-resp="${m.id}" title="${direta ? 'Responder em particular' : 'Responder diretamente a ' + esc(m.autor_nome || 'Usuário')}">↩ Responder</button>` : ''}
-            ${(minha || admin) ? `<button type="button" class="chat-acao del" data-del="${m.id}" title="Apagar mensagem">Apagar</button>` : ''}
-          </div>
-        </div>
+      if(dia !== ultimoDia){ html += `<div class="chat-dia">${esc(diaDe(d))}</div>`; ultimoDia = dia; anterior = null; }
+      const minha = m.autor_id === uid;
+      const seguida = anterior && anterior.autor_id === m.autor_id && (d - new Date(anterior.criado_em)) < 5*60000;
+      const autor = (atual === GRUPO && !minha && !seguida)
+        ? `<button type="button" class="chat-autor" style="--av:${corDe(m.autor_id)}" data-pv="${esc(m.autor_id)}" title="Conversar em particular com ${esc(m.autor_nome || 'Usuário')}">${esc(m.autor_nome || 'Usuário')}</button>` : '';
+      const tema = m.assunto && m.assunto !== 'geral' ? `<span class="chat-tema" style="--chat-cor:${CORES[m.assunto]||CORES.geral}">${esc(nomeTema(m.assunto))}</span>` : '';
+      html += `<div class="chat-bolha${minha ? ' minha' : ''}${seguida ? ' seguida' : ''}" data-id="${m.id}">
+        ${autor}${(minha || admin) ? `<button type="button" class="chat-del" data-del="${m.id}" title="Apagar mensagem" aria-label="Apagar mensagem">🗑</button>` : ''}
+        <span class="chat-txt">${esc(m.texto)}</span><span class="chat-meta">${tema}<time datetime="${esc(m.criado_em)}" title="${esc(d.toLocaleString('pt-BR'))}">${d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</time>${minha ? '<span class="ok">✓✓</span>' : ''}</span>
       </div>`;
+      anterior = m;
     });
     log.innerHTML = html;
     if(manterPosicao) log.scrollTop = log.scrollHeight - alturaAntes + topoAntes;
-    else if(noFim || !render.jaRolou){ log.scrollTop = log.scrollHeight; render.jaRolou = true; }
+    else if(noFim || !renderConversa.jaRolou){ log.scrollTop = log.scrollHeight; renderConversa.jaRolou = true; }
+  }
+
+  function render(manterPosicao){
+    if(lendo()) marcarLida(atual);
+    renderLista();
+    renderConversa(manterPosicao);
+    pintarBadge();
+  }
+
+  function abrirConversa(c){
+    atual = c;
+    conv.classList.toggle('sem-conversa', !c);
+    drawer.classList.toggle('em-conversa', !!c);
+    avisar('');
+    if(c){ cabecalho(); assuntoManual = false; opcoesDeAssunto(); }
+    renderConversa.jaRolou = false;
+    render();
+    if(c && window.matchMedia('(pointer:fine)').matches) texto.focus();
+  }
+
+  /* ---- dados ---- */
+  async function carregarUsuarios(){
+    const { data, error } = await SB.rpc('chat_destinatarios');
+    usuarios = error ? [] : (data || []).map(u=>({ id:u.id, nome:u.nome || 'Usuário', temas:u.temas || [] }));
+    if(atual){ cabecalho(); opcoesDeAssunto(); }
+    renderLista();
   }
 
   function juntar(novas){
@@ -15000,110 +15055,21 @@ paintState();
     msgs = msgs.concat(add).sort((a,b)=>a.id-b.id);
     return add;
   }
-  function chegaram(novas){ render(); if(aberto()) marcarLido(); else pintarBadge(); avisarChegada(novas); }
-
-  /* ---- avisos de mensagem nova: título da aba, som, notificação do navegador e aviso flutuante ---- */
-  const TITULO = document.title;
-  const PREF = 'painelChat.avisos';
-  function lerPref(){ try{ return Object.assign({ nivel:'todas', som:true }, JSON.parse(localStorage.getItem(PREF) || '{}')); }catch(e){ return { nivel:'todas', som:true }; } }
-  function gravarPref(p){ try{ localStorage.setItem(PREF, JSON.stringify(p)); }catch(e){ /* sem armazenamento: vale só nesta sessão */ } }
-  let pref = lerPref();
-  const temNotif = 'Notification' in window;
-
-  function pintarPrefs(){
-    $('chatAvisoNivel').value = pref.nivel;
-    $('chatSom').checked = !!pref.som;
-    const b = $('chatNotifBtn'), st = $('chatNotifSt');
-    if(!temNotif){ b.hidden = true; st.textContent = ''; return; }
-    const perm = Notification.permission;
-    b.hidden = perm !== 'default' || pref.nivel === 'nada';
-    st.textContent = pref.nivel === 'nada' ? '' : perm === 'granted' ? '✓ notificações do navegador ativas' : perm === 'denied' ? 'notificações bloqueadas — libere no cadeado ao lado do endereço do site' : '';
-  }
-
-  let audio = null;
-  function tocar(direta){
-    if(!pref.som) return;
-    try{
-      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-      if(audio.state === 'suspended') audio.resume();
-      const notas = direta ? [880, 1175] : [660];
-      notas.forEach((f, i)=>{
-        const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.14;
-        o.type = 'sine'; o.frequency.value = f;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-        o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.25);
-      });
-    }catch(e){ /* navegador sem áudio: segue sem som */ }
-  }
-
-  function irPara(m){
-    window.focus();
-    if(!aberto()) abrir();
-    if(m && m.destinatario_id === uid) mudarVisao('diretas');
-  }
-
-  function notificarNavegador(m, total){
-    if(!temNotif || Notification.permission !== 'granted') return;
-    const direta = m.destinatario_id === uid;
-    try{
-      const n = new Notification(total > 1 ? `${total} mensagens novas no chat do painel` : `${direta ? '🔒 ' : ''}${m.autor_nome || 'Usuário'}${direta ? ' (para você)' : ''}`, {
-        body: (total > 1 ? `${m.autor_nome || 'Usuário'}: ` : '') + String(m.texto || '').slice(0, 140),
-        tag: 'painel-chat-' + m.id
-      });
-      n.onclick = ()=>{ irPara(m); n.close(); };
-    }catch(e){ /* alguns celulares só aceitam notificação via service worker */ }
-  }
-
-  function mostrarToast(m, total){
-    const pilha = $('chatToasts');
-    const direta = m.destinatario_id === uid;
-    const el = document.createElement('div');
-    el.className = 'chat-toast' + (direta ? ' direta' : '');
-    el.innerHTML = `<div class="chat-av" style="--av:${corDe(m.autor_id)}">${esc(iniciais(m.autor_nome))}</div>
-      <div class="chat-toast-txt">
-        ${direta ? '<small>🔒 Mensagem direta para você</small>' : ''}
-        <b>${esc(m.autor_nome || 'Usuário')}${total > 1 ? ` <span style="color:var(--text-faint);font-weight:400">+${total-1}</span>` : ''}</b>
-        <p>${esc(m.texto)}</p>
-      </div>
-      <button type="button" class="chat-toast-x" aria-label="Fechar aviso">×</button>`;
-    const tirar = ()=>{ el.remove(); };
-    el.addEventListener('click', (e)=>{ tirar(); if(!e.target.closest('.chat-toast-x')) irPara(m); });
-    pilha.appendChild(el);
-    while(pilha.children.length > 3) pilha.firstElementChild.remove();
-    setTimeout(tirar, direta ? 12000 : 7000);
-  }
-
-  function avisarChegada(novas){
-    if(!novas || !novas.length || pref.nivel === 'nada') return;
-    const deOutros = novas.filter(m=>m.autor_id !== uid);
-    const relevantes = pref.nivel === 'diretas' ? deOutros.filter(m=>m.destinatario_id === uid) : deOutros;
-    if(!relevantes.length) return;
-    const ultima = relevantes[relevantes.length-1];
-    const direta = relevantes.some(m=>m.destinatario_id === uid);
-    const vendo = aberto() && !document.hidden;
-    if(vendo) return;                             // já está com o chat aberto na tela
-    tocar(direta);
-    if(document.hidden) notificarNavegador(ultima, relevantes.length);
-    else mostrarToast(ultima, relevantes.length);
-  }
+  function chegaram(novas){ render(); avisarChegada(novas); }
 
   async function carregar(){
     const { data, error } = await SB.from('chat_mensagens').select(COLS).order('id', { ascending:false }).limit(PAGINA);
     if(error){
-      if(tabelaAusente(error)){ indisponivel = true; form.style.display = 'none'; render(); pararTudo(); return; }
+      if(tabelaAusente(error)){ indisponivel = true; render(); pararTudo(); return; }
       avisar('Não consegui carregar as mensagens. Verifique a conexão.');
       return;
     }
-    indisponivel = false; form.style.display = '';
+    indisponivel = false;
     avisar('');
     msgs = (data || []).slice().reverse().filter(minhaConversa);
     temMais = (data || []).length === PAGINA;
-    vistoDiretas = lerLido();
-    render.jaRolou = false;
+    renderConversa.jaRolou = false;
     render();
-    if(aberto()) marcarLido(); else pintarBadge();
   }
   async function carregarAnteriores(){
     if(!msgs.length) return;
@@ -15136,7 +15102,7 @@ paintState();
           if(id == null) return;
           const antes = msgs.length;
           msgs = msgs.filter(m=>m.id !== id);
-          if(msgs.length !== antes){ render(); pintarBadge(); }
+          if(msgs.length !== antes) render(true);
         })
         .subscribe();
     }catch(e){ canal = null; /* sem tempo real: a checagem periódica cobre */ }
@@ -15148,58 +15114,44 @@ paintState();
   }
   function pararTudo(){ desligarTempoReal(); pintarBadge(); }
 
-  function abrir(){
+  /* ---- abrir / fechar a gaveta ---- */
+  function abrir(conversa){
     if(!uid) return;
     document.body.classList.add('chat-aberto');
     drawer.setAttribute('aria-hidden', 'false');
-    sugerirAssunto();
-    // chegou direta para mim e ainda não li: abre direto nas diretas
-    const lido = lerLido();
-    if(msgs.some(m=>m.id > lido && m.destinatario_id === uid)) mudarVisao('diretas', true);
-    render.jaRolou = false;
-    render();
-    marcarLido();
+    let c = conversa;
+    if(c === undefined){
+      // vai direto para a conversa com mensagem nova; sem nenhuma, a tela larga abre o grupo
+      const convs = [...new Set(todasNaoLidas().map(chave))];
+      c = convs.length === 1 ? convs[0] : (estreito() ? null : (atual || GRUPO));
+    }
+    abrirConversa(c);
     buscarNovas();
-    if(usuarios.length === 0 && !form.classList.contains('sem-dest')) carregarUsuarios();
-    if(window.matchMedia('(pointer:fine)').matches) texto.focus();
+    if(!usuarios.length) carregarUsuarios();
   }
   function fechar(){
     document.body.classList.remove('chat-aberto');
     drawer.setAttribute('aria-hidden', 'true');
     pintarBadge();
   }
-  function mudarVisao(v, semRender){
-    visao = v;
-    document.querySelectorAll('.chat-aba').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.visao === v)));
-    if(!semRender){ render.jaRolou = false; render(); }
-  }
 
   function ajustarAltura(){
     texto.style.height = 'auto';
-    texto.style.height = Math.min(texto.scrollHeight + 2, 160) + 'px';
-    $('chatConta').textContent = `${texto.value.length}/2000`;
-  }
-  function definirPara(id, assunto){
-    if(assunto && window.temaLiberado(assunto)){ selAssunto.value = assunto; assuntoManual = true; }
-    avisar('');
-    selPara.value = '';
-    if(id) selPara.dataset.pendente = id; else delete selPara.dataset.pendente;
-    opcoesDePessoa();
-    texto.focus();
+    texto.style.height = Math.min(texto.scrollHeight, 140) + 'px';
   }
 
   async function enviar(){
     const t = texto.value.trim();
-    if(!t || enviando || !uid || indisponivel) return;
+    if(!t || enviando || !uid || indisponivel || !atual) return;
     const assunto = selAssunto.value || 'geral';
-    const destinatario = selPara.value || null;
     if(!window.temaLiberado(assunto)){ avisar('Esse assunto não está liberado para o seu perfil.'); return; }
-    if(selPara.dataset.pendente){ opcoesDePessoa(); return; }   // destinatário sem acesso ao assunto: o aviso explica
-    const d = destinatario && usuario(destinatario);
-    if(destinatario && (!d || !d.temas.includes(assunto))){ avisar(`${d ? d.nome : 'O destinatário'} não tem acesso ao assunto ${nomeTema(assunto)}.`); return; }
-    enviando = true; $('chatEnviar').disabled = true; avisar('');
     const row = { assunto, texto: t.slice(0, 2000) };
-    if(destinatario) row.destinatario_id = destinatario;
+    if(atual !== GRUPO){
+      const u = usuario(atual);
+      if(u && !u.temas.includes(assunto)){ avisar(`${u.nome} não tem acesso ao assunto ${nomeTema(assunto)}.`); return; }
+      row.destinatario_id = atual;
+    }
+    enviando = true; $('chatEnviar').disabled = true; avisar('');
     const { data, error } = await SB.from('chat_mensagens').insert(row).select(COLS).single();
     enviando = false; $('chatEnviar').disabled = false;
     if(error){
@@ -15209,15 +15161,11 @@ paintState();
         : 'Não foi possível enviar. Verifique a conexão e tente de novo.');
       return;
     }
-    texto.value = ''; assuntoManual = false; ajustarAltura();
-    if(selFiltro.value && selFiltro.value !== assunto) selFiltro.value = '';
-    if(selPessoa.value && selPessoa.value !== destinatario) selPessoa.value = '';
-    if(visao === 'abertas' && destinatario) mudarVisao('todas', true);
-    if(visao === 'diretas' && !destinatario) mudarVisao('todas', true);
+    texto.value = ''; ajustarAltura();
     juntar([data]);
-    render.jaRolou = false;
+    renderConversa.jaRolou = false;
     render();
-    marcarLido();
+    texto.focus();
   }
 
   async function apagar(id){
@@ -15225,40 +15173,138 @@ paintState();
     const { error } = await SB.from('chat_mensagens').delete().eq('id', id);
     if(error){ avisar('Não foi possível apagar a mensagem.'); return; }
     msgs = msgs.filter(m=>m.id !== id);
-    render(); pintarBadge();
+    render(true);
   }
 
   function exportar(){
-    const lista = filtradas();
-    if(!lista.length){ alert('Não há mensagens para exportar.'); return; }
+    const itens = msgs.filter(m=>chave(m) === atual);
+    if(!itens.length){ alert('Não há mensagens para exportar.'); return; }
     const q = (v)=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-    const linhas = [['Data','Hora','Autor','Para','Assunto','Mensagem'].map(q).join(';')].concat(lista.map(m=>{
+    const linhas = [['Data','Hora','Autor','Para','Assunto','Mensagem'].map(q).join(';')].concat(itens.map(m=>{
       const d = new Date(m.criado_em);
       return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), m.autor_nome,
               m.destinatario_id ? (m.destinatario_nome || 'Usuário') : 'Todos', nomeTema(m.assunto), m.texto].map(q).join(';');
     }));
     const blob = new Blob(['﻿' + linhas.join('\r\n')], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob), a = document.createElement('a');
-    a.href = url; a.download = 'chat_painel.csv';
+    const nome = atual === GRUPO ? 'grupo' : nomeDe(atual).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]+/g,'_').toLowerCase();
+    a.href = url; a.download = `chat_${nome}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
   }
 
+  /* ---- avisos de mensagem nova: título da aba, som, notificação do navegador e aviso flutuante ---- */
+  const TITULO = document.title;
+  const PREF = 'painelChat.avisos';
+  function lerPref(){ try{ return Object.assign({ nivel:'todas', som:true }, JSON.parse(localStorage.getItem(PREF) || '{}')); }catch(e){ return { nivel:'todas', som:true }; } }
+  function gravarPref(p){ try{ localStorage.setItem(PREF, JSON.stringify(p)); }catch(e){ /* sem armazenamento: vale só nesta sessão */ } }
+  let pref = lerPref();
+  const temNotif = 'Notification' in window;
+
+  function pintarPrefs(){
+    $('chatAvisoNivel').value = pref.nivel;
+    $('chatSom').checked = !!pref.som;
+    const b = $('chatNotifBtn'), st = $('chatNotifSt');
+    if(!temNotif){ b.hidden = true; st.textContent = ''; return; }
+    const perm = Notification.permission;
+    b.hidden = perm !== 'default' || pref.nivel === 'nada';
+    st.textContent = pref.nivel === 'nada' ? '' : perm === 'granted' ? '✓ Notificações do navegador ativas' : perm === 'denied' ? 'Notificações bloqueadas — libere no cadeado ao lado do endereço do site.' : '';
+  }
+
+  let audio = null;
+  function tocar(particular){
+    if(!pref.som) return;
+    try{
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if(audio.state === 'suspended') audio.resume();
+      const notas = particular ? [880, 1175] : [660];
+      notas.forEach((f, i)=>{
+        const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.14;
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.25);
+      });
+    }catch(e){ /* navegador sem áudio: segue sem som */ }
+  }
+
+  function irPara(m){
+    window.focus();
+    if(!aberto()) abrir(chave(m)); else abrirConversa(chave(m));
+  }
+
+  function notificarNavegador(m, total){
+    if(!temNotif || Notification.permission !== 'granted') return;
+    const particular = !!m.destinatario_id;
+    try{
+      const n = new Notification(total > 1 ? `${total} mensagens novas no chat do painel` : (particular ? (m.autor_nome || 'Usuário') : `${m.autor_nome || 'Usuário'} · Grupo do painel`), {
+        body: (total > 1 ? `${m.autor_nome || 'Usuário'}: ` : '') + String(m.texto || '').slice(0, 140),
+        tag: 'painel-chat-' + m.id
+      });
+      n.onclick = ()=>{ irPara(m); n.close(); };
+    }catch(e){ /* alguns celulares só aceitam notificação via service worker */ }
+  }
+
+  function mostrarToast(m, total){
+    const pilha = $('chatToasts');
+    const particular = !!m.destinatario_id;
+    const el = document.createElement('div');
+    el.className = 'chat-toast' + (particular ? ' direta' : '');
+    el.innerHTML = `<div class="chat-av" style="--av:${corDe(m.autor_id)}">${esc(iniciais(m.autor_nome))}</div>
+      <div class="chat-toast-txt">
+        <small>${particular ? '🔒 Conversa particular' : '👥 Grupo do painel'}</small>
+        <b>${esc(m.autor_nome || 'Usuário')}${total > 1 ? ` <span style="color:#8696A0;font-weight:400">+${total-1}</span>` : ''}</b>
+        <p>${esc(m.texto)}</p>
+      </div>
+      <button type="button" class="chat-toast-x" aria-label="Fechar aviso">×</button>`;
+    const tirar = ()=>{ el.remove(); };
+    el.addEventListener('click', (e)=>{ tirar(); if(!e.target.closest('.chat-toast-x')) irPara(m); });
+    pilha.appendChild(el);
+    while(pilha.children.length > 3) pilha.firstElementChild.remove();
+    setTimeout(tirar, particular ? 12000 : 7000);
+  }
+
+  function avisarChegada(novas){
+    if(!novas || !novas.length || pref.nivel === 'nada') return;
+    const deOutros = novas.filter(m=>m.autor_id !== uid);
+    let relevantes = pref.nivel === 'diretas' ? deOutros.filter(m=>m.destinatario_id) : deOutros;
+    // a conversa que está aberta na tela não precisa de aviso
+    if(lendo()) relevantes = relevantes.filter(m=>chave(m) !== atual);
+    if(!relevantes.length) return;
+    const ultima = relevantes[relevantes.length-1];
+    tocar(relevantes.some(m=>m.destinatario_id));
+    if(document.hidden) notificarNavegador(ultima, relevantes.length);
+    else if(!aberto()) mostrarToast(ultima, relevantes.length);
+  }
+
   /* ---- eventos ---- */
   btn.addEventListener('click', ()=>{ aberto() ? fechar() : abrir(); });
-  $('chatFechar').addEventListener('click', fechar);
+  drawer.querySelectorAll('[data-fechar]').forEach(b=>b.addEventListener('click', fechar));
   $('chatScrim').addEventListener('click', fechar);
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && aberto()) fechar(); });
+  $('chatVoltar').addEventListener('click', ()=>{ abrirConversa(null); });
+  lista.addEventListener('click', (e)=>{
+    const it = e.target.closest('[data-conv]');
+    if(it){ busca.value = ''; abrirConversa(it.getAttribute('data-conv')); }
+  });
+  busca.addEventListener('input', renderLista);
   form.addEventListener('submit', (e)=>{ e.preventDefault(); enviar(); });
   texto.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); enviar(); } });
   texto.addEventListener('input', ajustarAltura);
-  selAssunto.addEventListener('change', ()=>{ assuntoManual = true; opcoesDePessoa(); });
-  selPara.addEventListener('change', ()=>{ delete selPara.dataset.pendente; avisar(''); pintarDestino(); });
-  $('chatDestinoLimpar').addEventListener('click', ()=>{ delete selPara.dataset.pendente; selPara.value = ''; avisar(''); pintarDestino(); texto.focus(); });
-  selFiltro.addEventListener('change', ()=>{ render.jaRolou = false; render(); });
-  selPessoa.addEventListener('change', ()=>{ render.jaRolou = false; render(); });
-  document.querySelectorAll('.chat-aba').forEach(b=>b.addEventListener('click', ()=>mudarVisao(b.dataset.visao)));
+  selAssunto.addEventListener('change', ()=>{ assuntoManual = true; texto.focus(); });
   $('chatExportar').addEventListener('click', exportar);
+  log.addEventListener('click', (e)=>{
+    const del = e.target.closest('[data-del]');
+    if(del){ apagar(Number(del.getAttribute('data-del'))); return; }
+    const pv = e.target.closest('[data-pv]');
+    if(pv){ abrirConversa(pv.getAttribute('data-pv')); return; }
+    if(e.target.closest('#chatMais')) carregarAnteriores();
+  });
+  $('chatAvisosBtn').addEventListener('click', (e)=>{
+    const on = $('chatAvisos').classList.toggle('on');
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+  });
   $('chatAvisoNivel').addEventListener('change', (e)=>{ pref.nivel = e.target.value; gravarPref(pref); pintarPrefs(); });
   $('chatSom').addEventListener('change', (e)=>{ pref.som = e.target.checked; gravarPref(pref); if(pref.som) tocar(false); });
   $('chatNotifBtn').addEventListener('click', ()=>{
@@ -15271,20 +15317,9 @@ paintState();
     document.removeEventListener('pointerdown', liberarAudio);
   });
   pintarPrefs();
-  log.addEventListener('click', (e)=>{
-    const del = e.target.closest('[data-del]');
-    if(del){ apagar(Number(del.getAttribute('data-del'))); return; }
-    const resp = e.target.closest('[data-resp]');
-    if(resp){
-      const m = msgs.find(x=>x.id === Number(resp.getAttribute('data-resp')));
-      if(m) definirPara(outroLado(m), m.assunto);
-      return;
-    }
-    if(e.target.closest('#chatMais')) carregarAnteriores();
-  });
-  // trocar de aba com o chat aberto atualiza a sugestão de assunto
-  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click', ()=>{ if(aberto()) setTimeout(sugerirAssunto, 0); }));
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) buscarNovas(); });
+  // trocar de aba do painel com o chat aberto atualiza a sugestão de assunto
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click', ()=>{ if(aberto() && atual && !texto.value.trim()) setTimeout(()=>{ assuntoManual = false; opcoesDeAssunto(); }, 0); }));
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ buscarNovas(); if(lendo()) render(true); } });
 
   // Login, logout ou mudança de papel: recomeça com o que o novo perfil pode ver.
   document.addEventListener('perfil-atualizado', ()=>{
@@ -15294,12 +15329,11 @@ paintState();
     if(novoUid === uid && temasAgora === (opcoesDeAssunto.ultimo || '')){ pintarBadge(); return; }
     opcoesDeAssunto.ultimo = temasAgora;
     uid = novoUid;
-    msgs = []; usuarios = []; temMais = false; indisponivel = false; form.style.display = '';
-    delete selPara.dataset.pendente; selPara.value = ''; selPessoa.value = ''; mudarVisao('todas', true);
+    msgs = []; usuarios = []; temMais = false; indisponivel = false; atual = null;
+    conv.classList.add('sem-conversa'); drawer.classList.remove('em-conversa');
     desligarTempoReal();
-    if(!uid){ fechar(); log.innerHTML = ''; pintarBadge(); return; }
-    opcoesDeAssunto();
-    sugerirAssunto();
+    if(!uid){ fechar(); log.innerHTML = ''; lista.innerHTML = ''; pintarBadge(); return; }
+    lidos = lerLidos();
     carregarUsuarios();
     carregar().then(()=>{ if(uid && !indisponivel) ligarTempoReal(); });
   });
