@@ -1836,7 +1836,32 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
 .chat-form textarea:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;}
 .chat-form .btn{height:42px;}
 .chat-form-pe{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-faint);font-family:var(--font-mono);}
-@media print{ .chat-drawer,.chat-scrim,.chat-toggle-btn{display:none !important;} }
+
+/* avisos de mensagem nova */
+.chat-avisos{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--text-dim);}
+.chat-avisos label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.chat-avisos select{padding:4px 6px;font-size:12px;}
+.chat-avisos input[type=checkbox]{accent-color:var(--yellow);}
+.chat-notif-btn{background:transparent;border:1px solid var(--yellow-dim);color:var(--yellow);border-radius:5px;padding:4px 9px;font:600 11.5px var(--font-body);cursor:pointer;}
+.chat-notif-btn:hover{background:color-mix(in srgb,var(--yellow) 12%,transparent);}
+.chat-notif-st{font-size:11.5px;color:var(--text-faint);}
+.chat-toast-pilha{position:fixed;right:20px;bottom:96px;z-index:9999;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100vw - 32px));pointer-events:none;}
+.chat-toast{
+  pointer-events:auto;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;cursor:pointer;
+  background:var(--asphalt-2);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.55);
+  animation:chatToastIn .18s ease-out;
+}
+.chat-toast.direta{border-color:var(--yellow);box-shadow:inset 3px 0 0 var(--yellow),0 10px 30px rgba(0,0,0,.55);}
+.chat-toast .chat-av{width:28px;height:28px;font-size:11px;}
+.chat-toast-txt{flex:1;min-width:0;}
+.chat-toast-txt b{display:block;font-size:12.5px;color:var(--text);}
+.chat-toast-txt small{display:block;font-size:11px;color:var(--yellow);margin-bottom:2px;}
+.chat-toast-txt p{margin:0;font-size:12.5px;color:var(--text-dim);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.chat-toast-x{background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;}
+.chat-toast-x:hover{color:var(--text);}
+@keyframes chatToastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){ .chat-toast{animation:none;} }
+@media print{ .chat-drawer,.chat-scrim,.chat-toggle-btn,.chat-toast-pilha{display:none !important;} }
 .j-chip[hidden]{display:none !important;}
 </style>
 </head>
@@ -14713,6 +14738,16 @@ paintState();
     </div>
     <button type="button" class="chat-x" id="chatFechar" aria-label="Fechar o chat">×</button>
   </div>
+  <div class="chat-avisos">
+    <label>🔔 Avisar <select id="chatAvisoNivel" aria-label="Quando avisar">
+      <option value="todas">todas as mensagens</option>
+      <option value="diretas">só diretas para mim</option>
+      <option value="nada">não avisar</option>
+    </select></label>
+    <label><input type="checkbox" id="chatSom"> 🔊 Som</label>
+    <button type="button" class="chat-notif-btn" id="chatNotifBtn" hidden>Ativar notificações do navegador</button>
+    <span class="chat-notif-st" id="chatNotifSt"></span>
+  </div>
   <div class="chat-abas" role="tablist" aria-label="Quais mensagens mostrar">
     <button type="button" class="chat-aba" role="tab" data-visao="todas" aria-selected="true">Todas</button>
     <button type="button" class="chat-aba" role="tab" data-visao="abertas" aria-selected="false">Para todos</button>
@@ -14743,6 +14778,7 @@ paintState();
     <div class="chat-form-pe"><span>Enter envia · Shift+Enter quebra a linha</span><span id="chatConta">0/2000</span></div>
   </form>
 </aside>
+<div class="chat-toast-pilha" id="chatToasts" aria-live="polite"></div>
 
 <script>
 /* ============================================================
@@ -14868,6 +14904,7 @@ paintState();
     badge.classList.toggle('on', n > 0);
     badge.classList.toggle('direta', diretas > 0);
     btn.title = n ? `${n} mensagem(ns) nova(s)${diretas ? ` — ${diretas} direta(s) para você` : ''}` : 'Abrir o chat do painel';
+    document.title = n ? `(${n > 99 ? '99+' : n}) ${TITULO}` : TITULO;
   }
   function marcarLido(){
     if(msgs.length) gravarLido(msgs[msgs.length-1].id);
@@ -14961,9 +14998,96 @@ paintState();
     const add = novas.filter(m=>m && !tenho.has(m.id) && minhaConversa(m));
     if(!add.length) return false;
     msgs = msgs.concat(add).sort((a,b)=>a.id-b.id);
-    return true;
+    return add;
   }
-  function chegaram(){ render(); if(aberto()) marcarLido(); else pintarBadge(); }
+  function chegaram(novas){ render(); if(aberto()) marcarLido(); else pintarBadge(); avisarChegada(novas); }
+
+  /* ---- avisos de mensagem nova: título da aba, som, notificação do navegador e aviso flutuante ---- */
+  const TITULO = document.title;
+  const PREF = 'painelChat.avisos';
+  function lerPref(){ try{ return Object.assign({ nivel:'todas', som:true }, JSON.parse(localStorage.getItem(PREF) || '{}')); }catch(e){ return { nivel:'todas', som:true }; } }
+  function gravarPref(p){ try{ localStorage.setItem(PREF, JSON.stringify(p)); }catch(e){ /* sem armazenamento: vale só nesta sessão */ } }
+  let pref = lerPref();
+  const temNotif = 'Notification' in window;
+
+  function pintarPrefs(){
+    $('chatAvisoNivel').value = pref.nivel;
+    $('chatSom').checked = !!pref.som;
+    const b = $('chatNotifBtn'), st = $('chatNotifSt');
+    if(!temNotif){ b.hidden = true; st.textContent = ''; return; }
+    const perm = Notification.permission;
+    b.hidden = perm !== 'default' || pref.nivel === 'nada';
+    st.textContent = pref.nivel === 'nada' ? '' : perm === 'granted' ? '✓ notificações do navegador ativas' : perm === 'denied' ? 'notificações bloqueadas — libere no cadeado ao lado do endereço do site' : '';
+  }
+
+  let audio = null;
+  function tocar(direta){
+    if(!pref.som) return;
+    try{
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if(audio.state === 'suspended') audio.resume();
+      const notas = direta ? [880, 1175] : [660];
+      notas.forEach((f, i)=>{
+        const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.14;
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.18, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        o.connect(g).connect(audio.destination); o.start(t); o.stop(t + 0.25);
+      });
+    }catch(e){ /* navegador sem áudio: segue sem som */ }
+  }
+
+  function irPara(m){
+    window.focus();
+    if(!aberto()) abrir();
+    if(m && m.destinatario_id === uid) mudarVisao('diretas');
+  }
+
+  function notificarNavegador(m, total){
+    if(!temNotif || Notification.permission !== 'granted') return;
+    const direta = m.destinatario_id === uid;
+    try{
+      const n = new Notification(total > 1 ? `${total} mensagens novas no chat do painel` : `${direta ? '🔒 ' : ''}${m.autor_nome || 'Usuário'}${direta ? ' (para você)' : ''}`, {
+        body: (total > 1 ? `${m.autor_nome || 'Usuário'}: ` : '') + String(m.texto || '').slice(0, 140),
+        tag: 'painel-chat-' + m.id
+      });
+      n.onclick = ()=>{ irPara(m); n.close(); };
+    }catch(e){ /* alguns celulares só aceitam notificação via service worker */ }
+  }
+
+  function mostrarToast(m, total){
+    const pilha = $('chatToasts');
+    const direta = m.destinatario_id === uid;
+    const el = document.createElement('div');
+    el.className = 'chat-toast' + (direta ? ' direta' : '');
+    el.innerHTML = `<div class="chat-av" style="--av:${corDe(m.autor_id)}">${esc(iniciais(m.autor_nome))}</div>
+      <div class="chat-toast-txt">
+        ${direta ? '<small>🔒 Mensagem direta para você</small>' : ''}
+        <b>${esc(m.autor_nome || 'Usuário')}${total > 1 ? ` <span style="color:var(--text-faint);font-weight:400">+${total-1}</span>` : ''}</b>
+        <p>${esc(m.texto)}</p>
+      </div>
+      <button type="button" class="chat-toast-x" aria-label="Fechar aviso">×</button>`;
+    const tirar = ()=>{ el.remove(); };
+    el.addEventListener('click', (e)=>{ tirar(); if(!e.target.closest('.chat-toast-x')) irPara(m); });
+    pilha.appendChild(el);
+    while(pilha.children.length > 3) pilha.firstElementChild.remove();
+    setTimeout(tirar, direta ? 12000 : 7000);
+  }
+
+  function avisarChegada(novas){
+    if(!novas || !novas.length || pref.nivel === 'nada') return;
+    const deOutros = novas.filter(m=>m.autor_id !== uid);
+    const relevantes = pref.nivel === 'diretas' ? deOutros.filter(m=>m.destinatario_id === uid) : deOutros;
+    if(!relevantes.length) return;
+    const ultima = relevantes[relevantes.length-1];
+    const direta = relevantes.some(m=>m.destinatario_id === uid);
+    const vendo = aberto() && !document.hidden;
+    if(vendo) return;                             // já está com o chat aberto na tela
+    tocar(direta);
+    if(document.hidden) notificarNavegador(ultima, relevantes.length);
+    else mostrarToast(ultima, relevantes.length);
+  }
 
   async function carregar(){
     const { data, error } = await SB.from('chat_mensagens').select(COLS).order('id', { ascending:false }).limit(PAGINA);
@@ -14995,7 +15119,8 @@ paintState();
     const ultimo = msgs.length ? msgs[msgs.length-1].id : 0;
     const { data, error } = await SB.from('chat_mensagens').select(COLS).gt('id', ultimo).order('id', { ascending:true }).limit(PAGINA);
     if(error || !data) return;
-    if(juntar(data)) chegaram();
+    const add = juntar(data);
+    if(add) chegaram(add);
   }
 
   function ligarTempoReal(){
@@ -15003,7 +15128,8 @@ paintState();
     try{
       canal = SB.channel('chat-painel-' + uid)
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_mensagens' }, (p)=>{
-          if(p && p.new && window.temaLiberado(p.new.assunto) && juntar([p.new])) chegaram();
+          const add = p && p.new && window.temaLiberado(p.new.assunto) && juntar([p.new]);
+          if(add) chegaram(add);
         })
         .on('postgres_changes', { event:'DELETE', schema:'public', table:'chat_mensagens' }, (p)=>{
           const id = p && p.old && p.old.id;
@@ -15133,6 +15259,18 @@ paintState();
   selPessoa.addEventListener('change', ()=>{ render.jaRolou = false; render(); });
   document.querySelectorAll('.chat-aba').forEach(b=>b.addEventListener('click', ()=>mudarVisao(b.dataset.visao)));
   $('chatExportar').addEventListener('click', exportar);
+  $('chatAvisoNivel').addEventListener('change', (e)=>{ pref.nivel = e.target.value; gravarPref(pref); pintarPrefs(); });
+  $('chatSom').addEventListener('change', (e)=>{ pref.som = e.target.checked; gravarPref(pref); if(pref.som) tocar(false); });
+  $('chatNotifBtn').addEventListener('click', ()=>{
+    if(!temNotif) return;
+    Promise.resolve(Notification.requestPermission()).then(pintarPrefs, pintarPrefs);
+  });
+  // o navegador só libera áudio depois de um clique na página
+  document.addEventListener('pointerdown', function liberarAudio(){
+    try{ audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if(audio.state === 'suspended') audio.resume(); }catch(e){ /* sem áudio */ }
+    document.removeEventListener('pointerdown', liberarAudio);
+  });
+  pintarPrefs();
   log.addEventListener('click', (e)=>{
     const del = e.target.closest('[data-del]');
     if(del){ apagar(Number(del.getAttribute('data-del'))); return; }
