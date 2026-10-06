@@ -1588,6 +1588,110 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
   #tab-creditos .cr-bar i.fat{background:#2e7d32 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   #tab-creditos .cr-bar i.res{background:#f9a825 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
+
+/* ==========================================================
+   CONFORMIDADE DO FLUXO (Solicitação → Pedido → Nota fiscal)
+   ========================================================== */
+#tab-fluxo input[type=date]{
+  background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
+  padding:7px 10px;border-radius:5px;font-size:13px;font-family:var(--font-body);color-scheme:dark;
+}
+#tab-fluxo .fluxo-sec-title{
+  font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--text);
+  margin:0 0 4px;letter-spacing:.02em;
+}
+#tab-fluxo .fluxo-sec-sub{font-size:11.5px;color:var(--text-faint);margin:0 0 12px;}
+#tab-fluxo .fluxo-nota{
+  font-size:12px;color:var(--text-dim);background:var(--asphalt-2);border:1px solid var(--line);
+  border-left:3px solid var(--amber);border-radius:6px;padding:9px 12px;margin:-10px 0 20px;
+}
+#tab-fluxo .fluxo-nota:empty{display:none;}
+#tab-fluxo .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(138px,1fr));}
+#tab-fluxo .kpi-card.fx-kpi-click{cursor:pointer;transition:border-color .15s;}
+#tab-fluxo .kpi-card.fx-kpi-click:hover{border-color:var(--text-faint);}
+
+/* trilha do fluxo: marcos ligados pela faixa tracejada, com o tempo médio de cada trecho */
+.fluxo-trilha-wrap{container-type:inline-size;container-name:fluxotrilha;margin-bottom:26px;}
+.fluxo-trilha{
+  display:flex;align-items:flex-start;background:var(--asphalt-2);border:1px solid var(--line);
+  border-radius:8px;padding:20px 18px 16px;overflow-x:auto;
+}
+.fluxo-trilha .fx-no{flex:none;width:74px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
+.fluxo-trilha .fx-no i{width:14px;height:14px;border-radius:50%;border:2px solid var(--yellow);background:var(--bg);display:block;}
+.fluxo-trilha .fx-no.fx-no-nf i{background:var(--yellow);}
+.fluxo-trilha .fx-no span{font-family:var(--font-mono);font-size:10.5px;line-height:1.3;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);}
+.fluxo-trilha .fx-seg{flex:1 1 0;min-width:118px;position:relative;text-align:center;padding:22px 6px 0;}
+.fluxo-trilha .fx-seg::before{
+  content:'';position:absolute;top:6px;left:-24px;right:-24px;height:2px;
+  background:repeating-linear-gradient(90deg,var(--yellow) 0 14px,transparent 14px 22px);opacity:.65;
+}
+.fluxo-trilha .fx-seg-nome{font-size:11.5px;color:var(--text-dim);margin:0 0 4px;}
+.fluxo-trilha .fx-seg-valor{font-family:var(--font-display);font-size:26px;font-weight:600;line-height:1.1;color:var(--text);}
+.fluxo-trilha .fx-seg-valor small{font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--text-dim);margin-left:3px;}
+.fluxo-trilha .fx-seg-meta{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);margin-top:4px;}
+.fluxo-trilha .fx-seg-alerta{font-size:11px;color:var(--amber);margin-top:4px;line-height:1.3;}
+.fluxo-ciclo{font-size:12px;color:var(--text-dim);margin:-14px 0 26px;font-family:var(--font-mono);}
+.fluxo-ciclo b{color:var(--text);font-weight:600;}
+
+#tab-fluxo .fluxo-chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+#tab-fluxo .fluxo-chart-head select{padding:5px 8px;font-size:12px;}
+#tab-fluxo .fluxo-chart-head label{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-right:6px;}
+#tab-fluxo .charts-grid{margin-bottom:26px;}
+
+#tab-fluxo .fluxo-views{display:flex;gap:4px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--line);margin-bottom:14px;}
+#tab-fluxo .fluxo-view-btn{
+  background:transparent;border:1px solid transparent;border-bottom:none;color:var(--text-dim);
+  border-radius:5px 5px 0 0;padding:9px 15px;font-size:12.5px;font-weight:600;cursor:pointer;
+  font-family:var(--font-body);letter-spacing:.02em;margin-bottom:-1px;
+}
+#tab-fluxo .fluxo-view-btn:hover{color:var(--text);background:rgba(255,255,255,.03);}
+#tab-fluxo .fluxo-view-btn.active{color:var(--yellow);border-color:var(--line);background:var(--asphalt-2);border-bottom:1px solid var(--asphalt-2);}
+#tab-fluxo .fluxo-views .spacer{flex:1;}
+#tab-fluxo .fluxo-views .btn{margin-bottom:6px;}
+#tab-fluxo .fluxo-det-filtros{display:none;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+#tab-fluxo .fluxo-det-filtros.show{display:flex;}
+#tab-fluxo .fluxo-det-filtros input[type=text]{min-width:260px;}
+
+#tableFluxo td.num,#tableFluxo th.num{text-align:right;font-variant-numeric:tabular-nums;}
+#tableFluxo tbody tr.fx-click{cursor:pointer;}
+#tableFluxo tbody tr.fx-sel td{background:var(--asphalt-3);}
+#tableFluxo tbody tr.fx-sel td:first-child{box-shadow:inset 3px 0 0 var(--yellow);}
+#tableFluxo tbody tr.fx-baixo td{color:var(--text-faint);}
+#tableFluxo tfoot td{font-weight:600;border-top:1px solid var(--line);background:var(--asphalt-3);padding:10px 12px;white-space:nowrap;}
+#tableFluxo .fx-pct{display:flex;align-items:center;gap:8px;min-width:130px;}
+#tableFluxo .fx-pct i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.07);position:relative;overflow:hidden;display:block;}
+#tableFluxo .fx-pct i u{position:absolute;left:0;top:0;bottom:0;background:var(--red);border-radius:3px;}
+#tableFluxo .fx-pct span{font-family:var(--font-mono);font-size:11.5px;min-width:46px;text-align:right;}
+.fluxo-tag{
+  display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-family:var(--font-mono);font-weight:600;
+  letter-spacing:.02em;color:var(--fx-cor);background:color-mix(in srgb,var(--fx-cor) 16%,transparent);
+}
+@container fluxotrilha (max-width:1020px){
+  .fluxo-trilha{flex-direction:column;align-items:stretch;gap:4px;overflow-x:visible;}
+  .fluxo-trilha .fx-no{width:auto;flex-direction:row;gap:10px;text-align:left;}
+  .fluxo-trilha .fx-seg{min-width:0;flex:none;display:grid;grid-template-columns:minmax(150px,220px) auto 1fr;column-gap:16px;align-items:baseline;
+    text-align:left;padding:6px 0 10px 24px;border-left:2px dashed var(--yellow-dim);margin-left:6px;}
+  .fluxo-trilha .fx-seg::before{display:none;}
+  .fluxo-trilha .fx-seg-nome{margin:0;}
+  .fluxo-trilha .fx-seg-alerta{grid-column:1 / -1;}
+}
+@container fluxotrilha (max-width:560px){
+  .fluxo-trilha .fx-seg{display:block;}
+}
+/* no celular o .shell vira coluna e o <main> passa a medir pelo conteúdo; com a
+   tabela larga desta aba a página inteira rolava de lado. Aqui a aba ocupa a
+   largura da tela e só a tabela rola (regra restrita a esta aba). */
+@media (max-width:860px){
+  main.tab-content:has(#tab-fluxo.active){align-self:stretch;max-width:100%;}
+  #tab-fluxo .filters-bar .field{flex:1 1 140px;}
+  #tab-fluxo .filters-bar input[type=date],#tab-fluxo .filters-bar select,#tab-fluxo .filters-bar .ms-btn{width:100%;max-width:none;}
+  #tab-fluxo .fluxo-det-filtros input[type=text]{min-width:0;flex:1 1 200px;}
+}
+@media print{
+  #tab-fluxo .fluxo-views,#tab-fluxo .fluxo-det-filtros,#tab-fluxo .fluxo-chart-head select,#tab-fluxo .fluxo-chart-head label{display:none !important;}
+  #tab-fluxo .kpi-card,#tab-fluxo .chart-card,.fluxo-trilha{background:#fff;border-color:#bbb;}
+  #tab-fluxo .kpi-value,#tab-fluxo .kpi-label,#tab-fluxo .kpi-foot,.fluxo-trilha *,#tab-fluxo .chart-title,#tab-fluxo .fluxo-sec-title,#tableFluxo td,#tableFluxo th{color:#000 !important;}
+}
 </style>
 </head>
 <body>
@@ -1685,6 +1789,7 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
         <button class="tab-btn" data-tab="compradores"><span class="tab-label">Solicitações por Comprador</span> <span class="count-pill" id="countSolic">0</span></button>
         <button class="tab-btn" data-tab="centros"><span class="tab-label">Pedidos por Centro de Custo</span> <span class="count-pill" id="countPed">0</span></button>
         <button class="tab-btn" data-tab="semnf"><span class="tab-label">Pedidos sem Nota Fiscal</span> <span class="count-pill" id="countSemNF">0</span></button>
+        <button class="tab-btn" data-tab="fluxo"><span class="tab-label">Conformidade do Fluxo</span> <span class="count-pill" id="countFluxo">0</span></button>
       </div>
     </div>
     <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
@@ -1963,6 +2068,107 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
     </div>
   </div>
   </section>
+  </section>
+
+  <!-- ===================== CONFORMIDADE DO FLUXO (SC → PEDIDO → NF) ===================== -->
+  <section class="tab-panel" id="tab-fluxo">
+    <div class="filters-bar">
+      <div class="field">
+        <label>Emissão da NF — de</label>
+        <input type="date" id="fFluxoDe">
+      </div>
+      <div class="field">
+        <label>Emissão da NF — até</label>
+        <input type="date" id="fFluxoAte">
+      </div>
+      <div class="field">
+        <label>Mês da NF</label>
+        <select id="fFluxoMes" multiple><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label>Centro de custo (obra)</label>
+        <select id="fFluxoObra" multiple><option value="">Todas</option></select>
+      </div>
+      <div class="field">
+        <label>Comprador</label>
+        <select id="fFluxoComprador" multiple><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label>Critério do pedido</label>
+        <select id="fFluxoCriterio" title="Qual data do pedido precisa ser anterior (ou igual) à emissão da nota fiscal para o processo contar como fluxo normal">
+          <option value="emissao">Emissão do pedido</option>
+          <option value="autorizacao">Autorização do pedido (mais rigoroso)</option>
+        </select>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn small" id="btnFluxoLimpar" type="button">✕ Limpar filtros</button>
+    </div>
+    <p class="group-hint" id="fluxoRegra"></p>
+
+    <div class="kpi-grid" id="fluxoKpiGrid"></div>
+    <div class="fluxo-nota" id="fluxoNota"></div>
+
+    <p class="fluxo-sec-title">Tempo médio por etapa</p>
+    <p class="fluxo-sec-sub">Em dias corridos, no recorte filtrado. Cada documento conta uma vez só (uma solicitação ou pedido com várias notas não pesa mais na média).</p>
+    <div class="fluxo-trilha-wrap"><div class="fluxo-trilha" id="fluxoTrilha"></div></div>
+    <p class="fluxo-ciclo" id="fluxoCiclo"></p>
+
+    <div class="charts-grid">
+      <div class="chart-card span2">
+        <p class="chart-title">Evolução mensal — fluxo normal × desvios</p>
+        <p class="chart-sub">Processos por mês de emissão da nota fiscal · linha: % em fluxo normal</p>
+        <div class="chart-wrap tall"><canvas id="chartFluxoMes"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="fluxo-chart-head">
+          <div>
+            <p class="chart-title">Compradores com maior índice de desvio</p>
+            <p class="chart-sub" id="fluxoRankCompSub">% dos processos do comprador fora do fluxo normal</p>
+          </div>
+          <div>
+            <label for="fFluxoMinProc">Mín. de processos</label>
+            <select id="fFluxoMinProc">
+              <option value="1">1</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-wrap tall chart-wrap-scroll"><div class="chart-scroll-inner"><canvas id="chartFluxoComprador"></canvas></div></div>
+      </div>
+      <div class="chart-card">
+        <p class="chart-title">Índice de desvio por obra</p>
+        <p class="chart-sub" id="fluxoRankObraSub">% dos processos da obra fora do fluxo normal</p>
+        <div class="chart-wrap tall chart-wrap-scroll"><div class="chart-scroll-inner"><canvas id="chartFluxoObra"></canvas></div></div>
+      </div>
+    </div>
+
+    <nav class="fluxo-views" role="tablist">
+      <button class="fluxo-view-btn active" data-fview="mes" type="button">Por mês</button>
+      <button class="fluxo-view-btn" data-fview="obra" type="button">Por obra</button>
+      <button class="fluxo-view-btn" data-fview="comprador" type="button">Por comprador</button>
+      <button class="fluxo-view-btn" data-fview="processos" type="button">Processos (detalhe)</button>
+      <div class="spacer"></div>
+      <button class="btn small" id="btnExportFluxo" type="button">⬇ Exportar CSV</button>
+    </nav>
+    <div class="fluxo-det-filtros" id="fluxoDetFiltros">
+      <select id="fFluxoClasse">
+        <option value="">Todas as classificações</option>
+        <option value="desvio" selected>Somente desvios</option>
+      </select>
+      <input type="text" id="fFluxoSearch" placeholder="nº da NF, pedido, solicitação, fornecedor…">
+    </div>
+    <div class="table-scroll">
+      <table class="data" id="tableFluxo">
+        <thead id="theadFluxo"></thead>
+        <tbody id="tbodyFluxo"></tbody>
+        <tfoot id="tfootFluxo"></tfoot>
+      </table>
+    </div>
+    <p class="group-hint" id="fluxoTabelaNota" style="margin-top:10px;"></p>
   </section>
 
   <!-- ===================== COTACOES ===================== -->
@@ -3298,7 +3504,7 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;'
 
 /* ---- Filtros de múltipla seleção: helpers ----
    Os <select> abaixo são "multiple". Nenhum item marcado = "Todos". */
-const MULTI_FILTER_IDS = ['fSolicComprador','fSolicCentro','fSolicPrazo','fSolicMaterial','fPedCentro','fPedComprador','fPedMaterial','fPedPrazo','fNfObra','fNfFornecedor','fNfComprador'];
+const MULTI_FILTER_IDS = ['fSolicComprador','fSolicCentro','fSolicPrazo','fSolicMaterial','fPedCentro','fPedComprador','fPedMaterial','fPedPrazo','fNfObra','fNfFornecedor','fNfComprador','fFluxoMes','fFluxoObra','fFluxoComprador'];
 function selVals(id){
   const el = document.getElementById(id);
   if(!el) return [];
@@ -3512,6 +3718,20 @@ function dedupeRows(rows){
     merged.saldo = Math.max(0, qtdSolicitadaNum - totalEntregue);
     merged.previsaoEntrega = earliestPrevisao(items);
     merged.linhasAgrupadas = items.length;
+    // Conformidade do Fluxo: a linha consolidada herda só os campos de NF da
+    // 1ª repetição. Guarda aqui a lista compacta das notas DISTINTAS do grupo
+    // (nº + emissão + entrega na obra + valor) para a análise
+    // Solicitação → Pedido → NF enxergar todas elas, e não só a primeira.
+    const nfsVistas = new Set(), nfsGrupo = [];
+    items.forEach(it=>{
+      const n = normLabel(it.numNotaFiscal);
+      if(!n) return;
+      const k = normKey(n) + '§' + normLabel(it.dataNotaFiscal);
+      if(nfsVistas.has(k)) return;
+      nfsVistas.add(k);
+      nfsGrupo.push({ n, d: it.dataNotaFiscal, e: it.dataEntregaObra, v: it.valorNota });
+    });
+    if(nfsGrupo.length > 1) merged.nfsAgrupadas = nfsGrupo;
     // ajuste 8 (cont.): com o texto de situação fora da identidade, o grupo
     // pode conter linhas com "Pendente", "Parcialmente atendida" e "Atendida
     // integralmente" ao mesmo tempo (uma por NF, na ordem em que cada entrega
@@ -4549,6 +4769,7 @@ function populateFilterOptions(){
   if(selPedMaterial) selPedMaterial.innerHTML = '<option value="">Todos</option><option value="critico">Somente críticos</option>' + materiaisOptions;
   const selPiMaterial = document.getElementById('fPiMaterial');
   if(selPiMaterial) selPiMaterial.innerHTML = '<option value="">Todos os críticos</option>' + materiaisOptions;
+  fluxoPopulateFilters();
   restoreMulti(__selecoesAnteriores);
 }
 
@@ -5801,13 +6022,595 @@ document.addEventListener('keydown', e=>{
 
 wireLampFilter('lampFilterPi','fPiPrazo',refreshPiViews);
 
-function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderSemNF(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); }
+/* ============================================================
+   9-C. CONFORMIDADE DO FLUXO (Solicitação → Pedido → Nota fiscal)
+   ============================================================
+   Mede quantos processos de compra seguiram a ordem esperada —
+   Solicitação → Pedido de compra → Nota fiscal — usando a data de
+   EMISSÃO da nota fiscal como balizador.
+
+   Unidade de análise ("processo"): uma combinação única de
+   solicitação + pedido + nota fiscal. O relatório do Sienge traz uma
+   linha por item; aqui todas as linhas de itens da mesma combinação
+   viram um processo só (um pedido com 10 itens na mesma nota conta 1).
+
+   Classificação (a primeira regra que casar vence):
+     1. NF antes da solicitação  -> data da SC  > emissão da NF
+     2. NF antes do pedido       -> data do PC  > emissão da NF
+     3. Pedido antes da SC       -> data do PC  < data da SC
+     4. NF antes da aprovação    -> autorização do PC > emissão da NF
+        (só quando o critério escolhido é "Autorização do pedido")
+     5. Fluxo normal             -> SC <= PC <= NF
+   O relatório só tem datas (sem hora), então datas iguais contam como
+   ordem correta.
+
+   Linhas consolidadas pelo dedupeRows guardam as demais notas do grupo
+   em "nfsAgrupadas" (ver dedupeRows) — sem isso só a 1ª nota de cada
+   grupo sobreviveria à consolidação e as outras ficariam fora da conta.
+   ============================================================ */
+const FLUXO_CLASSES = {
+  normal:           { label:'Fluxo normal',                    cor:'#0CA30C' },
+  nfAntesSolic:     { label:'NF antes da solicitação',         cor:'#D03B3B' },
+  nfAntesPedido:    { label:'NF antes do pedido',              cor:'#FAB219' },
+  pedidoAntesSolic: { label:'Pedido antes da solicitação',     cor:'#4C8DFF' },
+  nfAntesAprov:     { label:'NF antes da aprovação do pedido', cor:'#9B6BFF' }
+};
+const FLUXO_DESVIOS = ['nfAntesSolic','nfAntesPedido','pedidoAntesSolic','nfAntesAprov'];
+// Etapas medidas entre os marcos do fluxo. "chave" define o que conta como
+// um documento só na média (ex.: a aprovação de um pedido com 17 notas
+// entra uma vez, não 17).
+const FLUXO_ETAPAS = [
+  { id:'aprovSC',   nome:'Aprovação da solicitação', a:'ds',  b:'das', unidade:'solicitações', chave:p=>p.sc,
+    alerta:n=>`${fxNum(n)} com aprovação anterior à data da SC` },
+  { id:'lancPed',   nome:'Lançamento do pedido',     a:'das', b:'dp',  unidade:'pedidos por SC', chave:p=>p.sc+'§'+p.pc,
+    alerta:n=>`${fxNum(n)} com pedido emitido antes da aprovação da SC` },
+  { id:'aprovPed',  nome:'Aprovação do pedido',      a:'dp',  b:'dap', unidade:'pedidos', chave:p=>p.pc,
+    alerta:n=>`${fxNum(n)} com aprovação anterior à data do pedido` },
+  { id:'pedNF',     nome:'Pedido aprovado → NF',     a:'dap', b:'dn',  unidade:'notas', chave:p=>p.pc+'§'+p.nfKey,
+    alerta:n=>`${fxNum(n)} com NF emitida antes da aprovação` },
+  { id:'nfEntrega', nome:'NF → entrega na obra',     a:'dn',  b:'de',  unidade:'notas', chave:p=>p.pc+'§'+p.nfKey,
+    alerta:n=>`${fxNum(n)} com entrega anterior à emissão` }
+];
+const FLUXO_MARCOS = ['Solicitação','SC aprovada','Pedido emitido','Pedido aprovado','NF emitida','Entrega na obra'];
+const FX_MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const FLUXO_MAX_LINHAS = 300;
+
+function fxNum(n){ return Number(n||0).toLocaleString('pt-BR'); }
+function fxDec(v){ return v==null ? '—' : Number(v).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}); }
+function fxPct(v){ return v==null ? '—' : fxDec(v)+'%'; }
+function fxMesLabel(k){ const m = String(k).match(/^(\d{4})-(\d{2})$/); return m ? `${FX_MESES[Number(m[2])-1]}/${m[1]}` : k; }
+function fxDias(a,b){ return Math.round((b.getTime()-a.getTime())/86400000); }
+function fxMin(a,b){ if(!a) return b||null; if(!b) return a; return b<a ? b : a; }
+function fxMax(a,b){ if(!a) return b||null; if(!b) return a; return b>a ? b : a; }
+function fluxoDate(v){
+  if(v===null||v===undefined||v==='') return null;
+  if(v instanceof Date) return isNaN(v) ? null : new Date(v.getFullYear(),v.getMonth(),v.getDate());
+  const s = String(v).trim();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3]));
+  return parseDateBR(s);
+}
+function fxEstat(vals, fora){
+  if(!vals.length) return { n:0, media:null, mediana:null, fora:fora||0 };
+  const ord = vals.slice().sort((x,y)=>x-y);
+  const meio = Math.floor(ord.length/2);
+  return {
+    n: ord.length,
+    media: ord.reduce((s,v)=>s+v,0)/ord.length,
+    mediana: ord.length%2 ? ord[meio] : (ord[meio-1]+ord[meio])/2,
+    fora: fora||0
+  };
+}
+
+/* ---- montagem dos processos (com cache por carga de dados) ---- */
+let fluxoCache = { ref:null, procs:[], semDataNF:0, inicioBase:null };
+function fluxoProcessos(){
+  if(fluxoCache.ref === state.rows) return fluxoCache;
+  const map = new Map();
+  let inicioBase = null, semDataNF = 0;
+  state.rows.forEach(r=>{
+    if(r.dSolicitacao && (!inicioBase || r.dSolicitacao < inicioBase)) inicioBase = r.dSolicitacao;
+    if(!r.temPedido) return;
+    const nfs = (Array.isArray(r.nfsAgrupadas) && r.nfsAgrupadas.length)
+      ? r.nfsAgrupadas
+      : [{ n:r.numNotaFiscal, d:r.dataNotaFiscal, e:r.dataEntregaObra, v:r.valorNota }];
+    const sc = normLabel(r.numSolicitacao), pc = r.numPedido;
+    const das = fluxoDate(r.dataAutorizacaoSolicitacao), dap = fluxoDate(r.dataAutorizacaoPedido);
+    nfs.forEach(nf=>{
+      const num = normLabel(nf.n);
+      if(!num) return;
+      const nfKey = normKey(num);
+      const key = sc+'§'+pc+'§'+nfKey;
+      let p = map.get(key);
+      if(!p){
+        p = { key, sc, pc, nf:num, nfKey,
+              obra: r.obraLabel,
+              comprador: r.compradorLabel==='(não atribuído)' ? r.compradorDistribuidoLabel : r.compradorLabel,
+              fornecedor: normLabel(r.fornecedor),
+              ds:null, das:null, dp:null, dap:null, dn:null, de:null,
+              valor: parseNumBR(nf.v), itens:0 };
+        map.set(key, p);
+      }
+      p.itens++;
+      p.ds  = fxMin(p.ds,  r.dSolicitacao);
+      p.dp  = fxMin(p.dp,  r.dPedido);
+      p.dn  = fxMin(p.dn,  fluxoDate(nf.d));
+      p.de  = fxMin(p.de,  fluxoDate(nf.e));
+      p.das = fxMax(p.das, das);   // a SC só está liberada quando o último item é aprovado
+      p.dap = fxMax(p.dap, dap);
+    });
+  });
+  const procs = [];
+  map.forEach(p=>{
+    if(!p.dn){ semDataNF++; return; }   // sem data de emissão não há balizador
+    p.mes = p.dn.getFullYear()+'-'+String(p.dn.getMonth()+1).padStart(2,'0');
+    p.aprovAposNF = !!(p.dap && p.dap > p.dn);
+    p.mesmoDia = !!(p.dp && p.dp.getTime() === p.dn.getTime());
+    procs.push(p);
+  });
+  fluxoCache = { ref:state.rows, procs, semDataNF, inicioBase };
+  return fluxoCache;
+}
+function fluxoClassificar(p, criterio){
+  if(!p.ds || !p.dp || !p.dn) return 'incompleto';
+  if(p.ds > p.dn) return 'nfAntesSolic';
+  if(p.dp > p.dn) return 'nfAntesPedido';
+  if(p.dp < p.ds) return 'pedidoAntesSolic';
+  if(criterio === 'autorizacao' && p.aprovAposNF) return 'nfAntesAprov';
+  return 'normal';
+}
+// Dias de defasagem do desvio (ou da aprovação tardia, no fluxo normal).
+function fluxoDefasagem(p){
+  switch(p.cls){
+    case 'nfAntesSolic':     return { dias: fxDias(p.dn,p.ds),  txt: d=>`SC ${d} dia(s) após a NF` };
+    case 'nfAntesPedido':    return { dias: fxDias(p.dn,p.dp),  txt: d=>`pedido ${d} dia(s) após a NF` };
+    case 'pedidoAntesSolic': return { dias: fxDias(p.dp,p.ds),  txt: d=>`SC ${d} dia(s) após o pedido` };
+    case 'nfAntesAprov':     return { dias: fxDias(p.dn,p.dap), txt: d=>`aprovação ${d} dia(s) após a NF` };
+    default: return p.aprovAposNF
+      ? { dias: fxDias(p.dn,p.dap), txt: d=>`⚠ aprovação ${d} dia(s) após a NF` }
+      : { dias: null, txt: ()=>'—' };
+  }
+}
+
+/* ---- agregações ---- */
+function fluxoResumo(procs){
+  const o = { n:procs.length, normal:0, desvio:0, aprovAposNF:0, mesmoDia:0 };
+  FLUXO_DESVIOS.forEach(k=>{ o[k] = 0; });
+  procs.forEach(p=>{
+    if(p.cls === 'normal'){
+      o.normal++;
+      if(p.aprovAposNF) o.aprovAposNF++;
+      if(p.mesmoDia) o.mesmoDia++;
+    } else { o.desvio++; o[p.cls]++; }
+  });
+  o.pctNormal = o.n ? o.normal/o.n*100 : null;
+  o.pct = o.n ? o.desvio/o.n*100 : null;
+  return o;
+}
+function fluxoTempos(procs){
+  const out = {};
+  FLUXO_ETAPAS.forEach(et=>{
+    // um par de datas por documento (chave); quando o mesmo documento aparece
+    // em mais de um processo com datas diferentes (ex.: itens da mesma SC
+    // aprovados em dias diferentes), vale a mais tardia de cada ponta.
+    const docs = new Map();
+    procs.forEach(p=>{
+      const a = p[et.a], b = p[et.b];
+      if(!a || !b) return;
+      const k = et.chave(p), d = docs.get(k);
+      if(!d) docs.set(k, { a, b });
+      else { d.a = fxMax(d.a, a); d.b = fxMax(d.b, b); }
+    });
+    const vals = [];
+    let fora = 0;
+    docs.forEach(d=>{
+      const dias = fxDias(d.a, d.b);
+      if(dias < 0) fora++; else vals.push(dias);   // fora de ordem não entra na média — é contado à parte
+    });
+    out[et.id] = fxEstat(vals, fora);
+  });
+  const ciclo = [];
+  procs.forEach(p=>{ if(p.ds && p.dn && p.ds <= p.dn) ciclo.push(fxDias(p.ds,p.dn)); });
+  out.ciclo = fxEstat(ciclo, 0);
+  return out;
+}
+function fluxoAgrupar(procs, campo){
+  const map = new Map();
+  procs.forEach(p=>{
+    const k = p[campo];
+    if(!map.has(k)) map.set(k, []);
+    map.get(k).push(p);
+  });
+  const grupos = [];
+  map.forEach((lista, k)=>{
+    const g = fluxoResumo(lista);
+    const t = fluxoTempos(lista);
+    g.chave = k;
+    g.nome = campo==='mes' ? fxMesLabel(k) : k;
+    g.tAprovSC = t.aprovSC.media; g.tLancPed = t.lancPed.media;
+    g.tAprovPed = t.aprovPed.media; g.tNfEntrega = t.nfEntrega.media;
+    grupos.push(g);
+  });
+  return grupos;
+}
+
+/* ---- filtros ---- */
+const FLUXO_VIEW_FILTRO = { mes:'fFluxoMes', obra:'fFluxoObra', comprador:'fFluxoComprador' };
+const FLUXO_VIEW_ROTULO = { mes:'Mês da NF', obra:'Centro de custo (obra)', comprador:'Comprador' };
+let fluxoView = 'mes';
+let fluxoSort = { key:null, dir:1 };
+let lastFluxo = { procs:[], grupos:[], cols:[], linhas:[], total:null };
+
+function fxInputDate(id){
+  const v = document.getElementById(id).value;
+  const m = v && v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? new Date(Number(m[1]),Number(m[2])-1,Number(m[3])) : null;
+}
+function fluxoFiltros(){
+  return {
+    de: fxInputDate('fFluxoDe'), ate: fxInputDate('fFluxoAte'),
+    meses: selVals('fFluxoMes'), obras: selVals('fFluxoObra'), compradores: selVals('fFluxoComprador'),
+    criterio: document.getElementById('fFluxoCriterio').value,
+    minProc: Number(document.getElementById('fFluxoMinProc').value) || 1
+  };
+}
+function fluxoPopulateFilters(){
+  const procs = fluxoProcessos().procs;
+  const opt = (v,t)=>`<option value="${esc(v)}">${esc(t==null?v:t)}</option>`;
+  const meses = [...new Set(procs.map(p=>p.mes))].sort().reverse();
+  document.getElementById('fFluxoMes').innerHTML = '<option value="">Todos</option>' + meses.map(m=>opt(m, fxMesLabel(m))).join('');
+  document.getElementById('fFluxoObra').innerHTML = '<option value="">Todas</option>' + uniqueSorted(procs.map(p=>p.obra)).map(o=>opt(o)).join('');
+  document.getElementById('fFluxoComprador').innerHTML = '<option value="">Todos</option>' + uniqueSorted(procs.map(p=>p.comprador)).map(c=>opt(c)).join('');
+}
+
+/* ---- render principal ---- */
+function renderFluxo(){
+  if(!document.getElementById('tab-fluxo')) return;
+  const base = fluxoProcessos();
+  const f = fluxoFiltros();
+  base.procs.forEach(p=>{ p.cls = fluxoClassificar(p, f.criterio); });
+  const validos = base.procs.filter(p=>p.cls !== 'incompleto');
+  const incompletos = base.procs.length - validos.length;
+
+  const pill = document.getElementById('countFluxo');
+  if(pill){
+    const nn = validos.filter(p=>p.cls==='normal').length;
+    pill.textContent = validos.length ? Math.round(nn/validos.length*100)+'%' : '0';
+    pill.title = '% dos processos em fluxo normal (todo o relatório, critério atual)';
+  }
+
+  const procs = validos.filter(p=>
+    (!f.de || p.dn >= f.de) && (!f.ate || p.dn <= f.ate) &&
+    (!f.meses.length || f.meses.includes(p.mes)) &&
+    (!f.obras.length || f.obras.includes(p.obra)) &&
+    (!f.compradores.length || f.compradores.includes(p.comprador)));
+  lastFluxo.procs = procs;
+
+  const resumo = fluxoResumo(procs);
+  const tempos = fluxoTempos(procs);
+
+  document.getElementById('fluxoRegra').textContent = f.criterio === 'autorizacao'
+    ? 'Fluxo normal = solicitação → pedido emitido E autorizado → nota fiscal, comparando com a data de emissão da NF. Datas iguais contam como ordem correta (o relatório não traz hora).'
+    : 'Fluxo normal = solicitação → pedido emitido → nota fiscal, comparando com a data de emissão da NF. Datas iguais contam como ordem correta (o relatório não traz hora).';
+
+  fluxoRenderKpis(resumo, f);
+  fluxoRenderNota(procs, resumo, base, incompletos);
+  fluxoRenderTrilha(tempos);
+  fluxoRenderCharts(procs, f);
+  fluxoRenderTabela(procs, resumo, tempos, f);
+}
+
+function fluxoRenderKpis(r, f){
+  const parte = n => r.n ? fxPct(n/r.n*100)+' dos processos' : '—';
+  const card = (cor, label, valor, foot, cls)=>`
+    <div class="kpi-card${cls?' fx-kpi-click':''}" style="--accent:${cor}"${cls?` data-fxcls="${cls}" title="Ver esses processos na tabela"`:''}>
+      <p class="kpi-label">${label}</p>
+      <div class="kpi-value">${valor}</div>
+      <p class="kpi-foot">${foot}</p>
+    </div>`;
+  const pct = v => v==null ? '—' : fxDec(v)+'<small>%</small>';
+  let html =
+    card('var(--blue)', 'Processos analisados', fxNum(r.n), 'solicitação + pedido + nota fiscal') +
+    card(FLUXO_CLASSES.normal.cor, 'Fluxo normal', pct(r.pctNormal), fxNum(r.normal)+' processo(s)', 'normal') +
+    card('var(--red)', 'Com desvio', pct(r.pct), fxNum(r.desvio)+' processo(s)', 'desvio') +
+    card(FLUXO_CLASSES.nfAntesSolic.cor, 'NF antes da solicitação', fxNum(r.nfAntesSolic), parte(r.nfAntesSolic), 'nfAntesSolic') +
+    card(FLUXO_CLASSES.nfAntesPedido.cor, 'NF antes do pedido', fxNum(r.nfAntesPedido), parte(r.nfAntesPedido), 'nfAntesPedido') +
+    card(FLUXO_CLASSES.pedidoAntesSolic.cor, 'Pedido antes da solicitação', fxNum(r.pedidoAntesSolic), parte(r.pedidoAntesSolic), 'pedidoAntesSolic');
+  html += f.criterio === 'autorizacao'
+    ? card(FLUXO_CLASSES.nfAntesAprov.cor, 'NF antes da aprovação do pedido', fxNum(r.nfAntesAprov), parte(r.nfAntesAprov), 'nfAntesAprov')
+    : card(FLUXO_CLASSES.nfAntesAprov.cor, 'Pedido aprovado após a NF', fxNum(r.aprovAposNF), 'atenção: contam como fluxo normal neste critério', 'aprovAposNF');
+  const grid = document.getElementById('fluxoKpiGrid');
+  grid.innerHTML = html;
+  grid.querySelectorAll('.fx-kpi-click').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      fluxoSetView('processos');
+      document.getElementById('fFluxoClasse').value = el.getAttribute('data-fxcls');
+      renderFluxo();
+      document.getElementById('tableFluxo').scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
+}
+
+function fluxoRenderNota(procs, r, base, incompletos){
+  const notas = [];
+  if(base.inicioBase){
+    const antes = procs.filter(p=>p.dn < base.inicioBase).length;
+    if(antes) notas.push(`${fxNum(antes)} processo(s) têm NF emitida antes de ${fmtDate(base.inicioBase)}, data da solicitação mais antiga do relatório. Nesse trecho só aparecem compras regularizadas depois, então o desvio ali é 100% por construção — para comparar meses, comece o período em ${fmtDate(base.inicioBase)}.`);
+  }
+  if(r.mesmoDia) notas.push(`${fxNum(r.mesmoDia)} processo(s) em fluxo normal tiveram o pedido emitido no mesmo dia da NF — sem hora no relatório, não dá para saber qual veio primeiro.`);
+  if(incompletos) notas.push(`${fxNum(incompletos)} processo(s) sem data de solicitação ou de pedido ficaram fora da análise.`);
+  if(base.semDataNF) notas.push(`${fxNum(base.semDataNF)} nota(s) sem data de emissão ficaram fora da análise.`);
+  document.getElementById('fluxoNota').innerHTML = notas.map(esc).join('<br>');
+}
+
+function fluxoRenderTrilha(t){
+  let html = '';
+  FLUXO_MARCOS.forEach((marco, i)=>{
+    html += `<div class="fx-no${marco==='NF emitida'?' fx-no-nf':''}"><i></i><span>${esc(marco)}</span></div>`;
+    const et = FLUXO_ETAPAS[i];
+    if(!et) return;
+    const s = t[et.id];
+    html += `<div class="fx-seg">
+      <p class="fx-seg-nome">${esc(et.nome)}</p>
+      <div class="fx-seg-valor">${fxDec(s.media)}<small>${s.media==null?'':'dia(s)'}</small></div>
+      <div class="fx-seg-meta">${s.n ? `mediana ${fxDec(s.mediana)} · ${fxNum(s.n)} ${et.unidade}` : 'sem dados no recorte'}</div>
+      ${s.fora ? `<div class="fx-seg-alerta">${esc(et.alerta(s.fora))}</div>` : ''}
+    </div>`;
+  });
+  document.getElementById('fluxoTrilha').innerHTML = html;
+  const c = t.ciclo;
+  document.getElementById('fluxoCiclo').innerHTML = c.n
+    ? `Ciclo completo (solicitação → emissão da NF): <b>${fxDec(c.media)} dia(s)</b> em média · mediana ${fxDec(c.mediana)} · ${fxNum(c.n)} processo(s) em que a solicitação veio antes da nota`
+    : '';
+}
+
+/* ---- gráficos ---- */
+function fluxoRenderCharts(procs, f){
+  if(typeof Chart === 'undefined'){
+    if(!fluxoRenderCharts._espera){ fluxoRenderCharts._espera = true; setTimeout(()=>{ fluxoRenderCharts._espera = false; renderFluxo(); }, 900); }
+    return;
+  }
+  const classes = ['normal'].concat(FLUXO_DESVIOS.filter(k=> k!=='nfAntesAprov' || f.criterio==='autorizacao'));
+
+  // 1) evolução mensal
+  const porMes = fluxoAgrupar(procs, 'mes').sort((a,b)=>a.chave.localeCompare(b.chave));
+  destroyChart('fluxoMes');
+  charts.fluxoMes = new Chart(document.getElementById('chartFluxoMes'), {
+    data:{
+      labels: porMes.map(g=>g.nome),
+      datasets: classes.map(k=>({
+        type:'bar', label: FLUXO_CLASSES[k].label, data: porMes.map(g=>g[k]), backgroundColor: FLUXO_CLASSES[k].cor,
+        stack:'s', yAxisID:'y', order:2, borderRadius:3, maxBarThickness:54,
+        datalabels:{ display:(ctx)=>{ const g = porMes[ctx.dataIndex]; return g.n>0 && ctx.dataset.data[ctx.dataIndex]/g.n >= 0.09; },
+          color:'#12151A', font:{weight:'700',size:10.5}, formatter:(v)=>v }
+      })).concat([{
+        type:'line', label:'% em fluxo normal', data: porMes.map(g=>g.pctNormal), yAxisID:'y1', order:1,
+        borderColor:'#EDEFF2', backgroundColor:'#EDEFF2', borderWidth:2, pointRadius:3, tension:.25,
+        datalabels:{ display:true, align:'top', anchor:'end', offset:2, color:'#EDEFF2', font:{weight:'700',size:11},
+          formatter:(v)=> v==null ? '' : Math.round(v)+'%' }
+      }])
+    },
+    options:{ responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:18 } },
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ position:'bottom', labels:{ color:TICK_COLOR, boxWidth:10, font:{size:11} } },
+        tooltip:{ callbacks:{ label:(ctx)=> ctx.dataset.type==='line'
+          ? ` ${ctx.dataset.label}: ${fxPct(ctx.parsed.y)}`
+          : ` ${ctx.dataset.label}: ${fxNum(ctx.parsed.y)}` } }
+      },
+      scales:{
+        x:{ stacked:true, grid:{display:false}, ticks:{color:TICK_COLOR} },
+        y:{ stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,precision:0}, title:{display:true,text:'processos',color:TICK_COLOR,font:{size:10.5}} },
+        y1:{ position:'right', min:0, max:100, grid:{display:false}, ticks:{color:TICK_COLOR,callback:(v)=>v+'%'} }
+      } }
+  });
+
+  // 2) e 3) rankings de índice de desvio
+  fluxoRankChart('fluxoComprador', 'chartFluxoComprador', 'fluxoRankCompSub', 'comprador', procs, f.minProc);
+  fluxoRankChart('fluxoObra', 'chartFluxoObra', 'fluxoRankObraSub', 'obra', procs, f.minProc);
+}
+function fluxoRankChart(chartKey, canvasId, subId, campo, procs, minProc){
+  const todos = fluxoAgrupar(procs, campo);
+  const grupos = todos.filter(g=>g.n >= minProc).sort((a,b)=> b.pct-a.pct || b.n-a.n);
+  const ocultos = todos.length - grupos.length;
+  const quem = campo==='comprador' ? 'do comprador' : 'da obra';
+  document.getElementById(subId).textContent =
+    `% dos processos ${quem} fora do fluxo normal · mínimo de ${minProc} processo(s)` + (ocultos ? ` · ${ocultos} abaixo do mínimo não exibido(s)` : '');
+  const canvas = document.getElementById(canvasId);
+  canvas.parentElement.style.height = Math.max(250, grupos.length*28 + 46) + 'px';
+  destroyChart(chartKey);
+  charts[chartKey] = new Chart(canvas, {
+    type:'bar',
+    data:{ labels: grupos.map(g=>g.nome),
+      datasets:[{ label:'% com desvio', data: grupos.map(g=>g.pct), backgroundColor:'#D03B3B', borderRadius:4, maxBarThickness:20,
+        datalabels:{ display:true, anchor:'end', align:'end', clamp:true, clip:false, color:TICK_COLOR, font:{weight:'700',size:10.5},
+          formatter:(v,ctx)=>{ const g = grupos[ctx.dataIndex]; return `${Math.round(v)}% · ${fxNum(g.desvio)}/${fxNum(g.n)}`; } } }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, layout:{ padding:{ right:92 } },
+      onClick:(evt, els)=>{ if(!els.length) return; selToggle(FLUXO_VIEW_FILTRO[campo], grupos[els[0].index].chave); renderFluxo(); },
+      onHover:(evt, els)=>{ if(evt.native && evt.native.target) evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label:(ctx)=>{ const g = grupos[ctx.dataIndex]; return ` ${fxPct(g.pct)} — ${fxNum(g.desvio)} desvio(s) em ${fxNum(g.n)} processo(s)`; } } } },
+      scales:{ x:{ min:0, max:100, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,callback:(v)=>v+'%'} },
+               y:{ grid:{display:false}, ticks:{color:TICK_COLOR,autoSkip:false,font:{size:11}} } } }
+  });
+}
+
+/* ---- tabela (por mês / obra / comprador / processos) ---- */
+function fluxoSetView(v){
+  if(fluxoView !== v){ fluxoView = v; fluxoSort = { key:null, dir:1 }; }
+  document.querySelectorAll('#tab-fluxo .fluxo-view-btn').forEach(b=>b.classList.toggle('active', b.getAttribute('data-fview')===v));
+  document.getElementById('fluxoDetFiltros').classList.toggle('show', v==='processos');
+}
+function fluxoColsAgg(f){
+  const n = k => ({ key:k, num:true, val:g=>g[k], txt:g=>fxNum(g[k]) });
+  const t = k => ({ key:k, num:true, val:g=>g[k], txt:g=>fxDec(g[k]) });
+  return [
+    { key:'nome', label:FLUXO_VIEW_ROTULO[fluxoView], val:g=>g.chave, txt:g=>esc(g.nome), csv:g=>g.nome },
+    Object.assign(n('n'), { label:'Processos' }),
+    Object.assign(n('normal'), { label:'Fluxo normal' }),
+    Object.assign(n('desvio'), { label:'Desvios' }),
+    { key:'pct', label:'% desvio', val:g=>g.pct,
+      txt:g=>`<div class="fx-pct"><i><u style="width:${(g.pct||0).toFixed(1)}%"></u></i><span>${fxPct(g.pct)}</span></div>`, csv:g=>fxDec(g.pct) },
+    Object.assign(n('nfAntesSolic'), { label:'NF antes da SC' }),
+    Object.assign(n('nfAntesPedido'), { label:'NF antes do pedido' }),
+    Object.assign(n('pedidoAntesSolic'), { label:'Pedido antes da SC' }),
+    f.criterio === 'autorizacao'
+      ? Object.assign(n('nfAntesAprov'), { label:'NF antes da aprov.' })
+      : Object.assign(n('aprovAposNF'), { label:'Aprov. após NF ⚠' }),
+    Object.assign(t('tAprovSC'), { label:'Aprov. SC (dias)' }),
+    Object.assign(t('tLancPed'), { label:'Lanç. pedido (dias)' }),
+    Object.assign(t('tAprovPed'), { label:'Aprov. pedido (dias)' }),
+    Object.assign(t('tNfEntrega'), { label:'NF → entrega (dias)' })
+  ];
+}
+function fluxoColsDet(){
+  const tag = p => `<span class="fluxo-tag" style="--fx-cor:${FLUXO_CLASSES[p.cls].cor}">${esc(FLUXO_CLASSES[p.cls].label)}</span>`;
+  const d = k => ({ key:k, val:p=>p[k], txt:p=>fmtDate(p[k]), csv:p=>p[k]?fmtDate(p[k]):'' });
+  const s = k => ({ key:k, val:p=>p[k], txt:p=>esc(p[k]), csv:p=>p[k] });
+  return [
+    { key:'cls', label:'Classificação', val:p=>FLUXO_CLASSES[p.cls].label, txt:tag, csv:p=>FLUXO_CLASSES[p.cls].label },
+    Object.assign(s('nf'), { label:'Nota fiscal' }),
+    Object.assign(d('dn'), { label:'Emissão NF' }),
+    Object.assign(s('pc'), { label:'Pedido' }),
+    Object.assign(d('dp'), { label:'Data pedido' }),
+    Object.assign(d('dap'), { label:'Aprov. pedido' }),
+    Object.assign(s('sc'), { label:'Solicitação' }),
+    Object.assign(d('ds'), { label:'Data SC' }),
+    Object.assign(d('das'), { label:'Aprov. SC' }),
+    Object.assign(d('de'), { label:'Entrega obra' }),
+    { key:'defasagem', label:'Defasagem', val:p=>p.defDias, txt:p=>esc(p.defTxt), csv:p=>p.defTxt==='—'?'':p.defTxt },
+    Object.assign(s('obra'), { label:'Centro de custo' }),
+    Object.assign(s('comprador'), { label:'Comprador' }),
+    Object.assign(s('fornecedor'), { label:'Fornecedor' }),
+    { key:'valor', label:'Valor da NF', num:true, val:p=>p.valor,
+      txt:p=>p.valor ? p.valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : '—',
+      csv:p=>p.valor ? p.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '' }
+  ];
+}
+function fluxoRenderTabela(procs, resumo, tempos, f){
+  fluxoSetView(fluxoView);
+  const thead = document.getElementById('theadFluxo');
+  const tbody = document.getElementById('tbodyFluxo');
+  const tfoot = document.getElementById('tfootFluxo');
+  const nota = document.getElementById('fluxoTabelaNota');
+  const detalhe = fluxoView === 'processos';
+  const cols = detalhe ? fluxoColsDet() : fluxoColsAgg(f);
+  let linhas;
+
+  if(detalhe){
+    const fClasse = document.getElementById('fFluxoClasse').value;
+    const fSearch = document.getElementById('fFluxoSearch').value.trim().toUpperCase();
+    linhas = procs.filter(p=>{
+      if(fClasse === 'desvio'){ if(p.cls === 'normal') return false; }
+      else if(fClasse === 'aprovAposNF'){ if(!(p.cls === 'normal' && p.aprovAposNF)) return false; }
+      else if(fClasse && p.cls !== fClasse) return false;
+      if(fSearch && !(p.nf.toUpperCase().includes(fSearch) || String(p.pc).toUpperCase().includes(fSearch) ||
+        String(p.sc).toUpperCase().includes(fSearch) || p.fornecedor.toUpperCase().includes(fSearch))) return false;
+      return true;
+    });
+    linhas.forEach(p=>{ const df = fluxoDefasagem(p); p.defDias = df.dias; p.defTxt = df.txt(df.dias); });
+  } else {
+    linhas = fluxoAgrupar(procs, fluxoView);
+  }
+
+  const col = cols.find(c=>c.key === fluxoSort.key);
+  if(col){
+    linhas.sort((a,b)=> fluxoSort.dir * compareValues(col.val(a), col.val(b)));
+  } else if(detalhe){
+    linhas.sort((a,b)=> b.dn - a.dn || String(a.pc).localeCompare(String(b.pc),'pt-BR',{numeric:true}));
+  } else if(fluxoView === 'mes'){
+    linhas.sort((a,b)=> a.chave.localeCompare(b.chave));
+  } else {
+    // maior índice primeiro; quem tem menos processos que o mínimo vai para o fim
+    linhas.sort((a,b)=> (a.n>=f.minProc?0:1)-(b.n>=f.minProc?0:1) || b.pct-a.pct || b.n-a.n);
+  }
+  lastFluxo.cols = cols; lastFluxo.linhas = linhas;
+
+  thead.innerHTML = '<tr>' + cols.map(c=>{
+    const ativo = fluxoSort.key === c.key;
+    return `<th class="sortable${c.num?' num':''}${ativo?' active':''}" data-key="${c.key}">${esc(c.label)}<span class="sort-arrow">${ativo ? (fluxoSort.dir===1?'▲':'▼') : ''}</span></th>`;
+  }).join('') + '</tr>';
+
+  if(!linhas.length){
+    tbody.innerHTML = `<tr><td colspan="${cols.length}"><div class="empty-state"><div class="es-icon">🧭</div><h3>Nenhum processo encontrado</h3><p>${state.rows.length ? 'Ajuste o período ou os demais filtros.' : 'Importe um relatório do Sienge para ver a análise.'}</p></div></td></tr>`;
+    tfoot.innerHTML = ''; nota.textContent = '';
+    return;
+  }
+  const td = (c, x)=>`<td${c.num?' class="num"':''}>${c.txt(x)}</td>`;
+  if(detalhe){
+    tbody.innerHTML = linhas.slice(0, FLUXO_MAX_LINHAS).map(p=>'<tr>'+cols.map(c=>td(c,p)).join('')+'</tr>').join('');
+    tfoot.innerHTML = '';
+    nota.textContent = linhas.length > FLUXO_MAX_LINHAS
+      ? `Mostrando ${FLUXO_MAX_LINHAS} de ${fxNum(linhas.length)} processo(s) — use "Exportar CSV" para a lista completa.`
+      : `${fxNum(linhas.length)} processo(s).`;
+  } else {
+    const selecionados = selVals(FLUXO_VIEW_FILTRO[fluxoView]);
+    tbody.innerHTML = linhas.map(g=>{
+      const cls = ['fx-click'];
+      if(selecionados.includes(g.chave)) cls.push('fx-sel');
+      if(fluxoView !== 'mes' && g.n < f.minProc) cls.push('fx-baixo');
+      return `<tr class="${cls.join(' ')}" data-chave="${esc(g.chave)}">`+cols.map(c=>td(c,g)).join('')+'</tr>';
+    }).join('');
+    const total = Object.assign({}, resumo, { chave:'', nome:'Total do recorte',
+      tAprovSC:tempos.aprovSC.media, tLancPed:tempos.lancPed.media, tAprovPed:tempos.aprovPed.media, tNfEntrega:tempos.nfEntrega.media });
+    lastFluxo.total = total;
+    tfoot.innerHTML = '<tr>'+cols.map(c=>td(c,total)).join('')+'</tr>';
+    nota.textContent = 'Clique em uma linha para filtrar o painel por ela (clique de novo para desfazer).' +
+      (fluxoView !== 'mes' ? ` Linhas esmaecidas têm menos de ${f.minProc} processo(s) — índice pouco representativo.` : '');
+  }
+}
+
+/* ---- eventos ---- */
+['fFluxoDe','fFluxoAte','fFluxoMes','fFluxoObra','fFluxoComprador','fFluxoCriterio','fFluxoMinProc','fFluxoClasse'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderFluxo);
+});
+document.getElementById('fFluxoSearch').addEventListener('input', renderFluxo);
+document.getElementById('fFluxoClasse').insertAdjacentHTML('beforeend',
+  ['normal'].concat(FLUXO_DESVIOS).map(k=>`<option value="${k}">${FLUXO_CLASSES[k].label}</option>`).join('') +
+  '<option value="aprovAposNF">Fluxo normal com aprovação após a NF</option>');
+document.getElementById('btnFluxoLimpar').addEventListener('click', ()=>{
+  document.getElementById('fFluxoDe').value = '';
+  document.getElementById('fFluxoAte').value = '';
+  ['fFluxoMes','fFluxoObra','fFluxoComprador'].forEach(id=>{
+    const el = document.getElementById(id);
+    Array.from(el.options).forEach(o=>{ o.selected = false; });
+    el.dispatchEvent(new Event('ms-sync'));
+  });
+  renderFluxo();
+});
+document.querySelectorAll('#tab-fluxo .fluxo-view-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ fluxoSetView(btn.getAttribute('data-fview')); renderFluxo(); });
+});
+document.getElementById('theadFluxo').addEventListener('click', (ev)=>{
+  const th = ev.target.closest('th.sortable');
+  if(!th) return;
+  const key = th.getAttribute('data-key');
+  if(fluxoSort.key === key) fluxoSort.dir = -fluxoSort.dir;
+  else fluxoSort = { key, dir: 1 };
+  renderFluxo();
+});
+document.getElementById('tbodyFluxo').addEventListener('click', (ev)=>{
+  const tr = ev.target.closest('tr.fx-click');
+  if(!tr || fluxoView === 'processos') return;
+  selToggle(FLUXO_VIEW_FILTRO[fluxoView], tr.getAttribute('data-chave'));
+  renderFluxo();
+});
+document.getElementById('btnExportFluxo').addEventListener('click', ()=>{
+  if(!lastFluxo.linhas.length){ alert('Não há dados para exportar.'); return; }
+  const cols = lastFluxo.cols;
+  const cel = (c, x)=>{ if(c.csv) return c.csv(x); const v = c.val(x); return v==null ? '' : (typeof v==='number' && !Number.isInteger(v) ? fxDec(v) : v); };
+  const rows = lastFluxo.linhas.map(x=>cols.map(c=>cel(c,x)));
+  if(fluxoView !== 'processos' && lastFluxo.total) rows.push(cols.map(c=>cel(c,lastFluxo.total)));
+  downloadCSV(`conformidade_fluxo_${fluxoView}.csv`, toCSV(cols.map(c=>c.label), rows));
+});
+
+function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderSemNF(); renderFluxo(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); }
 
 /* ============================================================
    10. TABS + FILTER BINDINGS
    ============================================================ */
 var navTabGroupMap = {
-  overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos',
+  overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', fluxo:'suprimentos',
   'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos',
   'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos'
 };
@@ -5847,6 +6650,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     var targetTab = btn.getAttribute('data-tab');
     document.getElementById('tab-'+targetTab).classList.add('active');
     if(targetTab === 'creditos-dashboard' && typeof renderCreditosDashboard === 'function') renderCreditosDashboard();
+    if(targetTab === 'fluxo') renderFluxo();
     if(targetTab.indexOf('contratos-') === 0 && window.CTR) window.CTR.show(targetTab);
 
     var groupName = navTabGroupMap[targetTab];
