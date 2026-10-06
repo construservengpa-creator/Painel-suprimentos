@@ -1750,9 +1750,10 @@ body.is-logged .chat-toggle-btn{display:inline-flex;align-items:center;gap:6px;}
   font:600 10.5px/18px var(--font-mono);text-align:center;display:none;
 }
 .chat-badge.on{display:inline-block;}
+.chat-badge.direta{background:var(--yellow);color:#1A1E24;}
 .chat-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9980;display:none;}
 .chat-drawer{
-  position:fixed;top:0;right:0;bottom:0;width:min(430px,100vw);z-index:9985;
+  position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);z-index:9985;
   background:var(--asphalt);border-left:1px solid var(--line);box-shadow:-18px 0 40px rgba(0,0,0,.5);
   display:none;flex-direction:column;
 }
@@ -1765,36 +1766,76 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
 .chat-head p{margin:3px 0 0;font-size:11.5px;color:var(--text-faint);}
 .chat-x{background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:5px;width:32px;height:32px;font-size:18px;line-height:1;cursor:pointer;flex:none;}
 .chat-x:hover{color:var(--text);border-color:var(--text-faint);}
-.chat-bar{display:flex;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);}
+
+/* abas de visão + filtros */
+.chat-abas{display:flex;gap:4px;padding:10px 16px 0;}
+.chat-aba{
+  flex:1;background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:6px;
+  padding:6px 8px;font:600 12px var(--font-body);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.chat-aba:hover{color:var(--text);border-color:var(--text-faint);}
+.chat-aba[aria-selected="true"]{background:var(--asphalt-3);color:var(--text);border-color:var(--yellow-dim);}
+.chat-aba-n{min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--yellow);color:#1A1E24;font:600 10px/16px var(--font-mono);display:none;}
+.chat-aba-n.on{display:inline-block;}
+.chat-bar{display:flex;gap:8px;align-items:center;padding:8px 16px 10px;border-bottom:1px solid var(--line);}
 .chat-bar select{flex:1;min-width:0;padding:6px 8px;font-size:12.5px;}
 .chat-bar .btn{flex:none;}
-.chat-log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
-.chat-vazio{margin:auto;text-align:center;color:var(--text-dim);font-size:13px;max-width:280px;line-height:1.5;}
-.chat-dia{align-self:center;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:4px 0;}
+
+.chat-log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
+.chat-vazio{margin:auto;text-align:center;color:var(--text-dim);font-size:13px;max-width:290px;line-height:1.5;}
+.chat-dia{align-self:center;font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:6px 10px;margin:4px 0;border-radius:20px;background:var(--asphalt-2);}
 .chat-mais{align-self:center;background:transparent;border:1px solid var(--line);color:var(--text-dim);border-radius:5px;padding:5px 12px;font-size:11.5px;cursor:pointer;font-family:var(--font-body);}
 .chat-mais:hover{color:var(--text);border-color:var(--text-faint);}
-.chat-msg{max-width:88%;align-self:flex-start;background:var(--asphalt-2);border:1px solid var(--line);border-radius:10px 10px 10px 2px;padding:8px 11px 9px;}
-.chat-msg.minha{align-self:flex-end;background:var(--asphalt-3);border-color:var(--yellow-dim);border-radius:10px 10px 2px 10px;}
-.chat-msg-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:3px;}
+
+.chat-item{display:flex;gap:8px;align-items:flex-end;max-width:92%;align-self:flex-start;}
+.chat-item.minha{align-self:flex-end;flex-direction:row-reverse;}
+.chat-av{
+  flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font:600 11.5px var(--font-body);color:#1A1E24;background:var(--av,#8D97A3);user-select:none;
+}
+.chat-item.minha .chat-av{display:none;}
+.chat-msg{min-width:0;background:var(--asphalt-2);border:1px solid var(--line);border-radius:12px 12px 12px 3px;padding:7px 11px 8px;}
+.chat-item.minha .chat-msg{background:var(--asphalt-3);border-color:var(--yellow-dim);border-radius:12px 12px 3px 12px;}
+.chat-item.direta .chat-msg{border-style:dashed;}
+.chat-item.pra-mim .chat-msg{border:1px solid var(--yellow);box-shadow:inset 3px 0 0 var(--yellow);}
+.chat-msg-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;}
 .chat-msg-top b{font-size:12.5px;color:var(--text);font-weight:600;}
-.chat-msg-top time{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);}
+.chat-para{font-size:11.5px;color:var(--yellow);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+.chat-para.todos{color:var(--text-faint);font-weight:500;}
 .chat-tema{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.02em;padding:1px 7px;border-radius:20px;color:var(--chat-cor,var(--text-dim));background:color-mix(in srgb,var(--chat-cor,#8D97A3) 16%,transparent);}
-.chat-del{margin-left:auto;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-size:12px;padding:0 2px;}
-.chat-del:hover{color:var(--red);}
 .chat-msg-txt{font-size:13.5px;line-height:1.45;color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere;}
+.chat-msg-pe{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.chat-msg-pe time{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);}
+.chat-acao{background:transparent;border:none;color:var(--text-faint);cursor:pointer;font:500 11px var(--font-body);padding:0;opacity:0;transition:opacity .12s;}
+.chat-item:hover .chat-acao,.chat-acao:focus-visible{opacity:1;}
+@media (hover:none){ .chat-acao{opacity:1;} }
+.chat-acao:hover{color:var(--text);}
+.chat-acao.del:hover{color:var(--red);}
+.chat-item.minha .chat-msg-pe{justify-content:flex-end;}
+
 .chat-aviso{padding:8px 16px;font-size:12px;color:var(--amber);border-top:1px solid var(--line);display:none;}
 .chat-aviso.on{display:block;}
-.chat-form{border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;}
-.chat-form-top{display:flex;align-items:center;gap:8px;}
+.chat-form{border-top:1px solid var(--line);padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;background:var(--asphalt);}
+.chat-form-top{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px 8px;}
 .chat-form-top label{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);}
-.chat-form-top select{flex:1;min-width:0;padding:6px 8px;font-size:12.5px;}
+.chat-form-top select{min-width:0;width:100%;padding:6px 8px;font-size:12.5px;}
+.chat-form.sem-dest .chat-para-lbl,.chat-form.sem-dest #chatPara{display:none;}
+.chat-destino{
+  display:none;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:12px;line-height:1.35;
+  background:color-mix(in srgb,var(--yellow) 12%,transparent);border:1px solid var(--yellow-dim);color:var(--text);
+}
+.chat-destino.on{display:flex;}
+.chat-destino span{flex:1;min-width:0;}
+.chat-destino button{background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;}
+.chat-destino button:hover{color:var(--text);}
 .chat-form-row{display:flex;gap:8px;align-items:flex-end;}
 .chat-form textarea{
-  flex:1;min-width:0;resize:none;height:64px;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
-  border-radius:6px;padding:9px 10px;font:400 13.5px/1.4 var(--font-body);
+  flex:1;min-width:0;resize:none;height:42px;max-height:160px;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);
+  border-radius:6px;padding:10px 10px;font:400 13.5px/1.4 var(--font-body);
 }
 .chat-form textarea:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;}
-.chat-form .btn{height:40px;}
+.chat-form .btn{height:42px;}
+.chat-form-pe{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-faint);font-family:var(--font-mono);}
 @media print{ .chat-drawer,.chat-scrim,.chat-toggle-btn{display:none !important;} }
 .j-chip[hidden]{display:none !important;}
 </style>
@@ -14668,25 +14709,38 @@ paintState();
   <div class="chat-head">
     <div>
       <h2>Chat do painel</h2>
-      <p id="chatSub">Registro dos assuntos do painel entre os usuários logados.</p>
+      <p id="chatSub">Mensagens para todos ou diretas para um usuário.</p>
     </div>
     <button type="button" class="chat-x" id="chatFechar" aria-label="Fechar o chat">×</button>
   </div>
+  <div class="chat-abas" role="tablist" aria-label="Quais mensagens mostrar">
+    <button type="button" class="chat-aba" role="tab" data-visao="todas" aria-selected="true">Todas</button>
+    <button type="button" class="chat-aba" role="tab" data-visao="abertas" aria-selected="false">Para todos</button>
+    <button type="button" class="chat-aba" role="tab" data-visao="diretas" aria-selected="false">🔒 Diretas <span class="chat-aba-n" id="chatDiretasN">0</span></button>
+  </div>
   <div class="chat-bar">
     <select id="chatFiltro" aria-label="Filtrar por assunto"></select>
+    <select id="chatPessoa" aria-label="Filtrar por pessoa"></select>
     <button type="button" class="btn small" id="chatExportar" title="Baixar as mensagens exibidas em CSV">⬇ CSV</button>
   </div>
   <div class="chat-log" id="chatLog" aria-live="polite"></div>
   <div class="chat-aviso" id="chatAviso"></div>
   <form class="chat-form" id="chatForm" autocomplete="off">
     <div class="chat-form-top">
+      <label for="chatPara" class="chat-para-lbl">Para</label>
+      <select id="chatPara"></select>
       <label for="chatAssunto">Assunto</label>
       <select id="chatAssunto"></select>
     </div>
+    <div class="chat-destino" id="chatDestino">
+      <span id="chatDestinoTxt"></span>
+      <button type="button" id="chatDestinoLimpar" title="Enviar para todos" aria-label="Enviar para todos">×</button>
+    </div>
     <div class="chat-form-row">
-      <textarea id="chatTexto" maxlength="2000" placeholder="Escreva a mensagem (Enter envia, Shift+Enter quebra a linha)" aria-label="Mensagem"></textarea>
+      <textarea id="chatTexto" maxlength="2000" rows="1" placeholder="Escreva a mensagem…" aria-label="Mensagem"></textarea>
       <button type="submit" class="btn primary" id="chatEnviar">Enviar</button>
     </div>
+    <div class="chat-form-pe"><span>Enter envia · Shift+Enter quebra a linha</span><span id="chatConta">0/2000</span></div>
   </form>
 </aside>
 
@@ -14694,10 +14748,13 @@ paintState();
 /* ============================================================
    CHAT DO PAINEL
    Mensagens entre os usuários logados, cada uma marcada com o assunto
-   (aba) do painel a que se refere. Tabela chat_mensagens no Supabase:
-   o servidor grava autor, nome e data, e só entrega a cada usuário os
-   assuntos que o perfil dele alcança (private.tema_liberado) — convidado
-   não lê nem escreve em Contratos, CAP ou Crédito.
+   (aba) do painel a que se refere e, opcionalmente, com um destinatário.
+   Tabela chat_mensagens no Supabase: o servidor grava autor, nome e data,
+   e só entrega a cada usuário os assuntos que o perfil dele alcança
+   (private.tema_liberado) — convidado não lê nem escreve em Contratos,
+   CAP ou Crédito. Mensagem com destinatario_id é direta: só o autor e o
+   destinatário a leem, e o servidor recusa enviar para quem não alcança
+   o assunto. A lista de destinatários vem da função chat_destinatarios().
    Mensagens novas chegam em tempo real (Realtime); uma checagem a cada
    45 s cobre o caso de o tempo real estar indisponível.
    ============================================================ */
@@ -14705,10 +14762,14 @@ paintState();
   const SB = window.SB;
   const $ = (id)=>document.getElementById(id);
   const drawer = $('chatDrawer'), log = $('chatLog'), form = $('chatForm'), texto = $('chatTexto');
-  const selAssunto = $('chatAssunto'), selFiltro = $('chatFiltro'), aviso = $('chatAviso'), btn = $('chatToggle'), badge = $('chatBadge');
+  const selAssunto = $('chatAssunto'), selFiltro = $('chatFiltro'), selPessoa = $('chatPessoa'), selPara = $('chatPara');
+  const aviso = $('chatAviso'), btn = $('chatToggle'), badge = $('chatBadge');
   const CORES = { geral:'#8D97A3', suprimentos:'#F5C433', fluxo:'#0CA30C', criticos:'#FF8A3D', cotacoes:'#4C8DFF', contratos:'#9B6BFF', cap:'#2FBF9F', creditos:'#E0507B' };
-  const PAGINA = 100, COLS = 'id,criado_em,autor_id,autor_nome,assunto,texto';
+  const CORES_AV = ['#F5C433','#4C8DFF','#2FBF9F','#FF8A3D','#9B6BFF','#E0507B','#6CC24A','#5BC0EB','#F07167','#C9A227'];
+  const PAGINA = 100, COLS = 'id,criado_em,autor_id,autor_nome,assunto,texto,destinatario_id,destinatario_nome';
   let msgs = [];            // em ordem crescente de id
+  let usuarios = [];        // [{id, nome, temas:[...]}] — todos menos eu
+  let visao = 'todas';
   let uid = null, canal = null, timer = null, temMais = false, indisponivel = false, enviando = false, assuntoManual = false;
 
   const esc = (s)=>String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -14717,45 +14778,136 @@ paintState();
   const lerLido = ()=>{ try{ return Number(localStorage.getItem(chaveLido())) || 0; }catch(e){ return 0; } };
   const gravarLido = (id)=>{ try{ localStorage.setItem(chaveLido(), String(id)); }catch(e){ /* sem armazenamento: o aviso de não lidas só vale nesta sessão */ } };
   const tabelaAusente = (err)=> !!err && (err.code === '42P01' || err.code === 'PGRST205' || /chat_mensagens/.test(err.message || '') && /not find|does not exist|schema cache/i.test(err.message || ''));
+  const usuario = (id)=>usuarios.find(u=>u.id === id);
+  const nomeTema = (t)=>window.TEMAS_PAINEL[t] || t;
+  // Mensagem visível para mim (o servidor já filtra; isto cobre o Realtime e a troca de usuário)
+  const minhaConversa = (m)=>!m.destinatario_id || m.autor_id === uid || m.destinatario_id === uid;
+  // Com quem é a conversa direta (o "outro lado")
+  const outroLado = (m)=>m.autor_id === uid ? m.destinatario_id : m.autor_id;
+
+  function iniciais(nome){
+    const p = String(nome || '?').trim().split(/\s+/).filter(Boolean);
+    return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length-1][0] : '')).toUpperCase();
+  }
+  function corDe(id){
+    let h = 0; const s = String(id || '');
+    for(let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+    return CORES_AV[h % CORES_AV.length];
+  }
 
   function avisar(t){ aviso.textContent = t || ''; aviso.classList.toggle('on', !!t); }
 
+  /* ---- listas de seleção ---- */
   function opcoesDeAssunto(){
     const temas = window.temasLiberados();
     const opt = (v,t)=>`<option value="${v}">${esc(t)}</option>`;
     const atualA = selAssunto.value, atualF = selFiltro.value;
-    selAssunto.innerHTML = temas.map(t=>opt(t, window.TEMAS_PAINEL[t])).join('');
-    selFiltro.innerHTML = opt('', 'Todos os assuntos') + temas.map(t=>opt(t, window.TEMAS_PAINEL[t])).join('');
+    selAssunto.innerHTML = temas.map(t=>opt(t, nomeTema(t))).join('');
+    selFiltro.innerHTML = opt('', 'Todos os assuntos') + temas.map(t=>opt(t, nomeTema(t))).join('');
     if(temas.includes(atualA)) selAssunto.value = atualA;
     selFiltro.value = temas.includes(atualF) ? atualF : '';
   }
+  function opcoesDePessoa(){
+    // "pendente" guarda o destinatário escolhido que não alcança o assunto atual,
+    // para voltar a ele se o assunto mudar para um que ele alcança.
+    const atualP = selPessoa.value, querido = selPara.value || selPara.dataset.pendente || '';
+    const assunto = selAssunto.value || 'geral';
+    selPessoa.innerHTML = '<option value="">Todas as pessoas</option>' +
+      usuarios.map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+    selPessoa.value = usuario(atualP) ? atualP : '';
+    selPara.innerHTML = '<option value="">👥 Todos</option>' + usuarios.map(u=>{
+      const ok = u.temas.includes(assunto);
+      return `<option value="${u.id}"${ok?'':' disabled'}>🔒 ${esc(u.nome)}${ok?'':' — sem acesso a ' + esc(nomeTema(assunto))}</option>`;
+    }).join('');
+    const d = usuario(querido);
+    const estavaPendente = !!selPara.dataset.pendente;
+    if(d && d.temas.includes(assunto)){
+      selPara.value = querido;
+      delete selPara.dataset.pendente;
+      if(estavaPendente) avisar('');
+    } else {
+      selPara.value = '';
+      if(d){
+        selPara.dataset.pendente = querido;
+        avisar(`${d.nome} não tem acesso ao assunto ${nomeTema(assunto)}. Escolha outro assunto, ou outro destinatário em “Para”.`);
+      } else delete selPara.dataset.pendente;
+    }
+    pintarDestino();
+  }
+  function pintarDestino(){
+    const d = usuario(selPara.value);
+    $('chatDestino').classList.toggle('on', !!d);
+    $('chatDestinoTxt').innerHTML = d ? `Mensagem direta para <b>${esc(d.nome)}</b> — só vocês dois veem.` : '';
+    texto.placeholder = d ? `Mensagem para ${d.nome}…` : 'Mensagem para todos…';
+  }
+  async function carregarUsuarios(){
+    const { data, error } = await SB.rpc('chat_destinatarios');
+    if(error){ usuarios = []; form.classList.add('sem-dest'); }
+    else { usuarios = (data || []).map(u=>({ id:u.id, nome:u.nome || 'Usuário', temas:u.temas || [] })); form.classList.remove('sem-dest'); }
+    opcoesDePessoa();
+  }
+
   // Sugere como assunto a aba em que a pessoa está (se o perfil alcança essa aba).
   function sugerirAssunto(){
     if(assuntoManual && texto.value.trim()) return;
     const t = window.temaDaAbaAtiva();
     selAssunto.value = window.temaLiberado(t) ? t : 'geral';
     assuntoManual = false;
+    opcoesDePessoa();
   }
 
-  function naoLidas(){
+  /* ---- não lidas ---- */
+  function naoLidasLista(){
     const lido = lerLido();
-    return msgs.filter(m=>m.id > lido && m.autor_id !== uid).length;
+    return msgs.filter(m=>m.id > lido && m.autor_id !== uid);
   }
   function pintarBadge(){
-    const n = (uid && !aberto()) ? naoLidas() : 0;
+    const lista = (uid && !aberto()) ? naoLidasLista() : [];
+    const n = lista.length, diretas = lista.filter(m=>m.destinatario_id === uid).length;
     badge.textContent = n > 99 ? '99+' : String(n);
     badge.classList.toggle('on', n > 0);
-    btn.title = n ? `${n} mensagem(ns) nova(s)` : 'Abrir o chat do painel';
+    badge.classList.toggle('direta', diretas > 0);
+    btn.title = n ? `${n} mensagem(ns) nova(s)${diretas ? ` — ${diretas} direta(s) para você` : ''}` : 'Abrir o chat do painel';
   }
   function marcarLido(){
     if(msgs.length) gravarLido(msgs[msgs.length-1].id);
     pintarBadge();
   }
+  // Contador da aba "Diretas": diretas para mim que chegaram desde que abri o chat e ainda não vi nessa aba.
+  let vistoDiretas = 0;
+  function pintarAbaDiretas(){
+    const n = visao === 'diretas' ? 0 : msgs.filter(m=>m.destinatario_id === uid && m.id > vistoDiretas).length;
+    const el = $('chatDiretasN');
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.classList.toggle('on', n > 0);
+  }
+  function verDiretas(){
+    const ult = msgs.filter(m=>m.destinatario_id === uid).pop();
+    if(ult) vistoDiretas = Math.max(vistoDiretas, ult.id);
+  }
 
-  const diaDe = (d)=>d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+  /* ---- lista de mensagens ---- */
+  function filtradas(){
+    const fa = selFiltro.value, fp = selPessoa.value;
+    return msgs.filter(m=>{
+      if(fa && m.assunto !== fa) return false;
+      if(visao === 'abertas' && m.destinatario_id) return false;
+      if(visao === 'diretas' && !m.destinatario_id) return false;
+      if(fp && m.autor_id !== fp && m.destinatario_id !== fp) return false;
+      return true;
+    });
+  }
+
+  const diaDe = (d)=>{
+    const hoje = new Date(), ontem = new Date(); ontem.setDate(hoje.getDate()-1);
+    if(d.toDateString() === hoje.toDateString()) return 'Hoje';
+    if(d.toDateString() === ontem.toDateString()) return 'Ontem';
+    return d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+  };
   function render(manterPosicao){
-    const filtro = selFiltro.value;
-    const lista = filtro ? msgs.filter(m=>m.assunto === filtro) : msgs;
+    if(visao === 'diretas') verDiretas();
+    pintarAbaDiretas();
+    const lista = filtradas();
     const noFim = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
     const alturaAntes = log.scrollHeight, topoAntes = log.scrollTop;
     if(indisponivel){
@@ -14763,7 +14915,11 @@ paintState();
       return;
     }
     if(!lista.length){
-      log.innerHTML = `<div class="chat-vazio">${filtro ? 'Nenhuma mensagem neste assunto ainda.' : 'Nenhuma mensagem ainda. Escreva a primeira para registrar um assunto do painel.'}</div>`;
+      const filtrando = selFiltro.value || selPessoa.value;
+      const txt = visao === 'diretas' && !filtrando
+        ? 'Nenhuma mensagem direta ainda. Escolha uma pessoa em “Para” para conversar só com ela.'
+        : filtrando || visao !== 'todas' ? 'Nenhuma mensagem com esses filtros.' : 'Nenhuma mensagem ainda. Escreva a primeira para registrar um assunto do painel.';
+      log.innerHTML = (temMais ? '<button type="button" class="chat-mais" id="chatMais">Carregar mensagens anteriores</button>' : '') + `<div class="chat-vazio">${txt}</div>`;
       return;
     }
     const admin = window.PERFIL.isAdmin;
@@ -14772,15 +14928,26 @@ paintState();
     lista.forEach(m=>{
       const d = new Date(m.criado_em), dia = d.toDateString();
       if(dia !== ultimoDia){ html += `<div class="chat-dia">${esc(diaDe(d))}</div>`; ultimoDia = dia; }
-      const minha = m.autor_id === uid;
-      html += `<div class="chat-msg${minha?' minha':''}" data-id="${m.id}">
-        <div class="chat-msg-top">
-          <b>${esc(minha ? 'Você' : (m.autor_nome || 'Usuário'))}</b>
-          <time datetime="${esc(m.criado_em)}">${d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</time>
-          <span class="chat-tema" style="--chat-cor:${CORES[m.assunto]||CORES.geral}">${esc(window.TEMAS_PAINEL[m.assunto] || m.assunto)}</span>
-          ${(minha || admin) ? `<button type="button" class="chat-del" data-del="${m.id}" title="Apagar mensagem" aria-label="Apagar mensagem">✕</button>` : ''}
+      const minha = m.autor_id === uid, direta = !!m.destinatario_id, praMim = m.destinatario_id === uid;
+      const autor = minha ? 'Você' : (m.autor_nome || 'Usuário');
+      const para = direta
+        ? `<span class="chat-para" title="Mensagem direta — só os dois veem">🔒 para ${esc(praMim ? 'você' : (m.destinatario_nome || 'Usuário'))}</span>`
+        : '<span class="chat-para todos">para todos</span>';
+      const cls = 'chat-item' + (minha ? ' minha' : '') + (direta ? ' direta' : '') + (praMim ? ' pra-mim' : '');
+      html += `<div class="${cls}" data-id="${m.id}">
+        <div class="chat-av" style="--av:${corDe(m.autor_id)}" title="${esc(m.autor_nome || 'Usuário')}">${esc(iniciais(m.autor_nome))}</div>
+        <div class="chat-msg">
+          <div class="chat-msg-top">
+            <b>${esc(autor)}</b>${para}
+            <span class="chat-tema" style="--chat-cor:${CORES[m.assunto]||CORES.geral}">${esc(nomeTema(m.assunto))}</span>
+          </div>
+          <div class="chat-msg-txt">${esc(m.texto)}</div>
+          <div class="chat-msg-pe">
+            <time datetime="${esc(m.criado_em)}" title="${esc(d.toLocaleString('pt-BR'))}">${d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</time>
+            ${(!minha || direta) ? `<button type="button" class="chat-acao" data-resp="${m.id}" title="${direta ? 'Responder em particular' : 'Responder diretamente a ' + esc(m.autor_nome || 'Usuário')}">↩ Responder</button>` : ''}
+            ${(minha || admin) ? `<button type="button" class="chat-acao del" data-del="${m.id}" title="Apagar mensagem">Apagar</button>` : ''}
+          </div>
         </div>
-        <div class="chat-msg-txt">${esc(m.texto)}</div>
       </div>`;
     });
     log.innerHTML = html;
@@ -14791,11 +14958,12 @@ paintState();
   function juntar(novas){
     if(!novas || !novas.length) return false;
     const tenho = new Set(msgs.map(m=>m.id));
-    const add = novas.filter(m=>m && !tenho.has(m.id));
+    const add = novas.filter(m=>m && !tenho.has(m.id) && minhaConversa(m));
     if(!add.length) return false;
     msgs = msgs.concat(add).sort((a,b)=>a.id-b.id);
     return true;
   }
+  function chegaram(){ render(); if(aberto()) marcarLido(); else pintarBadge(); }
 
   async function carregar(){
     const { data, error } = await SB.from('chat_mensagens').select(COLS).order('id', { ascending:false }).limit(PAGINA);
@@ -14806,8 +14974,9 @@ paintState();
     }
     indisponivel = false; form.style.display = '';
     avisar('');
-    msgs = (data || []).slice().reverse();
+    msgs = (data || []).slice().reverse().filter(minhaConversa);
     temMais = (data || []).length === PAGINA;
+    vistoDiretas = lerLido();
     render.jaRolou = false;
     render();
     if(aberto()) marcarLido(); else pintarBadge();
@@ -14826,7 +14995,7 @@ paintState();
     const ultimo = msgs.length ? msgs[msgs.length-1].id : 0;
     const { data, error } = await SB.from('chat_mensagens').select(COLS).gt('id', ultimo).order('id', { ascending:true }).limit(PAGINA);
     if(error || !data) return;
-    if(juntar(data)){ render(); if(aberto()) marcarLido(); else pintarBadge(); }
+    if(juntar(data)) chegaram();
   }
 
   function ligarTempoReal(){
@@ -14834,7 +15003,7 @@ paintState();
     try{
       canal = SB.channel('chat-painel-' + uid)
         .on('postgres_changes', { event:'INSERT', schema:'public', table:'chat_mensagens' }, (p)=>{
-          if(p && p.new && window.temaLiberado(p.new.assunto) && juntar([p.new])){ render(); if(aberto()) marcarLido(); else pintarBadge(); }
+          if(p && p.new && window.temaLiberado(p.new.assunto) && juntar([p.new])) chegaram();
         })
         .on('postgres_changes', { event:'DELETE', schema:'public', table:'chat_mensagens' }, (p)=>{
           const id = p && p.old && p.old.id;
@@ -14858,10 +15027,14 @@ paintState();
     document.body.classList.add('chat-aberto');
     drawer.setAttribute('aria-hidden', 'false');
     sugerirAssunto();
+    // chegou direta para mim e ainda não li: abre direto nas diretas
+    const lido = lerLido();
+    if(msgs.some(m=>m.id > lido && m.destinatario_id === uid)) mudarVisao('diretas', true);
     render.jaRolou = false;
     render();
     marcarLido();
     buscarNovas();
+    if(usuarios.length === 0 && !form.classList.contains('sem-dest')) carregarUsuarios();
     if(window.matchMedia('(pointer:fine)').matches) texto.focus();
   }
   function fechar(){
@@ -14869,21 +15042,52 @@ paintState();
     drawer.setAttribute('aria-hidden', 'true');
     pintarBadge();
   }
+  function mudarVisao(v, semRender){
+    visao = v;
+    document.querySelectorAll('.chat-aba').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.visao === v)));
+    if(!semRender){ render.jaRolou = false; render(); }
+  }
+
+  function ajustarAltura(){
+    texto.style.height = 'auto';
+    texto.style.height = Math.min(texto.scrollHeight + 2, 160) + 'px';
+    $('chatConta').textContent = `${texto.value.length}/2000`;
+  }
+  function definirPara(id, assunto){
+    if(assunto && window.temaLiberado(assunto)){ selAssunto.value = assunto; assuntoManual = true; }
+    avisar('');
+    selPara.value = '';
+    if(id) selPara.dataset.pendente = id; else delete selPara.dataset.pendente;
+    opcoesDePessoa();
+    texto.focus();
+  }
 
   async function enviar(){
     const t = texto.value.trim();
     if(!t || enviando || !uid || indisponivel) return;
     const assunto = selAssunto.value || 'geral';
+    const destinatario = selPara.value || null;
     if(!window.temaLiberado(assunto)){ avisar('Esse assunto não está liberado para o seu perfil.'); return; }
+    if(selPara.dataset.pendente){ opcoesDePessoa(); return; }   // destinatário sem acesso ao assunto: o aviso explica
+    const d = destinatario && usuario(destinatario);
+    if(destinatario && (!d || !d.temas.includes(assunto))){ avisar(`${d ? d.nome : 'O destinatário'} não tem acesso ao assunto ${nomeTema(assunto)}.`); return; }
     enviando = true; $('chatEnviar').disabled = true; avisar('');
-    const { data, error } = await SB.from('chat_mensagens').insert({ assunto, texto: t.slice(0, 2000) }).select(COLS).single();
+    const row = { assunto, texto: t.slice(0, 2000) };
+    if(destinatario) row.destinatario_id = destinatario;
+    const { data, error } = await SB.from('chat_mensagens').insert(row).select(COLS).single();
     enviando = false; $('chatEnviar').disabled = false;
     if(error){
-      avisar(/row-level security|violates/i.test(error.message || '') ? 'Esse assunto não está liberado para o seu perfil.' : 'Não foi possível enviar. Verifique a conexão e tente de novo.');
+      const msg = error.message || '';
+      avisar(/destinat|si mesmo/i.test(msg) ? msg
+        : /row-level security|violates/i.test(msg) ? 'Esse assunto não está liberado para o seu perfil.'
+        : 'Não foi possível enviar. Verifique a conexão e tente de novo.');
       return;
     }
-    texto.value = ''; assuntoManual = false;
+    texto.value = ''; assuntoManual = false; ajustarAltura();
     if(selFiltro.value && selFiltro.value !== assunto) selFiltro.value = '';
+    if(selPessoa.value && selPessoa.value !== destinatario) selPessoa.value = '';
+    if(visao === 'abertas' && destinatario) mudarVisao('todas', true);
+    if(visao === 'diretas' && !destinatario) mudarVisao('todas', true);
     juntar([data]);
     render.jaRolou = false;
     render();
@@ -14899,15 +15103,15 @@ paintState();
   }
 
   function exportar(){
-    const filtro = selFiltro.value;
-    const lista = filtro ? msgs.filter(m=>m.assunto === filtro) : msgs;
+    const lista = filtradas();
     if(!lista.length){ alert('Não há mensagens para exportar.'); return; }
     const q = (v)=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-    const linhas = [['Data','Hora','Autor','Assunto','Mensagem'].map(q).join(';')].concat(lista.map(m=>{
+    const linhas = [['Data','Hora','Autor','Para','Assunto','Mensagem'].map(q).join(';')].concat(lista.map(m=>{
       const d = new Date(m.criado_em);
-      return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), m.autor_nome, window.TEMAS_PAINEL[m.assunto]||m.assunto, m.texto].map(q).join(';');
+      return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), m.autor_nome,
+              m.destinatario_id ? (m.destinatario_nome || 'Usuário') : 'Todos', nomeTema(m.assunto), m.texto].map(q).join(';');
     }));
-    const blob = new Blob(['\uFEFF' + linhas.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+    const blob = new Blob(['﻿' + linhas.join('\r\n')], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = 'chat_painel.csv';
     document.body.appendChild(a); a.click(); a.remove();
@@ -14921,12 +15125,23 @@ paintState();
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && aberto()) fechar(); });
   form.addEventListener('submit', (e)=>{ e.preventDefault(); enviar(); });
   texto.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); enviar(); } });
-  selAssunto.addEventListener('change', ()=>{ assuntoManual = true; });
+  texto.addEventListener('input', ajustarAltura);
+  selAssunto.addEventListener('change', ()=>{ assuntoManual = true; opcoesDePessoa(); });
+  selPara.addEventListener('change', ()=>{ delete selPara.dataset.pendente; avisar(''); pintarDestino(); });
+  $('chatDestinoLimpar').addEventListener('click', ()=>{ delete selPara.dataset.pendente; selPara.value = ''; avisar(''); pintarDestino(); texto.focus(); });
   selFiltro.addEventListener('change', ()=>{ render.jaRolou = false; render(); });
+  selPessoa.addEventListener('change', ()=>{ render.jaRolou = false; render(); });
+  document.querySelectorAll('.chat-aba').forEach(b=>b.addEventListener('click', ()=>mudarVisao(b.dataset.visao)));
   $('chatExportar').addEventListener('click', exportar);
   log.addEventListener('click', (e)=>{
     const del = e.target.closest('[data-del]');
     if(del){ apagar(Number(del.getAttribute('data-del'))); return; }
+    const resp = e.target.closest('[data-resp]');
+    if(resp){
+      const m = msgs.find(x=>x.id === Number(resp.getAttribute('data-resp')));
+      if(m) definirPara(outroLado(m), m.assunto);
+      return;
+    }
     if(e.target.closest('#chatMais')) carregarAnteriores();
   });
   // trocar de aba com o chat aberto atualiza a sugestão de assunto
@@ -14941,11 +15156,13 @@ paintState();
     if(novoUid === uid && temasAgora === (opcoesDeAssunto.ultimo || '')){ pintarBadge(); return; }
     opcoesDeAssunto.ultimo = temasAgora;
     uid = novoUid;
-    msgs = []; temMais = false; indisponivel = false; form.style.display = '';
+    msgs = []; usuarios = []; temMais = false; indisponivel = false; form.style.display = '';
+    delete selPara.dataset.pendente; selPara.value = ''; selPessoa.value = ''; mudarVisao('todas', true);
     desligarTempoReal();
     if(!uid){ fechar(); log.innerHTML = ''; pintarBadge(); return; }
     opcoesDeAssunto();
     sugerirAssunto();
+    carregarUsuarios();
     carregar().then(()=>{ if(uid && !indisponivel) ligarTempoReal(); });
   });
 })();
