@@ -3607,7 +3607,7 @@ function lamp(status){
 function rowClass(status){
   return (status==='atrasado'||status==='hoje'||status==='dentro') ? ('row-'+status) : '';
 }
-function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 /* ---- Filtros de múltipla seleção: helpers ----
    Os <select> abaixo são "multiple". Nenhum item marcado = "Todos". */
@@ -4950,7 +4950,7 @@ function renderOverview(){
     <div class="kpi-card c-total">
       <p class="kpi-label">Registros importados</p>
       <div class="kpi-value">${rows.length}</div>
-      <p class="kpi-foot">${state.sourceName || 'nenhum arquivo'}</p>
+      <p class="kpi-foot">${esc(state.sourceName || 'nenhum arquivo')}</p>
     </div>
     <div class="kpi-card c-solic">
       <p class="kpi-label">Solicitações pendentes (aprovadas)</p>
@@ -7766,26 +7766,28 @@ function updateDatalists(){
   const dlI = document.getElementById('cot-dlInsumo');
   const dlU = document.getElementById('cot-dlUnidade');
   const dlL = document.getElementById('cot-dlLocal');
-  dlF.innerHTML = uniqueSorted(records.map(r=>r.fornecedor)).map(v=>`<option value="${v}">`).join('');
-  dlI.innerHTML = uniqueSorted(records.map(r=>r.insumo)).map(v=>`<option value="${v}">`).join('');
-  dlU.innerHTML = uniqueSorted(records.map(r=>r.unidade)).map(v=>`<option value="${v}">`).join('');
-  dlL.innerHTML = uniqueSorted(records.map(r=>r.local)).map(v=>`<option value="${v}">`).join('');
+  // Os textos das cotações são digitados por usuários: sempre esc() antes de
+  // virar HTML, senão um nome com <tags> seria executado no navegador de quem abre o painel.
+  dlF.innerHTML = uniqueSorted(records.map(r=>r.fornecedor)).map(v=>`<option value="${esc(v)}">`).join('');
+  dlI.innerHTML = uniqueSorted(records.map(r=>r.insumo)).map(v=>`<option value="${esc(v)}">`).join('');
+  dlU.innerHTML = uniqueSorted(records.map(r=>r.unidade)).map(v=>`<option value="${esc(v)}">`).join('');
+  dlL.innerHTML = uniqueSorted(records.map(r=>r.local)).map(v=>`<option value="${esc(v)}">`).join('');
 
   const sel = document.getElementById('cot-chartInsumo');
   const prevVal = sel.value;
   const insumos = uniqueSorted(records.map(r=>r.insumo));
-  sel.innerHTML = insumos.map(v=>`<option value="${v}">${v}</option>`).join('');
+  sel.innerHTML = insumos.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
   if(insumos.includes(prevVal)) sel.value = prevVal;
 
   const selLocal = document.getElementById('cot-dashLocal');
   const prevLocal = selLocal.value;
   const locais = uniqueSorted(records.map(r=>r.local));
-  selLocal.innerHTML = '<option value="">Todas as localidades</option>' + locais.map(v=>`<option value="${v}">${v}</option>`).join('');
+  selLocal.innerHTML = '<option value="">Todas as localidades</option>' + locais.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
   if(locais.includes(prevLocal)) selLocal.value = prevLocal;
 
   const selChartLocal = document.getElementById('cot-chartLocal');
   const prevChartLocal = selChartLocal.value;
-  selChartLocal.innerHTML = '<option value="">Todas as localidades</option>' + locais.map(v=>`<option value="${v}">${v}</option>`).join('');
+  selChartLocal.innerHTML = '<option value="">Todas as localidades</option>' + locais.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
   if(locais.includes(prevChartLocal)) selChartLocal.value = prevChartLocal;
 }
 
@@ -7799,7 +7801,7 @@ function renderDashboard(){
   const grid = document.getElementById('cot-dashGrid');
 
   if(upToDateRecords.length === 0){
-    const localTxt = localFiltro ? ` em ${localFiltro}` : '';
+    const localTxt = localFiltro ? ` em ${esc(localFiltro)}` : '';
     grid.innerHTML = `<div class="empty-note">Nenhum preço registrado até ${fmtBRDate(dateVal)}${localTxt}.</div>`;
     return;
   }
@@ -7848,10 +7850,10 @@ function renderDashboard(){
           : '';
         return `
         <div class="ticker-card${desatualizado ? ' is-outdated' : ''}">
-          <div class="local-tag">${local}</div>
-          <div><span class="price">R$ ${fmtMoney(total)}</span><span class="unit">/ ${r.unidade}</span></div>
+          <div class="local-tag">${esc(local)}</div>
+          <div><span class="price">R$ ${fmtMoney(total)}</span><span class="unit">/ ${esc(r.unidade)}</span></div>
           <div class="meta">
-            <span><b>${r.fornecedor}</b></span>
+            <span><b>${esc(r.fornecedor)}</b></span>
             ${breakdown}
             ${avisoData}
           </div>
@@ -7860,7 +7862,7 @@ function renderDashboard(){
       return `
       <div class="insumo-group">
         <div class="insumo-group-title">
-          <h3>${insumo}</h3>
+          <h3>${esc(insumo)}</h3>
           <span class="count">${locais.length} localidade${locais.length===1?'':'s'}</span>
         </div>
         <div class="ticker-grid">${cards}</div>
@@ -7869,7 +7871,7 @@ function renderDashboard(){
     return `
     <div class="tipo-group">
       <div class="tipo-group-title">
-        <h2>${tipo}</h2>
+        <h2>${esc(tipo)}</h2>
         <span class="count">${insumosDoTipo.length} insumo${insumosDoTipo.length===1?'':'s'}</span>
       </div>
       ${blocosInsumo}
@@ -7892,7 +7894,7 @@ function renderChart(){
 
   if(filtered.length === 0){
     if(chart){ chart.destroy(); chart = null; }
-    const localTxt = localFiltro ? ` em ${localFiltro}` : '';
+    const localTxt = localFiltro ? ` em ${esc(localFiltro)}` : '';
     statsEl.innerHTML = `<div class="stat">Sem dados para este período${localTxt}.</div>`;
     return;
   }
@@ -7984,14 +7986,14 @@ function renderTable(){
       return `
       <tr class="${isMin?'is-min':''}">
         <td>${fmtBRDate(r.data)}</td>
-        <td class="txt">${r.insumo}</td>
-        <td class="txt">${r.fornecedor}</td>
-        <td class="txt">${r.unidade}</td>
+        <td class="txt">${esc(r.insumo)}</td>
+        <td class="txt">${esc(r.fornecedor)}</td>
+        <td class="txt">${esc(r.unidade)}</td>
         <td>R$ ${fmtMoney(r.valor)}</td>
         <td>R$ ${fmtMoney(r.frete||0)}</td>
         <td class="price-cell">R$ ${fmtMoney(total)}</td>
-        <td class="txt">${r.local}</td>
-        <td><button class="danger admin-only" data-id="${r.id}">Excluir</button></td>
+        <td class="txt">${esc(r.local)}</td>
+        <td><button class="danger admin-only" data-id="${esc(r.id)}">Excluir</button></td>
       </tr>`;
     }).join('');
   }
@@ -8017,7 +8019,7 @@ function updateDbInfo(){
 }
 
 function escapeAttr(str){
-  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function renderTiposTable(){
@@ -8031,7 +8033,7 @@ function renderTiposTable(){
       const tipo = tipoDoInsumo(insumo);
       return `
       <tr>
-        <td class="txt">${insumo}</td>
+        <td class="txt">${esc(insumo)}</td>
         <td class="txt">${tipo ? escapeAttr(tipo) : '<span style="color:var(--text-faint);">— não classificado —</span>'}</td>
       </tr>`;
     }).join('');
@@ -10737,7 +10739,7 @@ function renderPoCard(p) {
   return `
   <div class="po-card">
     <div class="po-head">
-      <span class="num">Pedido ${p.numero}</span>
+      <span class="num">Pedido ${escapeHtml(p.numero)}</span>
       ${s.soQtd ? '<span class="badge qtd">Apenas quantidade</span>' : `<span class="price">${fmtR(p.precoTon)}/t</span>`}
     </div>
     <div class="po-row"><span>Fornecedor</span><b>${p.fornecedor ? escapeHtml(p.fornecedor) : '<span class="hint">não informado</span>'}</b></div>
@@ -11428,7 +11430,7 @@ function updateEntregaPreview() {
   const editId = document.getElementById('entregaEditId').value;
   const already = editId ? Number(state.entregas.find(x=>String(x.id)===String(editId))?.qtd || 0) : 0;
   const saldoDepois = s.saldoQtd + already - qtd;
-  previewEl.innerHTML = `Saldo do pedido ${p.numero} após esta entrega: <b class="tabular" style="color:${saldoDepois < 0 ? 'var(--red)' : 'var(--text)'}">${fmtT(saldoDepois)}</b>`;
+  previewEl.innerHTML = `Saldo do pedido ${escapeHtml(p.numero)} após esta entrega: <b class="tabular" style="color:${saldoDepois < 0 ? 'var(--red)' : 'var(--text)'}">${fmtT(saldoDepois)}</b>`;
 }
 document.getElementById('entregaPedido').addEventListener('change', () => {
   const pedidoId = document.getElementById('entregaPedido').value;
@@ -11627,7 +11629,7 @@ function updateDevolucaoPreview() {
     const p = pedidoById(pedidoId);
     const s = p ? pedidoStats(p) : null;
     if (s) {
-      previewEl.innerHTML = `Saldo do pedido ${p.numero} após esta devolução: <b class="tabular">${fmtT(s.saldoQtd + qtd)}</b>`;
+      previewEl.innerHTML = `Saldo do pedido ${escapeHtml(p.numero)} após esta devolução: <b class="tabular">${fmtT(s.saldoQtd + qtd)}</b>`;
       return;
     }
   }
