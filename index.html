@@ -186,7 +186,7 @@ html[data-tema="estoque"] .brand-eyebrow{font-family:var(--font-body);font-weigh
 html[data-tema="estoque"]{--font-mono:'IBM Plex Sans',sans-serif;}
 html[data-tema="estoque"] body{font-variant-numeric:tabular-nums;}
 /* indicadores no padrão do estoque: cartão liso, marcador em losango e número forte */
-html[data-tema="estoque"] .kpi-card{background:#161C24;border-color:rgba(255,255,255,.06);border-radius:14px;padding:18px 18px 16px;}
+html[data-tema="estoque"] .kpi-card{background:var(--cartao,#161C24);border-color:rgba(255,255,255,.06);border-radius:14px;padding:18px 18px 16px;}
 html[data-tema="estoque"] .kpi-card::before{
   top:22px;left:18px;right:auto;width:7px;height:7px;border-radius:1px;transform:rotate(45deg);
 }
@@ -201,268 +201,37 @@ html[data-tema="estoque"] .kpi-card.c-solic::before{background:var(--yellow);}
 html[data-tema="estoque"] .tab-btn.active{background:rgba(245,165,36,.12);}
 html[data-tema="estoque"] .nav-submenu .tab-btn.active{background:rgba(245,165,36,.14);}
 
-/* centro claro, bordas escuras: a área de conteúdo fica em bege claro e o
-   topo, o menu e as margens continuam escuros. Dentro do bege, o texto solto
-   (títulos, explicações) fica escuro; cartões, tabelas, filtros e demais
-   superfícies escuras (lista abaixo, gerada a partir das regras do painel que
-   pintam fundo escuro) voltam a usar o texto claro. */
+/* centro claro, bordas escuras: o topo, o menu e as margens continuam
+   escuros; a área de conteúdo fica em bege claro com cartões brancos (os
+   cartões, tabelas, filtros e campos usam as variáveis --asphalt*, que aqui
+   viram tons claros, e o texto passa a ser escuro). Os gráficos leem as
+   variáveis --graf-* para grade, textos fortes e fundo. */
 html[data-tema="estoque"]{--centro:#F3F0EA;}
 html[data-tema="estoque"] main.tab-content{
   background:var(--centro);border-radius:18px;padding:24px 26px 30px;
-  --text:#1B2129;--text-dim:#5A6371;--text-faint:#8A919B;--text-mut:#5A6371;--line:rgba(27,33,41,.14);
-  --yellow:#A86200;--gold:#A86200;
+  --bg:#F3F0EA;--asphalt:#FFFFFF;--asphalt-2:#FFFFFF;--asphalt-3:#F2EFE9;
+  --text:#1B2129;--text-dim:#5A6371;--text-faint:#8A919B;--text-mut:#5A6371;--line:rgba(27,33,41,.12);
+  --yellow:#A86200;--gold:#A86200;--yellow-dim:#D9B57A;
+  --cartao:#FFFFFF;
+  --graf-grade:rgba(27,33,41,.08);--graf-forte:#1B2129;--graf-fundo:#FFFFFF;--graf-trilha:rgba(27,33,41,.06);
   color:var(--text);
 }
-html[data-tema="estoque"] main.tab-content .tema-btn,
-html[data-tema="estoque"] main.tab-content .tema-btn .tema-amostra,
-html[data-tema="estoque"] main.tab-content .auth-toggle-btn,
-html[data-tema="estoque"] main.tab-content .auth-dropdown,
-html[data-tema="estoque"] main.tab-content .auth-dropdown input,
-html[data-tema="estoque"] main.tab-content .file-drop,
-html[data-tema="estoque"] main.tab-content .btn,
-html[data-tema="estoque"] main.tab-content .sidebar-toggle,
-html[data-tema="estoque"] main.tab-content .tab-btn .count-pill,
-html[data-tema="estoque"] main.tab-content nav.tabs.sidebar .nav-submenu,
-html[data-tema="estoque"] main.tab-content .kpi-card,
 html[data-tema="estoque"] main.tab-content .chart-card,
-html[data-tema="estoque"] main.tab-content .filters-bar,
+html[data-tema="estoque"] main.tab-content .kpi-card{background:var(--cartao);border:1px solid rgba(27,33,41,.07);box-shadow:0 1px 2px rgba(27,33,41,.05), 0 10px 24px -18px rgba(27,33,41,.35);}
+html[data-tema="estoque"] main.tab-content .chart-card:hover{border-color:rgba(27,33,41,.16);}
+html[data-tema="estoque"] main.tab-content .chart-strip,
+html[data-tema="estoque"] main.tab-content .strip-item{border-color:rgba(27,33,41,.08);}
+html[data-tema="estoque"] main.tab-content .hero-pill{background:rgba(27,33,41,.06);}
+html[data-tema="estoque"] main.tab-content .hero-pill.tom-bom{background:rgba(30,142,78,.12);color:#1A7F45;}
+html[data-tema="estoque"] main.tab-content .hero-pill.tom-ruim{background:rgba(200,51,58,.10);color:#C2333A;}
+html[data-tema="estoque"] main.tab-content .hero-pill.tom-alerta{background:rgba(214,138,0,.14);color:#9A5B00;}
+html[data-tema="estoque"] main.tab-content .seg-periodo{background:#F2EFE9;border-color:rgba(27,33,41,.1);}
+html[data-tema="estoque"] main.tab-content .seg-periodo button.active{background:#F5A524;color:#12151A;}
+html[data-tema="estoque"] main.tab-content .hero-datas input[type=date]{background:#FFFFFF;border-color:rgba(27,33,41,.14);color-scheme:light;}
+html[data-tema="estoque"] main.tab-content input,
 html[data-tema="estoque"] main.tab-content select,
-html[data-tema="estoque"] main.tab-content input[type=text],
-html[data-tema="estoque"] main.tab-content .ms-btn,
-html[data-tema="estoque"] main.tab-content .ms-pop,
-html[data-tema="estoque"] main.tab-content .summary-chip,
-html[data-tema="estoque"] main.tab-content .summary-chip.active,
-html[data-tema="estoque"] main.tab-content #tab-prazoinsumos .view-btn.active,
-html[data-tema="estoque"] main.tab-content .pi-tl-group,
-html[data-tema="estoque"] main.tab-content .pi-tl-track,
-html[data-tema="estoque"] main.tab-content .pi-kb-col,
-html[data-tema="estoque"] main.tab-content .pi-kb-count,
-html[data-tema="estoque"] main.tab-content .pi-kb-card,
-html[data-tema="estoque"] main.tab-content .pi-cal-cell,
-html[data-tema="estoque"] main.tab-content .pi-present-overlay,
-html[data-tema="estoque"] main.tab-content .table-scroll,
-html[data-tema="estoque"] main.tab-content table.data th,
-html[data-tema="estoque"] main.tab-content .col-filter-dropdown,
-html[data-tema="estoque"] main.tab-content .col-filter-dropdown input[type=text],
-html[data-tema="estoque"] main.tab-content .col-vis-dropdown,
-html[data-tema="estoque"] main.tab-content table.data tr.group-row td,
-html[data-tema="estoque"] main.tab-content .email-panel,
-html[data-tema="estoque"] main.tab-content .email-input,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-cotacoes input[type=text],
-html[data-tema="estoque"] main.tab-content #tab-cotacoes input[type=number],
-html[data-tema="estoque"] main.tab-content #tab-cotacoes select,
-html[data-tema="estoque"] main.tab-content #tab-creditos input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-creditos input[type=text],
-html[data-tema="estoque"] main.tab-content #tab-creditos input[type=number],
-html[data-tema="estoque"] main.tab-content #tab-creditos select,
-html[data-tema="estoque"] main.tab-content #tab-admin input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-admin input[type=text],
-html[data-tema="estoque"] main.tab-content #tab-admin input[type=number],
-html[data-tema="estoque"] main.tab-content #tab-admin select,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .ticker-card,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .form-card,
-html[data-tema="estoque"] main.tab-content #tab-creditos .form-card,
-html[data-tema="estoque"] main.tab-content #tab-admin .form-card,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-creditos .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-admin .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-creditos-dashboard .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes thead th,
-html[data-tema="estoque"] main.tab-content #tab-creditos thead th,
-html[data-tema="estoque"] main.tab-content #tab-admin thead th,
-html[data-tema="estoque"] main.tab-content #tab-creditos-dashboard thead th,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .count-badge,
-html[data-tema="estoque"] main.tab-content #tab-creditos .count-badge,
-html[data-tema="estoque"] main.tab-content #tab-admin .count-badge,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .cot-tab-btn.active,
-html[data-tema="estoque"] main.tab-content #tab-creditos tr.credito-detail-row td,
-html[data-tema="estoque"] main.tab-content #tab-creditos .credito-tab-btn.active,
-html[data-tema="estoque"] main.tab-content #tab-creditos .pedido-search-results,
-html[data-tema="estoque"] main.tab-content .modal,
-html[data-tema="estoque"] main.tab-content .pedido-info-grid,
-html[data-tema="estoque"] main.tab-content .creditos-dash-card,
-html[data-tema="estoque"] main.tab-content .creditos-dash-card-icon,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .card,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .kpi,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .po-card,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .bar-track,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap thead th,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .forn-stack,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap input,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap select,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .ctrl-toggle label,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap button.btn,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .modal,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .note,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .toast,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .bar-chart .bc-track,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .tooltip-box,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .attach-box,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .extract-raw,
-html[data-tema="estoque"] main.tab-content .ctr-empty-state,
-html[data-tema="estoque"] main.tab-content .ctr-card,
-html[data-tema="estoque"] main.tab-content .ctr-tip,
-html[data-tema="estoque"] main.tab-content .ctr-venc .ctr-d,
-html[data-tema="estoque"] main.tab-content .ctr-rg .b,
-html[data-tema="estoque"] main.tab-content .ctr-tag.off,
-html[data-tema="estoque"] main.tab-content .ctr-seg button,
-html[data-tema="estoque"] main.tab-content .ctr-bcol,
-html[data-tema="estoque"] main.tab-content .ctr-ad,
-html[data-tema="estoque"] main.tab-content .ctr-drawer,
-html[data-tema="estoque"] main.tab-content .ctr-bar .trk,
-html[data-tema="estoque"] main.tab-content .ctr-mot li,
-html[data-tema="estoque"] main.tab-content .ctr-frm input,
-html[data-tema="estoque"] main.tab-content .ctr-frm select,
-html[data-tema="estoque"] main.tab-content .ctr-frm textarea,
-html[data-tema="estoque"] main.tab-content .ctr-rules input,
-html[data-tema="estoque"] main.tab-content .ctr-msg,
-html[data-tema="estoque"] main.tab-content table.data.ctr-tbl tr.ctr-agday td,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-legend,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-dot.liv,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-bar,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-bar i.fat,
-html[data-tema="estoque"] main.tab-content #tab-fluxo input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-fluxo .fluxo-nota,
-html[data-tema="estoque"] main.tab-content .fluxo-trilha,
-html[data-tema="estoque"] main.tab-content .fluxo-trilha .fx-no i,
-html[data-tema="estoque"] main.tab-content #tab-fluxo .fluxo-view-btn.active,
-html[data-tema="estoque"] main.tab-content #tableFluxo tbody tr.fx-sel td,
-html[data-tema="estoque"] main.tab-content #tableFluxo tfoot td,
-html[data-tema="estoque"] main.tab-content .f,
-html[data-tema="estoque"] main.tab-content .no-print button,
-html[data-tema="estoque"] main.tab-content .kpi,
-html[data-tema="estoque"] main.tab-content .po-card,
-html[data-tema="estoque"] main.tab-content .bar-chart{
-  --text:#E9EDF2;--text-dim:#8E99A8;--text-faint:#5F6B7A;--text-mut:#8E99A8;--line:#2A3441;
-  --yellow:#F5A524;--gold:#F5A524;
-}
-/* cor do texto herdada nessas superfícies (peso zero: qualquer cor própria do elemento vence) */
-:where(html[data-tema="estoque"] main.tab-content .tema-btn,
-html[data-tema="estoque"] main.tab-content .tema-btn .tema-amostra,
-html[data-tema="estoque"] main.tab-content .auth-toggle-btn,
-html[data-tema="estoque"] main.tab-content .auth-dropdown,
-html[data-tema="estoque"] main.tab-content .auth-dropdown input,
-html[data-tema="estoque"] main.tab-content .file-drop,
-html[data-tema="estoque"] main.tab-content .btn,
-html[data-tema="estoque"] main.tab-content .sidebar-toggle,
-html[data-tema="estoque"] main.tab-content .tab-btn .count-pill,
-html[data-tema="estoque"] main.tab-content nav.tabs.sidebar .nav-submenu,
-html[data-tema="estoque"] main.tab-content .kpi-card,
-html[data-tema="estoque"] main.tab-content .chart-card,
-html[data-tema="estoque"] main.tab-content .filters-bar,
-html[data-tema="estoque"] main.tab-content select,
-html[data-tema="estoque"] main.tab-content input[type=text],
-html[data-tema="estoque"] main.tab-content .ms-btn,
-html[data-tema="estoque"] main.tab-content .ms-pop,
-html[data-tema="estoque"] main.tab-content .summary-chip,
-html[data-tema="estoque"] main.tab-content .summary-chip.active,
-html[data-tema="estoque"] main.tab-content #tab-prazoinsumos .view-btn.active,
-html[data-tema="estoque"] main.tab-content .pi-tl-group,
-html[data-tema="estoque"] main.tab-content .pi-tl-track,
-html[data-tema="estoque"] main.tab-content .pi-kb-col,
-html[data-tema="estoque"] main.tab-content .pi-kb-count,
-html[data-tema="estoque"] main.tab-content .pi-kb-card,
-html[data-tema="estoque"] main.tab-content .pi-cal-cell,
-html[data-tema="estoque"] main.tab-content .pi-present-overlay,
-html[data-tema="estoque"] main.tab-content .table-scroll,
-html[data-tema="estoque"] main.tab-content table.data th,
-html[data-tema="estoque"] main.tab-content .col-filter-dropdown,
-html[data-tema="estoque"] main.tab-content .col-filter-dropdown input[type=text],
-html[data-tema="estoque"] main.tab-content .col-vis-dropdown,
-html[data-tema="estoque"] main.tab-content table.data tr.group-row td,
-html[data-tema="estoque"] main.tab-content .email-panel,
-html[data-tema="estoque"] main.tab-content .email-input,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-cotacoes input[type=text],
-html[data-tema="estoque"] main.tab-content #tab-cotacoes input[type=number],
-html[data-tema="estoque"] main.tab-content #tab-cotacoes select,
-html[data-tema="estoque"] main.tab-content #tab-creditos input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-creditos input[type=text],
-html[data-tema="estoque"] main.tab-content #tab-creditos input[type=number],
-html[data-tema="estoque"] main.tab-content #tab-creditos select,
-html[data-tema="estoque"] main.tab-content #tab-admin input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-admin input[type=text],
-html[data-tema="estoque"] main.tab-content #tab-admin input[type=number],
-html[data-tema="estoque"] main.tab-content #tab-admin select,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .ticker-card,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .form-card,
-html[data-tema="estoque"] main.tab-content #tab-creditos .form-card,
-html[data-tema="estoque"] main.tab-content #tab-admin .form-card,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-creditos .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-admin .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-creditos-dashboard .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes thead th,
-html[data-tema="estoque"] main.tab-content #tab-creditos thead th,
-html[data-tema="estoque"] main.tab-content #tab-admin thead th,
-html[data-tema="estoque"] main.tab-content #tab-creditos-dashboard thead th,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .count-badge,
-html[data-tema="estoque"] main.tab-content #tab-creditos .count-badge,
-html[data-tema="estoque"] main.tab-content #tab-admin .count-badge,
-html[data-tema="estoque"] main.tab-content #tab-cotacoes .cot-tab-btn.active,
-html[data-tema="estoque"] main.tab-content #tab-creditos tr.credito-detail-row td,
-html[data-tema="estoque"] main.tab-content #tab-creditos .credito-tab-btn.active,
-html[data-tema="estoque"] main.tab-content #tab-creditos .pedido-search-results,
-html[data-tema="estoque"] main.tab-content .modal,
-html[data-tema="estoque"] main.tab-content .pedido-info-grid,
-html[data-tema="estoque"] main.tab-content .creditos-dash-card,
-html[data-tema="estoque"] main.tab-content .creditos-dash-card-icon,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .card,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .kpi,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .po-card,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .bar-track,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap thead th,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .table-wrap,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .forn-stack,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap input,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap select,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .ctrl-toggle label,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap button.btn,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .modal,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .note,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .toast,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .bar-chart .bc-track,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .tooltip-box,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .attach-box,
-html[data-tema="estoque"] main.tab-content #tab-creditos-cap .extract-raw,
-html[data-tema="estoque"] main.tab-content .ctr-empty-state,
-html[data-tema="estoque"] main.tab-content .ctr-card,
-html[data-tema="estoque"] main.tab-content .ctr-tip,
-html[data-tema="estoque"] main.tab-content .ctr-venc .ctr-d,
-html[data-tema="estoque"] main.tab-content .ctr-rg .b,
-html[data-tema="estoque"] main.tab-content .ctr-tag.off,
-html[data-tema="estoque"] main.tab-content .ctr-seg button,
-html[data-tema="estoque"] main.tab-content .ctr-bcol,
-html[data-tema="estoque"] main.tab-content .ctr-ad,
-html[data-tema="estoque"] main.tab-content .ctr-drawer,
-html[data-tema="estoque"] main.tab-content .ctr-bar .trk,
-html[data-tema="estoque"] main.tab-content .ctr-mot li,
-html[data-tema="estoque"] main.tab-content .ctr-frm input,
-html[data-tema="estoque"] main.tab-content .ctr-frm select,
-html[data-tema="estoque"] main.tab-content .ctr-frm textarea,
-html[data-tema="estoque"] main.tab-content .ctr-rules input,
-html[data-tema="estoque"] main.tab-content .ctr-msg,
-html[data-tema="estoque"] main.tab-content table.data.ctr-tbl tr.ctr-agday td,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-legend,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-dot.liv,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-bar,
-html[data-tema="estoque"] main.tab-content #tab-creditos .cr-bar i.fat,
-html[data-tema="estoque"] main.tab-content #tab-fluxo input[type=date],
-html[data-tema="estoque"] main.tab-content #tab-fluxo .fluxo-nota,
-html[data-tema="estoque"] main.tab-content .fluxo-trilha,
-html[data-tema="estoque"] main.tab-content .fluxo-trilha .fx-no i,
-html[data-tema="estoque"] main.tab-content #tab-fluxo .fluxo-view-btn.active,
-html[data-tema="estoque"] main.tab-content #tableFluxo tbody tr.fx-sel td,
-html[data-tema="estoque"] main.tab-content #tableFluxo tfoot td,
-html[data-tema="estoque"] main.tab-content .f,
-html[data-tema="estoque"] main.tab-content .no-print button,
-html[data-tema="estoque"] main.tab-content .kpi,
-html[data-tema="estoque"] main.tab-content .po-card,
-html[data-tema="estoque"] main.tab-content .bar-chart){color:var(--text);}
-html[data-tema="estoque"] main.tab-content .chart-card,
-html[data-tema="estoque"] main.tab-content .kpi-card{border-color:transparent;box-shadow:0 10px 26px -18px rgba(20,24,32,.6);}
+html[data-tema="estoque"] main.tab-content textarea{color-scheme:light;}
+html[data-tema="estoque"] main.tab-content .kpi-value{color:var(--text);}
 html[data-tema="estoque"] nav.tabs.sidebar{
   background:#141A22;border-right:0;border-radius:18px;padding:14px 12px 18px;
 }
@@ -936,7 +705,7 @@ section.tab-panel.active{display:block;}
 }
 .chart-card{
   position:relative;
-  background:#161C24;
+  background:var(--cartao,#161C24);
   border:1px solid rgba(255,255,255,.06);
   border-radius:16px;
   padding:20px 22px 14px;
@@ -5418,7 +5187,15 @@ let charts = {};
 function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
 
 const CHART_COLORS = { dentro:'#0CA30C', hoje:'#FAB219', atrasado:'#D03B3B', 'sem-data':'#5C6570' };
-const GRID_COLOR = 'rgba(255,255,255,0.07)';
+// cores que dependem do tema (o tema Estoque tem cartões claros): lidas das
+// variáveis --graf-* da área de conteúdo; ao trocar de tema a página recarrega
+function corGraf(nome, padrao){
+  const el = document.querySelector('main.tab-content') || document.documentElement;
+  return getComputedStyle(el).getPropertyValue(nome).trim() || padrao;
+}
+const GRID_COLOR = corGraf('--graf-grade', 'rgba(255,255,255,0.07)');
+const COR_FORTE = corGraf('--graf-forte', '#EDEFF2');
+const COR_FUNDO = corGraf('--graf-fundo', '#161C24');
 const TICK_COLOR = '#8D97A3';
 
 // registra o plugin de rótulos de valor nos gráficos, desligado por padrão
@@ -5438,11 +5215,8 @@ const TICK_COLOR = '#8D97A3';
     if(novo) document.documentElement.setAttribute('data-tema', novo); else document.documentElement.removeAttribute('data-tema');
     try{ localStorage.setItem('painel-tema', novo); }catch(e){}
     rotulo();
-    // as fontes dos gráficos vêm do tema: atualiza os que estão abertos
-    if(typeof Chart!=='undefined'){
-      Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || "'Inter', sans-serif";
-      Object.values(Chart.instances||{}).forEach(c=>{ try{ c.update('none'); }catch(e){} });
-    }
+    // cores e fontes dos gráficos vêm do tema: recarrega para redesenhar tudo
+    location.reload();
   });
 })();
 
@@ -5491,7 +5265,7 @@ function prepararGraficos(){
 
   // elementos: barras arredondadas, arcos destacados, linhas suaves
   Object.assign(d.elements.bar, { borderRadius:6, borderSkipped:false, borderWidth:0 });
-  Object.assign(d.elements.arc, { borderWidth:3, borderColor:'#161C24', borderRadius:6, hoverOffset:10 });
+  Object.assign(d.elements.arc, { borderWidth:3, borderColor:COR_FUNDO, borderRadius:6, hoverOffset:10 });
   Object.assign(d.elements.line, { tension:.38, borderWidth:2, borderCapStyle:'round', borderJoinStyle:'round' });
   Object.assign(d.elements.point, { radius:0, hoverRadius:5, borderWidth:2, hoverBorderWidth:2.5, hoverBorderColor:'#fff' });
   d.datasets.doughnut.cutout = '68%';
@@ -5524,7 +5298,7 @@ const GRAFICO_FX = {
   beforeDatasetsDraw(chart, _a, opts){
     if(!opts || !opts.trilha) return;
     const meta = chart.getDatasetMeta(0), area = chart.chartArea, ctx = chart.ctx;
-    ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.045)';
+    ctx.save(); ctx.fillStyle = corGraf('--graf-trilha', 'rgba(255,255,255,.045)');
     meta.data.forEach(bar=>{
       const h = bar.height, y = bar.y - h/2;
       ctx.beginPath();
@@ -5544,7 +5318,7 @@ const GRAFICO_FX = {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const tam = Math.max(18, Math.min(34, innerRadius*.55));
     const fonteTitulo = getComputedStyle(document.documentElement).getPropertyValue('--font-display').trim() || "'Oswald', sans-serif";
-    ctx.font = `${fonteTitulo.includes('Oswald') ? 600 : 700} ${tam}px ${fonteTitulo}`; ctx.fillStyle = '#EDEFF2';
+    ctx.font = `${fonteTitulo.includes('Oswald') ? 600 : 700} ${tam}px ${fonteTitulo}`; ctx.fillStyle = COR_FORTE;
     ctx.fillText(total.toLocaleString('pt-BR'), x, y - tam*.18);
     ctx.font = `600 ${Math.max(9, tam*.32)}px ${Chart.defaults.font.family}`; ctx.fillStyle = TICK_COLOR;
     ctx.fillText(String(opts.centro).toUpperCase(), x, y + tam*.5);
@@ -7216,9 +6990,9 @@ function fluxoRenderCharts(procs, f){
           color:'#12151A', font:{weight:'700',size:10.5}, formatter:(v)=>v }
       })).concat([{
         type:'line', label:'% em fluxo normal', data: porMes.map(g=>g.pctNormal), yAxisID:'y1', order:1,
-        borderColor:'#EDEFF2', backgroundColor:'#EDEFF2', borderWidth:3, pointRadius:4, pointHoverRadius:7,
-        pointBackgroundColor:'#12151A', pointBorderColor:'#EDEFF2', pointBorderWidth:2.5, tension:.38,
-        datalabels:{ display:true, align:'top', anchor:'end', offset:4, color:'#12151A', backgroundColor:'#EDEFF2',
+        borderColor:COR_FORTE, backgroundColor:COR_FORTE, borderWidth:3, pointRadius:4, pointHoverRadius:7,
+        pointBackgroundColor:COR_FUNDO, pointBorderColor:COR_FORTE, pointBorderWidth:2.5, tension:.38,
+        datalabels:{ display:true, align:'top', anchor:'end', offset:4, color:COR_FUNDO, backgroundColor:COR_FORTE,
           borderRadius:6, padding:{ top:2, bottom:1, left:5, right:5 }, font:{weight:'700',size:10.5},
           formatter:(v)=> v==null ? '' : Math.round(v)+'%' }
       }])
@@ -8691,7 +8465,7 @@ function renderChart(){
       pointHoverRadius: (c)=> apagada(c) ? 0 : 5,
       spanGaps: true,
       tension: 0.35,
-      pointBackgroundColor: '#161C24',
+      pointBackgroundColor: corGraf('--graf-fundo', '#161C24'),
       // área em degradê sob a linha: sempre com até 3 fornecedores; com mais, só no destacado
       fill: 'start',
       backgroundColor: (c)=>{
@@ -8733,7 +8507,7 @@ function renderChart(){
         if(!el || el.skip) return;
         g.beginPath(); g.arc(el.x, el.y, 9, 0, Math.PI*2); g.fillStyle = cor+'33'; g.fill();
         g.beginPath(); g.arc(el.x, el.y, 5, 0, Math.PI*2); g.fillStyle = cor; g.fill();
-        g.lineWidth = 2; g.strokeStyle = '#12151A'; g.stroke();
+        g.lineWidth = 2; g.strokeStyle = corGraf('--graf-fundo', '#12151A'); g.stroke();
         const txt = `${tit}  R$ ${fmtMoney(pt.v)}`;
         g.font = `700 11px ${Chart.defaults.font.family}`;
         const w = g.measureText(txt).width + 16, h = 22;
@@ -8776,7 +8550,7 @@ function renderChart(){
         legend: {
           position:'bottom',
           // mantém a ordem original mesmo quando o destaque muda a ordem de desenho
-          labels: { color:'#EDE7D9', font:{ size:11 }, sort:(a,b)=> a.datasetIndex - b.datasetIndex },
+          labels: { color:corGraf('--graf-forte', '#EDE7D9'), font:{ size:11 }, sort:(a,b)=> a.datasetIndex - b.datasetIndex },
           // clique na legenda fixa o destaque no fornecedor (clique de novo para soltar)
           onClick: (e, item, leg)=>{
             const c = leg.chart, idx = item.datasetIndex;
