@@ -1184,6 +1184,10 @@ footer.appfoot{
 #tab-cotacoes .stat-row{display:flex;gap:22px;margin-top:14px;flex-wrap:wrap;}
 #tab-cotacoes .stat{font-size:12px;color:var(--text-mut);}
 #tab-cotacoes .stat b{display:block;font-family:var(--font-mono);font-size:16px;color:var(--text);font-weight:600;margin-top:2px;}
+#tab-cotacoes .stat-min b{color:#2FBF71;}
+#tab-cotacoes .stat-max b{color:#E5484D;}
+#tab-cotacoes .stat-quem{display:block;font-size:11px;color:var(--text-mut);margin-top:2px;max-width:260px;}
+#tab-cotacoes .cot-chart-dica{font-size:11.5px;color:var(--text-mut);margin:0 0 10px;}
 
 #tab-cotacoes .count-badge, #tab-creditos .count-badge, #tab-admin .count-badge{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:3px 10px;font-size:11px;color:var(--text-mut);font-family:var(--font-mono);}
 
@@ -2470,7 +2474,8 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       </div>
     </div>
     <div class="cot-chart-card">
-      <div style="position:relative;width:100%;height:280px;">
+      <p class="cot-chart-dica">Passe o mouse sobre uma linha ou um fornecedor da legenda para destacá-lo · clique na legenda para fixar o destaque (clique de novo para soltar)</p>
+      <div style="position:relative;width:100%;height:320px;">
         <canvas id="cot-priceChart" role="img" aria-label="Gráfico de linha mostrando a variação do preço unitário do insumo e localidade selecionados ao longo do período, uma linha por fornecedor, com opção de incluir o frete no valor">Gráfico de variação de preços por fornecedor ao longo do tempo.</canvas>
       </div>
       <div class="stat-row" id="cot-chartStats"></div>
@@ -8195,17 +8200,22 @@ function renderChart(){
       const rec = filtered.find(r=>r.fornecedor===fornecedor && r.local===local && r.data===d);
       return rec ? valorDe(rec) : null;
     });
+    const cor = palette[i % palette.length];
+    // com uma série em destaque (mouse ou clique), as demais ficam apagadas
+    const apagada = (c)=> c.chart.$foco!=null && c.chart.$foco!==i;
     return {
       label,
       data: points,
-      borderColor: palette[i % palette.length],
-      _corBase: palette[i % palette.length],
+      _corBase: cor,
+      borderColor: (c)=> apagada(c) ? cor+'2E' : cor,
+      pointBorderColor: (c)=> apagada(c) ? cor+'2E' : cor,
+      borderWidth: (c)=> c.chart.$foco===i ? 3.5 : (apagada(c) ? 1.5 : 2.5),
+      pointRadius: (c)=> c.chart.$foco===i ? 4.5 : (apagada(c) ? 1.5 : 3),
+      pointHoverBorderColor: cor,
+      pointHoverRadius: (c)=> apagada(c) ? 0 : 6,
       spanGaps: true,
       tension: 0.35,
-      pointRadius: 3,
-      pointHoverRadius: 6,
       pointBackgroundColor: '#1A1E24',
-      borderWidth: 2.5,
       fill: seriesKeys.length <= 3 ? 'start' : false,
       backgroundColor: (c)=> typeof degradeArea==='function' ? degradeArea(c.chart, palette[i % palette.length], seriesKeys.length===1 ? .32 : .16) : palette[i % palette.length]
     };
@@ -8214,20 +8224,97 @@ function renderChart(){
   const ctx = document.getElementById('cot-priceChart');
   if(chart) chart.destroy();
   if(typeof prepararGraficos==='function') prepararGraficos();
+  // menor e maior preço do recorte, marcados no próprio gráfico
+  let pMin = null, pMax = null;
+  datasets.forEach((ds,di)=> ds.data.forEach((v,xi)=>{
+    if(v==null) return;
+    if(!pMin || v < pMin.v) pMin = { v, di, xi };
+    if(!pMax || v > pMax.v) pMax = { v, di, xi };
+  }));
+  const muitas = datasets.length > 1;
+  const focar = (c, idx)=>{
+    if(c.$foco === idx) return;
+    c.$foco = idx;
+    c.data.datasets.forEach((ds,j)=>{ ds.order = (idx===j) ? 0 : 1; });
+    c.update('none');
+  };
+  const extremos = {
+    id:'cotExtremos',
+    afterDatasetsDraw(c){
+      const area = c.chartArea, g = c.ctx;
+      const marcas = [[pMax,'▲ MAIOR','#E5484D',-1],[pMin,'▼ MENOR','#2FBF71',1]];
+      if(pMin && pMax && pMin.v===pMax.v) marcas.pop();
+      g.save();
+      marcas.forEach(([pt, tit, cor, dir])=>{
+        if(!pt || !c.isDatasetVisible(pt.di)) return;
+        const el = c.getDatasetMeta(pt.di).data[pt.xi];
+        if(!el || el.skip) return;
+        g.beginPath(); g.arc(el.x, el.y, 9, 0, Math.PI*2); g.fillStyle = cor+'33'; g.fill();
+        g.beginPath(); g.arc(el.x, el.y, 5, 0, Math.PI*2); g.fillStyle = cor; g.fill();
+        g.lineWidth = 2; g.strokeStyle = '#12151A'; g.stroke();
+        const txt = `${tit}  R$ ${fmtMoney(pt.v)}`;
+        g.font = "700 11px 'Inter', sans-serif";
+        const w = g.measureText(txt).width + 16, h = 22;
+        let x = Math.min(Math.max(el.x - w/2, area.left), area.right - w);
+        let y = dir < 0 ? el.y - 16 - h : el.y + 16;
+        if(y < area.top - 4) y = el.y + 16;
+        if(y + h > area.bottom + 4) y = el.y - 16 - h;
+        g.beginPath();
+        if(g.roundRect) g.roundRect(x, y, w, h, 11); else g.rect(x, y, w, h);
+        g.fillStyle = cor; g.fill();
+        g.fillStyle = '#0E1116'; g.textBaseline = 'middle'; g.textAlign = 'left';
+        g.fillText(txt, x + 8, y + h/2 + .5);
+      });
+      g.restore();
+    }
+  };
   chart = new Chart(ctx, {
     type: 'line',
     data: { labels: dates.map(fmtBRDate), datasets },
+    plugins: [extremos],
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding:{ top:10, left:4, right:4 } },
       interaction: { mode: 'index', intersect: false },
+      // passar o mouse perto de uma linha destaca o fornecedor (se nenhum estiver fixado pela legenda)
+      onHover: (evt, _els, c)=>{
+        if(!muitas || c.$fixo!=null) return;
+        if(evt.type==='mouseout'){ focar(c, null); return; }
+        const perto = c.getElementsAtEventForMode(evt, 'nearest', { intersect:false, axis:'xy' }, false)[0];
+        const dist = perto ? Math.hypot(perto.element.x - evt.x, perto.element.y - evt.y) : Infinity;
+        focar(c, dist < 28 ? perto.datasetIndex : null);
+      },
       scales: {
-        y: { ticks: { color:'#8E96A3', callback:(v)=>'R$ '+fmtMoney(v) }, grid:{ color:'rgba(255,255,255,0.06)' } },
+        y: { grace:'12%', ticks: { color:'#8E96A3', callback:(v)=>'R$ '+fmtMoney(v) }, grid:{ color:'rgba(255,255,255,0.06)' } },
         x: { ticks: { color:'#8E96A3' }, grid:{ display:false } }
       },
       plugins: {
-        legend: { position:'bottom', labels: { color:'#EDE7D9', font:{ size:11 } } },
+        legend: {
+          position:'bottom',
+          // mantém a ordem original mesmo quando o destaque muda a ordem de desenho
+          labels: { color:'#EDE7D9', font:{ size:11 }, sort:(a,b)=> a.datasetIndex - b.datasetIndex },
+          // clique na legenda fixa o destaque no fornecedor (clique de novo para soltar)
+          onClick: (e, item, leg)=>{
+            const c = leg.chart, idx = item.datasetIndex;
+            c.$fixo = (c.$fixo===idx) ? null : idx;
+            focar(c, c.$fixo);
+          },
+          onHover: (e, item, leg)=>{
+            const c = leg.chart;
+            if(e.native && e.native.target) e.native.target.style.cursor = 'pointer';
+            if(muitas && c.$fixo==null) focar(c, item.datasetIndex);
+          },
+          onLeave: (e, item, leg)=>{
+            const c = leg.chart;
+            if(e.native && e.native.target) e.native.target.style.cursor = 'default';
+            if(c.$fixo==null) focar(c, null);
+          }
+        },
         tooltip: {
+          // com destaque, mostra só o fornecedor destacado; sem destaque, do mais barato ao mais caro
+          filter: (it)=> it.chart.$foco==null || it.datasetIndex===it.chart.$foco,
+          itemSort: (a,b)=> a.parsed.y - b.parsed.y,
           callbacks:{
             label: (ctx)=> `${ctx.dataset.label}: R$ ${fmtMoney(ctx.parsed.y)}`
           }
@@ -8241,9 +8328,10 @@ function renderChart(){
   const max = Math.max(...valores);
   const media = valores.reduce((a,b)=>a+b,0)/valores.length;
   const variacao = min>0 ? (((max-min)/min)*100) : 0;
+  const quem = (pt)=> pt ? `<span class="stat-quem">${esc(datasets[pt.di].label)} · ${esc(dates.map(fmtBRDate)[pt.xi])}</span>` : '';
   statsEl.innerHTML = `
-    <div class="stat">Menor preço${withFreight?' (com frete)':''}<b>R$ ${fmtMoney(min)}</b></div>
-    <div class="stat">Maior preço${withFreight?' (com frete)':''}<b>R$ ${fmtMoney(max)}</b></div>
+    <div class="stat stat-min">Menor preço${withFreight?' (com frete)':''}<b>R$ ${fmtMoney(min)}</b>${quem(pMin)}</div>
+    <div class="stat stat-max">Maior preço${withFreight?' (com frete)':''}<b>R$ ${fmtMoney(max)}</b>${quem(pMax)}</div>
     <div class="stat">Preço médio<b>R$ ${fmtMoney(media)}</b></div>
     <div class="stat">Variação no período<b>${fmtMoney(variacao)}%</b></div>
   `;
