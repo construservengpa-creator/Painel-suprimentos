@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel de Suprimentos — Sienge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  /* tema escolhido pelo usuário (fica salvo neste navegador); aplicado antes de
+     desenhar a página para não piscar o tema padrão */
+  (function(){ try{ var t = localStorage.getItem('painel-tema'); if(t === 'estoque') document.documentElement.setAttribute('data-tema', t); }catch(e){} })();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';"></script>
 <script>
@@ -150,6 +155,60 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 ::selection{background:var(--yellow);color:#1A1E24;}
+
+/* ============================================================
+   TEMA "ESTOQUE" (opcional, escolhido pelo botão Tema no topo)
+   Azul-marinho escuro com destaque âmbar e tipografia IBM Plex Sans,
+   no padrão do painel de estoque. Só redefine as variáveis de cor e
+   fonte; os módulos que usam as variáveis acompanham sozinhos.
+   ============================================================ */
+html[data-tema="estoque"]{
+  --bg:#0E131A;
+  --asphalt:#141A22;
+  --asphalt-2:#18202A;
+  --asphalt-3:#1F2834;
+  --line:#2A3441;
+  --text:#E9EDF2;
+  --text-dim:#8E99A8;
+  --text-faint:#5F6B7A;
+  --yellow:#F5A524;
+  --yellow-dim:#8C6219;
+  --blue:#5B9BFF;
+  --font-display:'IBM Plex Sans',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --j-fundo:#0E131A; --j-painel:#161C24; --j-painel-2:#1F2834; --j-linha:#2A3441;
+  --j-texto:#E9EDF2; --j-apagado:#8E99A8; --j-amarelo:#F5A524;
+}
+html[data-tema="estoque"] .roadline{background:linear-gradient(90deg,var(--yellow),rgba(245,165,36,0) 60%);opacity:.6;height:2px;}
+html[data-tema="estoque"] h1.brand-title{font-weight:700;letter-spacing:-.015em;font-size:30px;}
+html[data-tema="estoque"] .brand-eyebrow{font-family:var(--font-body);font-weight:700;letter-spacing:.12em;}
+
+html[data-tema="estoque"]{--font-mono:'IBM Plex Sans',sans-serif;}
+html[data-tema="estoque"] body{font-variant-numeric:tabular-nums;}
+/* indicadores no padrão do estoque: cartão liso, marcador em losango e número forte */
+html[data-tema="estoque"] .kpi-card{background:#161C24;border-color:rgba(255,255,255,.06);border-radius:14px;padding:18px 18px 16px;}
+html[data-tema="estoque"] .kpi-card::before{
+  top:22px;left:18px;right:auto;width:7px;height:7px;border-radius:1px;transform:rotate(45deg);
+}
+html[data-tema="estoque"] .kpi-label{
+  font-family:var(--font-body);font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:var(--text-dim);padding-left:16px;margin-bottom:10px;
+}
+html[data-tema="estoque"] .kpi-value{font-family:var(--font-body);font-weight:700;font-size:30px;letter-spacing:-.02em;}
+html[data-tema="estoque"] .kpi-foot{color:var(--text-faint);}
+html[data-tema="estoque"] .kpi-card.c-solic::before{background:var(--yellow);}
+/* menu lateral e botões principais em âmbar */
+html[data-tema="estoque"] .tab-btn.active{background:rgba(245,165,36,.12);}
+html[data-tema="estoque"] .nav-submenu .tab-btn.active{background:rgba(245,165,36,.14);}
+
+/* botão de tema */
+.tema-btn{
+  background:var(--asphalt-2);border:1px solid var(--line);color:var(--text-dim);
+  border-radius:6px;padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:var(--font-body);white-space:nowrap;display:inline-flex;align-items:center;gap:7px;
+}
+.tema-btn:hover{border-color:var(--yellow-dim);color:var(--text);}
+.tema-btn .tema-amostra{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--yellow) 50%,var(--asphalt) 50%);box-shadow:0 0 0 1px var(--line);}
 a{color:var(--blue);}
 
 /* ---- road-line signature divider ---- */
@@ -2015,6 +2074,7 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       <h1 class="brand-title">Painel de Acompanhamento de Compras</h1>
     </div>
     <div class="topbar-actions">
+      <button class="tema-btn no-print" id="temaBtn" type="button" title="Trocar o tema do painel (fica salvo neste navegador)"><span class="tema-amostra"></span><span id="temaBtnTxt">Tema: Asfalto</span></button>
       <div class="header-auth no-print" id="headerAuth">
         <button class="auth-toggle-btn" id="authToggleBtn">👤 Entrar</button>
         <div class="auth-dropdown" id="authDropdown">
@@ -5099,6 +5159,26 @@ const TICK_COLOR = '#8D97A3';
 // e aplica o tema visual comum a todos os gráficos do painel. É chamado
 // antes de criar cada gráfico (e não só no carregamento) porque o Chart.js
 // pode chegar depois, pelo CDN reserva.
+// botão de tema: alterna entre o padrão (Asfalto) e o Estoque e redesenha os gráficos
+(function(){
+  const btn = document.getElementById('temaBtn');
+  if(!btn) return;
+  const NOMES = { estoque:'Estoque', '':'Asfalto' };
+  const rotulo = ()=>{ document.getElementById('temaBtnTxt').textContent = 'Tema: ' + NOMES[document.documentElement.getAttribute('data-tema')||'']; };
+  rotulo();
+  btn.addEventListener('click', ()=>{
+    const novo = document.documentElement.getAttribute('data-tema')==='estoque' ? '' : 'estoque';
+    if(novo) document.documentElement.setAttribute('data-tema', novo); else document.documentElement.removeAttribute('data-tema');
+    try{ localStorage.setItem('painel-tema', novo); }catch(e){}
+    rotulo();
+    // as fontes dos gráficos vêm do tema: atualiza os que estão abertos
+    if(typeof Chart!=='undefined'){
+      Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || "'Inter', sans-serif";
+      Object.values(Chart.instances||{}).forEach(c=>{ try{ c.update('none'); }catch(e){} });
+    }
+  });
+})();
+
 function prepararGraficos(){
   if(typeof Chart==='undefined' || prepararGraficos.ok) return;
   prepararGraficos.ok = true;
@@ -5107,7 +5187,7 @@ function prepararGraficos(){
     Chart.defaults.set('plugins.datalabels', { display:false });
   }
   const d = Chart.defaults;
-  d.font.family = "'Inter', sans-serif";
+  d.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || "'Inter', sans-serif";
   d.font.size = 11;
   d.color = TICK_COLOR;
   d.borderColor = GRID_COLOR;
@@ -5144,7 +5224,7 @@ function prepararGraficos(){
 
   // elementos: barras arredondadas, arcos destacados, linhas suaves
   Object.assign(d.elements.bar, { borderRadius:6, borderSkipped:false, borderWidth:0 });
-  Object.assign(d.elements.arc, { borderWidth:3, borderColor:'#20252C', borderRadius:6, hoverOffset:10 });
+  Object.assign(d.elements.arc, { borderWidth:3, borderColor:'#161C24', borderRadius:6, hoverOffset:10 });
   Object.assign(d.elements.line, { tension:.38, borderWidth:2, borderCapStyle:'round', borderJoinStyle:'round' });
   Object.assign(d.elements.point, { radius:0, hoverRadius:5, borderWidth:2, hoverBorderWidth:2.5, hoverBorderColor:'#fff' });
   d.datasets.doughnut.cutout = '68%';
@@ -5196,9 +5276,10 @@ const GRAFICO_FX = {
     const ctx = chart.ctx; ctx.save();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const tam = Math.max(18, Math.min(34, innerRadius*.55));
-    ctx.font = `600 ${tam}px 'Oswald', sans-serif`; ctx.fillStyle = '#EDEFF2';
+    const fonteTitulo = getComputedStyle(document.documentElement).getPropertyValue('--font-display').trim() || "'Oswald', sans-serif";
+    ctx.font = `${fonteTitulo.includes('Oswald') ? 600 : 700} ${tam}px ${fonteTitulo}`; ctx.fillStyle = '#EDEFF2';
     ctx.fillText(total.toLocaleString('pt-BR'), x, y - tam*.18);
-    ctx.font = `600 ${Math.max(9, tam*.32)}px 'Inter', sans-serif`; ctx.fillStyle = TICK_COLOR;
+    ctx.font = `600 ${Math.max(9, tam*.32)}px ${Chart.defaults.font.family}`; ctx.fillStyle = TICK_COLOR;
     ctx.fillText(String(opts.centro).toUpperCase(), x, y + tam*.5);
     ctx.restore();
   }
@@ -8387,7 +8468,7 @@ function renderChart(){
         g.beginPath(); g.arc(el.x, el.y, 5, 0, Math.PI*2); g.fillStyle = cor; g.fill();
         g.lineWidth = 2; g.strokeStyle = '#12151A'; g.stroke();
         const txt = `${tit}  R$ ${fmtMoney(pt.v)}`;
-        g.font = "700 11px 'Inter', sans-serif";
+        g.font = `700 11px ${Chart.defaults.font.family}`;
         const w = g.measureText(txt).width + 16, h = 22;
         let x = Math.min(Math.max(el.x - w/2, area.left), area.right - w);
         let y = dir < 0 ? el.y - 16 - h : el.y + 16;
