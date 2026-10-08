@@ -201,6 +201,27 @@ html[data-tema="estoque"] .kpi-card.c-solic::before{background:var(--yellow);}
 html[data-tema="estoque"] .tab-btn.active{background:rgba(245,165,36,.12);}
 html[data-tema="estoque"] .nav-submenu .tab-btn.active{background:rgba(245,165,36,.14);}
 
+/* fundo claro (bege quente, como o sistema de estoque): o menu e o conteúdo
+   viram painéis escuros apoiados sobre ele, então tudo o que está dentro
+   continua com as mesmas cores; só o que fica direto no fundo (topo e
+   rodapé) muda para texto escuro */
+html[data-tema="estoque"]{--pagina:#F3F0EA;--pagina-texto:#1B2129;--pagina-dim:#6B7280;}
+html[data-tema="estoque"] body{background:var(--pagina);}
+html[data-tema="estoque"] h1.brand-title{color:var(--pagina-texto);}
+html[data-tema="estoque"] .brand-eyebrow{color:#B26B00;}
+html[data-tema="estoque"] .brand-sub{color:var(--pagina-dim);}
+html[data-tema="estoque"] .roadline{background:linear-gradient(90deg,#E0A33A,rgba(224,163,58,0) 70%);opacity:.9;}
+html[data-tema="estoque"] footer.appfoot{color:var(--pagina-dim);}
+html[data-tema="estoque"] main.tab-content{
+  background:var(--bg);border-radius:18px;padding:24px 26px 30px;
+  box-shadow:0 18px 40px -24px rgba(20,24,32,.55);
+}
+html[data-tema="estoque"] nav.tabs.sidebar{
+  background:var(--bg);border-right:0;border-radius:18px;padding:14px 12px 18px;
+  box-shadow:0 18px 40px -24px rgba(20,24,32,.55);
+}
+html[data-tema="estoque"] ::selection{background:#F5A524;color:#12151A;}
+
 /* botão de tema */
 .tema-btn{
   background:var(--asphalt-2);border:1px solid var(--line);color:var(--text-dim);
