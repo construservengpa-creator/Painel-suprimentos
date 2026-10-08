@@ -610,42 +610,82 @@ section.tab-panel.active{display:block;}
 }
 .chart-card{
   position:relative;
-  background:
-    radial-gradient(120% 90% at 100% 0%, rgba(245,196,51,.07), transparent 55%),
-    linear-gradient(160deg, var(--asphalt-2) 0%, var(--asphalt) 100%);
-  border:1px solid rgba(255,255,255,.07);
+  background:#161C24;
+  border:1px solid rgba(255,255,255,.06);
   border-radius:16px;
   padding:20px 22px 14px;
-  box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 12px 32px -18px rgba(0,0,0,.75);
-  transition:border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+  box-shadow:0 10px 30px -20px rgba(0,0,0,.8);
+  transition:border-color .2s ease;
   overflow:hidden;
 }
-.chart-card::before{
-  content:"";position:absolute;left:0;right:0;top:0;height:2px;
-  background:linear-gradient(90deg, var(--yellow), rgba(245,196,51,0) 70%);
-  opacity:.55;transition:opacity .25s ease;
-}
-.chart-card:hover{
-  border-color:rgba(245,196,51,.28);
-  box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 18px 40px -18px rgba(0,0,0,.85), 0 0 0 1px rgba(245,196,51,.06);
-  transform:translateY(-2px);
-}
-.chart-card:hover::before{opacity:1;}
+.chart-card:hover{border-color:rgba(255,255,255,.12);}
 .chart-card.span2{grid-column:1 / -1;}
 .chart-title{
-  font-family:var(--font-display);
-  font-size:16px;
-  letter-spacing:.02em;
-  color:var(--text);
+  font-family:var(--font-body);
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-dim);
   margin:0 0 3px;
-  display:flex;align-items:center;gap:9px;
 }
-.chart-title::before{
-  content:"";flex:none;width:8px;height:8px;border-radius:50%;
-  background:var(--yellow);box-shadow:0 0 0 3px rgba(245,196,51,.15), 0 0 10px rgba(245,196,51,.6);
+.chart-title b{color:var(--text);font-weight:700;}
+.chart-sub{font-size:11.5px;color:var(--text-faint);margin:0 0 14px;}
+
+/* cabeçalho "herói": número grande + pílula de variação */
+.chart-hero{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 14px;}
+.chart-hero:empty{display:none;}
+.chart-hero.hero-col{flex-direction:column;align-items:flex-start;gap:10px;}
+.hero-valor{
+  font-family:var(--font-body);font-weight:800;color:var(--text);
+  font-size:32px;line-height:1;letter-spacing:-.025em;font-variant-numeric:tabular-nums;white-space:nowrap;
 }
-.chart-sub{font-size:11.5px;color:var(--text-dim);margin:0 0 14px 17px;}
-@media (prefers-reduced-motion:reduce){.chart-card,.chart-card::before{transition:none;}.chart-card:hover{transform:none;}}
+.hero-valor .hv-pre{font-size:.5em;font-weight:700;color:var(--text-dim);margin-right:.2em;vertical-align:.55em;letter-spacing:0;}
+.hero-valor .hv-dec{font-size:.5em;font-weight:700;color:var(--text-dim);letter-spacing:0;}
+.chart-hero.hero-xl .hero-valor{font-size:58px;}
+.hero-pill{
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  font-size:12px;font-weight:700;border-radius:999px;padding:5px 12px;
+  background:rgba(255,255,255,.06);color:var(--text-dim);
+}
+.hero-pill i{font-style:normal;font-weight:600;color:var(--text-dim);}
+.hero-pill.tom-bom{background:rgba(47,191,113,.12);color:#3DDC84;}
+.hero-pill.tom-ruim{background:rgba(229,72,77,.13);color:#FF6B6F;}
+.hero-pill.tom-alerta{background:rgba(250,178,25,.13);color:#FAB219;}
+
+/* cabeçalho com controles à direita (período / datas) */
+.hero-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.hero-ctrl{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+.seg-periodo{display:inline-flex;gap:2px;padding:3px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(0,0,0,.18);}
+.seg-periodo button, #tab-cotacoes .seg-periodo button{
+  border:0;background:transparent;color:var(--text-dim);font:600 12.5px var(--font-body);
+  padding:7px 13px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s;
+}
+.seg-periodo button:hover, #tab-cotacoes .seg-periodo button:hover{color:var(--text);background:rgba(255,255,255,.05);}
+.seg-periodo button.active, #tab-cotacoes .seg-periodo button.active{background:#F5A524;color:#12151A;}
+.hero-datas{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-faint);}
+.hero-datas input[type=date]{
+  background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--text);
+  font:500 12.5px var(--font-body);padding:7px 10px;color-scheme:dark;
+}
+
+/* faixa de indicadores no rodapé do cartão */
+.chart-strip{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  margin:14px -22px -14px;border-top:1px solid rgba(255,255,255,.07);
+}
+.chart-strip:empty{display:none;}
+.strip-item{padding:16px 22px;border-left:1px solid rgba(255,255,255,.07);min-width:0;}
+.strip-item:first-child{border-left:0;}
+.strip-lbl{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--text-dim);}
+.strip-lbl::before{content:"";flex:none;width:7px;height:7px;transform:rotate(45deg);border-radius:1px;background:var(--c,#5C6570);}
+.strip-val{font:800 22px/1.15 var(--font-body);color:var(--text);margin-top:8px;letter-spacing:-.015em;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.strip-sub{font-size:11.5px;color:var(--text-faint);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@media (max-width:640px){
+  .chart-hero.hero-xl .hero-valor{font-size:40px;}
+  .hero-ctrl{align-items:flex-start;}
+  .chart-strip{grid-template-columns:1fr 1fr;}
+  .strip-item:nth-child(odd){border-left:0;}
+  .strip-item:nth-child(n+3){border-top:1px solid rgba(255,255,255,.07);}
+}
 .chart-wrap{position:relative;height:230px;}
 .chart-wrap.tall{height:270px;}
 /* wrap com rolagem interna: mantém o card do gráfico dentro da altura da tela (ideal para TV/projeção),
@@ -1180,14 +1220,10 @@ footer.appfoot{
 #tab-cotacoes tbody tr.is-min td.price-cell{color:var(--good);font-weight:600;}
 
 #tab-cotacoes .toolbar, #tab-creditos .toolbar, #tab-admin .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-#tab-cotacoes .cot-chart-card{background:radial-gradient(120% 90% at 100% 0%, rgba(245,196,51,.07), transparent 55%), linear-gradient(160deg, var(--surface) 0%, rgba(0,0,0,.18) 100%), var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:22px;box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 12px 32px -18px rgba(0,0,0,.75);}
-#tab-cotacoes .stat-row{display:flex;gap:22px;margin-top:14px;flex-wrap:wrap;}
-#tab-cotacoes .stat{font-size:12px;color:var(--text-mut);}
-#tab-cotacoes .stat b{display:block;font-family:var(--font-mono);font-size:16px;color:var(--text);font-weight:600;margin-top:2px;}
-#tab-cotacoes .stat-min b{color:#2FBF71;}
-#tab-cotacoes .stat-max b{color:#E5484D;}
-#tab-cotacoes .stat-quem{display:block;font-size:11px;color:var(--text-mut);margin-top:2px;max-width:260px;}
-#tab-cotacoes .cot-chart-dica{font-size:11.5px;color:var(--text-mut);margin:0 0 10px;}
+#tab-cotacoes .cot-chart-card{padding:24px 26px 14px;}
+#tab-cotacoes .cot-chart-card .chart-strip{margin:14px -26px -14px;}
+#tab-cotacoes .cot-chart-card .strip-item{padding:16px 26px;}
+#tab-cotacoes .cot-chart-dica{font-size:11.5px;color:var(--text-faint);margin:0 0 6px;}
 
 #tab-cotacoes .count-badge, #tab-creditos .count-badge, #tab-admin .count-badge{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:3px 10px;font-size:11px;color:var(--text-mut);font-family:var(--font-mono);}
 
@@ -2072,26 +2108,31 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       <div class="chart-card">
         <p class="chart-title">Solicitações pendentes por comprador distribuído</p>
         <p class="chart-sub">Somente solicitações com item autorizado</p>
+        <div class="chart-hero" id="heroCompradorSolic"></div>
         <div class="chart-wrap chart-wrap-scroll"><div class="chart-scroll-inner"><canvas id="chartCompradorSolic"></canvas></div></div>
       </div>
       <div class="chart-card">
         <p class="chart-title">Prazo de atendimento — solicitações</p>
         <p class="chart-sub">Data para chegada à obra vs. hoje</p>
+        <div class="chart-hero" id="heroPrazoSolic"></div>
         <div class="chart-wrap"><canvas id="chartPrazoSolic"></canvas></div>
       </div>
       <div class="chart-card">
         <p class="chart-title">Pedidos pendentes de entrega por centro de custo</p>
         <p class="chart-sub">Obras com saldo em aberto</p>
+        <div class="chart-hero" id="heroCentroPed"></div>
         <div class="chart-wrap chart-wrap-scroll"><div class="chart-scroll-inner"><canvas id="chartCentroPed"></canvas></div></div>
       </div>
       <div class="chart-card">
         <p class="chart-title">Prazo de entrega — pedidos</p>
         <p class="chart-sub">Previsão de entrega vs. hoje</p>
+        <div class="chart-hero" id="heroPrazoPed"></div>
         <div class="chart-wrap"><canvas id="chartPrazoPed"></canvas></div>
       </div>
       <div class="chart-card span2">
         <p class="chart-title">Materiais críticos (CAP Asfalto · Emulsão · Diesel) — status de entrega</p>
         <p class="chart-sub">Pedidos pendentes envolvendo insumos críticos de pavimentação</p>
+        <div class="chart-hero" id="heroCriticos"></div>
         <div class="chart-wrap tall"><canvas id="chartCriticos"></canvas></div>
       </div>
     </div>
@@ -2366,7 +2407,9 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       <div class="chart-card span2">
         <p class="chart-title">Evolução mensal — fluxo normal × desvios</p>
         <p class="chart-sub">Processos por mês de emissão da nota fiscal · linha: % em fluxo normal</p>
+        <div class="chart-hero" id="heroFluxoMes"></div>
         <div class="chart-wrap tall"><canvas id="chartFluxoMes"></canvas></div>
+        <div class="chart-strip" id="stripFluxoMes"></div>
       </div>
       <div class="chart-card">
         <div class="fluxo-chart-head">
@@ -2468,17 +2511,34 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       <div class="toolbar">
         <select id="cot-chartInsumo"></select>
         <select id="cot-chartLocal"><option value="">Todas as localidades</option></select>
-        <input type="date" id="cot-chartStart">
-        <input type="date" id="cot-chartEnd">
         <label style="font-size:12px;color:var(--text-mut);display:flex;align-items:center;gap:6px;"><input type="checkbox" id="cot-chartFreight" checked style="width:auto;">Incluir frete</label>
       </div>
     </div>
-    <div class="cot-chart-card">
+    <div class="chart-card cot-chart-card">
+      <div class="hero-head">
+        <div>
+          <p class="chart-title" id="cot-heroLabel">Menor preço</p>
+          <div class="chart-hero hero-col hero-xl" id="cot-hero"></div>
+        </div>
+        <div class="hero-ctrl">
+          <div class="seg-periodo" id="cot-periodo" role="group" aria-label="Período">
+            <button type="button" data-dias="30">30 dias</button>
+            <button type="button" data-dias="90">90 dias</button>
+            <button type="button" data-dias="365">12 meses</button>
+            <button type="button" data-dias="0">Tudo</button>
+          </div>
+          <div class="hero-datas">
+            <input type="date" id="cot-chartStart" aria-label="Data inicial">
+            <span>até</span>
+            <input type="date" id="cot-chartEnd" aria-label="Data final">
+          </div>
+        </div>
+      </div>
       <p class="cot-chart-dica">Passe o mouse sobre uma linha ou um fornecedor da legenda para destacá-lo · clique na legenda para fixar o destaque (clique de novo para soltar)</p>
       <div style="position:relative;width:100%;height:320px;">
         <canvas id="cot-priceChart" role="img" aria-label="Gráfico de linha mostrando a variação do preço unitário do insumo e localidade selecionados ao longo do período, uma linha por fornecedor, com opção de incluir o frete no valor">Gráfico de variação de preços por fornecedor ao longo do tempo.</canvas>
       </div>
-      <div class="stat-row" id="cot-chartStats"></div>
+      <div class="chart-strip" id="cot-chartStats"></div>
     </div>
   </div>
   </div>
@@ -5031,7 +5091,7 @@ let charts = {};
 function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
 
 const CHART_COLORS = { dentro:'#0CA30C', hoje:'#FAB219', atrasado:'#D03B3B', 'sem-data':'#5C6570' };
-const GRID_COLOR = 'rgba(255,255,255,0.06)';
+const GRID_COLOR = 'rgba(255,255,255,0.07)';
 const TICK_COLOR = '#8D97A3';
 
 // registra o plugin de rótulos de valor nos gráficos, desligado por padrão
@@ -5085,12 +5145,12 @@ function prepararGraficos(){
   // elementos: barras arredondadas, arcos destacados, linhas suaves
   Object.assign(d.elements.bar, { borderRadius:6, borderSkipped:false, borderWidth:0 });
   Object.assign(d.elements.arc, { borderWidth:3, borderColor:'#20252C', borderRadius:6, hoverOffset:10 });
-  Object.assign(d.elements.line, { tension:.38, borderWidth:2.5, borderCapStyle:'round' });
-  Object.assign(d.elements.point, { radius:3, hoverRadius:6, borderWidth:2, hoverBorderWidth:2.5, hoverBorderColor:'#fff' });
+  Object.assign(d.elements.line, { tension:.38, borderWidth:2, borderCapStyle:'round', borderJoinStyle:'round' });
+  Object.assign(d.elements.point, { radius:0, hoverRadius:5, borderWidth:2, hoverBorderWidth:2.5, hoverBorderColor:'#fff' });
   d.datasets.doughnut.cutout = '68%';
 
-  // eixos: sem linha de borda, grade pontilhada e discreta
-  Object.assign(d.scale.border, { display:false, dash:[3,4] });
+  // eixos: sem linha de borda, grade fina e discreta
+  Object.assign(d.scale.border, { display:false });
   d.scale.grid.color = GRID_COLOR;
   d.scale.grid.drawTicks = false;
   d.scale.ticks.padding = 8;
@@ -5113,15 +5173,6 @@ const GRAFICO_FX = {
       ds.backgroundColor = (ctx)=>degradeBarra(ctx.chart, cor);
     });
   },
-  // brilho suave nas linhas
-  beforeDatasetDraw(chart, args){
-    const meta = args.meta;
-    if(meta.type!=='line') return;
-    const ctx = chart.ctx; ctx.save();
-    ctx.shadowColor = typeof meta.dataset.options.borderColor==='string' ? meta.dataset.options.borderColor : 'rgba(255,255,255,.4)';
-    ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
-  },
-  afterDatasetDraw(chart, args){ if(args.meta.type==='line') chart.ctx.restore(); },
   // trilha de fundo (0 a 100%) atrás das barras horizontais (options.plugins.graficoFx.trilha)
   beforeDatasetsDraw(chart, _a, opts){
     if(!opts || !opts.trilha) return;
@@ -5152,6 +5203,34 @@ const GRAFICO_FX = {
     ctx.restore();
   }
 };
+// eixo de valores no estilo "painel financeiro": rótulos dentro do gráfico,
+// apoiados sobre a linha de grade, sem linha de eixo
+function eixoValor(extra){
+  const e = extra || {};
+  return Object.assign({}, e, {
+    border:{ display:false },
+    grid:Object.assign({ color:GRID_COLOR, drawTicks:false }, e.grid),
+    ticks:Object.assign({ mirror:true, labelOffset:-9, padding:2, z:1, color:TICK_COLOR, font:{ size:10.5, weight:'600' } }, e.ticks)
+  });
+}
+// número grande do cabeçalho: prefixo e casas decimais em tamanho menor
+function heroNumero(valor, o){
+  o = o || {};
+  if(valor==null) return '<div class="hero-valor">—</div>';
+  const casas = o.casas==null ? 0 : o.casas;
+  const txt = Number(valor||0).toLocaleString('pt-BR', { minimumFractionDigits:casas, maximumFractionDigits:casas });
+  const i = txt.lastIndexOf(',');
+  const inteiro = casas && i>=0 ? txt.slice(0,i) : txt, dec = casas && i>=0 ? txt.slice(i) : '';
+  return `<div class="hero-valor">${o.pre?`<span class="hv-pre">${o.pre}</span>`:''}${inteiro}${dec||o.suf?`<span class="hv-dec">${dec}${o.suf||''}</span>`:''}</div>`;
+}
+function heroPilula(texto, tom, resto){
+  return `<span class="hero-pill tom-${tom||'neutro'}">${texto}${resto?` <i>${resto}</i>`:''}</span>`;
+}
+function setHero(id, html){ const el = document.getElementById(id); if(el) el.innerHTML = html; }
+// faixa de indicadores: [{ rotulo, valor, sub, cor }]
+function stripHTML(itens){
+  return itens.map(it=>`<div class="strip-item" style="--c:${it.cor||'#5C6570'}"><div class="strip-lbl">${it.rotulo}</div><div class="strip-val">${it.valor}</div>${it.sub?`<div class="strip-sub" title="${String(it.sub).replace(/<[^>]+>/g,'').replace(/"/g,'&quot;')}">${it.sub}</div>`:''}</div>`).join('');
+}
 function misturarCor(hex, alvo, t){
   const a = [1,3,5].map(i=>parseInt(hex.substr(i,2),16)), b = [1,3,5].map(i=>parseInt(alvo.substr(i,2),16));
   return '#' + a.map((v,i)=>Math.round(v+(b[i]-v)*t).toString(16).padStart(2,'0')).join('');
@@ -5267,6 +5346,18 @@ function renderOverview(){
     </div>
   `;
 
+  // cabeçalhos dos gráficos: número grande + pílula de situação
+  const pilulaAtraso = (atrasados, total)=> atrasados
+    ? heroPilula(`▲ ${fxNum(atrasados)} fora do prazo`, 'ruim', `${fxDec(total ? atrasados/total*100 : 0)}% do total`)
+    : heroPilula('Tudo dentro do prazo', 'bom');
+  const pilulaPct = (pct, atrasados)=> pct==null ? heroPilula('Sem datas definidas')
+    : heroPilula('no prazo', pct>=80 ? 'bom' : (pct>=60 ? 'alerta' : 'ruim'), `${fxNum(atrasados)} fora do prazo`);
+  setHero('heroCompradorSolic', heroNumero(solicPend.length) + pilulaAtraso(solicAtrasadas.length, solicPend.length));
+  setHero('heroPrazoSolic', heroNumero(pctSolicNoPrazo,{suf:'%'}) + pilulaPct(pctSolicNoPrazo, solicAtrasadas.length));
+  setHero('heroCentroPed', heroNumero(pedPend.length) + pilulaAtraso(pedAtrasados.length, pedPend.length));
+  setHero('heroPrazoPed', heroNumero(pctPedNoPrazo,{suf:'%'}) + pilulaPct(pctPedNoPrazo, pedAtrasados.length));
+  setHero('heroCriticos', heroNumero(criticosPend.length) + pilulaAtraso(criticosAtrasados.length, criticosPend.length));
+
   // Chart 1 — pendentes por comprador distribuído (total + em dia + em atraso)
   const compradorStats = {};
   solicPend.forEach(r=>{
@@ -5353,11 +5444,11 @@ function renderOverview(){
         label: s==='sem-data'?'Sem data':(s==='dentro'?'Dentro do prazo':s==='hoje'?'No dia':'Fora do prazo'),
         data: stackData[s], backgroundColor: CHART_COLORS[s], borderRadius:6, maxBarThickness:56
       }))},
-    options:{ responsive:true, maintainAspectRatio:false,
+    options:{ responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:16 } },
       plugins:{legend:{position:'bottom'},
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:11}, formatter:(v)=>v }},
       scales:{ x:{stacked:true,grid:{display:false},ticks:{color:TICK_COLOR,font:{size:12}}},
-               y:{stacked:true,grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,precision:0}} } }
+               y:eixoValor({ stacked:true, ticks:{ precision:0 } }) } }
   });
 }
 
@@ -6267,8 +6358,8 @@ function renderPiCharts(items){
     type:'bar',
     data:{ labels:obras, datasets: materiais.map(m=>({label:m, data:dataByMat[m], backgroundColor:materialColor(m), stack:'s', maxBarThickness:48})) },
     options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, ticks:{precision:0}} },
+      responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:16 } },
+      scales:{ x:{stacked:true, grid:{display:false}}, y:eixoValor({ stacked:true, ticks:{ precision:0 } }) },
       plugins:{ legend:{position:'bottom'},
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:10}, formatter:(v)=>v } }
     }
@@ -6794,10 +6885,24 @@ function fluxoRenderCharts(procs, f){
       },
       scales:{
         x:{ stacked:true, grid:{display:false}, ticks:{color:TICK_COLOR} },
-        y:{ stacked:true, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,precision:0}, title:{display:true,text:'processos',color:TICK_COLOR,font:{size:10.5}} },
-        y1:{ position:'right', min:0, max:100, grid:{display:false}, ticks:{color:TICK_COLOR,callback:(v)=>v+'%'} }
+        y: eixoValor({ stacked:true, ticks:{ precision:0 } }),
+        y1:{ position:'right', min:0, max:100, grid:{display:false}, border:{display:false}, ticks:{color:TICK_COLOR,font:{size:10.5,weight:'600'},callback:(v)=>v+'%'} }
       } }
   });
+
+  // cabeçalho (% em fluxo normal no recorte e variação do 1º ao último mês) e faixa de totais
+  const tot = fluxoResumo(procs);
+  let pilFluxo = heroPilula('em fluxo normal');
+  const mesesValidos = porMes.filter(g=>g.pctNormal!=null);
+  if(mesesValidos.length >= 2){
+    const g0 = mesesValidos[0], g1 = mesesValidos[mesesValidos.length-1], dif = g1.pctNormal - g0.pctNormal;
+    pilFluxo = heroPilula(`${dif>0?'▲':(dif<0?'▼':'■')} ${fxDec(Math.abs(dif))} p.p.`, dif>0 ? 'bom' : (dif<0 ? 'ruim' : 'neutro'),
+      `${esc(g0.nome)} → ${esc(g1.nome)}`);
+  }
+  setHero('heroFluxoMes', heroNumero(tot.pctNormal,{casas:1,suf:'%'}) + pilFluxo);
+  document.getElementById('stripFluxoMes').innerHTML = stripHTML(
+    [{ rotulo:'Processos', valor:fxNum(tot.n), sub:`${fxNum(porMes.length)} mês(es)`, cor:'#8E96A3' }].concat(
+    classes.map(k=>({ rotulo:esc(FLUXO_CLASSES[k].label), valor:fxNum(tot[k]), sub:`${fxPct(tot.n ? tot[k]/tot.n*100 : null)} dos processos`, cor:FLUXO_CLASSES[k].cor }))));
 
   // 2) e 3) rankings de índice de desvio
   fluxoRankChart('fluxoComprador', 'chartFluxoComprador', 'fluxoRankCompSub', 'comprador', procs, f.minProc);
@@ -8166,6 +8271,25 @@ function renderDashboard(){
   }).join('');
 }
 
+// botões de período (30 dias / 90 dias / 12 meses / tudo): preenchem as datas do filtro
+function cotIsoHoje(desloc){
+  const d = new Date(); d.setDate(d.getDate() - (desloc||0));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function cotAplicarPeriodo(dias){
+  document.getElementById('cot-chartStart').value = dias ? cotIsoHoje(dias) : '';
+  document.getElementById('cot-chartEnd').value = dias ? cotIsoHoje(0) : '';
+  renderChart();
+}
+function cotMarcarPeriodo(){
+  const ini = document.getElementById('cot-chartStart').value, fim = document.getElementById('cot-chartEnd').value;
+  document.querySelectorAll('#cot-periodo button').forEach(b=>{
+    const dias = Number(b.getAttribute('data-dias'));
+    const ativo = dias ? (ini===cotIsoHoje(dias) && (!fim || fim===cotIsoHoje(0))) : (!ini && !fim);
+    b.classList.toggle('active', ativo);
+  });
+}
+
 function renderChart(){
   const insumo = document.getElementById('cot-chartInsumo').value;
   const localFiltro = document.getElementById('cot-chartLocal').value;
@@ -8178,11 +8302,14 @@ function renderChart(){
   if(end) filtered = filtered.filter(r=>r.data <= end);
 
   const statsEl = document.getElementById('cot-chartStats');
+  cotMarcarPeriodo();
+  document.getElementById('cot-heroLabel').innerHTML = `Menor preço em <b>${esc(insumo||'—')}</b>${localFiltro?` · <b>${esc(localFiltro)}</b>`:''}`;
 
   if(filtered.length === 0){
     if(chart){ chart.destroy(); chart = null; }
     const localTxt = localFiltro ? ` em ${esc(localFiltro)}` : '';
-    statsEl.innerHTML = `<div class="stat">Sem dados para este período${localTxt}.</div>`;
+    setHero('cot-hero', heroPilula(`Sem cotações neste período${localTxt}`));
+    statsEl.innerHTML = '';
     return;
   }
 
@@ -8191,7 +8318,8 @@ function renderChart(){
 
   const seriesKeys = uniqueSorted(filtered.map(r => localFiltro ? r.fornecedor : `${r.fornecedor}|||${r.local}`));
   const dates = uniqueSorted(filtered.map(r=>r.data));
-  const palette = ['#C99A3F','#6E9B72','#7A8FBF','#C1613F','#B98FC9','#5FA8A0','#D4A574','#8E96A3'];
+  const palette = ['#F5A524','#6E9B72','#7A8FBF','#C1613F','#B98FC9','#5FA8A0','#D4A574','#8E96A3'];
+  const raioBase = dates.length <= 20 ? 2.5 : 0;
 
   const datasets = seriesKeys.map((key,i)=>{
     const [fornecedor, local] = localFiltro ? [key, localFiltro] : key.split('|||');
@@ -8209,15 +8337,21 @@ function renderChart(){
       _corBase: cor,
       borderColor: (c)=> apagada(c) ? cor+'2E' : cor,
       pointBorderColor: (c)=> apagada(c) ? cor+'2E' : cor,
-      borderWidth: (c)=> c.chart.$foco===i ? 3.5 : (apagada(c) ? 1.5 : 2.5),
-      pointRadius: (c)=> c.chart.$foco===i ? 4.5 : (apagada(c) ? 1.5 : 3),
+      borderWidth: (c)=> c.chart.$foco===i ? 3 : (apagada(c) ? 1.25 : 2),
+      pointRadius: (c)=> c.chart.$foco===i ? 4 : (apagada(c) ? 0 : raioBase),
       pointHoverBorderColor: cor,
-      pointHoverRadius: (c)=> apagada(c) ? 0 : 6,
+      pointHoverRadius: (c)=> apagada(c) ? 0 : 5,
       spanGaps: true,
       tension: 0.35,
-      pointBackgroundColor: '#1A1E24',
-      fill: seriesKeys.length <= 3 ? 'start' : false,
-      backgroundColor: (c)=> typeof degradeArea==='function' ? degradeArea(c.chart, palette[i % palette.length], seriesKeys.length===1 ? .32 : .16) : palette[i % palette.length]
+      pointBackgroundColor: '#161C24',
+      // área em degradê sob a linha: sempre com até 3 fornecedores; com mais, só no destacado
+      fill: 'start',
+      backgroundColor: (c)=>{
+        const foco = c.chart.$foco;
+        const mostra = foco===i || (foco==null && seriesKeys.length <= 3);
+        if(!mostra) return 'transparent';
+        return typeof degradeArea==='function' ? degradeArea(c.chart, cor, (seriesKeys.length===1 || foco===i) ? .30 : .14) : 'transparent';
+      }
     };
   });
 
@@ -8257,8 +8391,9 @@ function renderChart(){
         const w = g.measureText(txt).width + 16, h = 22;
         let x = Math.min(Math.max(el.x - w/2, area.left), area.right - w);
         let y = dir < 0 ? el.y - 16 - h : el.y + 16;
-        if(y < area.top - 4) y = el.y + 16;
-        if(y + h > area.bottom + 4) y = el.y - 16 - h;
+        if(y < area.top) y = el.y + 16;
+        if(y + h > area.bottom - 2) y = el.y - 16 - h;
+        if(el.x - area.left < w/2) x = Math.max(x, el.x + 14);
         g.beginPath();
         if(g.roundRect) g.roundRect(x, y, w, h, 11); else g.rect(x, y, w, h);
         g.fillStyle = cor; g.fill();
@@ -8275,7 +8410,7 @@ function renderChart(){
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding:{ top:10, left:4, right:4 } },
+      layout: { padding:{ top:18, left:0, right:4 } },
       interaction: { mode: 'index', intersect: false },
       // passar o mouse perto de uma linha destaca o fornecedor (se nenhum estiver fixado pela legenda)
       onHover: (evt, _els, c)=>{
@@ -8286,8 +8421,8 @@ function renderChart(){
         focar(c, dist < 28 ? perto.datasetIndex : null);
       },
       scales: {
-        y: { grace:'12%', ticks: { color:'#8E96A3', callback:(v)=>'R$ '+fmtMoney(v) }, grid:{ color:'rgba(255,255,255,0.06)' } },
-        x: { ticks: { color:'#8E96A3' }, grid:{ display:false } }
+        y: eixoValor({ grace:'12%', ticks:{ callback:(v)=>'R$ '+fmtMoney(v) } }),
+        x: { ticks: { color:'#8E96A3', font:{ size:10.5, weight:'600' }, maxTicksLimit:8, maxRotation:0 }, grid:{ display:false }, border:{ display:false } }
       },
       plugins: {
         legend: {
@@ -8328,13 +8463,30 @@ function renderChart(){
   const max = Math.max(...valores);
   const media = valores.reduce((a,b)=>a+b,0)/valores.length;
   const variacao = min>0 ? (((max-min)/min)*100) : 0;
-  const quem = (pt)=> pt ? `<span class="stat-quem">${esc(datasets[pt.di].label)} · ${esc(dates.map(fmtBRDate)[pt.xi])}</span>` : '';
-  statsEl.innerHTML = `
-    <div class="stat stat-min">Menor preço${withFreight?' (com frete)':''}<b>R$ ${fmtMoney(min)}</b>${quem(pMin)}</div>
-    <div class="stat stat-max">Maior preço${withFreight?' (com frete)':''}<b>R$ ${fmtMoney(max)}</b>${quem(pMax)}</div>
-    <div class="stat">Preço médio<b>R$ ${fmtMoney(media)}</b></div>
-    <div class="stat">Variação no período<b>${fmtMoney(variacao)}%</b></div>
-  `;
+  const quem = (pt)=> pt ? `${esc(datasets[pt.di].label)} · ${esc(fmtBRDate(dates[pt.xi]))}` : '';
+  const frete = withFreight ? ' (com frete)' : '';
+  statsEl.innerHTML = stripHTML([
+    { rotulo:'Menor preço'+frete, valor:'R$ '+fmtMoney(min), sub:quem(pMin), cor:'#2FBF71' },
+    { rotulo:'Maior preço'+frete, valor:'R$ '+fmtMoney(max), sub:quem(pMax), cor:'#E5484D' },
+    { rotulo:'Preço médio', valor:'R$ '+fmtMoney(media), sub:`${valores.length} cotação(ões) · ${seriesKeys.length} fornecedor(es)`, cor:'#F5A524' },
+    { rotulo:'Variação no período', valor:fmtMoney(variacao)+'%', sub:'entre o menor e o maior preço', cor:'#8E96A3' }
+  ]);
+
+  // cabeçalho: menor preço na data mais recente, comparado ao da primeira data do período
+  const menorNa = (d)=> Math.min(...filtered.filter(r=>r.data===d).map(valorDe));
+  const ultima = dates[dates.length-1], primeira = dates[0];
+  const atual = menorNa(ultima);
+  let pill;
+  if(dates.length < 2){
+    pill = heroPilula('Uma única data no período', 'neutro', `em ${esc(fmtBRDate(ultima))}`);
+  } else {
+    const ini = menorNa(primeira), dif = atual - ini, pct = ini ? dif/ini*100 : 0;
+    const seta = dif > 0 ? '▲' : (dif < 0 ? '▼' : '■');
+    // preço que sobe é ruim (vermelho), que cai é bom (verde)
+    pill = heroPilula(`${seta} R$ ${fmtMoney(Math.abs(dif))} (${dif>=0?'+':'−'}${fmtMoney(Math.abs(pct))}%)`, dif>0 ? 'ruim' : (dif<0 ? 'bom' : 'neutro'),
+      `desde ${esc(fmtBRDate(primeira))}`);
+  }
+  setHero('cot-hero', heroNumero(atual, { pre:'R$', casas:2 }) + pill);
 }
 
 function renderTable(){
@@ -10339,6 +10491,7 @@ async function init(){
   document.getElementById('cot-chartStart').addEventListener('change', renderChart);
   document.getElementById('cot-chartEnd').addEventListener('change', renderChart);
   document.getElementById('cot-chartFreight').addEventListener('change', renderChart);
+  document.querySelectorAll('#cot-periodo button').forEach(b=>b.addEventListener('click', ()=> cotAplicarPeriodo(Number(b.getAttribute('data-dias')))));
   document.getElementById('cot-filterInsumo').addEventListener('input', renderTable);
   document.getElementById('cot-btnAdd').addEventListener('click', addRecord);
   document.getElementById('cot-btnExportCSV').addEventListener('click', exportCSV);
