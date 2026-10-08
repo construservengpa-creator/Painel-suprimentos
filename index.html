@@ -609,19 +609,43 @@ section.tab-panel.active{display:block;}
   margin-bottom:8px;
 }
 .chart-card{
-  background:var(--asphalt-2);
-  border:1px solid var(--line);
-  border-radius:8px;
-  padding:18px 20px 10px;
+  position:relative;
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(245,196,51,.07), transparent 55%),
+    linear-gradient(160deg, var(--asphalt-2) 0%, var(--asphalt) 100%);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;
+  padding:20px 22px 14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 12px 32px -18px rgba(0,0,0,.75);
+  transition:border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+  overflow:hidden;
 }
+.chart-card::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg, var(--yellow), rgba(245,196,51,0) 70%);
+  opacity:.55;transition:opacity .25s ease;
+}
+.chart-card:hover{
+  border-color:rgba(245,196,51,.28);
+  box-shadow:0 1px 0 rgba(255,255,255,.05) inset, 0 18px 40px -18px rgba(0,0,0,.85), 0 0 0 1px rgba(245,196,51,.06);
+  transform:translateY(-2px);
+}
+.chart-card:hover::before{opacity:1;}
 .chart-card.span2{grid-column:1 / -1;}
 .chart-title{
   font-family:var(--font-display);
-  font-size:15px;
+  font-size:16px;
+  letter-spacing:.02em;
   color:var(--text);
-  margin:0 0 2px;
+  margin:0 0 3px;
+  display:flex;align-items:center;gap:9px;
 }
-.chart-sub{font-size:11.5px;color:var(--text-faint);margin:0 0 12px;}
+.chart-title::before{
+  content:"";flex:none;width:8px;height:8px;border-radius:50%;
+  background:var(--yellow);box-shadow:0 0 0 3px rgba(245,196,51,.15), 0 0 10px rgba(245,196,51,.6);
+}
+.chart-sub{font-size:11.5px;color:var(--text-dim);margin:0 0 14px 17px;}
+@media (prefers-reduced-motion:reduce){.chart-card,.chart-card::before{transition:none;}.chart-card:hover{transform:none;}}
 .chart-wrap{position:relative;height:230px;}
 .chart-wrap.tall{height:270px;}
 /* wrap com rolagem interna: mantém o card do gráfico dentro da altura da tela (ideal para TV/projeção),
@@ -1156,7 +1180,7 @@ footer.appfoot{
 #tab-cotacoes tbody tr.is-min td.price-cell{color:var(--good);font-weight:600;}
 
 #tab-cotacoes .toolbar, #tab-creditos .toolbar, #tab-admin .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-#tab-cotacoes .cot-chart-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;}
+#tab-cotacoes .cot-chart-card{background:radial-gradient(120% 90% at 100% 0%, rgba(245,196,51,.07), transparent 55%), linear-gradient(160deg, var(--surface) 0%, rgba(0,0,0,.18) 100%), var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:22px;box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 12px 32px -18px rgba(0,0,0,.75);}
 #tab-cotacoes .stat-row{display:flex;gap:22px;margin-top:14px;flex-wrap:wrap;}
 #tab-cotacoes .stat{font-size:12px;color:var(--text-mut);}
 #tab-cotacoes .stat b{display:block;font-family:var(--font-mono);font-size:16px;color:var(--text);font-weight:600;margin-top:2px;}
@@ -5006,10 +5030,148 @@ const GRID_COLOR = 'rgba(255,255,255,0.06)';
 const TICK_COLOR = '#8D97A3';
 
 // registra o plugin de rótulos de valor nos gráficos, desligado por padrão
-// (cada gráfico liga explicitamente via plugins.datalabels na sua config)
-if(typeof Chart!=='undefined' && typeof ChartDataLabels!=='undefined'){
-  Chart.register(ChartDataLabels);
-  Chart.defaults.set('plugins.datalabels', { display:false });
+// (cada gráfico liga explicitamente via plugins.datalabels na sua config),
+// e aplica o tema visual comum a todos os gráficos do painel. É chamado
+// antes de criar cada gráfico (e não só no carregamento) porque o Chart.js
+// pode chegar depois, pelo CDN reserva.
+function prepararGraficos(){
+  if(typeof Chart==='undefined' || prepararGraficos.ok) return;
+  prepararGraficos.ok = true;
+  if(typeof ChartDataLabels!=='undefined'){
+    Chart.register(ChartDataLabels);
+    Chart.defaults.set('plugins.datalabels', { display:false });
+  }
+  const d = Chart.defaults;
+  d.font.family = "'Inter', sans-serif";
+  d.font.size = 11;
+  d.color = TICK_COLOR;
+  d.borderColor = GRID_COLOR;
+  d.animation.duration = 900;
+  d.animation.easing = 'easeOutQuart';
+  d.layout = Object.assign(d.layout||{}, { padding:{ top:6 } });
+
+  // legenda com marcadores redondos e mais respiro
+  Object.assign(d.plugins.legend.labels, { usePointStyle:true, pointStyle:'circle', boxWidth:8, boxHeight:8, padding:14 });
+  // a legenda mostra a cor sólida da série, não o degradê da barra
+  const geraLegenda = d.plugins.legend.labels.generateLabels;
+  d.plugins.legend.labels.generateLabels = function(chart){
+    return geraLegenda.call(this, chart).map(it=>{
+      const ds = chart.data.datasets[it.datasetIndex];
+      if(ds && ds._corBase){ it.fillStyle = ds._corBase; it.strokeStyle = ds._corBase; }
+      return it;
+    });
+  };
+
+  // tooltip escuro, arredondado, com marcador redondo
+  d.plugins.tooltip.callbacks.labelColor = function(ctx){
+    const ds = ctx.dataset, cor = ds._corBase
+      || (Array.isArray(ds.backgroundColor) ? ds.backgroundColor[ctx.dataIndex] : null)
+      || (typeof ds.borderColor==='string' ? ds.borderColor : null)
+      || (typeof ds.backgroundColor==='string' ? ds.backgroundColor : TICK_COLOR);
+    return { borderColor:cor, backgroundColor:cor, borderWidth:0, borderRadius:4 };
+  };
+  Object.assign(d.plugins.tooltip, {
+    backgroundColor:'rgba(14,17,22,.94)', borderColor:'rgba(245,196,51,.35)', borderWidth:1,
+    cornerRadius:10, padding:{ x:12, y:10 }, caretSize:6, boxPadding:5,
+    usePointStyle:true, titleColor:'#EDEFF2', bodyColor:'#C9CFD6',
+    titleFont:{ weight:'700', size:12 }, bodyFont:{ size:11.5 }
+  });
+
+  // elementos: barras arredondadas, arcos destacados, linhas suaves
+  Object.assign(d.elements.bar, { borderRadius:6, borderSkipped:false, borderWidth:0 });
+  Object.assign(d.elements.arc, { borderWidth:3, borderColor:'#20252C', borderRadius:6, hoverOffset:10 });
+  Object.assign(d.elements.line, { tension:.38, borderWidth:2.5, borderCapStyle:'round' });
+  Object.assign(d.elements.point, { radius:3, hoverRadius:6, borderWidth:2, hoverBorderWidth:2.5, hoverBorderColor:'#fff' });
+  d.datasets.doughnut.cutout = '68%';
+
+  // eixos: sem linha de borda, grade pontilhada e discreta
+  Object.assign(d.scale.border, { display:false, dash:[3,4] });
+  d.scale.grid.color = GRID_COLOR;
+  d.scale.grid.drawTicks = false;
+  d.scale.ticks.padding = 8;
+
+  Chart.register(GRAFICO_FX);
+}
+
+const GRAFICO_FX = {
+  id:'graficoFx',
+  // barras ganham degradê (mais escuro na base, mais claro na ponta) e
+  // ficam com a cor sólida ao passar o mouse
+  beforeUpdate(chart){
+    chart.data.datasets.forEach((ds, i)=>{
+      const tipo = ds.type || chart.config.type;
+      if(tipo!=='bar') return;
+      const cor = ds._corBase || ds.backgroundColor;
+      if(typeof cor!=='string' || !/^#[0-9a-f]{6}$/i.test(cor)) return;
+      ds._corBase = cor;
+      if(ds.hoverBackgroundColor===undefined) ds.hoverBackgroundColor = misturarCor(cor, '#ffffff', .22);
+      ds.backgroundColor = (ctx)=>degradeBarra(ctx.chart, cor);
+    });
+  },
+  // brilho suave nas linhas
+  beforeDatasetDraw(chart, args){
+    const meta = args.meta;
+    if(meta.type!=='line') return;
+    const ctx = chart.ctx; ctx.save();
+    ctx.shadowColor = typeof meta.dataset.options.borderColor==='string' ? meta.dataset.options.borderColor : 'rgba(255,255,255,.4)';
+    ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+  },
+  afterDatasetDraw(chart, args){ if(args.meta.type==='line') chart.ctx.restore(); },
+  // trilha de fundo (0 a 100%) atrás das barras horizontais (options.plugins.graficoFx.trilha)
+  beforeDatasetsDraw(chart, _a, opts){
+    if(!opts || !opts.trilha) return;
+    const meta = chart.getDatasetMeta(0), area = chart.chartArea, ctx = chart.ctx;
+    ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.045)';
+    meta.data.forEach(bar=>{
+      const h = bar.height, y = bar.y - h/2;
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(area.left, y, area.right-area.left, h, h/2); else ctx.rect(area.left, y, area.right-area.left, h);
+      ctx.fill();
+    });
+    ctx.restore();
+  },
+  // total no centro das roscas (options.plugins.graficoFx.centro = 'rótulo')
+  afterDatasetsDraw(chart, _a, opts){
+    if(!opts || !opts.centro || chart.config.type!=='doughnut') return;
+    const meta = chart.getDatasetMeta(0);
+    if(!meta.data.length) return;
+    const total = chart.data.datasets[0].data.reduce((s,v,i)=> s + (chart.getDataVisibility(i) ? (+v||0) : 0), 0);
+    const { x, y, innerRadius } = meta.data[0];
+    const ctx = chart.ctx; ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tam = Math.max(18, Math.min(34, innerRadius*.55));
+    ctx.font = `600 ${tam}px 'Oswald', sans-serif`; ctx.fillStyle = '#EDEFF2';
+    ctx.fillText(total.toLocaleString('pt-BR'), x, y - tam*.18);
+    ctx.font = `600 ${Math.max(9, tam*.32)}px 'Inter', sans-serif`; ctx.fillStyle = TICK_COLOR;
+    ctx.fillText(String(opts.centro).toUpperCase(), x, y + tam*.5);
+    ctx.restore();
+  }
+};
+function misturarCor(hex, alvo, t){
+  const a = [1,3,5].map(i=>parseInt(hex.substr(i,2),16)), b = [1,3,5].map(i=>parseInt(alvo.substr(i,2),16));
+  return '#' + a.map((v,i)=>Math.round(v+(b[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+function degradeBarra(chart, cor){
+  const area = chart.chartArea;
+  if(!area) return cor;
+  const horiz = chart.options.indexAxis==='y';
+  const chave = cor + (horiz?'h':'v') + area.left + ',' + area.top + ',' + area.right + ',' + area.bottom;
+  const cache = chart._degradeCache || (chart._degradeCache = {});
+  if(cache[chave]) return cache[chave];
+  const g = horiz ? chart.ctx.createLinearGradient(area.left, 0, area.right, 0)
+                  : chart.ctx.createLinearGradient(0, area.bottom, 0, area.top);
+  g.addColorStop(0, misturarCor(cor, '#000000', .28));
+  g.addColorStop(1, misturarCor(cor, '#ffffff', .12));
+  return (cache[chave] = g);
+}
+// preenchimento de área (degradê vertical da cor da linha até transparente)
+function degradeArea(chart, cor, alfa){
+  const area = chart.chartArea;
+  if(!area || !/^#[0-9a-f]{6}$/i.test(cor)) return 'transparent';
+  const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+  g.addColorStop(0, cor + Math.round((alfa||.28)*255).toString(16).padStart(2,'0'));
+  g.addColorStop(1, cor + '00');
+  return g;
 }
 
 // monta os datasets empilhados (Em dia / Em atraso / Sem data) usados pelos gráficos
@@ -5018,11 +5180,11 @@ if(typeof Chart!=='undefined' && typeof ChartDataLabels!=='undefined'){
 // de início coincide com a soma acumulada dos demais, ou seja, o total da barra).
 function stackedStatusDatasets(labels, statsMap){
   return [
-    { label:'Em dia', data: labels.map(l=>statsMap[l].emDia), backgroundColor: CHART_COLORS.dentro, stack:'s', borderRadius:4, maxBarThickness:26,
+    { label:'Em dia', data: labels.map(l=>statsMap[l].emDia), backgroundColor: CHART_COLORS.dentro, stack:'s', borderRadius:6, maxBarThickness:24,
       datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:10.5}, formatter:(v)=>v } },
-    { label:'Em atraso', data: labels.map(l=>statsMap[l].atrasado), backgroundColor: CHART_COLORS.atrasado, stack:'s', borderRadius:4, maxBarThickness:26,
+    { label:'Em atraso', data: labels.map(l=>statsMap[l].atrasado), backgroundColor: CHART_COLORS.atrasado, stack:'s', borderRadius:6, maxBarThickness:24,
       datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:10.5}, formatter:(v)=>v } },
-    { label:'Sem data', data: labels.map(l=>statsMap[l].semData), backgroundColor: CHART_COLORS['sem-data'], stack:'s', borderRadius:4, maxBarThickness:26,
+    { label:'Sem data', data: labels.map(l=>statsMap[l].semData), backgroundColor: CHART_COLORS['sem-data'], stack:'s', borderRadius:6, maxBarThickness:24,
       datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:10.5}, formatter:(v)=>v } },
     { label:'Total', data: labels.map(()=>0), backgroundColor:'transparent', stack:'s', maxBarThickness:26,
       datalabels:{ display:true, anchor:'end', align:'end', clamp:true, clip:false, color:TICK_COLOR, font:{weight:'700',size:11.5},
@@ -5033,7 +5195,7 @@ function stackedStatusOptions(){
   return { indexAxis:'y', responsive:true, maintainAspectRatio:false,
     layout:{ padding:{ right:34 } },
     plugins:{
-      legend:{ position:'bottom', labels:{ color:TICK_COLOR, boxWidth:10, font:{size:11}, filter:(item)=>item.text!=='Total' } },
+      legend:{ position:'bottom', labels:{ filter:(item)=>item.text!=='Total' } },
       tooltip:{ filter:(item)=>item.dataset.label!=='Total' }
     },
     scales:{ x:{stacked:true,grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,precision:0},grace:'12%'},
@@ -5048,6 +5210,7 @@ function renderOverview(){
     setTimeout(renderOverview, 800);
     return;
   }
+  prepararGraficos();
   const rows = state.rows;
   const solicPend = rows.filter(r=>r.solicPendente);
   const pedPend = rows.filter(r=>r.pedidoPendente);
@@ -5130,9 +5293,9 @@ function renderOverview(){
     type:'doughnut',
     data:{ labels:['Dentro do prazo','No dia','Fora do prazo','Sem data'],
       datasets:[{ data:[solicPrazoCounts.dentro,solicPrazoCounts.hoje,solicPrazoCounts.atrasado,solicPrazoCounts['sem-data']],
-        backgroundColor:[CHART_COLORS.dentro,CHART_COLORS.hoje,CHART_COLORS.atrasado,CHART_COLORS['sem-data']], borderWidth:0 }]},
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
-      plugins:{legend:{position:'bottom',labels:{color:TICK_COLOR,boxWidth:10,font:{size:11}}},
+        backgroundColor:[CHART_COLORS.dentro,CHART_COLORS.hoje,CHART_COLORS.atrasado,CHART_COLORS['sem-data']] }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'}, graficoFx:{ centro:'pendentes' },
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:12}, formatter:(v)=>v }} }
   });
 
@@ -5167,9 +5330,9 @@ function renderOverview(){
     type:'doughnut',
     data:{ labels:['Dentro do prazo','No dia','Fora do prazo','Sem data'],
       datasets:[{ data:[pedPrazoCounts.dentro,pedPrazoCounts.hoje,pedPrazoCounts.atrasado,pedPrazoCounts['sem-data']],
-        backgroundColor:[CHART_COLORS.dentro,CHART_COLORS.hoje,CHART_COLORS.atrasado,CHART_COLORS['sem-data']], borderWidth:0 }]},
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
-      plugins:{legend:{position:'bottom',labels:{color:TICK_COLOR,boxWidth:10,font:{size:11}}},
+        backgroundColor:[CHART_COLORS.dentro,CHART_COLORS.hoje,CHART_COLORS.atrasado,CHART_COLORS['sem-data']] }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom'}, graficoFx:{ centro:'pendentes' },
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:12}, formatter:(v)=>v }} }
   });
 
@@ -5183,10 +5346,10 @@ function renderOverview(){
     type:'bar',
     data:{ labels:materiais, datasets: statusKeys.map(s=>({
         label: s==='sem-data'?'Sem data':(s==='dentro'?'Dentro do prazo':s==='hoje'?'No dia':'Fora do prazo'),
-        data: stackData[s], backgroundColor: CHART_COLORS[s], borderRadius:4, maxBarThickness:60
+        data: stackData[s], backgroundColor: CHART_COLORS[s], borderRadius:6, maxBarThickness:56
       }))},
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{color:TICK_COLOR,boxWidth:10,font:{size:11}}},
+      plugins:{legend:{position:'bottom'},
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:11}, formatter:(v)=>v }},
       scales:{ x:{stacked:true,grid:{display:false},ticks:{color:TICK_COLOR,font:{size:12}}},
                y:{stacked:true,grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,precision:0}} } }
@@ -6083,6 +6246,7 @@ function renderPiCalendar(items, container){
 /* ---- visualização 4: gráficos (Chart.js) ---- */
 function renderPiCharts(items){
   if(typeof Chart==='undefined') return;
+  prepararGraficos();
   destroyChart('piObra');
   destroyChart('piStatus');
   const elObra = document.getElementById('chartPiObra');
@@ -6096,11 +6260,11 @@ function renderPiCharts(items){
 
   charts.piObra = new Chart(elObra, {
     type:'bar',
-    data:{ labels:obras, datasets: materiais.map(m=>({label:m, data:dataByMat[m], backgroundColor:materialColor(m), stack:'s'})) },
+    data:{ labels:obras, datasets: materiais.map(m=>({label:m, data:dataByMat[m], backgroundColor:materialColor(m), stack:'s', maxBarThickness:48})) },
     options:{
       responsive:true, maintainAspectRatio:false,
-      scales:{ x:{stacked:true, ticks:{color:TICK_COLOR}, grid:{color:GRID_COLOR}}, y:{stacked:true, ticks:{color:TICK_COLOR}, grid:{color:GRID_COLOR}} },
-      plugins:{ legend:{labels:{color:TICK_COLOR}},
+      scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, ticks:{precision:0}} },
+      plugins:{ legend:{position:'bottom'},
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:10}, formatter:(v)=>v } }
     }
   });
@@ -6110,7 +6274,7 @@ function renderPiCharts(items){
   charts.piStatus = new Chart(elStatus, {
     type:'doughnut',
     data:{ labels:['Dentro do prazo','No dia','Fora do prazo','Sem data'], datasets:[{data:statusCounts, backgroundColor:statusKeys.map(s=>CHART_COLORS[s])}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{color:TICK_COLOR}},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, graficoFx:{ centro:'itens' },
       datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:12}, formatter:(v)=>v } } }
   });
 }
@@ -6592,6 +6756,7 @@ function fluxoRenderCharts(procs, f){
     if(!fluxoRenderCharts._espera){ fluxoRenderCharts._espera = true; setTimeout(()=>{ fluxoRenderCharts._espera = false; renderFluxo(); }, 900); }
     return;
   }
+  prepararGraficos();
   const classes = ['normal'].concat(FLUXO_DESVIOS.filter(k=> k!=='nfAntesAprov' || f.criterio==='autorizacao'));
 
   // 1) evolução mensal
@@ -6602,20 +6767,22 @@ function fluxoRenderCharts(procs, f){
       labels: porMes.map(g=>g.nome),
       datasets: classes.map(k=>({
         type:'bar', label: FLUXO_CLASSES[k].label, data: porMes.map(g=>g[k]), backgroundColor: FLUXO_CLASSES[k].cor,
-        stack:'s', yAxisID:'y', order:2, borderRadius:3, maxBarThickness:54,
+        stack:'s', yAxisID:'y', order:2, borderRadius:5, maxBarThickness:50,
         datalabels:{ display:(ctx)=>{ const g = porMes[ctx.dataIndex]; return g.n>0 && ctx.dataset.data[ctx.dataIndex]/g.n >= 0.09; },
           color:'#12151A', font:{weight:'700',size:10.5}, formatter:(v)=>v }
       })).concat([{
         type:'line', label:'% em fluxo normal', data: porMes.map(g=>g.pctNormal), yAxisID:'y1', order:1,
-        borderColor:'#EDEFF2', backgroundColor:'#EDEFF2', borderWidth:2, pointRadius:3, tension:.25,
-        datalabels:{ display:true, align:'top', anchor:'end', offset:2, color:'#EDEFF2', font:{weight:'700',size:11},
+        borderColor:'#EDEFF2', backgroundColor:'#EDEFF2', borderWidth:3, pointRadius:4, pointHoverRadius:7,
+        pointBackgroundColor:'#12151A', pointBorderColor:'#EDEFF2', pointBorderWidth:2.5, tension:.38,
+        datalabels:{ display:true, align:'top', anchor:'end', offset:4, color:'#12151A', backgroundColor:'#EDEFF2',
+          borderRadius:6, padding:{ top:2, bottom:1, left:5, right:5 }, font:{weight:'700',size:10.5},
           formatter:(v)=> v==null ? '' : Math.round(v)+'%' }
       }])
     },
     options:{ responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:18 } },
       interaction:{ mode:'index', intersect:false },
       plugins:{
-        legend:{ position:'bottom', labels:{ color:TICK_COLOR, boxWidth:10, font:{size:11} } },
+        legend:{ position:'bottom' },
         tooltip:{ callbacks:{ label:(ctx)=> ctx.dataset.type==='line'
           ? ` ${ctx.dataset.label}: ${fxPct(ctx.parsed.y)}`
           : ` ${ctx.dataset.label}: ${fxNum(ctx.parsed.y)}` } }
@@ -6644,13 +6811,13 @@ function fluxoRankChart(chartKey, canvasId, subId, campo, procs, minProc){
   charts[chartKey] = new Chart(canvas, {
     type:'bar',
     data:{ labels: grupos.map(g=>g.nome),
-      datasets:[{ label:'% com desvio', data: grupos.map(g=>g.pct), backgroundColor:'#D03B3B', borderRadius:4, maxBarThickness:20,
+      datasets:[{ label:'% com desvio', data: grupos.map(g=>g.pct), backgroundColor:'#D03B3B', borderRadius:20, maxBarThickness:16,
         datalabels:{ display:true, anchor:'end', align:'end', clamp:true, clip:false, color:TICK_COLOR, font:{weight:'700',size:10.5},
           formatter:(v,ctx)=>{ const g = grupos[ctx.dataIndex]; return `${Math.round(v)}% · ${fxNum(g.desvio)}/${fxNum(g.n)}`; } } }] },
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, layout:{ padding:{ right:92 } },
       onClick:(evt, els)=>{ if(!els.length) return; selToggle(FLUXO_VIEW_FILTRO[campo], grupos[els[0].index].chave); renderFluxo(); },
       onHover:(evt, els)=>{ if(evt.native && evt.native.target) evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
-      plugins:{ legend:{display:false},
+      plugins:{ legend:{display:false}, graficoFx:{ trilha:true },
         tooltip:{ callbacks:{ label:(ctx)=>{ const g = grupos[ctx.dataIndex]; return ` ${fxPct(g.pct)} — ${fxNum(g.desvio)} desvio(s) em ${fxNum(g.n)} processo(s)`; } } } },
       scales:{ x:{ min:0, max:100, grid:{color:GRID_COLOR}, ticks:{color:TICK_COLOR,callback:(v)=>v+'%'} },
                y:{ grid:{display:false}, ticks:{color:TICK_COLOR,autoSkip:false,font:{size:11}} } } }
@@ -8032,16 +8199,21 @@ function renderChart(){
       label,
       data: points,
       borderColor: palette[i % palette.length],
-      backgroundColor: palette[i % palette.length],
+      _corBase: palette[i % palette.length],
       spanGaps: true,
-      tension: 0.15,
+      tension: 0.35,
       pointRadius: 3,
-      borderWidth: 2
+      pointHoverRadius: 6,
+      pointBackgroundColor: '#1A1E24',
+      borderWidth: 2.5,
+      fill: seriesKeys.length <= 3 ? 'start' : false,
+      backgroundColor: (c)=> typeof degradeArea==='function' ? degradeArea(c.chart, palette[i % palette.length], seriesKeys.length===1 ? .32 : .16) : palette[i % palette.length]
     };
   });
 
   const ctx = document.getElementById('cot-priceChart');
   if(chart) chart.destroy();
+  if(typeof prepararGraficos==='function') prepararGraficos();
   chart = new Chart(ctx, {
     type: 'line',
     data: { labels: dates.map(fmtBRDate), datasets },
@@ -8050,11 +8222,11 @@ function renderChart(){
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       scales: {
-        y: { ticks: { color:'#8E96A3', callback:(v)=>'R$ '+fmtMoney(v) }, grid:{ color:'#2A323C' } },
+        y: { ticks: { color:'#8E96A3', callback:(v)=>'R$ '+fmtMoney(v) }, grid:{ color:'rgba(255,255,255,0.06)' } },
         x: { ticks: { color:'#8E96A3' }, grid:{ display:false } }
       },
       plugins: {
-        legend: { labels: { color:'#EDE7D9', font:{ size:11 } } },
+        legend: { position:'bottom', labels: { color:'#EDE7D9', font:{ size:11 } } },
         tooltip: {
           callbacks:{
             label: (ctx)=> `${ctx.dataset.label}: R$ ${fmtMoney(ctx.parsed.y)}`
@@ -12937,6 +13109,7 @@ window.JARVIS_CONFIG = {
     const fonte = { size: grande ? 15 : 11 };
     setTimeout(() => {
       try {
+        if (typeof prepararGraficos === "function") prepararGraficos();
         new Chart(cv, {
           type: g.tipo,
           data: {
