@@ -378,6 +378,11 @@ body.is-admin .pode-lancar-cotacao-only, body.is-supervisor .pode-lancar-cotacao
 body.is-admin #tab-creditos-cap .row-actions .pode-lancar-cotacao-only,
 body.is-supervisor #tab-creditos-cap .row-actions .pode-lancar-cotacao-only,
 body.is-operador #tab-creditos-cap .row-actions .pode-lancar-cotacao-only{ display:inline-block !important; }
+/* Edição de preço já lançado na Cotação: admin, supervisor ou operador
+   avançado (operador comum só lança). Fica nas ações da linha, ao lado do
+   botão de excluir, por isso inline-block. */
+.pode-editar-cotacao-only{ display:none !important; }
+body.is-admin .pode-editar-cotacao-only, body.is-supervisor .pode-editar-cotacao-only, body.is-operador-avancado .pode-editar-cotacao-only{ display:inline-block !important; }
 .logged-non-lancador-only{ display:none; }
 body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador):not(.is-operador-avancado) .logged-non-lancador-only{ display:block !important; }
 /* Botão "Controle de CAP" no menu principal: só aparece pra quem tem CAP
@@ -3942,7 +3947,7 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
         </table>
       </div>
       <p class="col-perfil-novo" style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;"><b>Convidado</b> entra no painel, usa o chat e (se liberado) o Jarvis, mas só enxerga as abas abertas — as mesmas de quem não está logado; Contratos, CAP e Crédito ficam fora, inclusive no chat e nas respostas do Jarvis. Toda conta nova criada pelo próprio usuário nasce como Convidado, até um administrador atribuir outro papel. <b>Jarvis</b> libera o assistente para o usuário; ele só responde sobre os assuntos que o papel do usuário alcança. Administradores sempre têm o Jarvis.</p>
-      <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios. Supervisor pode lançar, editar e excluir créditos e vínculos, e também gerencia o CAP (incluir, editar, excluir). Operador pode lançar preços em Cotação de Insumos Críticos, mas não tem acesso ao Controle de CAP. Operador Avançado tem tudo que o Operador tem, mais acesso ao Controle de CAP — pode visualizar e incluir pedidos, entregas e devoluções, mas não pode editar nem excluir. Um usuário logado sem nenhum desses papéis é um "visitante": só enxerga Suprimentos, Entrega de Insumos Críticos e Cotação (leitura), sem lançar nada e sem ver Controle de Crédito nem CAP — é o papel padrão de quem cria a própria conta pelo site. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
+      <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">"Nome" é o que aparece no canto superior direito quando a pessoa está logada — por padrão é o e-mail usado no cadastro, mas pode ser alterado aqui para um nome mais legível. Administrador tem acesso total, incluindo excluir registros e importar relatórios. Supervisor pode lançar, editar e excluir créditos e vínculos, e também gerencia o CAP (incluir, editar, excluir). Operador pode lançar preços em Cotação de Insumos Críticos, mas não tem acesso ao Controle de CAP. Operador Avançado tem tudo que o Operador tem, pode também editar preços já lançados na Cotação, e tem acesso ao Controle de CAP — pode visualizar e incluir pedidos, entregas e devoluções, mas não pode editar nem excluir. Um usuário logado sem nenhum desses papéis é um "visitante": só enxerga Suprimentos, Entrega de Insumos Críticos e Cotação (leitura), sem lançar nada e sem ver Controle de Crédito nem CAP — é o papel padrão de quem cria a própria conta pelo site. Por segurança, você não pode remover seu próprio acesso de administrador por aqui.</p>
     </div>
   </section>
 
@@ -8231,7 +8236,7 @@ async function deleteRecord(id){
   }
 }
 
-// Atualiza um registro existente (RLS: só admin ou supervisor) e devolve o
+// Atualiza um registro existente (RLS: admin, supervisor ou operador avançado) e devolve o
 // registro salvo, ou null se falhar.
 async function updateRecord(id, r){
   setStorageStatus('saving');
@@ -8243,7 +8248,7 @@ async function updateRecord(id, r){
     return rowFromDb(data);
   }catch(e){
     console.error('Falha ao editar cotação:', e);
-    alert('Não foi possível salvar a edição — apenas administradores e supervisores podem editar preços.\n\n'+describeSupabaseError(e));
+    alert('Não foi possível salvar a edição — apenas administradores, supervisores e operadores avançados podem editar preços.\n\n'+describeSupabaseError(e));
     setStorageStatus('error');
     return null;
   }
@@ -8815,7 +8820,7 @@ function renderTable(){
         <td>R$ ${fmtMoney(r.frete||0)}</td>
         <td class="price-cell">R$ ${fmtMoney(total)}</td>
         <td class="txt">${esc(r.local)}</td>
-        <td style="white-space:nowrap;"><button class="ghost gestor-credito-only" data-edit-id="${esc(r.id)}">Editar</button> <button class="danger admin-only" data-id="${esc(r.id)}">Excluir</button></td>
+        <td style="white-space:nowrap;"><button class="ghost pode-editar-cotacao-only" data-edit-id="${esc(r.id)}">Editar</button> <button class="danger admin-only" data-id="${esc(r.id)}">Excluir</button></td>
       </tr>`;
     }).join('');
   }
