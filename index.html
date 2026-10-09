@@ -1624,6 +1624,41 @@ footer.appfoot{
 #tab-creditos-cap .extract-raw { display:none; margin-top:6px; max-height:140px; overflow-y:auto; background: var(--asphalt-3); border:1px solid var(--line); border-radius:8px; padding:8px; font-family: var(--font-mono); font-size:11px; color: var(--text-faint); white-space:pre-wrap; }
 #tab-creditos-cap .extract-raw.show { display:block; }
 #tab-creditos-cap .attach-filename { font-size:11.5px; color: var(--text-faint); margin-top:4px; }
+/* ---- CAP no mesmo visual do Crédito entre Obras: abas com aba ativa em
+   cartão, filtro em barra, indicadores kpi-card, cartões de pedido com barra
+   de utilização segmentada, legenda e pílula de saldo. ---- */
+#tab-creditos-cap .cap-subtabs { display:flex; gap:4px; flex-wrap:wrap; overflow:visible; border-bottom:1px solid var(--line); margin:16px 0 28px; padding:0; }
+#tab-creditos-cap .cap-subtabs button { background:transparent; border:1px solid transparent; border-bottom:none; color:var(--text-mut); border-radius:4px 4px 0 0; padding:10px 13px; font-size:13px; font-weight:600; font-family:var(--font-body); letter-spacing:.2px; margin-bottom:-1px; top:0; cursor:pointer; }
+#tab-creditos-cap .cap-subtabs button:hover:not(.active) { color:var(--text); background:rgba(255,255,255,.03); }
+#tab-creditos-cap .cap-subtabs button.active { color:var(--gold); border-color:var(--line); background:var(--surface); border-bottom:1px solid var(--surface); }
+#tab-creditos-cap .card { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px 20px; margin-bottom:22px; }
+#tab-creditos-cap .card.table-wrap { padding:0; overflow-x:auto; }
+#tab-creditos-cap .card h2 { font-size:17px; margin-bottom:14px; }
+#tab-creditos-cap .filters-bar .field { min-width:220px; margin-bottom:0; }
+#tab-creditos-cap .kpi-grid { grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:22px; }
+#tab-creditos-cap .cap-legend { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:12px; color:var(--text-mut); margin:0 0 14px; padding:9px 12px; border:1px solid var(--line); border-radius:6px; background:var(--surface-2); }
+#tab-creditos-cap .cap-legend b { color:var(--text); }
+#tab-creditos-cap .cap-dot { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+#tab-creditos-cap .cap-dot.ent { background:var(--teal); }
+#tab-creditos-cap .cap-dot.dev { background:var(--amber); }
+#tab-creditos-cap .cap-dot.sal { background:#3a3f47; }
+#tab-creditos-cap .po-card { border-radius:10px; padding:16px 18px; }
+#tab-creditos-cap .po-card .po-head .num { font-size:15px; }
+#tab-creditos-cap .po-card .po-forn { font-size:11.5px; color:var(--text-mut); margin:-4px 0 10px; line-height:1.4; }
+#tab-creditos-cap .cap-bar { display:flex; height:9px; border-radius:5px; overflow:hidden; background:#3a3f47; margin:4px 0 8px; }
+#tab-creditos-cap .cap-bar i { display:block; height:100%; }
+#tab-creditos-cap .cap-bar i.ent { background:var(--teal); }
+#tab-creditos-cap .cap-bar i.dev { background:var(--amber); }
+#tab-creditos-cap .cap-num { font-family:var(--font-mono); font-size:11.5px; line-height:1.6; white-space:nowrap; color:var(--text); }
+#tab-creditos-cap .cap-num .lbl { color:var(--text-mut); font-family:var(--font-body); }
+#tab-creditos-cap .cap-num .pct { font-size:10.5px; color:var(--text-mut); font-family:var(--font-body); }
+#tab-creditos-cap .po-foot { display:grid; grid-template-columns:1fr auto; align-items:end; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+#tab-creditos-cap .po-foot .lbl { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-faint); margin-bottom:4px; }
+#tab-creditos-cap .po-foot .sub { display:block; font-size:11.5px; color:var(--text-mut); margin-top:3px; }
+#tab-creditos-cap .saldo-pill { display:inline-block; padding:2px 9px; border-radius:20px; font-family:var(--font-mono); font-weight:600; font-size:12.5px; white-space:nowrap; }
+#tab-creditos-cap .saldo-pill.pos { background:rgba(12,163,12,.15); color:var(--teal); }
+#tab-creditos-cap .saldo-pill.low { background:rgba(208,59,59,.14); color:var(--red); }
+#tab-creditos-cap .saldo-pill.zero { background:rgba(92,101,112,.2); color:var(--text-mut); }
 @media (max-width:640px) {
 #tab-creditos-cap .cap-subtabs { padding:0; }
 #tab-creditos-cap .bar-chart .bc-row { grid-template-columns:90px 1fr 70px; }
@@ -3254,8 +3289,8 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
     <p class="hint" style="margin:4px 0 0;">Cadastro de pedidos de compra, entregas, devoluções e saldo em tempo real</p>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <button class="btn primary" id="btnExportXlsx">&#128202; Exportar Excel</button>
-    <button class="btn primary" id="btnGerarRelatorio">&#128424; Gerar Relatório</button>
+    <button class="btn" id="btnExportXlsx">&#11015; Exportar Excel</button>
+    <button class="btn" id="btnGerarRelatorio">&#128424; Relatório</button>
   </div>
 </div>
 
@@ -3273,14 +3308,20 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
 
   <!-- DASHBOARD -->
   <section class="view active" id="view-dashboard">
-    <div class="toolbar">
-      <div class="filters forn-filters">
-        <label class="forn-f"><span>Fornecedor</span><select id="dashFiltroFornecedor"><option value="">Todos os fornecedores</option></select></label>
+    <div class="kpi-grid" id="dashKpis"></div>
+    <div class="filters-bar">
+      <div class="field">
+        <label for="dashFiltroFornecedor">Fornecedor</label>
+        <select id="dashFiltroFornecedor"><option value="">Todos os fornecedores</option></select>
       </div>
     </div>
-    <div class="kpi-grid" id="dashKpis"></div>
     <div class="card">
       <h2>Saldo por Pedido de Compra</h2>
+      <div class="cap-legend">
+        <span><span class="cap-dot ent"></span><b>Entregue</b>: quantidade líquida já recebida (descontadas devoluções)</span>
+        <span><span class="cap-dot dev"></span><b>Devolvido</b>: devoluções/estornos do pedido</span>
+        <span><span class="cap-dot sal"></span><b>Saldo</b>: quantidade ainda a entregar</span>
+      </div>
       <div class="po-grid" id="dashPoGrid"></div>
     </div>
     <div class="card">
@@ -11456,17 +11497,17 @@ function renderDashboardConteudo(fornecedorFiltro) {
   const estoqueAtual = ledger.length ? ledger[ledger.length-1].saldo : 0;
 
   const kpis = [
-    { label: 'Qtd. contratada (total)', value: fmtT(totalContratado), sub: state.pedidos.length + ' pedido(s)' },
-    { label: 'Qtd. entregue (líquida)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
-    { label: 'Devolvido (total)', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
-    { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) + (state.pedidos.some(soQuantidade) ? ' · R$ só de pedidos com valor' : '') },
-    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
+    { cls: 'c-total', label: 'Qtd. contratada', value: fmtT(totalContratado), sub: state.pedidos.length + ' pedido(s)' },
+    { cls: 'c-crit', label: 'Entregue (líquido)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
+    { cls: 'c-ped', label: 'Devolvido', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
+    { cls: 'c-solic', label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) + (state.pedidos.some(soQuantidade) ? ' · R$ só de pedidos com valor' : '') },
+    { cls: '', label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
   ];
   document.getElementById('dashKpis').innerHTML = kpis.map(k => `
-    <div class="kpi">
-      <div class="label">${k.label}</div>
-      <div class="value tabular">${k.value}</div>
-      <div class="sub">${k.sub}</div>
+    <div class="kpi-card ${k.cls}">
+      <p class="kpi-label">${k.label}</p>
+      <div class="kpi-value tabular">${k.value}</div>
+      <p class="kpi-foot">${k.sub}</p>
     </div>`).join('');
 
   document.getElementById('dashPoGrid').innerHTML = state.pedidos.map(p => renderPoCard(p)).join('') ||
@@ -11478,21 +11519,29 @@ function renderDashboardConteudo(fornecedorFiltro) {
 function renderPoCard(p) {
   const s = pedidoStats(p);
   const low = s.pct >= 85;
+  const contr = p.qtdContratada;
+  const pctDe = q => contr > 0 ? (q / contr * 100) : 0;
+  const pctTxt = q => pctDe(q).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+  const pe = Math.max(0, Math.min(100, s.pct));
+  const pd = Math.max(0, Math.min(100 - pe, pctDe(s.devolvidoQtd)));
+  const saldoCls = s.saldoQtd <= 0.005 ? 'zero' : (low ? 'low' : 'pos');
   return `
   <div class="po-card">
     <div class="po-head">
       <span class="num">Pedido ${escapeHtml(p.numero)}</span>
       ${s.soQtd ? '<span class="badge qtd">Apenas quantidade</span>' : `<span class="price">${fmtR(p.precoTon)}/t</span>`}
     </div>
-    <div class="po-row"><span>Fornecedor</span><b>${p.fornecedor ? escapeHtml(p.fornecedor) : '<span class="hint">não informado</span>'}</b></div>
-    <div class="po-row"><span>Contratado</span><b class="tabular">${fmtT(p.qtdContratada)}</b></div>
-    <div class="po-row"><span>Entregue (líquido)</span><b class="tabular">${fmtT(s.entregueQtd)}</b></div>
-    ${s.devolvidoQtd > 0 ? `<div class="po-row"><span>Devolvido</span><b class="tabular" style="color:var(--amber);">${fmtT(s.devolvidoQtd)}</b></div>` : ''}
-    <div class="bar-track"><div class="bar-fill" style="width:${s.pct.toFixed(1)}%; background:${low ? 'var(--red)' : 'var(--yellow)'};"></div></div>
-    <div class="po-row"><span>Saldo restante</span><b class="tabular">${fmtT(s.saldoQtd)}</b></div>
-    ${s.soQtd ? '' : `<div class="po-row"><span>Saldo (R$)</span><b class="tabular">${fmtR(s.saldoValor)}</b></div>`}
-    <div style="margin-top:6px;">
-      ${low ? `<span class="badge low">⚠ Saldo baixo</span>` : `<span class="badge ok">✓ Saldo disponível</span>`}
+    <div class="po-forn">${p.fornecedor ? escapeHtml(p.fornecedor) : 'Fornecedor não informado'} · contratado <b class="tabular">${fmtT(contr)}</b></div>
+    <div class="cap-bar" title="Entregue ${pctTxt(s.entregueQtd)} · Devolvido ${pctTxt(s.devolvidoQtd)} · Saldo ${pctTxt(Math.max(0, s.saldoQtd))}"><i class="ent" style="width:${pe.toFixed(1)}%"></i><i class="dev" style="width:${pd.toFixed(1)}%"></i></div>
+    <div class="cap-num"><span class="cap-dot ent"></span><span class="lbl">Entregue</span> ${fmtT(s.entregueQtd)} <span class="pct">(${pctTxt(s.entregueQtd)})</span></div>
+    ${s.devolvidoQtd > 0 ? `<div class="cap-num"><span class="cap-dot dev"></span><span class="lbl">Devolvido</span> ${fmtT(s.devolvidoQtd)} <span class="pct">(${pctTxt(s.devolvidoQtd)})</span></div>` : ''}
+    <div class="po-foot">
+      <div>
+        <span class="lbl">Saldo a entregar</span>
+        <span class="saldo-pill ${saldoCls}">${fmtT(s.saldoQtd)}</span>
+        <span class="sub">${pctTxt(Math.max(0, s.saldoQtd))} do contratado${low && s.saldoQtd > 0.005 ? ' · saldo baixo' : ''}</span>
+      </div>
+      ${s.soQtd ? '' : `<div style="text-align:right;"><span class="lbl">Saldo (R$)</span><b class="tabular" style="font-size:13.5px;">${fmtR(s.saldoValor)}</b></div>`}
     </div>
   </div>`;
 }
