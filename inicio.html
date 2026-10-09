@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Capivara · AMETA</title>
+<meta name="description" content="Página inicial das aplicações Capivara: Suprimentos, Notas e Estoque.">
+<meta name="theme-color" content="#0E131A">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23F5C433'/><g fill='%231A1E24'><rect x='12' y='40' width='6' height='12' rx='2.5'/><rect x='22' y='41' width='5.5' height='11' rx='2.5'/><rect x='35.5' y='40' width='6' height='12' rx='2.5'/><circle cx='41.5' cy='18.8' r='2.7'/><path fill-rule='evenodd' d='M10 44C5.5 40 5.5 30 9.5 25.5C13.5 20 21 17 28.5 17.8C33 18.3 35.5 20 38 20L44 19.6C50.5 19.8 55.5 21 58.5 23.5C60.8 25.5 61 31 59.5 33.5C58.3 35.2 55.5 35.8 52.5 35.8L46 35.8C44.5 40.5 41 44.5 36 45.5L16 46.5C13.5 46.5 11.3 45.5 10 44ZM48.6 24.3a1.6 1.6 0 1 0-3.2 0a1.6 1.6 0 1 0 3.2 0ZM59.2 26.6a.8 1.1 0 1 0-1.6 0a.8 1.1 0 1 0 1.6 0Z'/></g></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mesmo esquema do tema "estoque" do painel: moldura escura, centro bege
+   claro com cartões brancos e destaque em âmbar. */
+:root{
+  --moldura:#0E131A; --moldura-2:#161C24; --moldura-texto:#E9EDF2; --moldura-apagado:#8E99A8;
+  --centro:#F3F0EA; --cartao:#FFFFFF; --cartao-2:#F2EFE9;
+  --texto:#1B2129; --texto-2:#5A6371; --texto-3:#8A919B; --linha:rgba(27,33,41,.12);
+  --amarelo:#F5C433; --ambar:#F5A524; --ambar-forte:#A86200;
+  --sup:#A86200; --sup-bg:rgba(245,165,36,.14);
+  --nf:#2563C9;  --nf-bg:rgba(37,99,201,.10);
+  --est:#1A7F45; --est-bg:rgba(30,142,78,.12);
+  --sombra:0 1px 2px rgba(27,33,41,.05), 0 10px 24px -18px rgba(27,33,41,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --centro:#121821; --cartao:#1A212B; --cartao-2:#222B37;
+    --texto:#E9EDF2; --texto-2:#B3BCC8; --texto-3:#8E99A8; --linha:rgba(255,255,255,.10);
+    --ambar-forte:#F5A524; --sup:#F5A524; --nf:#6EA6FF; --nf-bg:rgba(110,166,255,.14); --est:#4CC27E;
+    --sombra:0 1px 2px rgba(0,0,0,.3), 0 12px 28px -18px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --centro:#121821; --cartao:#1A212B; --cartao-2:#222B37;
+  --texto:#E9EDF2; --texto-2:#B3BCC8; --texto-3:#8E99A8; --linha:rgba(255,255,255,.10);
+  --ambar-forte:#F5A524; --sup:#F5A524; --nf:#6EA6FF; --nf-bg:rgba(110,166,255,.14); --est:#4CC27E;
+  --sombra:0 1px 2px rgba(0,0,0,.3), 0 12px 28px -18px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  background:var(--moldura); color:var(--texto);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;
+  min-height:100vh; padding:24px; padding:max(24px,env(safe-area-inset-top)) 24px 24px;
+}
+a{color:inherit;}
+.topo{display:flex;align-items:center;gap:16px;max-width:1120px;margin:0 auto 22px;color:var(--moldura-texto);}
+.logo{width:56px;height:56px;flex:0 0 auto;border-radius:14px;background:var(--amarelo);display:grid;place-items:center;}
+.logo svg{width:44px;height:44px;}
+.topo .eyebrow{margin:0 0 2px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--moldura-apagado);}
+.topo .eyebrow b{color:var(--ambar);font-weight:700;}
+.topo h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.015em;line-height:1.1;}
+.topo .data{margin-left:auto;text-align:right;font-size:12.5px;color:var(--moldura-apagado);line-height:1.5;}
+.topo .data b{display:block;color:var(--moldura-texto);font-size:14px;font-weight:600;}
+.estrada{max-width:1120px;margin:0 auto 22px;height:2px;background:linear-gradient(90deg,var(--ambar),rgba(245,165,36,0) 60%);opacity:.6;}
+
+main{max-width:1120px;margin:0 auto;background:var(--centro);border-radius:18px;padding:28px 28px 30px;}
+.saudacao{margin:0 0 4px;font-size:22px;font-weight:700;letter-spacing:-.01em;}
+.intro{margin:0 0 24px;color:var(--texto-2);font-size:14px;line-height:1.55;max-width:720px;}
+
+.apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;}
+.app{
+  position:relative;display:flex;flex-direction:column;
+  background:var(--cartao);border:1px solid var(--linha);border-radius:14px;box-shadow:var(--sombra);
+  padding:20px 20px 18px;transition:border-color .15s, transform .15s;
+}
+.app:hover{border-color:color-mix(in srgb,var(--cor) 45%,transparent);transform:translateY(-1px);}
+.app::before{content:'';position:absolute;left:20px;right:20px;top:0;height:3px;border-radius:0 0 3px 3px;background:var(--cor);}
+.app-topo{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.app-icone{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;background:var(--cor-bg);color:var(--cor);flex:0 0 auto;}
+.app-icone svg{width:24px;height:24px;}
+.app-nome{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em;}
+.app-nome small{display:block;font-size:12px;font-weight:600;color:var(--texto-3);letter-spacing:.02em;margin-top:1px;}
+.app p{margin:0 0 14px;color:var(--texto-2);font-size:13.5px;line-height:1.55;}
+.app ul{list-style:none;margin:0 0 18px;padding:0;display:flex;flex-direction:column;gap:6px;}
+.app li{display:flex;gap:8px;align-items:baseline;font-size:13px;color:var(--texto);}
+.app li::before{content:'';width:6px;height:6px;flex:0 0 auto;border-radius:1px;transform:rotate(45deg) translateY(-1px);background:var(--cor);}
+.acoes{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.abrir{
+  display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+  background:var(--cor);color:#fff;font-weight:600;font-size:14px;
+  padding:10px 16px;border-radius:9px;transition:filter .15s;
+}
+.app.sup .abrir{color:#1B1408;background:var(--ambar);}
+.abrir:hover{filter:brightness(1.08);}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .app .abrir{color:#0E131A;} }
+:root[data-theme="dark"] .app .abrir{color:#0E131A;}
+.abrir svg{width:16px;height:16px;}
+.atalho{
+  display:inline-flex;align-items:center;text-decoration:none;font-size:13px;font-weight:600;
+  color:var(--texto-2);border:1px solid var(--linha);background:var(--cartao-2);
+  padding:9px 12px;border-radius:9px;
+}
+.atalhos{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--linha);}
+.atalhos > span{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--texto-3);margin-right:2px;}
+.atalho{padding:7px 12px;}
+.atalho:hover{color:var(--texto);border-color:var(--texto-3);}
+a:focus-visible{outline:2px solid var(--ambar);outline-offset:2px;}
+
+.app.sup{--cor:var(--sup);--cor-bg:var(--sup-bg);}
+.app.nf {--cor:var(--nf); --cor-bg:var(--nf-bg);}
+.app.est{--cor:var(--est);--cor-bg:var(--est-bg);}
+
+.aviso{
+  margin:22px 0 0;display:flex;gap:10px;align-items:flex-start;
+  background:var(--cartao);border:1px solid var(--linha);border-left:3px solid var(--ambar);border-radius:10px;
+  padding:12px 14px;font-size:13px;color:var(--texto-2);line-height:1.55;
+}
+.aviso b{color:var(--texto);}
+footer{max-width:1120px;margin:16px auto 0;font-size:11.5px;color:var(--moldura-apagado);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+
+@media (max-width:900px){ .apps{grid-template-columns:1fr 1fr;} .app.est{grid-column:1 / -1;} }
+@media (max-width:640px){
+  body{padding:16px;}
+  .topo{gap:12px;} .topo h1{font-size:23px;} .logo{width:46px;height:46px;} .logo svg{width:36px;height:36px;}
+  .topo .data{display:none;}
+  main{padding:20px 16px 22px;border-radius:14px;}
+  .apps{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="logo" aria-hidden="true">
+    <svg viewBox="0 0 64 64"><g fill="#1A1E24"><rect x="12" y="40" width="6" height="12" rx="2.5"/><rect x="22" y="41" width="5.5" height="11" rx="2.5"/><rect x="35.5" y="40" width="6" height="12" rx="2.5"/><circle cx="41.5" cy="18.8" r="2.7"/><path fill-rule="evenodd" d="M10 44C5.5 40 5.5 30 9.5 25.5C13.5 20 21 17 28.5 17.8C33 18.3 35.5 20 38 20L44 19.6C50.5 19.8 55.5 21 58.5 23.5C60.8 25.5 61 31 59.5 33.5C58.3 35.2 55.5 35.8 52.5 35.8L46 35.8C44.5 40.5 41 44.5 36 45.5L16 46.5C13.5 46.5 11.3 45.5 10 44ZM48.6 24.3a1.6 1.6 0 1 0-3.2 0a1.6 1.6 0 1 0 3.2 0ZM59.2 26.6a.8 1.1 0 1 0-1.6 0a.8 1.1 0 1 0 1.6 0Z"/></g></svg>
+  </div>
+  <div>
+    <p class="eyebrow"><b>Capivara</b> · AMETA</p>
+    <h1>Central de aplicações</h1>
+  </div>
+  <div class="data" id="data"></div>
+</header>
+<div class="estrada" aria-hidden="true"></div>
+
+<main>
+  <h2 class="saudacao" id="saudacao">Bem-vindo</h2>
+  <p class="intro">Escolha a aplicação para começar. Suprimentos, Notas e Estoque reúnem o acompanhamento de compras, a conferência de notas fiscais e o controle de materiais nas obras.</p>
+
+  <div class="apps">
+    <article class="app sup">
+      <div class="app-topo">
+        <div class="app-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.1L21 8H6.2"/><circle cx="9.5" cy="20" r="1.3"/><circle cx="17.5" cy="20" r="1.3"/></svg>
+        </div>
+        <h3 class="app-nome">Suprimentos<small>Painel de Compras · Sienge</small></h3>
+      </div>
+      <p>Acompanhamento de solicitações e pedidos de compra importados do Sienge.</p>
+      <ul>
+        <li>Solicitações, pedidos e pedidos sem nota fiscal</li>
+        <li>Entrega de insumos críticos e controle de CAP</li>
+        <li>Cotações, crédito entre obras e contratos</li>
+      </ul>
+      <div class="acoes">
+        <a class="abrir" data-app="suprimentos" href="index.html">Abrir Suprimentos <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </div>
+    </article>
+
+    <article class="app nf">
+      <div class="app-topo">
+        <div class="app-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg>
+        </div>
+        <h3 class="app-nome">Notas<small>Notas Fiscais · Sede AMETA</small></h3>
+      </div>
+      <p>Controle das notas fiscais recebidas na sede, a partir do relatório do Sienge.</p>
+      <ul>
+        <li>Recebimento e conferência de notas</li>
+        <li>Situação de cada nota por obra e fornecedor</li>
+        <li>Importação do relatório .xlsx do Sienge</li>
+      </ul>
+      <div class="acoes">
+        <a class="abrir" data-app="notas" href="https://construservengpa-creator.github.io/ControleNotasFiscais/">Abrir Notas <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </div>
+    </article>
+
+    <article class="app est">
+      <div class="app-topo">
+        <div class="app-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>
+        </div>
+        <h3 class="app-nome">Estoque<small>Controle de Estoque por Obra</small></h3>
+      </div>
+      <p>Entradas, saídas e saldo de materiais em cada obra, com contagem e aprovações.</p>
+      <ul>
+        <li>Saldo por obra, entradas e despachos</li>
+        <li>Contagem de inventário pelo celular</li>
+        <li>Aprovação de movimentações</li>
+      </ul>
+      <div class="acoes">
+        <a class="abrir" data-app="estoque" href="https://construservengpa-creator.github.io/almoxarifado/">Abrir Estoque <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      </div>
+      <div class="atalhos">
+        <span>Atalhos</span>
+        <a class="atalho" href="https://construservengpa-creator.github.io/almoxarifado/contagem.html">Contagem</a>
+        <a class="atalho" href="https://construservengpa-creator.github.io/almoxarifado/aprovacoes.html">Aprovações</a>
+      </div>
+    </article>
+  </div>
+
+  <div class="aviso" role="note">
+    <span aria-hidden="true">🔐</span>
+    <span>Cada aplicação tem o <b>próprio login</b>. Ao abrir uma delas pela primeira vez neste navegador, entre com o usuário daquela aplicação; depois o acesso fica salvo.</span>
+  </div>
+</main>
+
+<footer>
+  <span>Capivara · Construserv / AMETA</span>
+  <span id="rodape-data"></span>
+</footer>
+
+<script>
+(function(){
+  var agora = new Date();
+  var h = agora.getHours();
+  document.getElementById('saudacao').textContent = h < 12 ? 'Bom dia' : (h < 18 ? 'Boa tarde' : 'Boa noite');
+  var dia = agora.toLocaleDateString('pt-BR', { weekday:'long' });
+  var data = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+  document.getElementById('data').innerHTML = '<b>' + dia.charAt(0).toUpperCase() + dia.slice(1) + '</b>' + data;
+  document.getElementById('rodape-data').textContent = 'Hoje: ' + agora.toLocaleDateString('pt-BR');
+})();
+</script>
+</body>
+</html>
