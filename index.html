@@ -2815,6 +2815,25 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       </table>
     </div>
   </div>
+  <div class="modal-backdrop" id="cot-modalEditar">
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="cot-editTitulo">
+      <h3 id="cot-editTitulo">Editar preço</h3>
+      <div class="form-grid">
+        <div class="form-field"><label for="cot-eData">Data</label><input type="date" id="cot-eData"></div>
+        <div class="form-field"><label for="cot-eFornecedor">Fornecedor</label><input type="text" id="cot-eFornecedor" list="cot-dlFornecedor"></div>
+        <div class="form-field"><label for="cot-eInsumo">Insumo</label><input type="text" id="cot-eInsumo" list="cot-dlInsumo"></div>
+        <div class="form-field"><label for="cot-eUnidade">Unidade de medida</label><input type="text" id="cot-eUnidade" list="cot-dlUnidade"></div>
+        <div class="form-field"><label for="cot-eValor">Valor unitário (R$)</label><input type="number" id="cot-eValor" step="0.01" min="0"></div>
+        <div class="form-field"><label for="cot-eFrete">Frete unitário (R$)</label><input type="number" id="cot-eFrete" step="0.01" min="0"></div>
+        <div class="form-field"><label for="cot-eLocal">Localidade de entrega</label><input type="text" id="cot-eLocal" list="cot-dlLocal"></div>
+      </div>
+      <span id="cot-editMsg" style="font-size:12px;color:var(--bad);"></span>
+      <div class="modal-actions">
+        <button class="ghost" id="cot-btnEditCancelar" type="button">Cancelar</button>
+        <button class="primary" id="cot-btnEditSalvar" type="button">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
   </div>
 
   <div class="cot-tab-panel active" data-tab-panel="config">
@@ -8209,6 +8228,24 @@ async function deleteRecord(id){
   }
 }
 
+// Atualiza um registro existente (RLS: só admin ou supervisor) e devolve o
+// registro salvo, ou null se falhar.
+async function updateRecord(id, r){
+  setStorageStatus('saving');
+  try{
+    const { data, error } = await window.SB.from('cotacoes').update(rowToDb(r)).eq('id', id).select().maybeSingle();
+    if(error) throw error;
+    if(!data) throw new Error('Registro não atualizado (sem permissão ou já excluído).');
+    setStorageStatus('ok-cloud');
+    return rowFromDb(data);
+  }catch(e){
+    console.error('Falha ao editar cotação:', e);
+    alert('Não foi possível salvar a edição — apenas administradores e supervisores podem editar preços.\n\n'+describeSupabaseError(e));
+    setStorageStatus('error');
+    return null;
+  }
+}
+
 async function deleteAllRecords(){
   setStorageStatus('saving');
   try{
@@ -8775,12 +8812,15 @@ function renderTable(){
         <td>R$ ${fmtMoney(r.frete||0)}</td>
         <td class="price-cell">R$ ${fmtMoney(total)}</td>
         <td class="txt">${esc(r.local)}</td>
-        <td><button class="danger admin-only" data-id="${esc(r.id)}">Excluir</button></td>
+        <td style="white-space:nowrap;"><button class="ghost gestor-credito-only" data-edit-id="${esc(r.id)}">Editar</button> <button class="danger admin-only" data-id="${esc(r.id)}">Excluir</button></td>
       </tr>`;
     }).join('');
   }
   document.getElementById('cot-countBadge').textContent = `${records.length} registro${records.length===1?'':'s'}`;
 
+  tbody.querySelectorAll('[data-edit-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=> abrirEdicaoCotacao(btn.getAttribute('data-edit-id')));
+  });
   tbody.querySelectorAll('button.danger').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const id = btn.getAttribute('data-id');
@@ -9036,6 +9076,55 @@ async function clearAllData(){
     records = [];
     renderAll();
   }
+}
+
+let cotEditId = null;
+function abrirEdicaoCotacao(id){
+  const r = records.find(x=>String(x.id) === String(id));
+  if(!r) return;
+  cotEditId = r.id;
+  document.getElementById('cot-eData').value = r.data || '';
+  document.getElementById('cot-eFornecedor').value = r.fornecedor || '';
+  document.getElementById('cot-eInsumo').value = r.insumo || '';
+  document.getElementById('cot-eUnidade').value = r.unidade || '';
+  document.getElementById('cot-eValor').value = r.valor;
+  document.getElementById('cot-eFrete').value = r.frete || 0;
+  document.getElementById('cot-eLocal').value = r.local || '';
+  document.getElementById('cot-editMsg').textContent = '';
+  document.getElementById('cot-modalEditar').classList.add('open');
+  document.getElementById('cot-eValor').focus();
+}
+function fecharEdicaoCotacao(){
+  cotEditId = null;
+  document.getElementById('cot-modalEditar').classList.remove('open');
+}
+async function salvarEdicaoCotacao(){
+  const msg = document.getElementById('cot-editMsg');
+  const data = document.getElementById('cot-eData').value;
+  const fornecedor = document.getElementById('cot-eFornecedor').value.trim();
+  const insumo = document.getElementById('cot-eInsumo').value.trim();
+  const unidade = document.getElementById('cot-eUnidade').value.trim();
+  const valorRaw = document.getElementById('cot-eValor').value;
+  const freteRaw = document.getElementById('cot-eFrete').value;
+  const local = document.getElementById('cot-eLocal').value.trim();
+  if(!data || !fornecedor || !insumo || !unidade || valorRaw === '' || !local){
+    msg.textContent = 'Preencha todos os campos antes de salvar.';
+    return;
+  }
+  const valor = parseFloat(valorRaw);
+  if(isNaN(valor) || valor < 0){ msg.textContent = 'Informe um valor unitário válido.'; return; }
+  const frete = freteRaw === '' ? 0 : parseFloat(freteRaw);
+  if(isNaN(frete) || frete < 0){ msg.textContent = 'Informe um frete unitário válido (ou deixe em branco).'; return; }
+  msg.textContent = '';
+
+  const btn = document.getElementById('cot-btnEditSalvar');
+  btn.disabled = true;
+  const salvo = await updateRecord(cotEditId, { data, fornecedor, insumo, unidade, valor, frete, local });
+  btn.disabled = false;
+  if(!salvo) return;
+  records = records.map(r=> String(r.id) === String(salvo.id) ? salvo : r);
+  fecharEdicaoCotacao();
+  renderAll();
 }
 
 async function addRecord(){
@@ -10749,6 +10838,13 @@ async function init(){
   document.querySelectorAll('#cot-periodo button').forEach(b=>b.addEventListener('click', ()=> cotAplicarPeriodo(Number(b.getAttribute('data-dias')))));
   document.getElementById('cot-filterInsumo').addEventListener('input', renderTable);
   document.getElementById('cot-btnAdd').addEventListener('click', addRecord);
+  document.getElementById('cot-btnEditSalvar').addEventListener('click', salvarEdicaoCotacao);
+  document.getElementById('cot-btnEditCancelar').addEventListener('click', fecharEdicaoCotacao);
+  document.getElementById('cot-modalEditar').addEventListener('click', e=>{ if(e.target.id === 'cot-modalEditar') fecharEdicaoCotacao(); });
+  document.getElementById('cot-modalEditar').addEventListener('keydown', e=>{
+    if(e.key === 'Escape') fecharEdicaoCotacao();
+    if(e.key === 'Enter' && e.target.tagName === 'INPUT') salvarEdicaoCotacao();
+  });
   document.getElementById('cot-btnExportCSV').addEventListener('click', exportCSV);
   document.getElementById('cot-btnExportJSON').addEventListener('click', exportJSON);
   document.getElementById('cot-btnImport').addEventListener('click', handleImport);
