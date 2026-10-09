@@ -1281,30 +1281,72 @@ footer.appfoot{
 #tab-cotacoes button.danger, #tab-creditos button.danger, #tab-admin button.danger{border-color:var(--bad);color:var(--bad);padding:4px 8px;font-size:11px;}
 #tab-cotacoes button.danger:hover, #tab-creditos button.danger:hover, #tab-admin button.danger:hover{background:rgba(193,97,63,0.12);}
 
-/* dashboard ticker cards */
-#tab-cotacoes .ticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
-#tab-cotacoes .ticker-card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:4px;padding:14px 16px;}
-#tab-cotacoes .ticker-card.is-outdated{border-left-color:var(--text-faint);}
-#tab-cotacoes .ticker-card.is-outdated .price{color:var(--text-mut);}
-#tab-cotacoes .ticker-card .insumo{font-size:12px;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-mut);margin-bottom:8px;}
-#tab-cotacoes .ticker-card .price{font-family:var(--font-mono);font-size:24px;font-weight:600;color:var(--gold);}
-#tab-cotacoes .ticker-card .unit{font-size:12px;color:var(--text-faint);margin-left:4px;}
-#tab-cotacoes .ticker-card .meta{margin-top:10px;font-size:12px;color:var(--text-mut);display:flex;flex-direction:column;gap:2px;}
-#tab-cotacoes .ticker-card .meta b{color:var(--text);font-weight:500;}
-#tab-cotacoes .empty-note{color:var(--text-faint);font-size:13px;padding:18px;border:1px dashed var(--line);border-radius:4px;text-align:center;}
+/* dashboard ticker cards — menor preço do dia */
+#tab-cotacoes .ticker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:14px;}
+#tab-cotacoes .ticker-card{
+  position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px 16px;
+  box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 26px -20px rgba(0,0,0,.45);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+#tab-cotacoes .ticker-card::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--gold);opacity:.35;}
+#tab-cotacoes .ticker-card:hover{transform:translateY(-3px);border-color:var(--gold-dim);box-shadow:0 2px 4px rgba(0,0,0,.08),0 20px 34px -22px rgba(0,0,0,.55);}
+#tab-cotacoes .ticker-card.is-best{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 18px 34px -22px var(--gold);}
+#tab-cotacoes .ticker-card.is-best::before{opacity:1;height:5px;}
+#tab-cotacoes .ticker-card.is-outdated::before{background:var(--text-faint);}
+#tab-cotacoes .ticker-card.is-outdated.is-best::before{background:var(--gold);}
 
-#tab-cotacoes .tipo-group{margin-bottom:32px;}
+#tab-cotacoes .tk-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:22px;}
+#tab-cotacoes .local-tag{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--text);min-width:0;}
+#tab-cotacoes .local-tag .tk-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;line-height:1.25;}
+#tab-cotacoes .tk-rank{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;font-family:var(--font-mono);font-size:11px;font-weight:700;background:var(--surface-2);color:var(--text-mut);border:1px solid var(--line);}
+#tab-cotacoes .is-best .tk-rank{background:var(--gold);color:var(--bg);border-color:var(--gold);}
+#tab-cotacoes .tk-badge{flex:none;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:var(--gold);color:var(--bg);white-space:nowrap;}
+#tab-cotacoes .tk-delta{flex:none;font-family:var(--font-mono);font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--bad-bg);color:var(--bad);white-space:nowrap;}
+
+#tab-cotacoes .tk-price{display:flex;align-items:baseline;gap:2px;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;}
+#tab-cotacoes .tk-price .cur{font-size:14px;font-weight:700;color:var(--text-mut);margin-right:5px;}
+#tab-cotacoes .tk-price .int{font-family:var(--font-mono);font-size:34px;font-weight:800;letter-spacing:-1px;}
+#tab-cotacoes .tk-price .dec{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--text-mut);}
+#tab-cotacoes .tk-price .unit{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-faint);margin-left:6px;}
+#tab-cotacoes .is-best .tk-price .int{color:var(--gold);}
+#tab-cotacoes .ticker-card.is-outdated .tk-price .int{opacity:.72;}
+
+#tab-cotacoes .tk-forn{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);}
+#tab-cotacoes .tk-forn::before{content:"";width:7px;height:7px;border-radius:2px;transform:rotate(45deg);background:var(--gold);flex:none;}
+#tab-cotacoes .tk-split{display:flex;flex-direction:column;gap:6px;}
+#tab-cotacoes .tk-bar{display:flex;height:6px;border-radius:999px;overflow:hidden;background:var(--surface-2);}
+#tab-cotacoes .tk-bar .prod{background:var(--gold);}
+#tab-cotacoes .tk-bar .frete{background:var(--blue);opacity:.75;}
+#tab-cotacoes .tk-legend{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;font-size:11.5px;color:var(--text-mut);font-variant-numeric:tabular-nums;}
+#tab-cotacoes .tk-legend span{white-space:nowrap;}
+#tab-cotacoes .tk-legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+#tab-cotacoes .tk-legend .l-prod i{background:var(--gold);}
+#tab-cotacoes .tk-legend .l-frete i{background:var(--blue);}
+#tab-cotacoes .tk-foot{margin-top:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:8px;}
+#tab-cotacoes .tk-foot.ok{background:var(--good-bg);color:var(--good);}
+#tab-cotacoes .tk-foot.old{background:var(--bad-bg);color:var(--bad);}
+#tab-cotacoes .tk-foot .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none;}
+#tab-cotacoes .empty-note{color:var(--text-faint);font-size:13px;padding:28px;border:1px dashed var(--line);border-radius:14px;text-align:center;}
+
+#tab-cotacoes .tipo-group{margin-bottom:40px;}
 #tab-cotacoes .tipo-group:last-child{margin-bottom:0;}
-#tab-cotacoes .tipo-group-title{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--gold);padding-bottom:8px;margin-bottom:16px;}
-#tab-cotacoes .tipo-group-title h2{font-family:var(--font-display);font-size:17px;font-weight:700;margin:0;color:var(--gold);letter-spacing:0.3px;}
-#tab-cotacoes .tipo-group-title .count{font-size:11px;color:var(--text-faint);font-family:var(--font-mono);}
+#tab-cotacoes .tipo-group-title{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;margin-bottom:20px;border-radius:12px;background:linear-gradient(90deg,var(--gold) 0,var(--gold) 5px,var(--surface) 5px);border:1px solid var(--line);}
+#tab-cotacoes .tipo-group-title h2{font-family:var(--font-display);font-size:18px;font-weight:800;margin:0 0 0 6px;color:var(--text);letter-spacing:1.2px;text-transform:uppercase;}
+#tab-cotacoes .tipo-group-title .count{font-size:11px;font-weight:700;color:var(--gold);font-family:var(--font-mono);padding:4px 10px;border-radius:999px;border:1px solid var(--gold-dim);}
 
-#tab-cotacoes .insumo-group{margin-bottom:22px;}
+#tab-cotacoes .insumo-group{margin-bottom:28px;}
 #tab-cotacoes .insumo-group:last-child{margin-bottom:0;}
-#tab-cotacoes .insumo-group-title{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:12px;}
-#tab-cotacoes .insumo-group-title h3{font-family:var(--font-display);font-size:16px;font-weight:600;margin:0;color:var(--text);}
+#tab-cotacoes .insumo-group-title{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:6px 14px;padding-bottom:10px;margin-bottom:14px;border-bottom:1px solid var(--line);}
+#tab-cotacoes .insumo-group-title h3{font-family:var(--font-display);font-size:20px;font-weight:800;margin:0;color:var(--text);letter-spacing:-.2px;}
+#tab-cotacoes .insumo-group-title .ig-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+#tab-cotacoes .insumo-group-title .ig-range{font-size:12px;color:var(--text-mut);font-variant-numeric:tabular-nums;}
+#tab-cotacoes .insumo-group-title .ig-range b{color:var(--text);font-weight:700;}
 #tab-cotacoes .insumo-group-title .count{font-size:11px;color:var(--text-faint);font-family:var(--font-mono);}
-#tab-cotacoes .local-tag{font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--gold);margin-bottom:8px;}
+@media (max-width:560px){
+  #tab-cotacoes .ticker-grid{grid-template-columns:1fr;}
+  #tab-cotacoes .tk-price .int{font-size:30px;}
+}
 
 /* form */
 #tab-cotacoes .form-card, #tab-creditos .form-card, #tab-admin .form-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px 20px;}
@@ -8531,31 +8573,51 @@ function renderDashboard(){
     const insumosDoTipo = porTipo[tipo];
     const blocosInsumo = insumosDoTipo.map(insumo=>{
       const byLocal = grouped[insumo];
-      const locais = Object.keys(byLocal).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-      const cards = locais.map(local=>{
+      // ordena do menor para o maior preço total: o 1º card é o melhor preço do insumo
+      const locais = Object.keys(byLocal).sort((a,b)=>
+        calcTotal(byLocal[a]) - calcTotal(byLocal[b]) || a.localeCompare(b,'pt-BR'));
+      const melhor = calcTotal(byLocal[locais[0]]);
+      const pior = calcTotal(byLocal[locais[locais.length-1]]);
+      const cards = locais.map((local,i)=>{
         const r = byLocal[local];
         const total = calcTotal(r);
-        const breakdown = r.frete > 0 ? `<span>Produto R$ ${fmtMoney(r.valor)} + frete R$ ${fmtMoney(r.frete)}</span>` : '';
+        const [inteiro, centavos] = fmtMoney(total).split(',');
+        const isBest = i === 0 && locais.length > 1;
+        const diff = total - melhor;
+        const diffPct = melhor > 0 ? diff / melhor * 100 : 0;
+        const selo = isBest
+          ? `<span class="tk-badge" title="Menor preço entre as localidades">★ Melhor</span>`
+          : (diff > 0.004 ? `<span class="tk-delta" title="+R$ ${fmtMoney(diff)} acima do melhor preço">+${diffPct.toLocaleString('pt-BR',{maximumFractionDigits:1})}%</span>` : '');
+        const pctProd = total > 0 ? Math.max(0, Math.min(100, (Number(r.valor)||0) / total * 100)) : 100;
+        const breakdown = r.frete > 0 ? `
+          <div class="tk-split">
+            <div class="tk-bar"><span class="prod" style="width:${pctProd.toFixed(1)}%"></span><span class="frete" style="width:${(100-pctProd).toFixed(1)}%"></span></div>
+            <div class="tk-legend"><span class="l-prod"><i></i>Produto R$ ${fmtMoney(r.valor)}</span><span class="l-frete"><i></i>Frete R$ ${fmtMoney(r.frete)}</span></div>
+          </div>` : '';
         const desatualizado = r.data !== dateVal;
-        const avisoData = desatualizado
-          ? `<span style="color:var(--bad);">Sem preço em ${fmtBRDate(dateVal)} — último preço de ${fmtBRDate(r.data)}</span>`
-          : '';
+        const rodape = desatualizado
+          ? `<div class="tk-foot old" title="Sem preço em ${fmtBRDate(dateVal)} — último preço de ${fmtBRDate(r.data)}"><span class="dot"></span>Último preço em ${fmtBRDate(r.data)}</div>`
+          : `<div class="tk-foot ok"><span class="dot"></span>Cotado em ${fmtBRDate(r.data)}</div>`;
         return `
-        <div class="ticker-card${desatualizado ? ' is-outdated' : ''}">
-          <div class="local-tag">${esc(local)}</div>
-          <div><span class="price">R$ ${fmtMoney(total)}</span><span class="unit">/ ${esc(r.unidade)}</span></div>
-          <div class="meta">
-            <span><b>${esc(r.fornecedor)}</b></span>
-            ${breakdown}
-            ${avisoData}
+        <div class="ticker-card${desatualizado ? ' is-outdated' : ''}${isBest ? ' is-best' : ''}">
+          <div class="tk-head">
+            <div class="local-tag"><span class="tk-rank">${i+1}</span><span class="tk-name" title="${esc(local)}">${esc(local)}</span></div>
+            ${selo}
           </div>
+          <div class="tk-price"><span class="cur">R$</span><span class="int">${inteiro}</span><span class="dec">,${centavos}</span><span class="unit">/ ${esc(r.unidade)}</span></div>
+          <div class="tk-forn">${esc(r.fornecedor)}</div>
+          ${breakdown}
+          ${rodape}
         </div>`;
       }).join('');
+      const faixa = locais.length > 1
+        ? `<span class="ig-range">de <b>R$ ${fmtMoney(melhor)}</b> a <b>R$ ${fmtMoney(pior)}</b></span>`
+        : '';
       return `
       <div class="insumo-group">
         <div class="insumo-group-title">
           <h3>${esc(insumo)}</h3>
-          <span class="count">${locais.length} localidade${locais.length===1?'':'s'}</span>
+          <div class="ig-info">${faixa}<span class="count">${locais.length} localidade${locais.length===1?'':'s'}</span></div>
         </div>
         <div class="ticker-grid">${cards}</div>
       </div>`;
