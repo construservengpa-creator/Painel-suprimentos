@@ -245,6 +245,8 @@ html[data-tema="estoque"] ::selection{background:#F5A524;color:#12151A;}
   font-family:var(--font-body);white-space:nowrap;display:inline-flex;align-items:center;gap:7px;
 }
 .tema-btn:hover{border-color:var(--yellow-dim);color:var(--text);}
+a.inicio-btn{text-decoration:none;}
+a.inicio-btn span{font-size:15px;line-height:1;}
 .tema-btn .tema-amostra{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--yellow) 50%,var(--asphalt) 50%);box-shadow:0 0 0 1px var(--line);}
 a{color:var(--blue);}
 
@@ -2230,6 +2232,7 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       </div>
     </div>
     <div class="topbar-actions">
+      <a class="tema-btn inicio-btn no-print" href="inicio.html" title="Voltar à página inicial do Capivara (Suprimentos, Notas e Estoque)"><span aria-hidden="true">⌂</span> Início</a>
       <button class="tema-btn no-print" id="temaBtn" type="button" title="Trocar o tema do painel (fica salvo neste navegador)"><span class="tema-amostra"></span><span id="temaBtnTxt">Tema: Asfalto</span></button>
       <div class="header-auth no-print" id="headerAuth">
         <button class="auth-toggle-btn" id="authToggleBtn">👤 Entrar</button>
