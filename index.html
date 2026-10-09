@@ -1343,7 +1343,56 @@ footer.appfoot{
 #tab-cotacoes .insumo-group-title .ig-range{font-size:12px;color:var(--text-mut);font-variant-numeric:tabular-nums;}
 #tab-cotacoes .insumo-group-title .ig-range b{color:var(--text);font-weight:700;}
 #tab-cotacoes .insumo-group-title .count{font-size:11px;color:var(--text-faint);font-family:var(--font-mono);}
+#tab-cotacoes .ticker-card[data-mapa]{cursor:pointer;}
+#tab-cotacoes .ticker-card[data-mapa]:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+/* mapa comparativo (modal ao clicar no card) */
+#tab-cotacoes .mapa-modal{max-width:1040px;border-radius:16px;padding:22px 24px;}
+#tab-cotacoes .mapa-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;}
+#tab-cotacoes .mapa-head h3{font-size:22px;font-weight:800;margin:2px 0 4px;}
+#tab-cotacoes .mapa-head .eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:700;}
+#tab-cotacoes .mapa-sub{font-size:12.5px;color:var(--text-mut);}
+#tab-cotacoes .mapa-sub b{color:var(--text);}
+#tab-cotacoes .mapa-x{padding:4px 10px;font-size:14px;line-height:1;}
+#tab-cotacoes .mapa-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
+#tab-cotacoes .mapa-kpi{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+#tab-cotacoes .mapa-kpi .k{font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-mut);}
+#tab-cotacoes .mapa-kpi .v{font-family:var(--font-mono);font-size:20px;font-weight:800;color:var(--text);margin-top:4px;font-variant-numeric:tabular-nums;}
+#tab-cotacoes .mapa-kpi .d{font-size:11.5px;color:var(--text-faint);margin-top:2px;}
+#tab-cotacoes .mapa-kpi.best{border-color:var(--gold);}
+#tab-cotacoes .mapa-kpi.best .v{color:var(--gold);}
+#tab-cotacoes .mapa-sec{margin-top:4px;margin-bottom:20px;}
+#tab-cotacoes .mapa-sec:last-child{margin-bottom:0;}
+#tab-cotacoes .mapa-sec h4{font-family:var(--font-display);font-size:14px;font-weight:700;margin:0 0 4px;color:var(--text);}
+#tab-cotacoes .mapa-sec .mapa-nota{font-size:11.5px;color:var(--text-faint);margin:0 0 10px;}
+#tab-cotacoes .mapa-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
+#tab-cotacoes table.mapa-tab{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;}
+#tab-cotacoes table.mapa-tab th{background:var(--surface-2);text-align:left;padding:9px 12px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-mut);border-bottom:1px solid var(--line);white-space:nowrap;}
+#tab-cotacoes table.mapa-tab td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;}
+#tab-cotacoes table.mapa-tab tr:last-child td{border-bottom:none;}
+#tab-cotacoes table.mapa-tab .num{text-align:right;font-family:var(--font-mono);}
+#tab-cotacoes table.mapa-tab tr.is-best td{background:rgba(245,165,36,.08);}
+#tab-cotacoes table.mapa-tab tr.is-best .tot{color:var(--gold);font-weight:800;}
+#tab-cotacoes table.mapa-tab .tot{font-weight:700;color:var(--text);}
+#tab-cotacoes table.mapa-tab .rk{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;font-family:var(--font-mono);font-size:10.5px;font-weight:700;background:var(--surface-2);border:1px solid var(--line);color:var(--text-mut);}
+#tab-cotacoes table.mapa-tab tr.is-best .rk{background:var(--gold);border-color:var(--gold);color:var(--bg);}
+#tab-cotacoes table.mapa-tab .barcell{min-width:140px;}
+#tab-cotacoes .mapa-bar{display:flex;height:8px;border-radius:999px;overflow:hidden;background:var(--surface-2);}
+#tab-cotacoes .mapa-bar .prod{background:var(--gold);}
+#tab-cotacoes .mapa-bar .frete{background:var(--blue);opacity:.75;}
+#tab-cotacoes .mapa-delta{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--bad);}
+#tab-cotacoes .mapa-delta.zero{color:var(--good);}
+#tab-cotacoes .mapa-old{color:var(--bad);font-weight:600;}
+#tab-cotacoes table.mapa-matriz th.sel, #tab-cotacoes table.mapa-matriz td.sel{background:rgba(245,165,36,.08);}
+#tab-cotacoes table.mapa-matriz th.sel{color:var(--gold);}
+#tab-cotacoes table.mapa-matriz td.min{color:var(--gold);font-weight:800;}
+#tab-cotacoes table.mapa-matriz td.min::after{content:" ★";font-size:10px;}
+#tab-cotacoes table.mapa-matriz td.vazio{color:var(--text-faint);text-align:center;}
+#tab-cotacoes table.mapa-matriz td.forn{font-weight:700;color:var(--text);position:sticky;left:0;background:var(--surface);}
+#tab-cotacoes table.mapa-matriz th:first-child{position:sticky;left:0;z-index:1;}
+#tab-cotacoes table.mapa-matriz tr.melhor-linha td{border-top:2px solid var(--line);background:var(--surface-2);font-weight:700;}
 @media (max-width:560px){
+  #tab-cotacoes .mapa-modal{padding:16px;}
   #tab-cotacoes .ticker-grid{grid-template-columns:1fr;}
   #tab-cotacoes .tk-price .int{font-size:30px;}
 }
@@ -2766,6 +2815,23 @@ body.chat-aberto #jarvis-orb, body.chat-aberto #jarvis-panel{display:none !impor
       </div>
     </div>
     <div id="cot-dashGrid"></div>
+    <div class="modal-backdrop" id="cot-modalMapa">
+      <div class="modal mapa-modal" role="dialog" aria-modal="true" aria-labelledby="cot-mapaTitulo">
+        <div class="mapa-head">
+          <div>
+            <div class="eyebrow">Mapa comparativo de preços</div>
+            <h3 id="cot-mapaTitulo"></h3>
+            <div class="mapa-sub" id="cot-mapaSub"></div>
+          </div>
+          <button class="ghost mapa-x" id="cot-btnMapaFechar" type="button" aria-label="Fechar">✕</button>
+        </div>
+        <div id="cot-mapaCorpo"></div>
+        <div class="modal-actions">
+          <button class="ghost" id="cot-btnMapaHist" type="button">Ver série histórica</button>
+          <button class="primary" id="cot-btnMapaOk" type="button">Fechar</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="section">
@@ -8599,7 +8665,7 @@ function renderDashboard(){
           ? `<div class="tk-foot old" title="Sem preço em ${fmtBRDate(dateVal)} — último preço de ${fmtBRDate(r.data)}"><span class="dot"></span>Último preço em ${fmtBRDate(r.data)}</div>`
           : `<div class="tk-foot ok"><span class="dot"></span>Cotado em ${fmtBRDate(r.data)}</div>`;
         return `
-        <div class="ticker-card${desatualizado ? ' is-outdated' : ''}${isBest ? ' is-best' : ''}">
+        <div class="ticker-card${desatualizado ? ' is-outdated' : ''}${isBest ? ' is-best' : ''}" data-mapa data-insumo="${esc(insumo)}" data-local="${esc(local)}" tabindex="0" role="button" title="Abrir mapa comparativo de preços">
           <div class="tk-head">
             <div class="local-tag"><span class="tk-rank">${i+1}</span><span class="tk-name" title="${esc(local)}">${esc(local)}</span></div>
             ${selo}
@@ -8631,6 +8697,130 @@ function renderDashboard(){
       ${blocosInsumo}
     </div>`;
   }).join('');
+}
+
+// Mapa comparativo: ao clicar num card do menor preço, compara todos os
+// fornecedores do insumo na localidade e monta a matriz fornecedor × localidade,
+// sempre com a cotação mais recente de cada par até a data do painel.
+let cotMapaAtual = null;
+function cotUltimaPorPar(lista, chave){
+  const m = {};
+  lista.forEach(r=>{
+    const k = chave(r);
+    const a = m[k];
+    if(!a || r.data > a.data || (r.data === a.data && calcTotal(r) < calcTotal(a))) m[k] = r;
+  });
+  return m;
+}
+function abrirMapaComparativo(insumo, local){
+  const dateVal = document.getElementById('cot-dashDate').value || todayISO();
+  const doInsumo = records.filter(r=>r.insumo === insumo && r.data <= dateVal);
+  if(!doInsumo.length) return;
+  cotMapaAtual = {insumo, local};
+  const pct = (v,base)=> base > 0 ? (v/base*100).toLocaleString('pt-BR',{maximumFractionDigits:1}) : '0';
+
+  // 1) fornecedores na localidade escolhida
+  const noLocal = Object.values(cotUltimaPorPar(doInsumo.filter(r=>r.local === local), r=>r.fornecedor))
+    .sort((a,b)=>calcTotal(a)-calcTotal(b));
+  const totais = noLocal.map(calcTotal);
+  const melhor = totais[0], maior = totais[totais.length-1];
+  const media = totais.reduce((a,b)=>a+b,0) / totais.length;
+  const unidade = noLocal[0] ? noLocal[0].unidade : '';
+
+  // 2) melhor preço do insumo em cada localidade (para comparar a localidade escolhida)
+  const porLocal = cotUltimaPorPar(doInsumo, r=>r.local+'\u0000'+r.fornecedor);
+  const locais = uniqueSorted(doInsumo.map(r=>r.local));
+  const fornecedores = uniqueSorted(doInsumo.map(r=>r.fornecedor));
+  const minPorLocal = {};
+  Object.values(porLocal).forEach(r=>{
+    const t = calcTotal(r);
+    if(minPorLocal[r.local] == null || t < minPorLocal[r.local]) minPorLocal[r.local] = t;
+  });
+  const rankLocais = locais.slice().sort((a,b)=>minPorLocal[a]-minPorLocal[b]);
+  const posLocal = rankLocais.indexOf(local) + 1;
+  const melhorGeral = minPorLocal[rankLocais[0]];
+
+  document.getElementById('cot-mapaTitulo').textContent = insumo;
+  document.getElementById('cot-mapaSub').innerHTML =
+    `Localidade <b>${esc(local)}</b> · cotações mais recentes até <b>${fmtBRDate(dateVal)}</b>${unidade ? ` · preços por ${esc(unidade)}` : ''}`;
+
+  const kpis = `
+    <div class="mapa-kpis">
+      <div class="mapa-kpi best"><div class="k">Melhor preço</div><div class="v">R$ ${fmtMoney(melhor)}</div><div class="d">${esc(noLocal[0].fornecedor)}</div></div>
+      <div class="mapa-kpi"><div class="k">Média</div><div class="v">R$ ${fmtMoney(media)}</div><div class="d">${noLocal.length} fornecedor${noLocal.length===1?'':'es'}</div></div>
+      <div class="mapa-kpi"><div class="k">Maior preço</div><div class="v">R$ ${fmtMoney(maior)}</div><div class="d">${noLocal.length > 1 ? `+${pct(maior-melhor,melhor)}% sobre o melhor` : 'cotação única'}</div></div>
+      <div class="mapa-kpi"><div class="k">Posição da localidade</div><div class="v">${posLocal}º de ${locais.length}</div><div class="d">${posLocal === 1 ? 'menor preço entre as localidades' : `+${pct(melhor-melhorGeral,melhorGeral)}% sobre ${esc(rankLocais[0])}`}</div></div>
+    </div>`;
+
+  const linhas = noLocal.map((r,i)=>{
+    const t = calcTotal(r);
+    const valor = Number(r.valor)||0, frete = Number(r.frete)||0;
+    const larg = maior > 0 ? t/maior*100 : 100;
+    const pProd = t > 0 ? valor/t*larg : larg;
+    const delta = t - melhor;
+    return `<tr class="${i===0?'is-best':''}">
+      <td><span class="rk">${i+1}</span></td>
+      <td><b>${esc(r.fornecedor)}</b></td>
+      <td class="num">${fmtMoney(valor)}</td>
+      <td class="num">${fmtMoney(frete)}</td>
+      <td class="num tot">${fmtMoney(t)}</td>
+      <td class="barcell"><div class="mapa-bar"><span class="prod" style="width:${pProd.toFixed(1)}%"></span><span class="frete" style="width:${(larg-pProd).toFixed(1)}%"></span></div></td>
+      <td class="num">${i===0 ? '<span class="mapa-delta zero">melhor</span>' : `<span class="mapa-delta">+R$ ${fmtMoney(delta)} (+${pct(delta,melhor)}%)</span>`}</td>
+      <td class="${r.data !== dateVal ? 'mapa-old' : ''}">${fmtBRDate(r.data)}</td>
+    </tr>`;
+  }).join('');
+
+  const cab = locais.map(l=>`<th class="num${l===local?' sel':''}">${esc(l)}</th>`).join('');
+  const matriz = fornecedores.map(f=>{
+    const cel = locais.map(l=>{
+      const r = porLocal[l+'\u0000'+f];
+      if(!r) return `<td class="vazio${l===local?' sel':''}">—</td>`;
+      const t = calcTotal(r);
+      const cls = ['num'];
+      if(l===local) cls.push('sel');
+      if(Math.abs(t - minPorLocal[l]) < 0.005) cls.push('min');
+      return `<td class="${cls.join(' ')}" title="${esc(f)} em ${esc(l)} · ${fmtBRDate(r.data)}">${fmtMoney(t)}</td>`;
+    }).join('');
+    return `<tr><td class="forn">${esc(f)}</td>${cel}</tr>`;
+  }).join('');
+  const linhaMelhor = `<tr class="melhor-linha"><td class="forn">Melhor preço</td>${locais.map(l=>`<td class="num${l===local?' sel':''}">${fmtMoney(minPorLocal[l])}</td>`).join('')}</tr>`;
+
+  document.getElementById('cot-mapaCorpo').innerHTML = `
+    ${kpis}
+    <div class="mapa-sec">
+      <h4>Fornecedores em ${esc(local)}</h4>
+      <p class="mapa-nota">Preço total = produto + frete. A barra mostra o total em relação ao maior preço (dourado: produto · azul: frete).</p>
+      <div class="mapa-scroll"><table class="mapa-tab">
+        <thead><tr><th>#</th><th>Fornecedor</th><th class="num">Produto</th><th class="num">Frete</th><th class="num">Total</th><th>Composição</th><th class="num">Diferença</th><th>Data</th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table></div>
+    </div>
+    <div class="mapa-sec">
+      <h4>Fornecedor × localidade</h4>
+      <p class="mapa-nota">Preço total (R$) da cotação mais recente de cada fornecedor em cada localidade. ★ = menor preço da localidade.</p>
+      <div class="mapa-scroll"><table class="mapa-tab mapa-matriz">
+        <thead><tr><th>Fornecedor</th>${cab}</tr></thead>
+        <tbody>${matriz}${linhaMelhor}</tbody>
+      </table></div>
+    </div>`;
+
+  const modal = document.getElementById('cot-modalMapa');
+  modal.classList.add('open');
+  modal.scrollTop = 0;
+  document.getElementById('cot-btnMapaFechar').focus();
+}
+function fecharMapaComparativo(){
+  document.getElementById('cot-modalMapa').classList.remove('open');
+}
+function mapaParaHistorico(){
+  if(!cotMapaAtual) return;
+  const selIns = document.getElementById('cot-chartInsumo');
+  const selLoc = document.getElementById('cot-chartLocal');
+  selIns.value = cotMapaAtual.insumo;
+  selLoc.value = cotMapaAtual.local;
+  renderChart();
+  fecharMapaComparativo();
+  selIns.closest('.section').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 // botões de período (30 dias / 90 dias / 12 meses / tudo): preenchem as datas do filtro
@@ -10900,6 +11090,20 @@ async function init(){
   });
   document.getElementById('cot-dashDate').addEventListener('change', renderDashboard);
   document.getElementById('cot-dashLocal').addEventListener('change', renderDashboard);
+  const cotDashGrid = document.getElementById('cot-dashGrid');
+  const cotCardMapa = e=>{
+    const card = e.target.closest('.ticker-card[data-mapa]');
+    if(card) abrirMapaComparativo(card.getAttribute('data-insumo'), card.getAttribute('data-local'));
+  };
+  cotDashGrid.addEventListener('click', cotCardMapa);
+  cotDashGrid.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); cotCardMapa(e); }
+  });
+  document.getElementById('cot-btnMapaFechar').addEventListener('click', fecharMapaComparativo);
+  document.getElementById('cot-btnMapaOk').addEventListener('click', fecharMapaComparativo);
+  document.getElementById('cot-btnMapaHist').addEventListener('click', mapaParaHistorico);
+  document.getElementById('cot-modalMapa').addEventListener('click', e=>{ if(e.target.id === 'cot-modalMapa') fecharMapaComparativo(); });
+  document.getElementById('cot-modalMapa').addEventListener('keydown', e=>{ if(e.key === 'Escape') fecharMapaComparativo(); });
   document.getElementById('cot-chartInsumo').addEventListener('change', renderChart);
   document.getElementById('cot-chartLocal').addEventListener('change', renderChart);
   document.getElementById('cot-chartStart').addEventListener('change', renderChart);
