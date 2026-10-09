@@ -12438,16 +12438,6 @@ document.getElementById('fornTbody').addEventListener('click', ev => {
   renderResumoFornecedor();
 });
 
-/* ============ JSON EXPORT / IMPORT ============ */
-function downloadFile(filename, content, mime) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 /* ============ EXCEL EXPORT ============ */
 function exportXlsx() {
   const wb = XLSX.utils.book_new();
@@ -12519,214 +12509,119 @@ document.getElementById('btnExportXlsx2').addEventListener('click', () => {
   exportXlsx();
 });
 
-/* ============ RELATÓRIO HTML (Dashboard + Resumo por Obra) ============ */
+/* ============ RELATÓRIO EM A4 (mesmo formato do Controle de Crédito entre Obras) ============ */
 function buildReportHtml(fornecedor) {
   return comFornecedor(fornecedor || '', () => buildReportHtmlConteudo(fornecedor || ''));
 }
 function buildReportHtmlConteudo(fornecedorFiltro) {
-  const now = new Date();
-  const geradoEm = now.toLocaleString('pt-BR');
+  const e = escapeHtml;
+  const pc = (v,t) => t>0 ? (v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '0%';
+  const rs = (p, v) => soQuantidade(p) ? '—' : fmtR(v);
 
-  const totalContratado = state.pedidos.reduce((s,p) => s + p.qtdContratada, 0);
-  const totalEntregue = state.entregas.reduce((s,e) => s + Number(e.qtd||0), 0);
-  const totalDevolvido = (state.devolucoes||[]).reduce((s,d) => s + Number(d.qtd||0), 0);
-  const totalSaldoQtd = state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoQtd, 0);
-  const totalSaldoValor = state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoValor, 0);
-  const ledger = estoqueLedger();
-  const estoqueAtual = ledger.length ? ledger[ledger.length-1].saldo : 0;
+  let gQ=0,gV=0,gE=0,gEV=0,gD=0,gS=0,gSV=0;
+  const blocos = state.pedidos.slice()
+    .sort((a,b)=>String(a.numero).localeCompare(String(b.numero),'pt-BR',{numeric:true}))
+    .map(p=>{
+      const s = pedidoStats(p);
+      gQ += p.qtdContratada; gV += s.valorTotal; gE += s.entregueQtd; gEV += s.entregueValor;
+      gD += s.devolvidoQtd; gS += s.saldoQtd; gSV += s.saldoValor;
+      const pe = p.qtdContratada>0 ? Math.min(100, Math.max(0, s.entregueQtd/p.qtdContratada*100)) : 0;
+      // Entregas e devoluções do pedido em ordem de data, com o saldo do pedido após cada uma.
+      const movs = [
+        ...entregasDoPedido(p.id).map(x=>({ ...x, tipo:'ent', sinal:-1 })),
+        ...devolucoesDoPedido(p.id).map(x=>({ ...x, tipo:'dev', sinal:1 }))
+      ].sort((a,b)=>(a.data||'').localeCompare(b.data||'') || (a.tipo==='ent'?-1:1));
+      let saldo = p.qtdContratada;
+      const linhas = movs.map(m=>{
+        saldo += m.sinal * Number(m.qtd||0);
+        const entOrig = m.tipo==='dev' && m.entregaId ? state.entregas.find(x=>String(x.id)===String(m.entregaId)) : null;
+        const obs = m.tipo==='dev'
+          ? [entOrig ? 'Estorno da NF '+e(entOrig.nf) : '', m.motivo ? e(m.motivo) : ''].filter(Boolean).join(' · ')
+          : (m.dataEntrega ? 'Entregue na obra em '+fmtDate(m.dataEntrega) : '');
+        return `<tr>
+          <td>${fmtDate(m.data)}</td>
+          <td><b>${e(m.nf||'—')}</b></td>
+          <td><span class="st ${m.tipo==='ent'?'ok':'res'}">${m.tipo==='ent'?'Entrega':'Devolução'}</span></td>
+          <td>${e(m.local||'—')}${obs?`<div class="mut">${obs}</div>`:''}</td>
+          <td class="n">${m.tipo==='dev'?'+':''}${fmtT(m.qtd)}</td>
+          <td class="n">${rs(p, valorEfetivo(m))}</td>
+          <td class="n"><b>${fmtT(saldo)}</b></td></tr>`;
+      }).join('');
+      return `<section class="cred">
+        <div class="ch">
+          <div><div class="who">Pedido ${e(p.numero)} <span class="mut">·</span> ${e(fornNome(p))}</div>
+            <div class="mut">${s.soQtd ? 'Apenas quantidade (sem valores em R$)' : fmtR(p.precoTon)+'/t'} · recebido ${p.dataRecebimento ? 'em '+fmtDate(p.dataRecebimento) : 'antes do período'}</div></div>
+          <div class="cv">${fmtT(p.qtdContratada)}${s.soQtd ? '' : `<div class="mut">${fmtR(s.valorTotal)}</div>`}</div>
+        </div>
+        <div class="bar"><i class="f" style="width:${pe}%"></i></div>
+        <div class="eq"><span><i class="d f"></i>Entregue (líquido) <b>${fmtT(s.entregueQtd)}</b>${s.soQtd?'':` · ${fmtR(s.entregueValor)}`} (${pc(s.entregueQtd,p.qtdContratada)})</span>${s.devolvidoQtd>0?`<span><i class="d r"></i>Devolvido <b>${fmtT(s.devolvidoQtd)}</b></span>`:''}<span><i class="d l"></i>Saldo a entregar <b>${fmtT(s.saldoQtd)}</b>${s.soQtd?'':` · ${fmtR(s.saldoValor)}`} (${pc(Math.max(0,s.saldoQtd),p.qtdContratada)})</span></div>
+        ${movs.length ? `<table><colgroup><col style="width:10%"><col style="width:12%"><col style="width:11%"><col style="width:27%"><col style="width:12%"><col style="width:15%"><col style="width:13%"></colgroup>
+          <thead><tr><th>Data</th><th>NF</th><th>Movimento</th><th>Local / observação</th><th class="n">Qtd.</th><th class="n">Valor</th><th class="n">Saldo do pedido</th></tr></thead>
+          <tbody>${linhas}</tbody>
+          <tfoot><tr><td colspan="4">Entregue líquido · saldo final</td><td class="n">${fmtT(s.entregueQtd)}</td><td class="n">${rs(p, s.entregueValor)}</td><td class="n">${fmtT(s.saldoQtd)}</td></tr></tfoot></table>`
+        : '<div class="mut" style="padding:6px 0">Nenhuma entrega registrada neste pedido.</div>'}
+      </section>`;
+    }).join('');
 
-  const kpis = [
-    { label: 'Qtd. contratada (total)', value: fmtT(totalContratado), sub: state.pedidos.length + ' pedido(s)' },
-    { label: 'Qtd. entregue (líquida)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
-    { label: 'Devolvido (total)', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
-    { label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) },
-    { label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
-  ];
-  const kpiHtml = kpis.map(k => `
-    <div class="kpi">
-      <div class="label">${escapeHtml(k.label)}</div>
-      <div class="value">${escapeHtml(k.value)}</div>
-      <div class="sub">${escapeHtml(k.sub)}</div>
-    </div>`).join('');
-
-  const poCardsHtml = state.pedidos.map(p => {
-    const s = pedidoStats(p);
-    const low = s.pct >= 85;
-    return `
-    <div class="po-card">
-      <div class="po-head">
-        <span class="po-num">Pedido ${escapeHtml(p.numero)}</span>
-        <span class="po-price">${s.soQtd ? 'Apenas quantidade' : fmtR(p.precoTon) + '/t'}</span>
-      </div>
-      <div class="po-row"><span>Fornecedor</span><b>${p.fornecedor ? escapeHtml(p.fornecedor) : 'não informado'}</b></div>
-      <div class="po-row"><span>Contratado</span><b>${fmtT(p.qtdContratada)}</b></div>
-      <div class="po-row"><span>Entregue (líquido)</span><b>${fmtT(s.entregueQtd)}</b></div>
-      ${s.devolvidoQtd > 0 ? `<div class="po-row"><span>Devolvido</span><b>${fmtT(s.devolvidoQtd)}</b></div>` : ''}
-      <div class="bar-track"><div class="bar-fill" style="width:${s.pct.toFixed(1)}%; background:${low ? '#d03b3b' : '#2a78d6'};"></div></div>
-      <div class="po-row"><span>Saldo restante</span><b>${fmtT(s.saldoQtd)}</b></div>
-      ${s.soQtd ? '' : `<div class="po-row"><span>Saldo (R$)</span><b>${fmtR(s.saldoValor)}</b></div>`}
-    </div>`;
-  }).join('') || `<p class="hint">Nenhum pedido de compra cadastrado.</p>`;
-
-  // Resumo por fornecedor: só faz sentido no relatório geral (com mais de um).
   const fornResumo = fornecedorFiltro ? [] : resumoPorFornecedor();
-  const fornSectionHtml = fornResumo.length > 1 ? `
-  <h2 class="section-title">Resumo por fornecedor</h2>
-  <table>
-    <thead><tr>
-      <th>Fornecedor</th><th class="num">Pedidos</th><th class="num">Contratado (t)</th><th class="num">Entregue líq. (t)</th>
-      <th class="num">Devolvido (t)</th><th class="num">Saldo (t)</th><th class="num">Saldo (R$)</th><th class="num">Execução</th>
-    </tr></thead>
-    <tbody>
-      ${fornResumo.map(x => `<tr>
-        <td>${escapeHtml(x.nome)}</td><td class="num">${x.pedidos.length}</td><td class="num">${fmtT(x.contratado)}</td>
-        <td class="num">${fmtT(x.entregueQtd)}</td><td class="num">${x.devolvidoQtd > 0 ? fmtT(x.devolvidoQtd) : '—'}</td>
-        <td class="num">${fmtT(x.saldoQtd)}</td><td class="num">${fmtR(x.saldoValor)}</td><td class="num">${x.pct.toFixed(1)}%</td>
-      </tr>`).join('')}
-      <tr><td>TOTAL</td><td class="num">${fornResumo.reduce((a,x)=>a+x.pedidos.length,0)}</td>
-        <td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.contratado,0))}</td><td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.entregueQtd,0))}</td>
-        <td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.devolvidoQtd,0))}</td><td class="num">${fmtT(fornResumo.reduce((a,x)=>a+x.saldoQtd,0))}</td>
-        <td class="num">${fmtR(fornResumo.reduce((a,x)=>a+x.saldoValor,0))}</td><td class="num"></td></tr>
-    </tbody>
-  </table>` : '';
+  const fornHtml = fornResumo.length > 1 ? `<h2>Resumo por fornecedor</h2>
+    <table class="sm"><thead><tr><th>Fornecedor</th><th class="n">Pedidos</th><th class="n">Contratado</th><th class="n">Entregue líq.</th><th class="n">Devolvido</th><th class="n">Saldo</th><th class="n">Saldo (R$)</th><th class="n">Execução</th></tr></thead>
+    <tbody>${fornResumo.map(x=>`<tr><td>${e(x.nome)}</td><td class="n">${x.pedidos.length}</td><td class="n">${fmtT(x.contratado)}</td><td class="n">${fmtT(x.entregueQtd)}</td><td class="n">${x.devolvidoQtd>0?fmtT(x.devolvidoQtd):'—'}</td><td class="n">${fmtT(x.saldoQtd)}</td><td class="n">${fmtR(x.saldoValor)}</td><td class="n">${x.pct.toFixed(1).replace('.',',')}%</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>Total</td><td class="n">${fornResumo.reduce((a,x)=>a+x.pedidos.length,0)}</td><td class="n">${fmtT(gQ)}</td><td class="n">${fmtT(gE)}</td><td class="n">${gD>0?fmtT(gD):'—'}</td><td class="n">${fmtT(gS)}</td><td class="n">${fmtR(gSV)}</td><td></td></tr></tfoot></table>` : '';
 
   const obras = resumoPorObra();
-  const totalQtdObras = obras.reduce((s,o) => s + o.qtd, 0);
-  const totalValorObras = obras.reduce((s,o) => s + o.valor, 0);
-  const maxQtd = Math.max(...obras.map(o => o.qtd), 0.0001);
+  const tQO = obras.reduce((s,o)=>s+o.qtd,0);
+  const obrasHtml = obras.length ? `<h2>Fornecimento por obra</h2>
+    <table class="sm"><thead><tr><th>Obra / local de entrega</th><th class="n">Entregas</th><th class="n">Qtd. líquida</th><th class="n">Devolvido</th><th class="n">Valor líquido</th><th class="n">% do total</th></tr></thead>
+    <tbody>${obras.map(o=>`<tr><td>${e(o.local)}</td><td class="n">${o.count}</td><td class="n">${fmtT(o.qtd)}</td><td class="n">${o.devolvidoQtd>0?fmtT(o.devolvidoQtd):'—'}</td><td class="n">${fmtR(o.valor)}</td><td class="n">${pc(o.qtd,tQO)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>Total</td><td class="n">${state.entregas.length}</td><td class="n">${fmtT(tQO)}</td><td class="n">${fmtT(obras.reduce((s,o)=>s+o.devolvidoQtd,0))}</td><td class="n">${fmtR(obras.reduce((s,o)=>s+o.valor,0))}</td><td class="n">100%</td></tr></tfoot></table>` : '';
 
-  const chartHtml = obras.length ? obras.map(o => `
-    <div class="bc-row">
-      <div class="bc-label">${escapeHtml(o.local)}</div>
-      <div class="bc-track"><div class="bc-fill" style="width:${(o.qtd/maxQtd*100).toFixed(1)}%"></div></div>
-      <div class="bc-value">${fmtT(o.qtd)}</div>
-    </div>`).join('') : `<p class="hint">Nenhuma entrega registrada ainda.</p>`;
-
-  const obraRowsHtml = obras.length ? obras.map(o => `
-    <tr>
-      <td>${escapeHtml(o.local)}</td>
-      <td class="num">${o.count}</td>
-      <td class="num">${fmtT(o.qtd)}</td>
-      <td class="num">${o.devolvidoQtd > 0 ? fmtT(o.devolvidoQtd) : '—'}</td>
-      <td class="num">${fmtR(o.valor)}</td>
-      <td class="num">${totalQtdObras ? (o.qtd/totalQtdObras*100).toFixed(1) : '0.0'}%</td>
-    </tr>`).join('') : `<tr><td colspan="6" class="hint" style="text-align:center;">Nenhuma entrega registrada ainda.</td></tr>`;
-
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Relatório de Saldo — CAP${fornecedorFiltro ? ' · ' + escapeHtml(fornecedorFiltro) : ''} · ${escapeHtml(todayIso())}</title>
-<style>
-  :root {
-    --surface-0: #f9f9f7; --surface-1: #fcfcfb; --surface-2: #ffffff;
-    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
-    --gridline: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
-    --series-1: #2a78d6; --good: #0ca30c; --critical: #d03b3b;
-  }
-  * { box-sizing: border-box; }
-  body { margin:0; background: var(--surface-0); color: var(--text-primary); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; }
-  .tabular { font-variant-numeric: tabular-nums; }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 24px 60px; }
-  .report-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom: 22px; flex-wrap: wrap; }
-  .report-header h1 { font-size: 19px; margin: 0 0 4px; }
-  .report-header p { margin: 0; color: var(--text-secondary); font-size: 12.5px; }
-  .no-print button { border:1px solid var(--border); background: var(--surface-2); color: var(--text-primary); padding: 8px 14px; border-radius: 8px; cursor:pointer; font-size: 12.8px; font-weight:500; }
-  .no-print button:hover { border-color: var(--series-1); color: var(--series-1); }
-  h2.section-title { font-size: 14.5px; margin: 30px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--baseline); }
-  .kpi-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 10px; }
-  .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; }
-  .kpi .label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing:.03em; margin-bottom:6px; }
-  .kpi .value { font-size: 19px; font-weight: 600; }
-  .kpi .sub { color: var(--text-secondary); font-size: 12px; margin-top: 3px; }
-  .po-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 12px; }
-  .po-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; break-inside: avoid; }
-  .po-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
-  .po-num { font-weight:600; font-size: 13.5px; }
-  .po-price { color: var(--text-muted); font-size: 11.5px; }
-  .po-row { display:flex; justify-content:space-between; font-size: 12px; color: var(--text-secondary); margin: 3px 0; }
-  .po-row b { color: var(--text-primary); }
-  .bar-track { height: 7px; border-radius: 4px; background: var(--gridline); overflow:hidden; margin: 7px 0 5px; }
-  .bar-fill { height: 100%; border-radius: 4px 0 0 4px; }
-  .bar-chart { display:flex; flex-direction:column; gap: 9px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .bc-row { display:grid; grid-template-columns: 140px 1fr 90px; align-items:center; gap: 10px; }
-  .bc-label { font-size: 12px; color: var(--text-secondary); text-align:right; }
-  .bc-track { background: var(--gridline); border-radius: 4px; height: 18px; overflow:hidden; }
-  .bc-fill { background: var(--series-1); height:100%; border-radius:4px; min-width:2px; }
-  .bc-value { font-size: 12px; text-align:right; font-weight:600; }
-  table { width:100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
-  thead th { text-align:left; color: var(--text-muted); font-weight:600; font-size: 10.5px; text-transform:uppercase; letter-spacing:.02em; padding: 8px 10px; border-bottom: 1px solid var(--baseline); }
-  thead th.num, td.num { text-align:right; }
-  tbody td { padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
-  tbody tr:last-child td { font-weight:600; border-bottom:none; border-top: 1px solid var(--baseline); }
-  .hint { color: var(--text-muted); font-size: 12.5px; }
-  footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--gridline); color: var(--text-muted); font-size: 11px; }
-  @media print {
-    .no-print { display:none !important; }
-    body { background:#fff; }
-    .kpi, .po-card, .bar-chart { border-color:#ccc; }
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="report-header">
-    <div>
-      <h1>Relatório de Saldo — CAP <span style="color:var(--text-muted); font-weight:400;">(Cimento Asfáltico de Petróleo)</span></h1>
-      ${fornecedorFiltro ? `<p style="font-size:14px;color:var(--text-primary);font-weight:600;margin-bottom:4px;">Fornecedor: ${escapeHtml(fornecedorFiltro)}</p>` : ''}
-      <p>Gerado em ${escapeHtml(geradoEm)} · Controle de Saldo CAP${fornecedorFiltro ? '' : ' · todos os fornecedores'}</p>
-    </div>
-    <div class="no-print"><button onclick="window.print()">🖨 Imprimir / Salvar PDF</button></div>
-  </div>
-
-  <h2 class="section-title">Visão geral</h2>
-  <div class="kpi-grid">${kpiHtml}</div>
-
-  ${fornSectionHtml}
-
-  <h2 class="section-title">Saldo por Pedido de Compra</h2>
-  <div class="po-grid">${poCardsHtml}</div>
-
-  <h2 class="section-title">Resumo de fornecimento por obra — Qtd. líquida entregue (t)</h2>
-  <div class="bar-chart">${chartHtml}</div>
-
-  <h2 class="section-title">Resumo de fornecimento por obra — detalhado</h2>
-  <table>
-    <thead><tr>
-      <th>Obra / Local de entrega</th><th class="num">Nº de entregas</th><th class="num">Qtd. líquida (t)</th>
-      <th class="num">Devolvido (t)</th><th class="num">Valor líquido (R$)</th><th class="num">% do total</th>
-    </tr></thead>
-    <tbody>
-      ${obraRowsHtml}
-      ${obras.length ? `<tr><td>TOTAL</td><td class="num">${state.entregas.length}</td><td class="num">${fmtT(totalQtdObras)}</td><td class="num">${fmtT(obras.reduce((s,o)=>s+o.devolvidoQtd,0))}</td><td class="num">${fmtR(totalValorObras)}</td><td class="num">100.0%</td></tr>` : ''}
-    </tbody>
-  </table>
-
-  ${(state.devolucoes||[]).length ? `
-  <h2 class="section-title">Devoluções e estornos</h2>
-  <table>
-    <thead><tr>
-      <th>Data</th><th>NF devolução</th><th>Pedido</th><th>Entrega estornada</th>
-      <th class="num">Qtd. (t)</th><th class="num">Valor (R$)</th><th>Local</th><th>Motivo</th>
-    </tr></thead>
-    <tbody>
-      ${(state.devolucoes||[]).slice().sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(d => {
-        const p = pedidoById(d.pedidoId);
-        const entOrig = d.entregaId ? state.entregas.find(e => String(e.id) === String(d.entregaId)) : null;
-        return `<tr>
-          <td>${fmtDate(d.data)}</td><td>${escapeHtml(d.nf||'—')}</td><td>${p ? escapeHtml(p.numero) : '—'}</td>
-          <td>${entOrig ? 'NF ' + escapeHtml(entOrig.nf) : '—'}</td><td class="num">${fmtT(d.qtd)}</td>
-          <td class="num">${fmtR(d.valor)}</td><td>${escapeHtml(d.local||'—')}</td><td>${escapeHtml(d.motivo||'—')}</td>
-        </tr>`;
-      }).join('')}
-    </tbody>
-  </table>` : ''}
-
-  <footer>Relatório gerado automaticamente pelo Controle de Saldo CAP a partir dos dados cadastrados no momento da geração.</footer>
-</div>
-</body>
-</html>`;
+  const ledger = estoqueLedger();
+  const estoque = ledger.length ? ledger[ledger.length-1].saldo : 0;
+  const agora = new Date();
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Controle de Saldo CAP${fornecedorFiltro ? ' · '+e(fornecedorFiltro) : ''} · ${e(todayIso())}</title><style>
+    @page{size:A4 portrait;margin:11mm 10mm 12mm;}
+    *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:8.6pt;color:#1d2228;margin:0;}
+    h1{font-size:14pt;margin:0;font-weight:700;letter-spacing:.2px;}
+    h2{font-size:10pt;margin:12px 0 4px;break-after:avoid;}
+    .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d2228;padding-bottom:5px;margin-bottom:8px;}
+    .top .mut{text-align:right;}
+    .mut{color:#667080;font-size:7.6pt;line-height:1.35;}
+    .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px;}
+    .kp div{border:1px solid #d5d9df;border-radius:4px;padding:5px 7px;}
+    .kp b{display:block;font-size:10.5pt;margin-top:1px;}
+    .leg{font-size:7.4pt;color:#4b5563;margin:0 0 9px;line-height:1.45;}
+    .cred{border:1px solid #cfd4da;border-radius:5px;padding:7px 8px 6px;margin:0 0 9px;break-inside:auto;}
+    .ch{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;break-after:avoid;}
+    .who{font-weight:700;font-size:9.6pt;}
+    .cv{font-weight:700;font-size:11pt;white-space:nowrap;text-align:right;}
+    .bar{display:flex;height:6px;background:#d6dae0;border-radius:3px;overflow:hidden;margin:5px 0 4px;}
+    .bar i{display:block;height:100%;} .f{background:#2e7d32;} .r{background:#f2a900;} .l{background:#d6dae0;}
+    .eq{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:7.8pt;margin-bottom:5px;}
+    .d{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;vertical-align:0;}
+    table{width:100%;border-collapse:collapse;table-layout:fixed;}
+    th{font-size:7pt;text-transform:uppercase;letter-spacing:.3px;color:#4b5563;text-align:left;border-bottom:1px solid #9aa3ad;padding:3px 4px;}
+    td{padding:4px 4px;border-bottom:1px solid #e3e6ea;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere;}
+    table.sm{table-layout:auto;}
+    tr{break-inside:avoid;}
+    thead{display:table-header-group;}
+    .n{text-align:right;}
+    td.n{white-space:nowrap;font-size:8pt;}
+    tfoot td{font-weight:700;border-top:1px solid #9aa3ad;border-bottom:0;}
+    .st{display:inline-block;font-size:7pt;font-weight:700;padding:1px 5px;border-radius:7px;}
+    .st.ok{background:#e3f2e5;color:#2e7d32;} .st.res{background:#fff3d6;color:#8a6100;}
+    .foot{margin-top:8px;font-size:7pt;color:#8a929c;}
+  </style></head><body>
+    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos</div><h1>Controle de Saldo — CAP</h1>${fornecedorFiltro?`<div class="mut">Fornecedor: <b>${e(fornecedorFiltro)}</b></div>`:''}</div>
+      <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${state.pedidos.length} pedido(s)${fornecedorFiltro?'':' · todos os fornecedores'}</div></div>
+    <div class="kp"><div><span class="mut">Contratado</span><b>${fmtT(gQ)}</b><span class="mut">${fmtR(gV)}</span></div><div><span class="mut">Entregue (líquido)</span><b>${fmtT(gE)}</b><span class="mut">${fmtR(gEV)}${gD>0?` · devolvido ${fmtT(gD)}`:''}</span></div><div><span class="mut">Saldo a entregar</span><b>${fmtT(gS)}</b><span class="mut">${fmtR(gSV)}</span></div><div><span class="mut">Estoque físico atual</span><b>${fmtT(estoque)}</b><span class="mut">${fornecedorFiltro?'em tanque deste fornecedor':'combinado em tanque'}</span></div></div>
+    <div class="leg"><i class="d f"></i><b>Entregue</b>: notas fiscais de entrega lançadas no pedido, já descontadas as devoluções. <i class="d r"></i><b>Devolvido</b>: devoluções e estornos, que voltam para o saldo do pedido. <i class="d l"></i><b>Saldo a entregar</b>: quantidade contratada que ainda falta entregar. Pedidos "apenas quantidade" não somam valores em R$.</div>
+    ${blocos || '<div class="mut">Nenhum pedido de compra cadastrado.</div>'}
+    ${fornHtml}
+    ${obrasHtml}
+    <div class="foot">Fonte: pedidos, entregas e devoluções cadastrados no Controle de Saldo CAP no momento da emissão.</div>
+  </body></html>`;
 }
 
 function atualizarResumoRelatorio() {
@@ -12751,10 +12646,13 @@ document.getElementById('relFiltroFornecedor').addEventListener('change', atuali
 document.getElementById('btnConfirmarRelatorio').addEventListener('click', () => {
   const forn = document.getElementById('relFiltroFornecedor').value;
   const html = buildReportHtml(forn);
-  const slug = forn ? '_' + forn.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40).toLowerCase() : '';
-  downloadFile(`relatorio_saldo_cap${slug}_${todayIso()}.html`, html, 'text/html');
   closeModal('modalRelatorio');
-  toast(forn ? `Relatório de ${forn} gerado` : 'Relatório gerado');
+  // Abre a impressão (ou "Salvar como PDF") em A4, como o relatório de créditos.
+  const fr = document.createElement('iframe');
+  fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(fr);
+  const d = fr.contentWindow.document; d.open(); d.write(html); d.close();
+  setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); setTimeout(() => fr.remove(), 1500); }, 350);
 });
 
 /* ============ LEITURA AUTOMÁTICA DE PDF (Pedido de Compra / Nota Fiscal) ============ */
