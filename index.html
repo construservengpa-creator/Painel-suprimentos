@@ -6118,10 +6118,17 @@ function renderCentros(){
    fornecedor sem nenhuma movimentação de NF registrada no relatório.
    ============================================================ */
 let lastNfGroups = [];
+// Além das situações exatas de PEDIDO_ENCERRADO_SET, qualquer texto que
+// mencione cancelamento conta como cancelado aqui — ex.: o pedido 57653 está
+// "Cancelado" no Sienge, mas o relatório traz "Atendida parcialmente (saldo
+// cancelado)", que não casa com o conjunto e mantinha o pedido nesta aba.
+function pedidoCanceladoSemNF(r){
+  return r.pedidoCancelado || normKey(r.situacaoPedido).includes('CANCEL');
+}
 function getPedidoGroupsSemNF(){
   const map = new Map();
   state.rows.forEach(r=>{
-    if(!r.temPedido || r.pedidoCancelado) return;
+    if(!r.temPedido || pedidoCanceladoSemNF(r)) return;
     const key = String(r.numPedido);
     if(!map.has(key)) map.set(key, []);
     map.get(key).push(r);
