@@ -109,6 +109,8 @@ a:focus-visible{outline:2px solid var(--ambar);outline-offset:2px;}
   padding:12px 14px;font-size:13px;color:var(--texto-2);line-height:1.55;
 }
 .aviso b{color:var(--texto);}
+/* segredo: a logo leva ao jogo da capivara, sem nenhuma pista visual */
+#logoCapivara{-webkit-tap-highlight-color:transparent;}
 footer{max-width:1120px;margin:16px auto 0;font-size:11.5px;color:var(--moldura-apagado);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 
 @media (max-width:900px){ .apps{grid-template-columns:1fr 1fr;} .app.est{grid-column:1 / -1;} }
@@ -124,7 +126,7 @@ footer{max-width:1120px;margin:16px auto 0;font-size:11.5px;color:var(--moldura-
 <body>
 
 <header class="topo">
-  <div class="logo" aria-hidden="true">
+  <div class="logo" id="logoCapivara" aria-hidden="true">
     <svg viewBox="0 0 64 64"><g fill="#1A1E24"><rect x="12" y="40" width="6" height="12" rx="2.5"/><rect x="22" y="41" width="5.5" height="11" rx="2.5"/><rect x="35.5" y="40" width="6" height="12" rx="2.5"/><circle cx="41.5" cy="18.8" r="2.7"/><path fill-rule="evenodd" d="M10 44C5.5 40 5.5 30 9.5 25.5C13.5 20 21 17 28.5 17.8C33 18.3 35.5 20 38 20L44 19.6C50.5 19.8 55.5 21 58.5 23.5C60.8 25.5 61 31 59.5 33.5C58.3 35.2 55.5 35.8 52.5 35.8L46 35.8C44.5 40.5 41 44.5 36 45.5L16 46.5C13.5 46.5 11.3 45.5 10 44ZM48.6 24.3a1.6 1.6 0 1 0-3.2 0a1.6 1.6 0 1 0 3.2 0ZM59.2 26.6a.8 1.1 0 1 0-1.6 0a.8 1.1 0 1 0 1.6 0Z"/></g></svg>
   </div>
   <div>
@@ -219,6 +221,8 @@ footer{max-width:1120px;margin:16px auto 0;font-size:11.5px;color:var(--moldura-
   var dia = agora.toLocaleDateString('pt-BR', { weekday:'long' });
   var data = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
   document.getElementById('data').innerHTML = '<b>' + dia.charAt(0).toUpperCase() + dia.slice(1) + '</b>' + data;
+  // segredo: clicar na capivara abre o jogo (sem link visível nem endereço no rodapé do navegador)
+  document.getElementById('logoCapivara').addEventListener('click', function(){ location.href = 'jogo.html'; });
   document.getElementById('rodape-data').textContent = 'Hoje: ' + agora.toLocaleDateString('pt-BR');
 })();
 </script>
