@@ -2404,7 +2404,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   <header class="topbar">
     <div class="brand-lockup">
       <button class="sidebar-toggle no-print" id="sidebarToggle" type="button" title="Recolher menu" aria-label="Recolher/expandir menu" aria-controls="mainSidebar" aria-expanded="true">☰</button>
-      <span class="cap-selo"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#capivaraSilhueta"/></svg></span>
+      <span class="cap-selo" id="logoCapivara"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#capivaraSilhueta"/></svg></span>
       <div>
         <h1 class="brand-title"><span class="cap-marca">Capivara <span class="cap-mod">Suprimentos</span></span> <span class="marca-sub">· Sienge</span></h1>
         <span class="brand-tag">Painel de acompanhamento de compras</span>
@@ -7585,6 +7585,12 @@ var navTabGroupMap = {
   'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos',
   'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos'
 };
+
+/* ---- segredo: clicar na capivara do cabeçalho abre o jogo (jogo.html), sem pista visual ---- */
+(function(){
+  var logo = document.getElementById('logoCapivara');
+  if(logo) logo.addEventListener('click', function(){ location.href = 'jogo.html'; });
+})();
 
 /* ---- menu principal: recolher/expandir a barra lateral ---- */
 (function(){
