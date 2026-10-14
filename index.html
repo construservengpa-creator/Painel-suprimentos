@@ -246,6 +246,10 @@ html[data-tema="estoque"] ::selection{background:#F5A524;color:#12151A;}
 }
 .tema-btn:hover{border-color:var(--yellow-dim);color:var(--text);}
 a.inicio-btn{text-decoration:none;}
+.ultima-atualizacao{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;
+  background:var(--asphalt-2);color:var(--text-dim);font-size:12.5px;white-space:nowrap;font-family:var(--font-body);}
+.ultima-atualizacao strong{color:var(--text);font-family:var(--font-mono);font-weight:600;}
+.ultima-atualizacao[hidden]{display:none;}
 a.inicio-btn span{font-size:15px;line-height:1;}
 .tema-btn .tema-amostra{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--yellow) 50%,var(--asphalt) 50%);box-shadow:0 0 0 1px var(--line);}
 a{color:var(--blue);}
@@ -2411,6 +2415,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       </div>
     </div>
     <div class="topbar-actions">
+      <span class="ultima-atualizacao" id="ultimaAtualizacao" hidden title="Data e hora em que o relatório do Sienge exibido no painel foi publicado"><span aria-hidden="true">🕒</span> Última atualização: <strong id="ultimaAtualizacaoTxt">—</strong></span>
       <a class="tema-btn inicio-btn no-print" href="inicio.html" title="Voltar à página inicial do Capivara (Suprimentos, Notas e Estoque)"><span aria-hidden="true">⌂</span> Início</a>
       <button class="tema-btn no-print" id="temaBtn" type="button" title="Trocar o tema do painel (fica salvo neste navegador)"><span class="tema-amostra"></span><span id="temaBtnTxt">Tema: Asfalto</span></button>
       <div class="header-auth no-print" id="headerAuth">
@@ -5082,7 +5087,7 @@ document.getElementById('fileInput').addEventListener('change', function(e){
       loadRows(rawRows, file.name + ' (publicando no servidor…)');
       const publicado = await publicarRelatorio(rawRows, file.name);
       if(publicado){
-        loadRows(rawRows, `${file.name} (publicado no servidor)`);
+        loadRows(rawRows, `${file.name} (publicado no servidor)`, new Date());
       }
     }catch(err){
       alert('Não foi possível ler o arquivo. Verifique se é um export válido do Sienge (.xlsx).\n\n'+err.message);
@@ -5379,7 +5384,7 @@ async function autoLoadBaseDados(){
     const snapshot = await fetchLatestRelatorio();
     if(snapshot && snapshot.dados){
       const quando = new Date(snapshot.importado_em).toLocaleString('pt-BR');
-      loadRows(snapshot.dados, `${snapshot.nome_arquivo || BASE_DADOS_FILENAME} (publicado em ${quando})`);
+      loadRows(snapshot.dados, `${snapshot.nome_arquivo || BASE_DADOS_FILENAME} (publicado em ${quando})`, new Date(snapshot.importado_em));
       return;
     }
   }catch(err){
@@ -5395,13 +5400,28 @@ async function autoLoadBaseDados(){
 
 document.getElementById('btnReloadBase').addEventListener('click', function(){ autoLoadBaseDados(); });
 
-function loadRows(rawRows, sourceName){
+// Mostra no topo do painel quando o relatório exibido foi publicado
+// (dia e hora). Sem data (dados de exemplo / publicação pendente) o selo some.
+function setUltimaAtualizacao(quando, sourceName){
+  const box = document.getElementById('ultimaAtualizacao');
+  const txt = document.getElementById('ultimaAtualizacaoTxt');
+  if(!box || !txt) return;
+  if(!(quando instanceof Date) || isNaN(quando)){ box.hidden = true; return; }
+  const hora = quando.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  txt.textContent = `${fmtDate(quando)} às ${hora}`;
+  box.title = `Relatório do Sienge exibido: ${sourceName}`;
+  box.hidden = false;
+}
+
+function loadRows(rawRows, sourceName, atualizadoEm){
   state.rows = rawRows.map(classify);
   applyPedidoAtendidoOverride(state.rows);
   state.sourceName = sourceName;
+  setUltimaAtualizacao(atualizadoEm, sourceName);
   document.getElementById('statusDot').classList.add('ok');
   document.getElementById('statusText').textContent =
-    `${sourceName} · ${state.rows.length} registro(s) importado(s) · atualizado em ${fmtDate(new Date())}`;
+    `${sourceName} · ${state.rows.length} registro(s) importado(s)` +
+    (atualizadoEm instanceof Date && !isNaN(atualizadoEm) ? ` · atualizado em ${fmtDate(atualizadoEm)} às ${atualizadoEm.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}` : '');
   populateFilterOptions();
   renderAll();
   if(typeof reconciliarVinculosComNotasFiscais==='function') reconciliarVinculosComNotasFiscais();
