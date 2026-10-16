@@ -4740,46 +4740,6 @@ function reatribuirPrevisaoPorRevisaoCartesiana(kept, keptRawItems){
         return PEDIDO_ATENDIDO_SET.has(situ) || PEDIDO_ENCERRADO_SET.has(situ);
       }));
     if(algumaLinhaJaResolvida) return;
-    // ajuste 17: lotes com datas de chegada à obra distintas, mas o relatório
-    // traz UMA única previsão de entrega para todos eles (a do pedido, não a
-    // de cada lote). Sem correção, os lotes seguintes herdam a previsão do
-    // 1º lote e aparecem atrasados antes da própria data pedida. Confirmado
-    // no pedido 59367 / solicitação 34429 (CAP 50/70): lote de 40t com
-    // chegada 15/10 e lote de 30t com chegada 19/10, ambos com previsão
-    // 15/10. Correção: o lote de chegada mais cedo mantém a previsão; os
-    // demais passam a usar a própria data de chegada quando ela for
-    // posterior à previsão compartilhada. Vale com quantidades iguais ou não.
-    {
-      const chegadasLote = indices.map(idx=> normLabel(kept[idx].dataChegadaObra));
-      const previsoesLote = new Set();
-      indices.forEach(idx=> keptRawItems[idx].forEach(raw=>{
-        const d = normLabel(raw.previsaoEntrega);
-        if(d) previsoesLote.add(d);
-      }));
-      if(previsoesLote.size === 1
-         && new Set(chegadasLote).size === indices.length
-         && !chegadasLote.some(c=>isNaN(parseD(c)))){
-        const prevUnica = Array.from(previsoesLote)[0];
-        const tPrev = parseD(prevUnica);
-        if(isNaN(tPrev)) return;
-        const tPrimeira = Math.min(...chegadasLote.map(parseD));
-        let alterou = false;
-        indices.forEach((idx,pos)=>{
-          const tCheg = parseD(chegadasLote[pos]);
-          if(tCheg === tPrimeira || tCheg <= tPrev) return;
-          // cópia: em grupos de 1 linha, kept[idx] é o próprio objeto do
-          // relatório importado (publicado no servidor) — não pode ser alterado
-          kept[idx] = Object.assign({}, kept[idx], {
-            previsaoEntrega: chegadasLote[pos],
-            previsaoPelaChegada: true,
-            previsaoOriginalPedido: prevUnica
-          });
-          alterou = true;
-        });
-        if(alterou) gruposCorrigidos += 1;
-        return;
-      }
-    }
     // todos os lotes precisam ter a MESMA quantidade solicitada — senão são
     // lotes de tamanhos diferentes (outro padrão, não mexe aqui)
     const qtds = indices.map(idx=>parseNumBR(kept[idx].qtdSolicitada));
@@ -5614,8 +5574,60 @@ function resumoOrigem(sourceName){
   return situ ? `${base} · ${situ}` : base;
 }
 
+// ajuste 17: lotes com datas de chegada à obra distintas, mas o relatório
+// traz UMA única previsão de entrega para todos eles (a do pedido, não a de
+// cada lote). Sem correção, os lotes seguintes herdam a previsão do 1º lote
+// e aparecem atrasados antes da própria data pedida. Confirmado no pedido
+// 59367 / solicitação 34429 (CAP 50/70): lote de 40t com chegada 15/10 e
+// lote de 30t com chegada 19/10, ambos com previsão 15/10. Correção: o lote
+// de chegada mais cedo mantém a previsão; os demais passam a usar a própria
+// data de chegada quando ela for posterior à previsão compartilhada.
+// Roda no carregamento (loadRows), e não só na importação, para valer
+// também para relatórios já publicados no servidor. Não altera os objetos
+// recebidos (eles são os mesmos publicados no servidor): devolve cópias.
+function previsaoPelaChegadaDosLotes(rows){
+  const parseD = s => { const m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if(!m) return NaN; return new Date(Number(m[3].length===2?'20'+m[3]:m[3]), Number(m[2])-1, Number(m[1])).getTime(); };
+  const clusters = new Map();
+  rows.forEach((r, i)=>{
+    const numPedido = normLabel(r.numPedido);
+    if(!numPedido || NUM_PEDIDO_PLACEHOLDERS.has(normKey(numPedido))) return;
+    const key = numPedido + '§' + normKey(r.descricaoInsumo) + '§' + normKey(r.detalhe);
+    if(!clusters.has(key)) clusters.set(key, []);
+    clusters.get(key).push(i);
+  });
+  let out = rows;
+  clusters.forEach(indices=>{
+    if(indices.length < 2) return;
+    // só lotes sem entrega registrada e pedido não resolvido/cancelado
+    if(indices.some(idx=> parseNumBR(rows[idx].qtdEntregue) > SALDO_EPSILON)) return;
+    if(indices.some(idx=>{
+      const situ = normKey(rows[idx].situacaoPedido);
+      return PEDIDO_ATENDIDO_SET.has(situ) || PEDIDO_ENCERRADO_SET.has(situ);
+    })) return;
+    const chegadas = indices.map(idx=> normLabel(rows[idx].dataChegadaObra));
+    if(new Set(chegadas).size !== indices.length) return;
+    if(chegadas.some(c=>isNaN(parseD(c)))) return;
+    const previsoes = new Set(indices.map(idx=> normLabel(rows[idx].previsaoEntrega)));
+    if(previsoes.size !== 1) return;
+    const prevUnica = Array.from(previsoes)[0];
+    const tPrev = parseD(prevUnica);
+    if(isNaN(tPrev)) return;
+    const tPrimeira = Math.min(...chegadas.map(parseD));
+    indices.forEach((idx,pos)=>{
+      const tCheg = parseD(chegadas[pos]);
+      if(tCheg === tPrimeira || tCheg <= tPrev) return;
+      if(out === rows) out = rows.slice();
+      out[idx] = Object.assign({}, rows[idx], {
+        previsaoEntrega: chegadas[pos],
+        previsaoPelaChegada: true,
+        previsaoOriginalPedido: prevUnica
+      });
+    });
+  });
+  return out;
+}
 function loadRows(rawRows, sourceName){
-  state.rows = rawRows.map(classify);
+  state.rows = previsaoPelaChegadaDosLotes(rawRows).map(classify);
   applyPedidoAtendidoOverride(state.rows);
   state.sourceName = sourceName;
   document.getElementById('statusDot').classList.add('ok');
