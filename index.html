@@ -5564,6 +5564,16 @@ async function autoLoadBaseDados(){
 
 document.getElementById('btnReloadBase').addEventListener('click', function(){ autoLoadBaseDados(); });
 
+// Rodapé curto do card "Registros importados": só a quantidade de arquivos
+// e a situação (os nomes completos ficam no título/tooltip do card).
+function resumoOrigem(sourceName){
+  if(!sourceName) return 'nenhum arquivo';
+  const situ = (String(sourceName).match(/\(([^()]*)\)\s*$/) || [])[1] || '';
+  const nArq = (String(sourceName).match(/\.(xlsx|xls|csv)\b/gi) || []).length;
+  const base = nArq > 1 ? `${nArq} arquivos do Sienge` : (nArq === 1 ? 'Relatório do Sienge' : String(sourceName).replace(/\s*\([^()]*\)\s*$/, ''));
+  return situ ? `${base} · ${situ}` : base;
+}
+
 function loadRows(rawRows, sourceName){
   state.rows = rawRows.map(classify);
   applyPedidoAtendidoOverride(state.rows);
@@ -5946,7 +5956,7 @@ function renderOverview(){
     <div class="kpi-card c-total">
       <p class="kpi-label">Registros importados</p>
       <div class="kpi-value">${rows.length}</div>
-      <p class="kpi-foot">${esc(state.sourceName || 'nenhum arquivo')}</p>
+      <p class="kpi-foot" title="${esc(state.sourceName || '')}">${esc(resumoOrigem(state.sourceName))}</p>
     </div>
     <div class="kpi-card c-solic">
       <p class="kpi-label">Solicitações pendentes (aprovadas)</p>
