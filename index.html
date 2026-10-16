@@ -4335,17 +4335,36 @@ const HEADER_NORM_TO_FIELD = {
 // o arquivo pode trazer só parte das colunas, então o mapeamento por posição
 // só é aceito se ele tiver o layout completo, e linhas sem nº da solicitação
 // são mantidas quando trazem o nº do pedido (servem para o cruzamento).
+// O export do Sienge pode trazer linhas de título/filtros antes do
+// cabeçalho. Procura, nas primeiras linhas, a que tem mais colunas
+// reconhecidas e usa ela como cabeçalho (o que vem antes é descartado).
+function localizarCabecalho(aoa){
+  let melhor = 0, melhorQtd = -1;
+  const lim = Math.min(aoa.length, 40);
+  for(let i=0;i<lim;i++){
+    const linha = aoa[i] || [];
+    const qtd = linha.filter(h=>HEADER_NORM_TO_FIELD[normKey(h)]).length;
+    if(qtd > melhorQtd){ melhor = i; melhorQtd = qtd; }
+  }
+  return melhorQtd >= 3 ? melhor : 0;
+}
+
 function mapSheetObjects(aoa, opts){
   opts = opts || {};
+  if(aoa && aoa.length) aoa = aoa.slice(localizarCabecalho(aoa));
   if(!aoa || aoa.length<2) return { rows:[], fields:[], matched:0, total:0, positional:false };
   const headerRow = aoa[0];
   let mapping = headerRow.map(h=>HEADER_NORM_TO_FIELD[normKey(h)] || null);
   const matched = mapping.filter(Boolean).length;
+  // colunas sem título (vazias/mescladas no export) não contam no percentual
+  const comTitulo = headerRow.filter(h=>normKey(h)).length;
   let positional = false;
-  if(matched < headerRow.length*0.5){
-    if(opts.parcial && headerRow.length < FIELD_ORDER.length - 2){
-      throw new Error(`"${opts.nome||'arquivo'}": só ${matched} de ${headerRow.length} colunas foram reconhecidas pelo cabeçalho. Para importar em 2 arquivos, cada arquivo precisa ter a linha de cabeçalho do Sienge na primeira linha.`);
-    }
+  if(opts.parcial && !mapping.includes('numSolicitacao') && !mapping.includes('numPedido')){
+    const naoRec = headerRow.filter(h=>normKey(h) && !HEADER_NORM_TO_FIELD[normKey(h)]).slice(0,12).map(h=>`"${String(h).trim()}"`);
+    throw new Error(`"${opts.nome||'arquivo'}": não encontrei a coluna "Nº da solicitação" nem "Nº do pedido" no cabeçalho (${matched} de ${comTitulo} colunas reconhecidas).`
+      + (naoRec.length ? ` Colunas não reconhecidas: ${naoRec.join(', ')}.` : ''));
+  }
+  if(!opts.parcial && matched < comTitulo*0.5){
     // fallback: assume fixed positional layout
     mapping = FIELD_ORDER.slice(0, headerRow.length);
     positional = true;
@@ -4414,7 +4433,7 @@ function combinarArquivosSienge(arquivos){
   parsed.forEach(p=>{ if(!p.rows.length) throw new Error(`"${p.nome}" não tem linhas de dados reconhecidas.`); });
   // base = arquivo com nº da solicitação e o maior número de colunas
   parsed.sort((a,b)=>(b.fields.includes('numSolicitacao')-a.fields.includes('numSolicitacao')) || (b.fields.length-a.fields.length));
-  const resumo = [];
+  const resumo = parsed.map(p=>`"${p.nome}": ${p.rows.length} linha(s) lida(s), ${p.fields.length} coluna(s) reconhecida(s)`);
   let rows = parsed[0].rows.slice();
   let fields = new Set(parsed[0].fields);
   for(let k=1;k<parsed.length;k++){
@@ -5222,6 +5241,14 @@ document.getElementById('fileInput').addEventListener('change', async function(e
       rawRows = r.rows;
       nome = files.map(f=>f.name).join(' + ');
       showCombineWarning([`${files.length} arquivos combinados (${rawRows.length} linha(s) após o agrupamento)`, ...r.resumo]);
+    }
+    // trava: não substitui a base publicada por uma muito menor sem confirmação
+    // (a publicação apaga a versão anterior do servidor)
+    const atuais = (state.rows || []).length;
+    if(atuais > 50 && rawRows.length < atuais*0.5){
+      const ok = confirm(`Atenção: a base atual tem ${atuais} registro(s) e a importação de "${nome}" resultou em apenas ${rawRows.length}.\n\n`
+        + `Isso costuma indicar cabeçalho não reconhecido ou arquivo incompleto. Publicar mesmo assim vai SUBSTITUIR a base atual no servidor.\n\nPublicar mesmo assim?`);
+      if(!ok){ showCombineWarning([`Importação cancelada: "${nome}" resultou em ${rawRows.length} registro(s) contra ${atuais} da base atual. Nada foi publicado.`]); return; }
     }
     loadRows(rawRows, nome + ' (publicando no servidor…)');
     const publicado = await publicarRelatorio(rawRows, nome);
