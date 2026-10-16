@@ -4740,6 +4740,46 @@ function reatribuirPrevisaoPorRevisaoCartesiana(kept, keptRawItems){
         return PEDIDO_ATENDIDO_SET.has(situ) || PEDIDO_ENCERRADO_SET.has(situ);
       }));
     if(algumaLinhaJaResolvida) return;
+    // ajuste 17: lotes com datas de chegada à obra distintas, mas o relatório
+    // traz UMA única previsão de entrega para todos eles (a do pedido, não a
+    // de cada lote). Sem correção, os lotes seguintes herdam a previsão do
+    // 1º lote e aparecem atrasados antes da própria data pedida. Confirmado
+    // no pedido 59367 / solicitação 34429 (CAP 50/70): lote de 40t com
+    // chegada 15/10 e lote de 30t com chegada 19/10, ambos com previsão
+    // 15/10. Correção: o lote de chegada mais cedo mantém a previsão; os
+    // demais passam a usar a própria data de chegada quando ela for
+    // posterior à previsão compartilhada. Vale com quantidades iguais ou não.
+    {
+      const chegadasLote = indices.map(idx=> normLabel(kept[idx].dataChegadaObra));
+      const previsoesLote = new Set();
+      indices.forEach(idx=> keptRawItems[idx].forEach(raw=>{
+        const d = normLabel(raw.previsaoEntrega);
+        if(d) previsoesLote.add(d);
+      }));
+      if(previsoesLote.size === 1
+         && new Set(chegadasLote).size === indices.length
+         && !chegadasLote.some(c=>isNaN(parseD(c)))){
+        const prevUnica = Array.from(previsoesLote)[0];
+        const tPrev = parseD(prevUnica);
+        if(isNaN(tPrev)) return;
+        const tPrimeira = Math.min(...chegadasLote.map(parseD));
+        let alterou = false;
+        indices.forEach((idx,pos)=>{
+          const tCheg = parseD(chegadasLote[pos]);
+          if(tCheg === tPrimeira || tCheg <= tPrev) return;
+          // cópia: em grupos de 1 linha, kept[idx] é o próprio objeto do
+          // relatório importado (publicado no servidor) — não pode ser alterado
+          kept[idx] = Object.assign({}, kept[idx], {
+            previsaoEntrega: chegadasLote[pos],
+            previsaoPelaChegada: true,
+            previsaoOriginalPedido: prevUnica
+          });
+          alterou = true;
+        });
+        if(alterou) gruposCorrigidos += 1;
+        return;
+      }
+    }
     // todos os lotes precisam ter a MESMA quantidade solicitada — senão são
     // lotes de tamanhos diferentes (outro padrão, não mexe aqui)
     const qtds = indices.map(idx=>parseNumBR(kept[idx].qtdSolicitada));
@@ -4981,7 +5021,7 @@ function showDedupeWarning(groupsMerged, rowsMerged, divergentGroups, nfDuplicad
   if(groupsMerged) parts.push(`${groupsMerged} item(ns) com linhas repetidas (NF/parcela/programação) consolidados em uma linha só (qtd. inicial, entregue e saldo) — ${rowsMerged} linha(s) a menos`);
   if(divergentGroups.length) parts.push(`${divergentGroups.length} grupo(s) com repetições de dados estruturais divergentes mantidos para revisão (marcados com ⚠dup nas tabelas)`);
   if(nfDuplicadaCorrigida) parts.push(`${nfDuplicadaCorrigida} pedido(s)/insumo(s) com nota fiscal de entrega replicada entre várias linhas de solicitação — quantidade entregue recontada uma única vez e saldo pendente redistribuído entre as linhas (marcados com ⚠NF dup)`);
-  if(previsaoReatribuida) parts.push(`${previsaoReatribuida} pedido(s)/insumo(s) com lotes cujas datas de previsão de entrega vinham duplicadas entre lotes — reatribuídas por ordem (marcados com ⚠previsão)`);
+  if(previsaoReatribuida) parts.push(`${previsaoReatribuida} pedido(s)/insumo(s) com lotes cujas datas de previsão de entrega vinham duplicadas entre lotes — reatribuídas por lote (marcados com ⚠previsão)`);
   txt.textContent = parts.join(' · ');
   el.classList.add('show');
 }
@@ -6534,7 +6574,7 @@ function renderCentros(){
         <td>${esc(r.qtdSolicitada)} ${esc(r.unidadeMovimento)}</td>
         <td>${r.qtdEntregueNum || 0}</td>
         <td>${r.saldoNum || 0}${r.saldoDivergente?` <span class="saldo-flag" title="Saldo informado (${r.saldoNum}) diferente do calculado (qtd. solicitada − qtd. entregue = ${r.saldoEsperado}). Confira a origem dos dados.">⚠</span>`:''}${r.linhasAgrupadas>1?` <span class="saldo-flag" title="Qtd. inicial, entregue e saldo consolidados a partir de ${r.linhasAgrupadas} linhas repetidas (NF/parcela/programação) do relatório de origem">Σ${r.linhasAgrupadas}</span>`:''}</td>
-        <td>${fmtDate(r.dPrevisao)}${r.previsaoReatribuida?` <span class="saldo-flag" title="Este lote fazia parte de um grupo de ${r.previsaoReatribuidaLinhasNoCluster} lotes do mesmo pedido/insumo cujas datas de previsão vinham duplicadas entre todos eles no relatório. Data reatribuída por ordem (lote com chegada mais cedo = previsão mais cedo). Confirme no Sienge se necessário.">⚠previsão</span>`:''}</td>
+        <td>${fmtDate(r.dPrevisao)}${r.previsaoReatribuida?` <span class="saldo-flag" title="Este lote fazia parte de um grupo de ${r.previsaoReatribuidaLinhasNoCluster} lotes do mesmo pedido/insumo cujas datas de previsão vinham duplicadas entre todos eles no relatório. Data reatribuída por ordem (lote com chegada mais cedo = previsão mais cedo). Confirme no Sienge se necessário.">⚠previsão</span>`:''}${r.previsaoPelaChegada?` <span class="saldo-flag" title="O relatório traz uma única previsão de entrega (${esc(r.previsaoOriginalPedido||'')}) para todos os lotes deste pedido/insumo, mas este lote tem data de chegada à obra posterior. Usada a data de chegada do lote como previsão. Confirme no Sienge se necessário.">⚠previsão</span>`:''}</td>
         <td>${esc(r.situacaoPedido)}</td>
         <td>${entregue?badge('dentro','Entregue'):badge(r.pedidoPrazoStatus, prazoLabel(r.pedidoPrazoStatus, r.dPrevisao))}</td>
         <td>${r.pedidoParcial ? '<span class="badge parcial">Atendimento parcial</span>' : '—'}</td>
@@ -6740,7 +6780,9 @@ function getCriticalItems(){
         data:r.dPrevisao, status:r.pedidoPrazoStatus,
         solicCancelada:r.pedidoComSolicCancelada,
         semAutorizacao:r.pedidoSemAutorizacao,
-        previsaoReatribuida:r.previsaoReatribuida
+        previsaoReatribuida:r.previsaoReatribuida,
+        previsaoPelaChegada:r.previsaoPelaChegada,
+        previsaoOriginalPedido:r.previsaoOriginalPedido
       });
     } else if(r.solicPendente){
       items.push({
@@ -6872,11 +6914,11 @@ function renderPiTimeline(items, container){
         ${arr.map(it=>{
           const days = diasAte(it.data);
           const left = days<winStart ? 0 : (days>winEnd ? 100 : pct(days));
-          return `<div class="pi-tl-dot ${it.status}" style="left:${left}%" title="${esc(it.material)} — ${esc(it.insumo)} · ${it.origem==='pedido' ? 'Pedido nº '+esc(it.pedido)+' · ' : ''}Solicitação nº ${esc(it.solicitacao)} · ${esc(it.fornecedor)} · ${fmtDate(it.data)} (${prazoLabel(it.status,it.data)})${it.solicCancelada ? ' · solicitação de origem cancelada, pedido segue em acompanhamento' : ''}${it.semAutorizacao ? ' · pedido sem autorização registrada no relatório, confirme no Sienge' : ''}${it.previsaoReatribuida ? ' · data reatribuída (lote fazia parte de um grupo com datas de previsão duplicadas no relatório)' : ''}"></div>`;
+          return `<div class="pi-tl-dot ${it.status}" style="left:${left}%" title="${esc(it.material)} — ${esc(it.insumo)} · ${it.origem==='pedido' ? 'Pedido nº '+esc(it.pedido)+' · ' : ''}Solicitação nº ${esc(it.solicitacao)} · ${esc(it.fornecedor)} · ${fmtDate(it.data)} (${prazoLabel(it.status,it.data)})${it.solicCancelada ? ' · solicitação de origem cancelada, pedido segue em acompanhamento' : ''}${it.semAutorizacao ? ' · pedido sem autorização registrada no relatório, confirme no Sienge' : ''}${it.previsaoReatribuida ? ' · data reatribuída (lote fazia parte de um grupo com datas de previsão duplicadas no relatório)' : ''}${it.previsaoPelaChegada ? ' · previsão do pedido ('+esc(it.previsaoOriginalPedido||'')+') compartilhada entre lotes; usada a data de chegada deste lote' : ''}"></div>`;
         }).join('')}
       </div>
       <div class="pi-tl-items">
-        ${arr.map(it=>`<div class="pi-tl-item-row">${lamp(it.status)}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.fornecedor)} · Comprador: <strong>${esc(it.comprador)}</strong> · ${esc(it.origemLabel)}${it.solicCancelada?' <span class="saldo-flag" title="A solicitação de origem foi cancelada/rejeitada, mas este pedido segue com saldo em aberto — continue acompanhando pela data de entrega.">ⓘ solic. cancelada</span>':''}${it.semAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado — confirme no Sienge se a autorização já foi dada.">⚠ sem autorização</span>':''}${it.previsaoReatribuida?' <span class="saldo-flag" title="Este lote fazia parte de um grupo do mesmo pedido/insumo com datas de previsão duplicadas no relatório — data reatribuída por ordem. Confirme no Sienge se necessário.">⚠previsão</span>':''}</span><span style="margin-left:auto;color:var(--text-dim)">${fmtDate(it.data)} · ${badge(it.status, prazoLabel(it.status,it.data))}</span></div>`).join('')}
+        ${arr.map(it=>`<div class="pi-tl-item-row">${lamp(it.status)}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.fornecedor)} · Comprador: <strong>${esc(it.comprador)}</strong> · ${esc(it.origemLabel)}${it.solicCancelada?' <span class="saldo-flag" title="A solicitação de origem foi cancelada/rejeitada, mas este pedido segue com saldo em aberto — continue acompanhando pela data de entrega.">ⓘ solic. cancelada</span>':''}${it.semAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado — confirme no Sienge se a autorização já foi dada.">⚠ sem autorização</span>':''}${it.previsaoReatribuida?' <span class="saldo-flag" title="Este lote fazia parte de um grupo do mesmo pedido/insumo com datas de previsão duplicadas no relatório — data reatribuída por ordem. Confirme no Sienge se necessário.">⚠previsão</span>':''}${it.previsaoPelaChegada?' <span class="saldo-flag" title="Previsão do pedido ('+esc(it.previsaoOriginalPedido||'')+') vinha igual para todos os lotes; usada a data de chegada à obra deste lote. Confirme no Sienge se necessário.">⚠previsão</span>':''}</span><span style="margin-left:auto;color:var(--text-dim)">${fmtDate(it.data)} · ${badge(it.status, prazoLabel(it.status,it.data))}</span></div>`).join('')}
       </div>
     </div>`;
   });
