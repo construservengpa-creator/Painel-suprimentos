@@ -4089,8 +4089,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <div class="form-card">
         <div class="import-panel">
           <label class="file-drop">
-            <span>📂 Importar novo relatório (.xlsx)</span>
-            <input type="file" id="fileInput" accept=".xlsx,.xls">
+            <span title="Se o Sienge não exportar tudo num arquivo só, selecione os 2 arquivos juntos (Ctrl+clique)">📂 Importar novo relatório (.xlsx — 1 ou 2 arquivos)</span>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" multiple>
           </label>
           <button class="btn ghost" id="btnReloadBase">🔄 Recarregar do servidor</button>
           <button class="btn ghost" id="btnDemo">Carregar dados de exemplo</button>
@@ -4111,9 +4111,13 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <div class="mapping-warning" id="mappingWarning" title="O cabeçalho da planilha não foi totalmente reconhecido; o painel assumiu a ordem padrão de colunas do Sienge por posição. Confira se os dados aparecem nos campos certos.">
           ⚠ <span id="mappingWarningText">Cabeçalhos não reconhecidos — mapeamento por posição foi usado. Confira os dados.</span>
         </div>
+        <div class="mapping-warning" id="combineWarning" title="Como os arquivos do Sienge foram juntados nesta importação.">
+          🔗 <span id="combineWarningText"></span>
+        </div>
         <div class="mapping-warning" id="dedupeWarning" title="Linhas com a mesma solicitação/insumo/pedido foram encontradas no relatório importado. Duplicidades exatas foram removidas automaticamente; divergências foram mantidas e marcadas para revisão.">
           🧹 <span id="dedupeWarningText"></span>
         </div>
+        <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;"><b>Relatório em 2 arquivos:</b> selecione os dois de uma vez (Ctrl+clique). Se tiverem as mesmas colunas (ex.: divididos por período ou obra), as linhas são somadas, sem repetir as que estiverem nos dois. Se tiverem colunas diferentes (ex.: solicitação num, pedido/NF no outro), são cruzados pelo nº da solicitação/pedido, insumo, obra e detalhe — por isso mantenha essas colunas nos dois arquivos.</p>
         <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">Ao importar um arquivo .xlsx, ele é lido aqui no navegador e publicado direto na tabela do servidor (Supabase) — qualquer pessoa que abrir o painel depois disso já vê a versão nova. "Carregar dados de exemplo" só afeta a sua tela e não publica nada.</p>
       </div>
     </div>
@@ -4326,27 +4330,35 @@ const HEADER_NORM_TO_FIELD = {
   'DATAENTREGANAOBRA':'dataEntregaObra','DATADEENTREGANAOBRA':'dataEntregaObra'
 };
 
-function mapSheetRows(aoa){
-  if(!aoa || aoa.length<2) return [];
+// Lê uma planilha (array de linhas) e devolve as linhas já com os nomes de
+// campo do painel. opts.parcial = true é usado na importação em 2 arquivos:
+// o arquivo pode trazer só parte das colunas, então o mapeamento por posição
+// só é aceito se ele tiver o layout completo, e linhas sem nº da solicitação
+// são mantidas quando trazem o nº do pedido (servem para o cruzamento).
+function mapSheetObjects(aoa, opts){
+  opts = opts || {};
+  if(!aoa || aoa.length<2) return { rows:[], fields:[], matched:0, total:0, positional:false };
   const headerRow = aoa[0];
   let mapping = headerRow.map(h=>HEADER_NORM_TO_FIELD[normKey(h)] || null);
   const matched = mapping.filter(Boolean).length;
+  let positional = false;
   if(matched < headerRow.length*0.5){
+    if(opts.parcial && headerRow.length < FIELD_ORDER.length - 2){
+      throw new Error(`"${opts.nome||'arquivo'}": só ${matched} de ${headerRow.length} colunas foram reconhecidas pelo cabeçalho. Para importar em 2 arquivos, cada arquivo precisa ter a linha de cabeçalho do Sienge na primeira linha.`);
+    }
     // fallback: assume fixed positional layout
     mapping = FIELD_ORDER.slice(0, headerRow.length);
-    // ajuste: o reconhecimento por texto de cabeçalho falhou para a maioria das colunas —
-    // avisar o usuário visivelmente, pois o mapeamento por posição pode estar errado
-    // se a ordem de exportação do Sienge tiver mudado.
-    showMappingWarning(matched, headerRow.length);
+    positional = true;
   } else {
-    hideMappingWarning();
     // most columns were recognized by header text, so the sheet almost certainly follows
     // the standard Sienge column order. For the few columns whose header text wasn't
     // recognized (e.g. slightly different wording), fall back to their position in
     // FIELD_ORDER instead of silently dropping that column's data.
+    // (Num arquivo parcial a ordem não é a padrão, então colunas não reconhecidas são ignoradas.)
     const usedFields = new Set(mapping.filter(Boolean));
     mapping = mapping.map((field, idx) => {
       if(field) return field;
+      if(opts.parcial) return null;
       const posField = FIELD_ORDER[idx];
       if(posField && !usedFields.has(posField)){
         usedFields.add(posField);
@@ -4364,10 +4376,121 @@ function mapSheetRows(aoa){
     // ajuste: número da solicitação é a chave de agrupamento das telas de solicitações;
     // sem ele a linha vira um grupo "fantasma" sem identificação. Linhas sem
     // numSolicitacao (mesmo com descricaoInsumo preenchido) são descartadas.
-    if(!String(obj.numSolicitacao==null?'':obj.numSolicitacao).trim()) continue;
+    const temSolic = !!String(obj.numSolicitacao==null?'':obj.numSolicitacao).trim();
+    const temPed = !!String(obj.numPedido==null?'':obj.numPedido).trim();
+    if(!temSolic && !(opts.parcial && temPed)) continue;
     rows.push(obj);
   }
-  return dedupeRows(rows);
+  return { rows, fields:[...new Set(mapping.filter(Boolean))], matched, total:headerRow.length, positional };
+}
+
+function mapSheetRows(aoa){
+  const r = mapSheetObjects(aoa);
+  if(r.positional) showMappingWarning(r.matched, r.total);
+  else hideMappingWarning();
+  return dedupeRows(r.rows);
+}
+
+/* ============================================================
+   2a. IMPORTAÇÃO EM 2 ARQUIVOS
+   ============================================================
+   O relatório do Sienge às vezes não sai inteiro num único export. O painel
+   aceita 2 (ou mais) arquivos e decide sozinho como juntá-los:
+   - MESMO LAYOUT (mesmas colunas — ex.: relatório dividido por período,
+     por obra ou por limite de linhas): as linhas são somadas. Linhas
+     idênticas presentes nos dois arquivos (períodos sobrepostos) entram
+     uma vez só, senão a qtd. entregue seria contada em dobro no
+     agrupamento por NF.
+   - COLUNAS COMPLEMENTARES (ex.: um arquivo com a parte da solicitação e
+     outro com pedido/NF): as linhas são cruzadas pelas colunas de
+     identificação que existem nos dois (nº da solicitação, nº do pedido,
+     insumo, obra, detalhe). Cada linha do 1º arquivo recebe as colunas que
+     só existem no 2º; se houver várias correspondências (uma por NF),
+     a linha se repete uma vez por correspondência — o mesmo formato do
+     relatório completo, que o agrupamento por NF já sabe consolidar. */
+const COMBINE_KEY_FIELDS = ['numSolicitacao','numPedido','descricaoInsumo','obra','detalhe'];
+function combinarArquivosSienge(arquivos){
+  const parsed = arquivos.map(a => Object.assign({ nome:a.nome }, mapSheetObjects(a.aoa, { parcial:true, nome:a.nome })));
+  parsed.forEach(p=>{ if(!p.rows.length) throw new Error(`"${p.nome}" não tem linhas de dados reconhecidas.`); });
+  // base = arquivo com nº da solicitação e o maior número de colunas
+  parsed.sort((a,b)=>(b.fields.includes('numSolicitacao')-a.fields.includes('numSolicitacao')) || (b.fields.length-a.fields.length));
+  const resumo = [];
+  let rows = parsed[0].rows.slice();
+  let fields = new Set(parsed[0].fields);
+  for(let k=1;k<parsed.length;k++){
+    const f = parsed[k];
+    const comuns = f.fields.filter(x=>fields.has(x));
+    const novos = f.fields.filter(x=>!fields.has(x));
+    const uniao = new Set([...fields, ...f.fields]);
+    if(comuns.length >= uniao.size*0.8){
+      // mesmo layout: soma as linhas, sem repetir as idênticas
+      const assinatura = o => [...uniao].map(c=>normKey(o[c]==null?'':o[c])).join('§');
+      const contagem = new Map();
+      rows.forEach(o=>{ const s=assinatura(o); contagem.set(s,(contagem.get(s)||0)+1); });
+      const vistosNoArquivo = new Map();
+      let adicionadas = 0, repetidas = 0;
+      f.rows.forEach(o=>{
+        const s = assinatura(o);
+        const n = (vistosNoArquivo.get(s)||0) + 1;
+        vistosNoArquivo.set(s, n);
+        // a mesma linha pode aparecer N vezes num arquivo; só entra o que
+        // passar da quantidade já presente no(s) outro(s)
+        if(n <= (contagem.get(s)||0)){ repetidas++; return; }
+        rows.push(o); adicionadas++;
+      });
+      resumo.push(`"${f.nome}" somado como continuação do relatório: ${adicionadas} linha(s) nova(s)` + (repetidas ? `, ${repetidas} já presente(s) no outro arquivo ignorada(s)` : ''));
+    } else {
+      const chaves = COMBINE_KEY_FIELDS.filter(c=>comuns.includes(c));
+      if(!chaves.includes('numSolicitacao') && !chaves.includes('numPedido')){
+        throw new Error(`Não dá para cruzar "${f.nome}" com "${parsed[0].nome}": os dois arquivos precisam ter a coluna "Nº da solicitação" ou "Nº do pedido".`);
+      }
+      const chave = o => chaves.map(c=>normKey(o[c]==null?'':o[c])).join('§');
+      const indice = new Map();
+      f.rows.forEach(o=>{ const s=chave(o); if(!indice.has(s)) indice.set(s,[]); indice.get(s).push(o); });
+      const usados = new Set();
+      const saida = [];
+      let semPar = 0, ambiguas = 0;
+      const vezesNaBase = new Map();
+      rows.forEach(o=>{ const s=chave(o); vezesNaBase.set(s,(vezesNaBase.get(s)||0)+1); });
+      rows.forEach(o=>{
+        const s = chave(o);
+        const pares = indice.get(s);
+        if(!pares){ saida.push(o); semPar++; return; }
+        usados.add(s);
+        if(pares.length>1 && vezesNaBase.get(s)>1) ambiguas++;
+        pares.forEach(p=>{
+          const m = Object.assign({}, o);
+          novos.forEach(c=>{ m[c] = p[c]; });
+          saida.push(m);
+        });
+      });
+      // linhas que só existem no 2º arquivo entram como estão
+      let soNoSegundo = 0;
+      indice.forEach((lst,s)=>{ if(usados.has(s)) return; lst.forEach(o=>{ saida.push(o); soNoSegundo++; }); });
+      rows = saida;
+      resumo.push(`"${f.nome}" cruzado por ${chaves.length} coluna(s) de identificação (${novos.length} coluna(s) acrescentada(s))`
+        + (semPar ? ` · ${semPar} linha(s) sem correspondência no 2º arquivo` : '')
+        + (soNoSegundo ? ` · ${soNoSegundo} linha(s) só no 2º arquivo` : '')
+        + (ambiguas ? ` · ⚠ ${ambiguas} linha(s) com correspondência ambígua — confira` : ''));
+    }
+    fields = uniao;
+  }
+  // mesma regra da importação de 1 arquivo: sem nº da solicitação a linha não entra
+  const antes = rows.length;
+  rows = rows.filter(o=>String(o.numSolicitacao==null?'':o.numSolicitacao).trim());
+  if(rows.length < antes) resumo.push(`${antes-rows.length} linha(s) sem nº da solicitação descartada(s)`);
+  hideMappingWarning();
+  const posicionais = parsed.filter(p=>p.positional).map(p=>p.nome);
+  if(posicionais.length) resumo.push(`⚠ cabeçalho não reconhecido em ${posicionais.map(n=>`"${n}"`).join(', ')} — mapeamento por posição usado`);
+  return { rows: dedupeRows(rows), resumo };
+}
+function showCombineWarning(resumo){
+  const el = document.getElementById('combineWarning');
+  const txt = document.getElementById('combineWarningText');
+  if(!el || !txt) return;
+  if(!resumo || !resumo.length){ el.classList.remove('show'); return; }
+  txt.textContent = resumo.join(' · ');
+  el.classList.add('show');
 }
 
 /* ============================================================
@@ -5064,31 +5187,50 @@ function describeSupabaseError(err){
   try{ return JSON.stringify(err); }catch(e){ return String(err); }
 }
 
-document.getElementById('fileInput').addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if(!file) return;
+function lerArquivoComoAoa(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = evt=>{
+      try{
+        const wb = XLSX.read(new Uint8Array(evt.target.result), {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        resolve(XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''}));
+      }catch(err){ reject(new Error(`"${file.name}": ${err.message}`)); }
+    };
+    reader.onerror = ()=>reject(new Error(`"${file.name}": falha na leitura do arquivo`));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+document.getElementById('fileInput').addEventListener('change', async function(e){
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if(!files.length) return;
   if(typeof XLSX === 'undefined'){
     alert('A biblioteca de leitura de planilhas ainda não carregou (é necessária conexão com a internet na primeira vez). Aguarde alguns segundos e tente novamente.');
     return;
   }
-  const reader = new FileReader();
-  reader.onload = async function(evt){
-    try{
-      const data = new Uint8Array(evt.target.result);
-      const wb = XLSX.read(data, {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
-      const rawRows = mapSheetRows(aoa);
-      loadRows(rawRows, file.name + ' (publicando no servidor…)');
-      const publicado = await publicarRelatorio(rawRows, file.name);
-      if(publicado){
-        loadRows(rawRows, `${file.name} (publicado no servidor)`);
-      }
-    }catch(err){
-      alert('Não foi possível ler o arquivo. Verifique se é um export válido do Sienge (.xlsx).\n\n'+err.message);
+  try{
+    const aoas = await Promise.all(files.map(lerArquivoComoAoa));
+    let rawRows, nome;
+    if(files.length === 1){
+      rawRows = mapSheetRows(aoas[0]);
+      nome = files[0].name;
+      showCombineWarning(null);
+    } else {
+      const r = combinarArquivosSienge(files.map((f,i)=>({ nome:f.name, aoa:aoas[i] })));
+      rawRows = r.rows;
+      nome = files.map(f=>f.name).join(' + ');
+      showCombineWarning([`${files.length} arquivos combinados (${rawRows.length} linha(s) após o agrupamento)`, ...r.resumo]);
     }
-  };
-  reader.readAsArrayBuffer(file);
+    loadRows(rawRows, nome + ' (publicando no servidor…)');
+    const publicado = await publicarRelatorio(rawRows, nome);
+    if(publicado){
+      loadRows(rawRows, `${nome} (publicado no servidor)`);
+    }
+  }catch(err){
+    alert('Não foi possível ler o(s) arquivo(s). Verifique se é um export válido do Sienge (.xlsx).\n\n'+err.message);
+  }
 });
 
 document.getElementById('btnDemo').addEventListener('click', function(){
