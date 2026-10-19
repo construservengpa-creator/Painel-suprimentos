@@ -10452,7 +10452,19 @@ function getPedidosDisponiveisParaVinculo(){
     const codigo = codigoObra(creditoSelecionado.obra);
     pedidos = pedidos.filter(p=>codigoObra(p.obra)===codigo);
   }
-  return pedidos;
+  // Pedido já vinculado (vínculo ativo, em qualquer crédito) não aparece de
+  // novo na lista — exceto o próprio pedido do vínculo em edição.
+  return pedidos.filter(p=>!vinculoAtivoDoPedido(p.numPedido, editingVinculoId));
+}
+
+// Vínculo ativo (não cancelado) já existente para o pedido, ignorando o
+// vínculo em edição. Um pedido só pode estar vinculado uma vez: vincular de
+// novo abateria o mesmo valor duas vezes.
+function vinculoAtivoDoPedido(numPedido, ignorarId){
+  return vinculosCredito.find(v=>
+    String(v.numPedido)===String(numPedido) && v.status!=='cancelado' &&
+    (!ignorarId || String(v.id)!==String(ignorarId))
+  ) || null;
 }
 
 // Rotina de pesquisa do pedido de compra: mostra uma lista clicável abaixo
@@ -11111,6 +11123,13 @@ async function addVinculoCredito(){
 
   if(!pedido){
     msg.textContent = 'Este número de pedido não foi encontrado na base importada do Sienge. Selecione um pedido da lista sugerida.';
+    return;
+  }
+
+  const duplicado = vinculoAtivoDoPedido(numPedido, editingVinculoId);
+  if(duplicado){
+    const credDup = creditos.find(c=>String(c.id)===String(duplicado.creditoId));
+    msg.textContent = `O pedido ${numPedido} já está vinculado${credDup ? ` ao crédito "${credDup.obra}"` : ''} (em ${duplicado.dataVinculo ? fmtBRDate(duplicado.dataVinculo) : '—'}). Edite o vínculo existente em vez de criar outro.`;
     return;
   }
 
