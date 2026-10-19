@@ -9946,6 +9946,7 @@ async function insertVinculoCredito(v){
     return true;
   }catch(e){
     console.error('Falha ao vincular pedido ao crédito:', e);
+    if(e && e.code==='23505'){ alert('Este pedido já está vinculado a um crédito. Edite o vínculo existente em vez de criar outro.'); return false; }
     alert('Não foi possível vincular o pedido. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
@@ -9962,6 +9963,7 @@ async function updateVinculoCredito(id, v){
     return true;
   }catch(e){
     console.error('Falha ao atualizar vínculo:', e);
+    if(e && e.code==='23505'){ alert('Este pedido já está vinculado a um crédito. Não é possível ter dois vínculos ativos para o mesmo pedido.'); return false; }
     alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
