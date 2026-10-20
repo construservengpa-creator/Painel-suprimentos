@@ -1841,6 +1841,20 @@ table.data.ctr-tbl td.mono{font-family:var(--font-mono);font-size:12px;}
 .ctr-ad .r{font-size:11px;color:var(--text-dim);}
 .ctr-mt{color:var(--text-dim);font-size:13px;padding:16px;text-align:center;}
 .ctr-note{font-size:12.5px;color:var(--text-dim);line-height:1.6;}
+/* previsto × realizado */
+.pxr-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.pxr-filtros label{font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;}
+.pxr-filtros input[type=month]{background:var(--asphalt-2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:500 12.5px var(--font-body);color-scheme:dark;}
+html[data-tema="estoque"] .pxr-filtros input[type=month]{color-scheme:light;}
+.pxr-filtros select{max-width:260px;}
+table.data.pxr-tbl th.pxr-g{text-align:center;border-bottom:1px solid var(--line);}
+table.data.pxr-tbl th.pxr-sep,table.data.pxr-tbl td.pxr-sep{border-left:1px solid var(--line);}
+table.data.pxr-tbl tr.pxr-fut td{opacity:.6;}
+table.data.pxr-tbl tr.pxr-tot td{font-weight:700;border-top:1px solid var(--line);cursor:default;}
+table.data.pxr-tbl tr.pxr-sel td{background:var(--asphalt-3);}
+.pxr-neg{color:#ff6b6b;}
+.pxr-pos{color:#3ccf5a;}
+.pxr-est{color:var(--text-faint);}
 .ctr-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900;}
 .ctr-scrim.on{opacity:1;pointer-events:auto;}
 .ctr-drawer{position:fixed;top:0;right:0;height:100%;width:min(560px,100%);background:var(--asphalt);border-left:1px solid var(--line);z-index:901;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;}
@@ -2500,6 +2514,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <button class="tab-btn" data-tab="contratos-importar"><span class="tab-label">Importar e regras</span></button>
       </div>
     </div>
+    <button class="tab-btn" data-tab="pxr"><span class="tab-icon">📊</span><span class="tab-label">Previsto × Realizado</span></button>
     <button class="tab-btn" data-tab="admin"><span class="tab-icon">🔐</span><span class="tab-label">Administração</span></button>
   </nav>
 
@@ -4069,6 +4084,47 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <p><b>Encerrar ou aditar</b>: vencido há mais tempo que o limite e ainda com saldo; em geral é contrato que ficou aberto no Sienge.</p>
         <p><b>Aditivo de quantidade/valor</b>: medido acima do limite com prazo correndo, saldo esgotado antes do término, ou ritmo que esgota o saldo antes do término.</p>
         <p>Contratos em mais de uma obra no relatório (rateio) são somados numa linha por empresa + número. Ativos = Pendente, Parcialmente medido e Totalmente medido, exceto reprovados.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PREVISTO × REALIZADO ===================== -->
+  <section class="tab-panel" id="tab-pxr">
+    <div class="ctr-head"><h2>Previsto × Realizado<span class="ctr-sub">Entregas dos pedidos e medições dos contratos, por obra e por mês</span></h2>
+      <div class="pxr-filtros">
+        <label>De <input type="month" id="pxrDe"></label>
+        <label>até <input type="month" id="pxrAte"></label>
+        <select id="pxrObra" aria-label="Obra"><option value="">Todas as obras</option></select>
+        <button class="btn small" id="pxrExp">Exportar Excel</button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="pxrKpis"></div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <p class="chart-title">Pedidos: entregas previstas × realizadas</p>
+        <p class="chart-sub">Itens de pedido pelo mês da previsão de entrega</p>
+        <div class="chart-wrap"><canvas id="pxrChartPed"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <p class="chart-title">Contratos: medição prevista × realizada</p>
+        <p class="chart-sub" id="pxrChartCtrSub">R$ pelo mês da medição</p>
+        <div class="chart-wrap"><canvas id="pxrChartCtr"></canvas></div>
+      </div>
+    </div>
+    <div class="ctr-card" style="margin:16px 0">
+      <header><h3>Por mês</h3><p id="pxrMesSub"></p></header>
+      <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="pxrTMes"></table></div></div>
+    </div>
+    <div class="ctr-card">
+      <header><h3>Por obra</h3><p>Soma do período. Clique numa obra para ver só ela</p></header>
+      <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="pxrTObra"></table></div></div>
+    </div>
+    <div class="ctr-card" style="margin-top:16px">
+      <header><h3>Como é calculado</h3></header>
+      <div class="ctr-body ctr-note">
+        <p><b>Pedidos.</b> O Sienge não traz o valor do pedido, só o das notas, por isso o previsto é contado em itens de pedido. <b>Previstos</b> = itens não cancelados com previsão de entrega no mês. <b>Entregues</b> = desses, os que já foram atendidos; <b>no prazo</b> quando a entrega na obra (ou a nota, se não houver data de entrega) é até a previsão. <b>Em aberto</b> = ainda com saldo, incluindo os parcialmente entregues. <b>Notas emitidas</b> soma as notas fiscais emitidas no mês, pela data da nota.</p>
+        <p><b>Contratos.</b> <b>Previsto</b> = cronograma de medições de cada contrato, pelo critério da Agenda de medições (cadastrado ou padrão) e pela data de emissão: o valor total do contrato dividido pelas medições da vigência; com parcelas iguais e valor da parcela cadastrado, vale a parcela; por etapa, o valor de cada etapa. <b>Realizado</b> = quanto o Total medido aumentou entre duas posições importadas, rateado pelos dias entre elas. O que já estava medido na primeira posição é espalhado desde o início do contrato e aparece marcado com * (estimado). Contratos em mais de uma obra são divididos pela participação de cada obra no valor.</p>
+        <p>Os indicadores comparam só os meses até o atual; meses futuros aparecem nas tabelas como previsão.</p>
       </div>
     </div>
   </section>
@@ -7957,7 +8013,7 @@ document.getElementById('btnExportFluxo').addEventListener('click', ()=>{
   downloadCSV(`conformidade_fluxo_${fluxoView}.csv`, toCSV(cols.map(c=>c.label), rows));
 });
 
-function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderSemNF(); renderFluxo(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); }
+function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderSemNF(); renderFluxo(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); if(window.PXR) window.PXR.refresh(); }
 
 /* ============================================================
    10. TABS + FILTER BINDINGS
@@ -8012,6 +8068,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(targetTab === 'creditos-dashboard' && typeof renderCreditosDashboard === 'function') renderCreditosDashboard();
     if(targetTab === 'fluxo') renderFluxo();
     if(targetTab.indexOf('contratos-') === 0 && window.CTR) window.CTR.show(targetTab);
+    if(targetTab === 'pxr' && window.PXR) window.PXR.show();
 
     var groupName = navTabGroupMap[targetTab];
     document.querySelectorAll('.nav-group').forEach(function(g){
@@ -15678,6 +15735,7 @@ async function loadAll(){
     STATE=POS?'ready':'empty';loadedOnce=true;
   }catch(e){console.error('Contratos:',e);STATE='error';ERRMSG=e.message||String(e)}
   refreshFilters();fillStatic();paintState();render();
+  if(window.PXR)window.PXR.refresh();
 }
 async function saveAditivo(c,vals){
   const row=Object.assign({contrato_key:c.id,contrato:c.contrato,empresa_cod:c.empresaCod??null},vals);
@@ -15694,7 +15752,7 @@ function paintState(){
   });
   $$('[id^="tab-contratos-"] .ctr-when-data').forEach(el=>el.style.display=STATE==='ready'?'':'none');
   $('#ctrPosData').textContent=POS?br(POS.data_ref):'—';
-  $('#ctrFiltros').style.display=STATE==='ready'?'':'none';
+  $('#ctrFiltros').style.display=STATE==='ready'&&$('#ctrFiltros').closest('.ctr-fslot')?'':'none';
 }
 
 /* ---------- filtros ---------- */
@@ -16220,6 +16278,85 @@ $('#ctrNTeste').onclick=async()=>{
   b.disabled=false;loadNotif();
 };
 
+/* ---------- previsto × realizado (aba própria, fora do módulo) ---------- */
+// Previsto: cronograma de medições de cada contrato (cortes do critério
+// cadastrado ou padrão, pela data de emissão), com o valor total distribuído
+// pelas medições — parcelas iguais usam o valor da parcela; por etapa, o valor
+// de cada etapa. Realizado: quanto o Total medido subiu entre duas posições
+// importadas, rateado pelos dias entre elas. O medido anterior à 1ª posição
+// (ou de contrato que surgiu entre posições) é espalhado desde o início do
+// contrato e marcado como estimado.
+const ymOf=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+function spreadMeses(d0,d1,v,fn){
+  const tot=days(d0,d1);
+  if(tot<=0){fn(ymOf(d1),v);return}
+  let a=d0;
+  while(a<d1){const nx=addDays(a,1), eom=new Date(nx.getFullYear(),nx.getMonth()+1,0), e=eom<d1?eom:d1;fn(ymOf(nx),v*days(a,e)/tot);a=e}
+}
+function previstoDe(c){
+  const cuts=cortesOf(c,critOf(c));if(!cuts.length||!(c.total>0))return [];
+  const k=critOf(c);
+  if(k.periodicidade==='Por etapa'){
+    const semV=cuts.filter(x=>x.v==null).length, somaV=cuts.reduce((s,x)=>s+(x.v||0),0), parc=Math.max(0,c.total-somaV)/(semV||1);
+    return cuts.map(x=>({d:x.emissao,v:x.v==null?parc:x.v}));
+  }
+  if(k.base_valor==='Parcelas iguais'&&+k.valor_parcela>0){
+    let rest=c.total;const out=cuts.map(x=>{const v=Math.min(rest,+k.valor_parcela);rest-=v;return {d:x.emissao,v}});
+    if(rest>0.005)out[out.length-1].v+=rest;
+    return out;
+  }
+  return cuts.map(x=>({d:x.emissao,v:c.total/cuts.length}));
+}
+function pxr(){
+  if(STATE!=='ready'||!POS)return {estado:STATE,obras:new Map()};
+  const ds=POS.dados, F=ds.fields||FIELDS, obras=new Map(), shares=new Map(), porNome=new Map();
+  const cel=(key,label)=>{let o=obras.get(key);if(!o){o={label,m:new Map()};obras.set(key,o)}else if(label&&!o.label)o.label=label;return o};
+  const mes=(o,ym)=>{let x=o.m.get(ym);if(!x){x={prev:0,real:0,est:0,ctr:new Set()};o.m.set(ym,x)}return x};
+  // obra de cada linha do relatório: o mesmo contrato pode estar rateado em várias obras
+  for(const r of ds.rows){
+    const o={};F.forEach((k,i)=>o[k]=r[i]);
+    const id=(o.empresaCod??'x')+'|'+o.contrato, key=o.obraCod!=null?'c:'+o.obraCod:'n:'+norm(o.obra);
+    const label=o.obraCod!=null?o.obraCod+' - '+(o.obra||''):(o.obra||'(sem obra)');
+    cel(key,label);if(o.obra)porNome.set(norm(o.obra),key);
+    let m=shares.get(id);if(!m){m=new Map();shares.set(id,m)}
+    m.set(key,(m.get(key)||0)+(Math.abs(o.total||0)||Math.abs(o.medido||0)||1));
+  }
+  const pesos=(id,obraTxt)=>{
+    let m=shares.get(id);
+    if(!m){m=new Map();String(obraTxt||'(sem obra)').split(' / ').forEach(n=>{const k=porNome.get(norm(n))||'n:'+norm(n);cel(k,n);m.set(k,1)});shares.set(id,m)}
+    const t=[...m.values()].reduce((a,b)=>a+b,0)||1;return [...m].map(([k,w])=>[k,w/t]);
+  };
+  const byId=new Map(ALL.map(c=>[c.id,c]));
+  let semCron=0,comCron=0;
+  for(const c of ALL){
+    if(norm(c.autorizacao)==='reprovada'||norm(c.situacao).includes('cancel'))continue;
+    const pv=previstoDe(c);
+    if(!pv.length){if(c.ativo)semCron++;continue}
+    comCron++;
+    const ps=pesos(c.id);
+    for(const x of pv)for(const [k,w] of ps){const z=mes(cel(k),ymOf(x.d));z.prev+=x.v*w;z.ctr.add(c.id)}
+  }
+  let prev=null;
+  const addReal=(id,obraTxt,d0,d1,v,est)=>{const ps=pesos(id,obraTxt);spreadMeses(d0,d1,v,(ym,q)=>{for(const [k,w] of ps){const z=mes(cel(k),ym);z.real+=q*w;if(est)z.est+=q*w;if(Math.abs(q)>0.005)z.ctr.add(id)}})};
+  for(const s of SNAPS){
+    if(!s.resumo)continue;
+    const dB=toD(s.data_ref);if(!dB)continue;
+    for(const id in s.resumo){
+      const b=s.resumo[id], a=prev&&prev.r[id];
+      if(a){const dm=b[0]-a[0];if(Math.abs(dm)>0.01)addReal(id,b[5],prev.d,dB,dm,false);continue}
+      if(!(b[0]>0.01))continue;
+      const c=byId.get(id), ini=c&&toD(c.dtInicio);
+      const d0=ini&&ini<dB?ini:dB, est=!prev||d0<prev.d;
+      addReal(id,b[5],d0,dB,b[0],est);
+    }
+    prev={d:dB,r:s.resumo};
+  }
+  return {estado:STATE,obras,dataRef:POS.data_ref,primeiraPos:SNAPS.length?SNAPS[0].data_ref:null,nPos:SNAPS.length,semCron,comCron};
+}
+let loadP=null;
+const loadOnce=()=>loadP||(loadP=loadAll().finally(()=>{loadP=null}));
+function ensure(){return loadedOnce?Promise.resolve(STATE):loadOnce().then(()=>STATE)}
+
 /* ---------- navegação / ligação com o painel ---------- */
 function goTab(t){const b=document.querySelector(`.tab-btn[data-tab="${t}"]`);if(b)b.click()}
 function render(){
@@ -16231,9 +16368,9 @@ function show(tab){
   VIEW=tab;
   const slot=document.querySelector(`#tab-${tab} .ctr-fslot`);
   if(slot)slot.appendChild($('#ctrFiltros'));
-  if(!loadedOnce&&STATE!=='loading')loadAll();else{paintState();render()}
+  if(!loadedOnce&&STATE!=='loading')loadOnce();else{paintState();render()}
 }
-window.CTR={show,reload:loadAll,dados:()=>({estado:STATE,lista:ALL,aditivos:AD,dataRef:POS?POS.data_ref:null})};
+window.CTR={show,reload:loadAll,ensure,pxr,dados:()=>({estado:STATE,lista:ALL,aditivos:AD,dataRef:POS?POS.data_ref:null})};
 window.refreshContratosAposLogin=function(){loadedOnce=false;POS=null;SNAPS=[];AD={};CRIT={};ALL=[];STATE='idle';updatePill();
   if(document.body.classList.contains('is-logged')&&!document.body.classList.contains('is-convidado'))loadAll();else{STATE='nologin';paintState()}};
 
@@ -16264,6 +16401,193 @@ paintState();
 })();
 </script>
 
+
+<script>
+/* ============================================================
+   PREVISTO × REALIZADO — pedidos (itens pela previsão de entrega)
+   e contratos (cronograma de medições × medido nas importações),
+   por obra e por mês. Pedidos vêm da base do Sienge já carregada
+   (state.rows); contratos, do módulo de contratos (window.CTR.pxr).
+   ============================================================ */
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const ymOf=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+const ymLabel=ym=>{const [y,m]=ym.split('-');return MESES[+m-1]+'/'+y.slice(2)};
+const ymAdd=(ym,k)=>{const [y,m]=ym.split('-').map(Number);return ymOf(new Date(y,m-1+k,1))};
+const nfmt=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const brl=v=>nfmt.format(v||0);
+const brlC=v=>{const a=Math.abs(v||0);if(a>=1e6)return 'R$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi';if(a>=1e3)return 'R$ '+(v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil';return brl(v)};
+const pct=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+const int=n=>(n||0).toLocaleString('pt-BR');
+const sinal=(v,f)=>`<span class="${v<-0.5?'pxr-neg':v>0.5?'pxr-pos':''}">${v>0.5?'+':''}${f(v)}</span>`;
+
+// pedidos e contratos se encontram pelo código da obra (1º termo do centro de custo)
+function obraKey(label){
+  const m=String(label||'').trim().match(/^(\d+)\b/);
+  return m?'c:'+Number(m[1]):'n:'+String(label||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+// data em que o item foi entregue: a última entrega na obra (ou nota) do item
+function dataEntrega(r){
+  const nfs=r.nfsAgrupadas||[{d:r.dataNotaFiscal,e:r.dataEntregaObra}];
+  let best=null;
+  nfs.forEach(n=>{const d=parseDateBR(n.e)||parseDateBR(n.d);if(d&&(!best||d>best))best=d});
+  return best;
+}
+function pedidos(){
+  const obras=new Map(), nfVistas=new Set();
+  const cel=(key,label,ym)=>{let o=obras.get(key);if(!o){o={label,m:new Map()};obras.set(key,o)}
+    let x=o.m.get(ym);if(!x){x={prev:0,ent:0,noPrazo:0,atraso:0,aberto:0,vencido:0,nf:0};o.m.set(ym,x)}return x};
+  let semPrev=0;
+  for(const r of (state.rows||[])){
+    if(!r.temPedido||r.pedidoCancelado)continue;
+    const label=r.obraLabel, key=obraKey(label);
+    if(r.dPrevisao){
+      const x=cel(key,label,ymOf(r.dPrevisao));x.prev++;
+      if(r.statusEntregaPed==='entregue'){
+        x.ent++;const d=dataEntrega(r);
+        if(d&&d<=r.dPrevisao)x.noPrazo++;else if(d)x.atraso++;
+      } else {x.aberto++;if(r.dPrevisao<TODAY)x.vencido++}
+    } else if(r.statusEntregaPed==='pendente')semPrev++;
+    const nfs=r.nfsAgrupadas||[{n:r.numNotaFiscal,d:r.dataNotaFiscal,v:r.valorNota}];
+    nfs.forEach(n=>{
+      const v=parseNumBR(n.v), d=parseDateBR(n.d);if(!(v>0)||!d)return;
+      const k=r.numPedido+'§'+(normKey(n.n)||normLabel(n.d)+'§'+v);
+      if(nfVistas.has(k))return;nfVistas.add(k);
+      cel(key,label,ymOf(d)).nf+=v;
+    });
+  }
+  return {obras,semPrev};
+}
+
+let obraSel='', ctr=null, carregando=false;
+function periodo(){
+  let de=$('pxrDe').value, ate=$('pxrAte').value;
+  const hoje=ymOf(TODAY);
+  if(!de)de=$('pxrDe').value=ymAdd(hoje,-5);
+  if(!ate)ate=$('pxrAte').value=ymAdd(hoje,2);
+  if(ate<de){const t=de;de=ate;ate=t}
+  const meses=[];for(let m=de;m<=ate&&meses.length<120;m=ymAdd(m,1))meses.push(m);
+  return meses;
+}
+const vazioP=()=>({prev:0,ent:0,noPrazo:0,atraso:0,aberto:0,vencido:0,nf:0});
+const vazioC=()=>({prev:0,real:0,est:0,ctr:new Set()});
+function somaP(a,x){if(x)for(const k in a)a[k]+=x[k]||0;return a}
+function somaC(a,x){if(x){a.prev+=x.prev;a.real+=x.real;a.est+=x.est;x.ctr.forEach(i=>a.ctr.add(i))}return a}
+
+function montar(){
+  const P=pedidos(), C=ctr&&ctr.obras?ctr.obras:new Map(), meses=periodo(), hoje=ymOf(TODAY);
+  // lista de obras (filtro): união de pedidos e contratos
+  const labels=new Map();
+  P.obras.forEach((o,k)=>labels.set(k,o.label));
+  C.forEach((o,k)=>{if(!labels.has(k))labels.set(k,o.label)});
+  const sel=$('pxrObra'), ord=[...labels].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'pt-BR',{numeric:true}));
+  sel.innerHTML='<option value="">Todas as obras</option>'+ord.map(([k,l])=>`<option value="${esc(k)}">${esc(l)}</option>`).join('');
+  if(obraSel&&!labels.has(obraSel))obraSel='';
+  sel.value=obraSel;
+  const keys=obraSel?[obraSel]:[...labels.keys()];
+  const porMes=meses.map(ym=>{
+    const p=vazioP(), c=vazioC();
+    keys.forEach(k=>{const po=P.obras.get(k), co=C.get(k);somaP(p,po&&po.m.get(ym));somaC(c,co&&co.m.get(ym))});
+    return {ym,p,c,fut:ym>hoje};
+  });
+  const porObra=[...labels].map(([k,label])=>{
+    const p=vazioP(), c=vazioC(), po=P.obras.get(k), co=C.get(k);
+    meses.forEach(ym=>{somaP(p,po&&po.m.get(ym));somaC(c,co&&co.m.get(ym))});
+    return {k,label,p,c};
+  }).filter(o=>o.p.prev||o.p.nf||Math.abs(o.c.prev)>0.5||Math.abs(o.c.real)>0.5)
+    .sort((a,b)=>(b.c.prev+b.c.real)-(a.c.prev+a.c.real)||b.p.prev-a.p.prev);
+  return {P,meses,porMes,porObra,hoje};
+}
+
+function render(){
+  if(!$('tab-pxr').classList.contains('active'))return;
+  const D=montar(), ateHoje=D.porMes.filter(x=>!x.fut);
+  const p=ateHoje.reduce((a,x)=>somaP(a,x.p),vazioP()), c=ateHoje.reduce((a,x)=>somaC(a,x.c),vazioC());
+  const tp=D.porMes.reduce((a,x)=>somaP(a,x.p),vazioP()), tc=D.porMes.reduce((a,x)=>somaC(a,x.c),vazioC());
+  const ctrOk=ctr&&ctr.estado==='ready';
+  const ctrMsg=!ctr||carregando?'Carregando contratos…':ctr.estado==='nologin'?'Entre com seu usuário para ver os contratos':ctr.estado==='empty'?'Nenhuma posição de contratos importada':ctr.estado==='error'?'Não foi possível carregar os contratos':'';
+  const ate=ateHoje.length?ymLabel(ateHoje[ateHoje.length-1].ym):'—';
+  $('pxrKpis').innerHTML=`
+    <div class="kpi-card c-total"><p class="kpi-label">Pedidos previstos até ${ate}</p><div class="kpi-value">${int(p.prev)}</div><div class="kpi-foot">itens com previsão de entrega no período</div></div>
+    <div class="kpi-card c-crit"><p class="kpi-label">Pedidos entregues</p><div class="kpi-value">${pct(p.ent,p.prev)}</div><div class="kpi-foot">${int(p.ent)} itens · ${int(p.noPrazo)} no prazo (${pct(p.noPrazo,p.ent)})</div></div>
+    <div class="kpi-card c-late ${p.vencido?'ctr-kpi-hot':''}"><p class="kpi-label">Pedidos vencidos em aberto</p><div class="kpi-value">${int(p.vencido)}</div><div class="kpi-foot">previsão já passou e ainda há saldo</div></div>
+    <div class="kpi-card c-solic"><p class="kpi-label">Contratos: previsto até ${ate}</p><div class="kpi-value">${ctrOk?brlC(c.prev):'—'}</div><div class="kpi-foot">${ctrOk?`${int(ctr.comCron)} contratos com cronograma`:esc(ctrMsg)}</div></div>
+    <div class="kpi-card c-ped"><p class="kpi-label">Contratos: realizado</p><div class="kpi-value">${ctrOk?pct(c.real,c.prev):'—'}</div><div class="kpi-foot">${ctrOk?`${brlC(c.real)} medidos · desvio ${sinal(c.real-c.prev,brlC)}`:esc(ctrMsg)}</div></div>`;
+
+  // gráficos
+  prepararGraficos();
+  const L=D.porMes.map(x=>ymLabel(x.ym));
+  destroyChart('pxrPed');
+  charts.pxrPed=new Chart($('pxrChartPed'),{type:'bar',
+    data:{labels:L,datasets:[
+      {label:'Previstos',data:D.porMes.map(x=>x.p.prev),backgroundColor:'#4C8DFF',stack:'p',borderRadius:4},
+      {label:'Entregues no prazo',data:D.porMes.map(x=>x.p.noPrazo),backgroundColor:CHART_COLORS.dentro,stack:'r',borderRadius:4},
+      {label:'Entregues com atraso',data:D.porMes.map(x=>x.p.ent-x.p.noPrazo),backgroundColor:CHART_COLORS.hoje,stack:'r',borderRadius:4},
+      {label:'Em aberto',data:D.porMes.map(x=>x.p.aberto),backgroundColor:'rgba(141,151,163,.35)',stack:'r',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},
+      scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:GRID_COLOR},ticks:{precision:0}}}}});
+  destroyChart('pxrCtr');
+  charts.pxrCtr=new Chart($('pxrChartCtr'),{type:'bar',
+    data:{labels:L,datasets:ctrOk?[
+      {label:'Previsto',data:D.porMes.map(x=>Math.round(x.c.prev)),backgroundColor:'#4C8DFF',borderRadius:4},
+      {label:'Realizado',data:D.porMes.map(x=>Math.round(x.c.real)),backgroundColor:'#F5C433',borderRadius:4}]:[]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:t=>t.dataset.label+': '+brl(t.raw)}}},
+      scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:GRID_COLOR},ticks:{callback:v=>brlC(v)}}}}});
+  $('pxrChartCtrSub').textContent=ctrOk?`R$ pelo mês da medição · posição de ${String(ctr.dataRef).split('-').reverse().join('/')}`:ctrMsg;
+
+  // tabelas
+  const est=x=>x.c.est>Math.max(1,Math.abs(x.c.real)*0.01)?'<span class="pxr-est" title="Inclui medido estimado (anterior à 1ª posição importada)">*</span>':'';
+  const head=first=>`<thead><tr><th rowspan="2">${first}</th><th colspan="6" class="pxr-g pxr-sep">Pedidos (itens)</th><th colspan="4" class="pxr-g pxr-sep">Contratos (R$)</th></tr>
+    <tr><th class="num pxr-sep">Previstos</th><th class="num">Entregues</th><th class="num">No prazo</th><th class="num">Em aberto</th><th class="num">% realizado</th><th class="num">Notas emitidas</th>
+    <th class="num pxr-sep">Previsto</th><th class="num">Realizado</th><th class="num">Desvio</th><th class="num">% realizado</th></tr></thead>`;
+  const cols=x=>`<td class="num pxr-sep">${int(x.p.prev)}</td><td class="num">${int(x.p.ent)}</td><td class="num">${int(x.p.noPrazo)}</td><td class="num">${x.p.aberto?int(x.p.aberto)+(x.p.vencido?` <span class="pxr-neg" title="Previsão já passou">(${int(x.p.vencido)} venc.)</span>`:''):'0'}</td><td class="num">${pct(x.p.ent,x.p.prev)}</td><td class="num">${x.p.nf?brl(x.p.nf):'—'}</td>`+
+    (ctrOk?`<td class="num pxr-sep">${brl(x.c.prev)}</td><td class="num">${brl(x.c.real)}${est(x)}</td><td class="num">${sinal(x.c.real-x.c.prev,brl)}</td><td class="num">${pct(x.c.real,x.c.prev)}</td>`:`<td class="num pxr-sep ctr-mt" colspan="4">${esc(ctrMsg)}</td>`);
+  const tot={p:tp,c:tc};
+  $('pxrTMes').innerHTML=head('Mês')+'<tbody>'+D.porMes.map(x=>`<tr class="${x.fut?'pxr-fut':''}${x.ym===D.hoje?' pxr-sel':''}" title="${x.fut?'Mês futuro: só previsão':x.ym===D.hoje?'Mês atual, em andamento':''}"><td class="mono">${ymLabel(x.ym)}</td>${cols(x)}</tr>`).join('')+
+    `<tr class="pxr-tot"><td>Total</td>${cols(Object.assign({},tot,{c:tc}))}</tr></tbody>`;
+  $('pxrMesSub').textContent=obraSel?($('pxrObra').selectedOptions[0]||{}).textContent:'Todas as obras';
+  $('pxrTObra').innerHTML=head('Obra')+'<tbody>'+(D.porObra.map(o=>`<tr data-k="${esc(o.k)}" class="${o.k===obraSel?'pxr-sel':''}"><td><span class="ctr-subtxt" style="max-width:280px;color:var(--text)">${esc(o.label)}</span></td>${cols(o)}</tr>`).join('')||'<tr><td colspan="11" class="ctr-mt">Nada previsto ou realizado no período.</td></tr>')+'</tbody>';
+  document.querySelectorAll('#pxrTObra tbody tr[data-k]').forEach(tr=>tr.onclick=()=>{obraSel=obraSel===tr.dataset.k?'':tr.dataset.k;render()});
+}
+
+function exportar(){
+  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  const P=pedidos(), C=ctr&&ctr.obras?ctr.obras:new Map(), meses=periodo(), ctrOk=ctr&&ctr.estado==='ready';
+  const keys=new Map();P.obras.forEach((o,k)=>keys.set(k,o.label));C.forEach((o,k)=>{if(!keys.has(k))keys.set(k,o.label)});
+  const linhas=[];
+  [...keys].filter(([k])=>!obraSel||k===obraSel).forEach(([k,label])=>meses.forEach(ym=>{
+    const p=(P.obras.get(k)&&P.obras.get(k).m.get(ym))||vazioP(), c=(C.get(k)&&C.get(k).m.get(ym))||vazioC();
+    if(!p.prev&&!p.nf&&Math.abs(c.prev)<0.5&&Math.abs(c.real)<0.5)return;
+    const l={'Obra':label,'Mês':ymLabel(ym),'Pedidos previstos (itens)':p.prev,'Entregues':p.ent,'Entregues no prazo':p.noPrazo,'Em aberto':p.aberto,'Vencidos em aberto':p.vencido,'Notas no mês (R$)':+p.nf.toFixed(2)};
+    if(ctrOk)Object.assign(l,{'Contratos previsto (R$)':+c.prev.toFixed(2),'Contratos realizado (R$)':+c.real.toFixed(2),'Realizado estimado (R$)':+c.est.toFixed(2),'Desvio (R$)':+(c.real-c.prev).toFixed(2)});
+    linhas.push(l);
+  }));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(linhas.length?linhas:[{'Obra':'Nada no período'}]),'Previsto x Realizado');
+  XLSX.writeFile(wb,`previsto_realizado_${meses[0]}_${meses[meses.length-1]}.xlsx`);
+}
+
+function atualizarContratos(){
+  ctr=window.CTR?window.CTR.pxr():null;
+}
+function show(){
+  atualizarContratos();
+  render();
+  if(window.CTR&&(!ctr||ctr.estado==='idle'||ctr.estado==='loading')){
+    carregando=true;render();
+    window.CTR.ensure().then(()=>{carregando=false;atualizarContratos();render()},()=>{carregando=false;render()});
+  }
+}
+function refresh(){if(!$('tab-pxr').classList.contains('active'))return;atualizarContratos();render()}
+
+$('pxrDe').onchange=render;$('pxrAte').onchange=render;
+$('pxrObra').onchange=e=>{obraSel=e.target.value;render()};
+$('pxrExp').onclick=exportar;
+window.PXR={show,refresh};
+})();
+</script>
 
 <!-- ===================== CHAT DO PAINEL (usuários logados) ===================== -->
 <div class="chat-scrim" id="chatScrim"></div>
