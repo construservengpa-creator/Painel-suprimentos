@@ -1500,6 +1500,12 @@ footer.appfoot{
 @media (max-width:480px){ .cc-modal-grid{ grid-template-columns:1fr; } }
 .cc-preview{ font-size:12px; color:var(--text-dim); min-height:16px; }
 .cc-preview b{ color:var(--text); font-weight:600; }
+/* Entrega em outro centro de custo (Prazo de insumos) */
+#modalEntregaCentro{ z-index:10000; }
+#modalEntregaCentro .form-field{ margin-bottom:12px; }
+#modalEntregaCentro .form-field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-mut); margin-bottom:5px; }
+#modalEntregaCentro .form-field input{ width:100%; box-sizing:border-box; }
+.pi-present-overlay [data-entrega-cc]{ display:none !important; }
 .cc-msg{ display:block; font-size:12px; color:var(--bad); margin-top:6px; min-height:0; }
 .pedido-info-grid{
   display:grid;
@@ -4180,6 +4186,22 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   <div id="piPresentTimeline"></div>
 </div>
 
+<div class="modal-backdrop" id="modalEntregaCentro">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ec-titulo">
+    <h3 id="ec-titulo">Entrega em outro centro de custo</h3>
+    <p class="cc-modal-sub" id="ec-item"></p>
+    <div class="form-field"><label for="ec-fDestino">Centro de custo da entrega</label><input type="text" id="ec-fDestino" list="ec-dlCentros" placeholder="Ex.: 203 - Contrato 1 - ES-162"></div>
+    <datalist id="ec-dlCentros"></datalist>
+    <div class="form-field"><label for="ec-fObs">Observação (opcional)</label><input type="text" id="ec-fObs" maxlength="200" placeholder="Ex.: material remanejado para a usina"></div>
+    <span id="ec-msg" class="cc-msg"></span>
+    <div class="modal-actions">
+      <button class="btn ghost" id="ec-btnRemover" type="button" style="margin-right:auto">Voltar ao centro de origem</button>
+      <button class="btn ghost" id="ec-btnCancelar" type="button">Cancelar</button>
+      <button class="btn primary" id="ec-btnSalvar" type="button">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    1. HELPERS
@@ -5629,6 +5651,7 @@ function previsaoPelaChegadaDosLotes(rows){
 function loadRows(rawRows, sourceName){
   state.rows = previsaoPelaChegadaDosLotes(rawRows).map(classify);
   applyPedidoAtendidoOverride(state.rows);
+  applyEntregaOutroCentro(state.rows);
   state.sourceName = sourceName;
   document.getElementById('statusDot').classList.add('ok');
   document.getElementById('statusText').textContent =
@@ -5686,6 +5709,51 @@ function applyPedidoAtendidoOverride(rows){
       }
     });
   });
+}
+
+// ---- Entrega em outro centro de custo ----
+// O item foi solicitado/comprado por um centro de custo, mas vai ser
+// entregue em outro. A escolha fica na tabela "entregas_outro_centro" do
+// Supabase e é aplicada às linhas toda vez que o relatório é carregado:
+// obraLabel passa a ser o centro de custo da entrega (assim a pendência
+// aparece lá em todas as visões) e obraOriginalLabel guarda o de origem.
+// A chave é solicitação + insumo, para valer tanto enquanto o item é só
+// solicitação quanto depois que vira pedido (linha sem solicitação usa o
+// número do pedido).
+let entregasOutroCentro = new Map();   // chave -> registro do Supabase
+function chaveEntregaCentro(numSolicitacao, numPedido, insumo){
+  const sol = normKey(numSolicitacao), ped = normKey(numPedido);
+  const base = sol ? 'S:'+sol : (ped ? 'P:'+ped : '');
+  return base ? base + '§' + normKey(insumo) : '';
+}
+function applyEntregaOutroCentro(rows){
+  rows.forEach(r=>{
+    const origem = r.obraOriginalLabel || r.obraLabel;
+    const reg = entregasOutroCentro.get(chaveEntregaCentro(r.numSolicitacao, r.numPedido, r.descricaoInsumo));
+    if(reg && reg.obra_destino && reg.obra_destino !== origem){
+      r.obraOriginalLabel = origem;
+      r.obraLabel = reg.obra_destino;
+      r.entregaObservacao = reg.observacao || '';
+    } else if(r.obraOriginalLabel){
+      r.obraLabel = r.obraOriginalLabel;
+      delete r.obraOriginalLabel;
+      delete r.entregaObservacao;
+    }
+  });
+}
+async function loadEntregasOutroCentro(){
+  try{
+    const { data, error } = await window.SB.from('entregas_outro_centro').select('*');
+    if(error) throw error;
+    entregasOutroCentro = new Map((data||[]).map(r=>[r.chave, r]));
+  }catch(e){
+    console.error('Falha ao carregar entregas em outro centro de custo:', e);
+  }
+}
+// Indicação, ao lado do centro de custo, de que a entrega foi transferida.
+function flagEntregaOutroCentro(origem, obs){
+  if(!origem) return '';
+  return ` <span class="saldo-flag" title="Entrega em outro centro de custo. Origem no Sienge: ${esc(origem)}${obs?' · '+esc(obs):''}">↪ origem: ${esc(origem)}</span>`;
 }
 
 /* ============================================================
@@ -6434,7 +6502,7 @@ function renderCompradores(){
     g.items.forEach(r=>{
       html += `<tr class="child-row ${rowClass(r.solicPrazoStatus)}">
         <td class="muted">${lamp(r.solicPrazoStatus)}${esc(r.numSolicitacao)}${r.duplicidadeDivergente?' <span class="saldo-flag" title="Havia mais de uma linha para esta solicitação/insumo/pedido com dados de pendência diferentes entre si — revisar na planilha de origem">⚠dup</span>':''}</td>
-        <td class="muted">${esc(r.obraLabel)}</td>
+        <td class="muted">${esc(r.obraLabel)}${flagEntregaOutroCentro(r.obraOriginalLabel, r.entregaObservacao)}</td>
         <td class="muted">${esc(r.compradorDistribuidoLabel)}</td>
         <td>${esc(r.descricaoInsumo)}${r.detalhe?' <span style="color:var(--text-faint)">— '+esc(r.detalhe)+'</span>':''}</td>
         <td>${esc(r.qtdSolicitada)} ${esc(r.unidadeMovimento)}</td>
@@ -6577,7 +6645,7 @@ function renderCentros(){
     g.items.forEach(r=>{
       const entregue = r.statusEntregaPed==='entregue';
       html += `<tr class="child-row ${entregue?'':rowClass(r.pedidoPrazoStatus)}">
-        <td class="muted">${entregue?lamp('dentro'):lamp(r.pedidoPrazoStatus)}${esc(r.obraLabel)}</td>
+        <td class="muted">${entregue?lamp('dentro'):lamp(r.pedidoPrazoStatus)}${esc(r.obraLabel)}${flagEntregaOutroCentro(r.obraOriginalLabel, r.entregaObservacao)}</td>
         <td class="muted">${esc(r.compradorLabel)}</td>
         <td class="muted">${esc(r.numPedido)}${r.duplicidadeDivergente?' <span class="saldo-flag" title="Havia mais de uma linha para esta solicitação/insumo/pedido com dados de pendência diferentes entre si — revisar na planilha de origem">⚠dup</span>':''}${r.pedidoComSolicCancelada?' <span class="saldo-flag" title="A solicitação de origem deste item foi cancelada/rejeitada, mas o pedido de compra já gerado continua com saldo em aberto e situação própria não cancelada — acompanhe normalmente pela data de entrega.">ⓘ solic. cancelada</span>':''}${r.pedidoSemAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado, mas o pedido segue com saldo em aberto e situação própria não cancelada — confirme no Sienge se a autorização já foi dada e o relatório está desatualizado.">⚠ sem autorização</span>':''}${r.nfDuplicadaEntreLinhas?(r.nfDuplicadaRecalculada?` <span class="saldo-flag" title="A mesma nota fiscal de entrega aparece repetida em ${r.nfDuplicadaLinhasNoCluster} linhas da mesma solicitação. Quantidade entregue recontada uma única vez e saldo pendente redistribuído proporcionalmente entre as linhas.">⚠NF dup (recalculado)</span>`:` <span class="saldo-flag" title="A mesma nota fiscal aparece em ${r.nfDuplicadaLinhasNoCluster} linhas de solicitações diferentes deste pedido/insumo — pode ser uma entrega duplicada no relatório ou entregas distintas com valores coincidentes. Números NÃO alterados automaticamente — revisar manualmente.">⚠NF dup (revisar)</span>`):''}</td>
         <td>${esc(r.descricaoInsumo)}${r.detalhe?' <span style="color:var(--text-faint)">— '+esc(r.detalhe)+'</span>':''}</td>
@@ -6788,6 +6856,8 @@ function getCriticalItems(){
         detalhe:r.detalhe||'', fornecedor: normLabel(r.fornecedor) || '—',
         comprador:r.compradorLabel, pedido:r.numPedido||'—',
         solicitacao:r.numSolicitacao||'—',
+        chaveEntrega:chaveEntregaCentro(r.numSolicitacao, r.numPedido, r.descricaoInsumo),
+        obraOriginal:r.obraOriginalLabel||'', entregaObservacao:r.entregaObservacao||'',
         qtd:r.saldoNum, unidade:r.unidadeMovimento||'',
         data:r.dPrevisao, status:r.pedidoPrazoStatus,
         solicCancelada:r.pedidoComSolicCancelada,
@@ -6803,6 +6873,8 @@ function getCriticalItems(){
         detalhe:r.detalhe||'', fornecedor:'—',
         comprador:r.compradorDistribuidoLabel, pedido:'—',
         solicitacao:r.numSolicitacao||'—',
+        chaveEntrega:chaveEntregaCentro(r.numSolicitacao, r.numPedido, r.descricaoInsumo),
+        obraOriginal:r.obraOriginalLabel||'', entregaObservacao:r.entregaObservacao||'',
         qtd:r.qtdSolicitadaNum, unidade:r.unidadeMovimento||'',
         data:r.dChegada, status:r.solicPrazoStatus
       });
@@ -6930,7 +7002,7 @@ function renderPiTimeline(items, container){
         }).join('')}
       </div>
       <div class="pi-tl-items">
-        ${arr.map(it=>`<div class="pi-tl-item-row">${lamp(it.status)}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.fornecedor)} · Comprador: <strong>${esc(it.comprador)}</strong> · ${esc(it.origemLabel)}${it.solicCancelada?' <span class="saldo-flag" title="A solicitação de origem foi cancelada/rejeitada, mas este pedido segue com saldo em aberto — continue acompanhando pela data de entrega.">ⓘ solic. cancelada</span>':''}${it.semAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado — confirme no Sienge se a autorização já foi dada.">⚠ sem autorização</span>':''}${it.previsaoReatribuida?' <span class="saldo-flag" title="Este lote fazia parte de um grupo do mesmo pedido/insumo com datas de previsão duplicadas no relatório — data reatribuída por ordem. Confirme no Sienge se necessário.">⚠previsão</span>':''}${it.previsaoPelaChegada?' <span class="saldo-flag" title="Previsão do pedido ('+esc(it.previsaoOriginalPedido||'')+') vinha igual para todos os lotes; usada a data de chegada à obra deste lote. Confirme no Sienge se necessário.">⚠previsão</span>':''}</span><span style="margin-left:auto;color:var(--text-dim)">${fmtDate(it.data)} · ${badge(it.status, prazoLabel(it.status,it.data))}</span></div>`).join('')}
+        ${arr.map(it=>`<div class="pi-tl-item-row">${lamp(it.status)}<strong>${esc(it.material)}</strong> — ${esc(it.insumo)} <span style="color:var(--text-faint)">· ${it.origem==='pedido' ? 'Pedido nº <strong>'+esc(it.pedido)+'</strong>' : 'Sem pedido (solicitação)'} · Solicitação nº <strong>${esc(it.solicitacao)}</strong> · <strong>${Number(it.qtd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(it.unidade)}</strong> · ${esc(it.fornecedor)} · Comprador: <strong>${esc(it.comprador)}</strong> · ${esc(it.origemLabel)}${flagEntregaOutroCentro(it.obraOriginal, it.entregaObservacao)}${it.solicCancelada?' <span class="saldo-flag" title="A solicitação de origem foi cancelada/rejeitada, mas este pedido segue com saldo em aberto — continue acompanhando pela data de entrega.">ⓘ solic. cancelada</span>':''}${it.semAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado — confirme no Sienge se a autorização já foi dada.">⚠ sem autorização</span>':''}${it.previsaoReatribuida?' <span class="saldo-flag" title="Este lote fazia parte de um grupo do mesmo pedido/insumo com datas de previsão duplicadas no relatório — data reatribuída por ordem. Confirme no Sienge se necessário.">⚠previsão</span>':''}${it.previsaoPelaChegada?' <span class="saldo-flag" title="Previsão do pedido ('+esc(it.previsaoOriginalPedido||'')+') vinha igual para todos os lotes; usada a data de chegada à obra deste lote. Confirme no Sienge se necessário.">⚠previsão</span>':''}</span><span style="margin-left:auto;color:var(--text-dim)">${fmtDate(it.data)} · ${badge(it.status, prazoLabel(it.status,it.data))}${botaoEntregaCentro(it)}</span></div>`).join('')}
       </div>
     </div>`;
   });
@@ -7087,12 +7159,12 @@ function renderPiTable(items, container){
     return;
   }
   let html = `<div class="table-scroll"><table class="data"><thead><tr>
-    <th>Origem</th><th>Obra</th><th>Material</th><th>Insumo</th><th>Fornecedor</th><th>Pedido</th><th>Qtd.</th><th>Data prevista</th><th>Status</th>
+    <th>Origem</th><th>Obra</th><th>Material</th><th>Insumo</th><th>Fornecedor</th><th>Pedido</th><th>Qtd.</th><th>Data prevista</th><th>Status</th><th class="pode-editar-cotacao-only"></th>
   </tr></thead><tbody>`;
   items.forEach(it=>{
     html += `<tr class="${rowClass(it.status)}">
       <td class="muted">${esc(it.origemLabel)}</td>
-      <td class="muted">${esc(it.obra)}</td>
+      <td class="muted">${esc(it.obra)}${flagEntregaOutroCentro(it.obraOriginal, it.entregaObservacao)}</td>
       <td><span class="badge critico">${esc(it.material)}</span></td>
       <td>${esc(it.insumo)}${it.detalhe?' <span style="color:var(--text-faint)">— '+esc(it.detalhe)+'</span>':''}</td>
       <td class="muted">${esc(it.fornecedor)}</td>
@@ -7100,11 +7172,88 @@ function renderPiTable(items, container){
       <td>${esc(it.qtd)} ${esc(it.unidade)}</td>
       <td>${it.data?fmtDate(it.data):'—'}</td>
       <td>${badge(it.status, prazoLabel(it.status,it.data))}</td>
+      <td class="pode-editar-cotacao-only">${botaoEntregaCentro(it)}</td>
     </tr>`;
   });
   html += `</tbody></table></div>`;
   container.innerHTML = html;
 }
+
+// ---- Entrega em outro centro de custo: botão e janela de edição ----
+function botaoEntregaCentro(it){
+  if(!it.chaveEntrega) return '';
+  const rotulo = it.obraOriginal ? '↪ alterar' : '↪ outro CC';
+  return ` <button class="cc-add-btn pode-editar-cotacao-only" data-entrega-cc="${esc(it.chaveEntrega)}" title="Registrar que a entrega deste item vai acontecer em outro centro de custo">${rotulo}</button>`;
+}
+let entregaCentroItem = null;
+function abrirEntregaCentro(chave){
+  const it = getCriticalItems().find(i=>i.chaveEntrega===chave);
+  if(!it) return;
+  entregaCentroItem = it;
+  const origem = it.obraOriginal || it.obra;
+  document.getElementById('ec-item').innerHTML =
+    `${esc(it.material)} — ${esc(it.insumo)} · ${it.origem==='pedido' ? 'Pedido nº '+esc(it.pedido)+' · ' : ''}Solicitação nº ${esc(it.solicitacao)}<br>Centro de custo no Sienge: <b>${esc(origem)}</b>`;
+  const centros = uniqueSorted((state.rows||[]).flatMap(r=>[r.obraOriginalLabel||r.obraLabel, r.obraLabel])).filter(c=>c!==origem);
+  document.getElementById('ec-dlCentros').innerHTML = centros.map(c=>`<option value="${esc(c)}"></option>`).join('');
+  document.getElementById('ec-fDestino').value = it.obraOriginal ? it.obra : '';
+  document.getElementById('ec-fObs').value = it.entregaObservacao || '';
+  document.getElementById('ec-msg').textContent = '';
+  document.getElementById('ec-btnRemover').style.display = it.obraOriginal ? '' : 'none';
+  document.getElementById('modalEntregaCentro').classList.add('open');
+  document.getElementById('ec-fDestino').focus();
+}
+function fecharEntregaCentro(){
+  document.getElementById('modalEntregaCentro').classList.remove('open');
+  entregaCentroItem = null;
+}
+function reaplicarEntregaOutroCentro(){
+  applyEntregaOutroCentro(state.rows||[]);
+  renderAll();
+}
+async function salvarEntregaCentro(){
+  const it = entregaCentroItem; if(!it) return;
+  const msg = document.getElementById('ec-msg');
+  const destino = normLabel(document.getElementById('ec-fDestino').value);
+  const origem = it.obraOriginal || it.obra;
+  if(!destino){ msg.textContent = 'Informe o centro de custo da entrega.'; return; }
+  if(destino === origem){ msg.textContent = 'O centro de custo da entrega é o mesmo da origem. Use "Voltar ao centro de origem".'; return; }
+  const linha = (state.rows||[]).find(r=>chaveEntregaCentro(r.numSolicitacao, r.numPedido, r.descricaoInsumo)===it.chaveEntrega) || {};
+  const registro = {
+    chave: it.chaveEntrega, num_solicitacao: linha.numSolicitacao||null, num_pedido: linha.numPedido||null,
+    insumo: it.insumo, obra_origem: origem, obra_destino: destino,
+    observacao: normLabel(document.getElementById('ec-fObs').value) || null,
+    atualizado_em: new Date().toISOString()
+  };
+  msg.textContent = 'Salvando…';
+  const { data, error } = await window.SB.from('entregas_outro_centro').upsert(registro, { onConflict:'chave' }).select().single();
+  if(error){
+    msg.textContent = /entregas_outro_centro/.test(error.message||'') && /exist|schema cache/i.test(error.message||'')
+      ? 'A tabela entregas_outro_centro ainda não existe. Rode o script supabase/entregas_outro_centro.sql no Supabase.'
+      : 'Não foi possível salvar: ' + (error.message||error);
+    return;
+  }
+  entregasOutroCentro.set(it.chaveEntrega, data || registro);
+  fecharEntregaCentro();
+  reaplicarEntregaOutroCentro();
+}
+async function removerEntregaCentro(){
+  const it = entregaCentroItem; if(!it) return;
+  const msg = document.getElementById('ec-msg');
+  msg.textContent = 'Removendo…';
+  const { error } = await window.SB.from('entregas_outro_centro').delete().eq('chave', it.chaveEntrega);
+  if(error){ msg.textContent = 'Não foi possível remover: ' + (error.message||error); return; }
+  entregasOutroCentro.delete(it.chaveEntrega);
+  fecharEntregaCentro();
+  reaplicarEntregaOutroCentro();
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-entrega-cc]');
+  if(b){ e.preventDefault(); abrirEntregaCentro(b.getAttribute('data-entrega-cc')); }
+});
+document.getElementById('ec-btnSalvar').addEventListener('click', salvarEntregaCentro);
+document.getElementById('ec-btnRemover').addEventListener('click', removerEntregaCentro);
+document.getElementById('ec-btnCancelar').addEventListener('click', fecharEntregaCentro);
+document.getElementById('modalEntregaCentro').addEventListener('click', e=>{ if(e.target.id==='modalEntregaCentro') fecharEntregaCentro(); });
 
 /* ---- modo apresentação (tela cheia, para reunião/projeção) ---- */
 // Modo apresentação genérico para as abas de tabela (Solicitações por
@@ -8510,7 +8659,7 @@ document.getElementById('btnCollapsePed').addEventListener('click', ()=>setAllGr
    ============================================================ */
 document.getElementById('footToday').textContent = 'Referência de datas: hoje = ' + fmtDate(new Date());
 renderAll();
-window.loadCriticosRules().then(autoLoadBaseDados);
+Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro()]).then(autoLoadBaseDados);
 </script>
 <script>
 (function(){
@@ -10058,7 +10207,7 @@ function getPedidosUnicos(){
   (state.rows||[]).forEach(r=>{
     if(!r.numPedido) return;
     if(!map.has(r.numPedido)){
-      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'', valorTotal:0, notas:[], _notasVistas:new Set(), _notaPorChave:new Map(), _situacoes:new Set() });
+      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraOriginalLabel||r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'', valorTotal:0, notas:[], _notasVistas:new Set(), _notaPorChave:new Map(), _situacoes:new Set() });
     }
     if(r.situacaoPedido) map.get(r.numPedido)._situacoes.add(String(r.situacaoPedido).trim());
     // O Sienge não traz um "valor do pedido" único, só o valor de cada nota
@@ -10434,7 +10583,7 @@ function populateCreditoDatalists(){
   // apareça selecionado corretamente ao editar). Ao digitar a empresa
   // devedora, as obras já usadas por ela em créditos anteriores aparecem
   // separadas no topo, como sugestão — sem impedir escolher outra.
-  const obrasDisponiveis = uniqueSorted([...(state.rows||[]).map(r=>r.obraLabel), ...creditos.map(c=>c.obra), ...centrosCustoCredito.map(cc=>cc.label)]);
+  const obrasDisponiveis = uniqueSorted([...(state.rows||[]).map(r=>r.obraOriginalLabel||r.obraLabel), ...creditos.map(c=>c.obra), ...centrosCustoCredito.map(cc=>cc.label)]);
   const empresaDigitada = (document.getElementById('credito-fEmpresa')||{}).value || '';
 
   const selObraForm = document.getElementById('credito-fObra');
@@ -11069,7 +11218,7 @@ async function salvarCentroCusto(){
   }
   // Se o mesmo código já existe na base do Sienge com outro nome, avisa:
   // os pedidos desse código serão tratados como da mesma obra no vínculo.
-  const noSienge = uniqueSorted((state.rows||[]).map(r=>r.obraLabel)).find(o=>codigoObra(o)===codigo && o!==label);
+  const noSienge = uniqueSorted((state.rows||[]).map(r=>r.obraOriginalLabel||r.obraLabel)).find(o=>codigoObra(o)===codigo && o!==label);
   if(noSienge && !confirm(`O código ${codigo} já existe no Sienge como "${noSienge}".\n\nNa aba Vincular Pedido, os pedidos dessa obra poderão ser vinculados a este crédito. Cadastrar mesmo assim?`)) return;
 
   btn.disabled = true;
