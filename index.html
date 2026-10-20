@@ -9820,11 +9820,32 @@ function vinculoRowFromDb(row){
 // foi faturado até agora; o efetivo é o maior entre previsto e faturado.
 function vinculoValorEfetivo(v){
   if(v.status === 'cancelado') return 0;
-  if(v.status === 'realizado') return v.valorRealizado;
-  return Math.max(v.valorPrevisto||0, v.valorRealizado||0);
+  const fat = vinculoFaturado(v);
+  if(v.status === 'realizado') return fat;
+  return Math.max(v.valorPrevisto||0, fat);
+}
+// Faturado do vínculo com o valor integral das notas que estão na base
+// agora, sem esperar a reconciliação regravar valor_realizado (ela só roda
+// para admin/supervisor). Mesma regra da reconciliação: "previsto" segue o
+// valor atual das notas; "realizado" só sobe, nunca desce.
+let _pedidosAtuaisCache = { rows:null, extras:null, map:null };
+function pedidoAtualDoVinculo(numPedido){
+  const c = _pedidosAtuaisCache;
+  if(!c.map || c.rows !== state.rows || c.extras !== notasExtrasCredito){
+    c.rows = state.rows; c.extras = notasExtrasCredito;
+    c.map = new Map(getPedidosUnicos().map(p=>[String(p.numPedido), p]));
+  }
+  return c.map.get(String(numPedido));
+}
+function vinculoFaturado(v){
+  if(v.status === 'cancelado') return 0;
+  const gravado = v.valorRealizado||0;
+  const ped = pedidoAtualDoVinculo(v.numPedido);
+  if(!ped || !(ped.valorTotal > 0)) return gravado;
+  return v.status === 'realizado' ? Math.max(gravado, ped.valorTotal) : ped.valorTotal;
 }
 function vinculoStatusBadge(status, v){
-  if(status==='previsto' && v && v.valorRealizado>0.005) return `<span class="badge dentro" title="Pedido parcialmente entregue: R$ ${fmtMoney(v.valorRealizado)} já faturado; o restante continua reservado">Parcial · R$ ${fmtMoney(v.valorRealizado)} faturado</span>`;
+  if(status==='previsto' && v && vinculoFaturado(v)>0.005) return `<span class="badge dentro" title="Pedido parcialmente entregue: R$ ${fmtMoney(vinculoFaturado(v))} já faturado; o restante continua reservado">Parcial · R$ ${fmtMoney(vinculoFaturado(v))} faturado</span>`;
   if(status==='realizado') return '<span class="badge dentro">Realizado</span>';
   if(status==='cancelado') return '<span class="badge sem-data">Cancelado</span>';
   return '<span class="badge hoje">Previsto</span>';
@@ -9992,10 +10013,10 @@ function creditoAbatido(creditoId){
 // (com nota fiscal confirmada) — pra não apresentar um valor reservado
 // como se já tivesse sido abatido de verdade.
 function creditoReservado(creditoId){
-  return vinculosDoCredito(creditoId).filter(v=>v.status==='previsto').reduce((s,v)=>s+Math.max(0,(v.valorPrevisto||0)-(v.valorRealizado||0)),0);
+  return vinculosDoCredito(creditoId).filter(v=>v.status==='previsto').reduce((s,v)=>s+Math.max(0,(v.valorPrevisto||0)-vinculoFaturado(v)),0);
 }
 function creditoRealizadoAbatido(creditoId){
-  return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado'||v.status==='previsto').reduce((s,v)=>s+(v.valorRealizado||0),0);
+  return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado'||v.status==='previsto').reduce((s,v)=>s+vinculoFaturado(v),0);
 }
 function creditoSaldo(c){
   return c.valorTotal - creditoAbatido(c.id);
@@ -10239,7 +10260,7 @@ function imprimirRelatorioCreditos(){
     let tP=0,tF=0,tR=0,tE=0;
     const linhas = vs.map(v=>{
       const ped = pedidosMap.get(String(v.numPedido)), cancel = v.status==='cancelado';
-      const f = cancel?0:(v.valorRealizado||0), r = (!cancel && v.status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-f) : 0, ef = vinculoValorEfetivo(v);
+      const f = vinculoFaturado(v), r = (!cancel && v.status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-f) : 0, ef = vinculoValorEfetivo(v);
       tP += cancel?0:(v.valorPrevisto||0); tF += f; tR += r; tE += ef;
       const st = cancel ? 'Cancelado' : v.status==='realizado' ? 'Concluído' : f>0.005 ? 'Em faturamento · '+pc(f, v.valorPrevisto) : 'Aguardando nota';
       const stc = cancel ? 'off' : v.status==='realizado' ? 'ok' : f>0.005 ? 'fat' : 'res';
@@ -10700,7 +10721,7 @@ function renderCreditos(){
     const linhas = vinculos.map(v=>{
       const ped = pedidosMap.get(String(v.numPedido));
       const cancel = v.status==='cancelado';
-      const fat = cancel ? 0 : (v.valorRealizado||0);
+      const fat = vinculoFaturado(v);
       const res = (!cancel && v.status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-fat) : 0;
       const ef = vinculoValorEfetivo(v);
       tPrev += cancel?0:(v.valorPrevisto||0); tFat += fat; tRes += res; tEf += ef;
@@ -11321,7 +11342,7 @@ function exportCreditosExcel(){
     'Nota(s) fiscal(is)': notasDoPedidoFormatadas(v.numPedido),
     'Status': v.status === 'realizado' ? 'Realizado' : (v.status === 'cancelado' ? 'Cancelado' : 'Previsto'),
     'Valor previsto': v.valorPrevisto,
-    'Valor realizado': v.valorRealizado,
+    'Valor realizado': vinculoFaturado(v),
     'Valor considerado no saldo': vinculoValorEfetivo(v),
     'Data': v.dataVinculo ? fmtBRDate(v.dataVinculo) : '',
     'Observação': v.observacao
