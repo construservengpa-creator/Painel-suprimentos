@@ -9819,9 +9819,10 @@ function vinculoRowFromDb(row){
 // restante do pedido segue valendo), mas já guarda em valorRealizado o que
 // foi faturado até agora; o efetivo é o maior entre previsto e faturado.
 function vinculoValorEfetivo(v){
-  if(v.status === 'cancelado') return 0;
+  const status = vinculoStatusAtual(v);
+  if(status === 'cancelado') return 0;
   const fat = vinculoFaturado(v);
-  if(v.status === 'realizado') return fat;
+  if(status === 'realizado') return fat;
   return Math.max(v.valorPrevisto||0, fat);
 }
 // Faturado do vínculo com o valor integral das notas que estão na base
@@ -9843,6 +9844,22 @@ function vinculoFaturado(v){
   const ped = pedidoAtualDoVinculo(v.numPedido);
   if(!ped || !(ped.valorTotal > 0)) return gravado;
   return v.status === 'realizado' ? Math.max(gravado, ped.valorTotal) : ped.valorTotal;
+}
+// Pedido encerrado no Sienge (totalmente entregue, saldo cancelado ou
+// cancelado): não há mais o que faturar, então o restante deixa de ficar
+// reservado e volta para o saldo do crédito.
+function pedidoEncerradoNoSienge(p){
+  if(!p) return false;
+  if(p.situacoes.length > 0 && p.situacoes.every(s => /totalmente entregue|atendida integralmente|sem saldo|saldo cancelado|^cancelad/i.test(s))) return true;
+  return p.saldoPedido!=null && p.saldoPedido <= 1;
+}
+// Status do vínculo já com a situação atual do pedido: um "previsto" cujo
+// pedido foi encerrado e tem nota conta como "realizado" na hora, sem
+// esperar a reconciliação gravar (ela só roda para admin/supervisor).
+function vinculoStatusAtual(v){
+  if(v.status !== 'previsto') return v.status;
+  const ped = pedidoAtualDoVinculo(v.numPedido);
+  return ped && ped.valorTotal > 0 && pedidoEncerradoNoSienge(ped) ? 'realizado' : 'previsto';
 }
 function vinculoStatusBadge(status, v){
   if(status==='previsto' && v && vinculoFaturado(v)>0.005) return `<span class="badge dentro" title="Pedido parcialmente entregue: R$ ${fmtMoney(vinculoFaturado(v))} já faturado; o restante continua reservado">Parcial · R$ ${fmtMoney(vinculoFaturado(v))} faturado</span>`;
@@ -10013,7 +10030,7 @@ function creditoAbatido(creditoId){
 // (com nota fiscal confirmada) — pra não apresentar um valor reservado
 // como se já tivesse sido abatido de verdade.
 function creditoReservado(creditoId){
-  return vinculosDoCredito(creditoId).filter(v=>v.status==='previsto').reduce((s,v)=>s+Math.max(0,(v.valorPrevisto||0)-vinculoFaturado(v)),0);
+  return vinculosDoCredito(creditoId).filter(v=>vinculoStatusAtual(v)==='previsto').reduce((s,v)=>s+Math.max(0,(v.valorPrevisto||0)-vinculoFaturado(v)),0);
 }
 function creditoRealizadoAbatido(creditoId){
   return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado'||v.status==='previsto').reduce((s,v)=>s+vinculoFaturado(v),0);
@@ -10259,11 +10276,11 @@ function imprimirRelatorioCreditos(){
     const vs = vinculosDoCredito(c.id);
     let tP=0,tF=0,tR=0,tE=0;
     const linhas = vs.map(v=>{
-      const ped = pedidosMap.get(String(v.numPedido)), cancel = v.status==='cancelado';
-      const f = vinculoFaturado(v), r = (!cancel && v.status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-f) : 0, ef = vinculoValorEfetivo(v);
+      const ped = pedidosMap.get(String(v.numPedido)), status = vinculoStatusAtual(v), cancel = status==='cancelado';
+      const f = vinculoFaturado(v), r = (!cancel && status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-f) : 0, ef = vinculoValorEfetivo(v);
       tP += cancel?0:(v.valorPrevisto||0); tF += f; tR += r; tE += ef;
-      const st = cancel ? 'Cancelado' : v.status==='realizado' ? 'Concluído' : f>0.005 ? 'Em faturamento · '+pc(f, v.valorPrevisto) : 'Aguardando nota';
-      const stc = cancel ? 'off' : v.status==='realizado' ? 'ok' : f>0.005 ? 'fat' : 'res';
+      const st = cancel ? 'Cancelado' : status==='realizado' ? 'Concluído' : f>0.005 ? 'Em faturamento · '+pc(f, v.valorPrevisto) : 'Aguardando nota';
+      const stc = cancel ? 'off' : status==='realizado' ? 'ok' : f>0.005 ? 'fat' : 'res';
       const sit = ped && ped.situacoes && ped.situacoes.length ? ped.situacoes.join(' / ') : '';
       const nfs = ped && ped.notas && ped.notas.length ? ped.notas.map(n=>`<div class="nf">${e(n.numero)}${n.data?` · ${e(n.data)}`:''}<span>${m(n.valor)}</span></div>`).join('') : '<div class="mut">sem nota</div>';
       return `<tr>
@@ -10363,14 +10380,13 @@ async function reconciliarVinculosComNotasFiscais(){
     // Pedido encerrado (totalmente entregue, saldo cancelado ou cancelado):
     // o vínculo vira "realizado" com o valor das notas. Pedido ainda
     // parcialmente atendido: continua "previsto", só atualiza o faturado.
-    const encerrado = (p) => p.situacoes.length > 0 && p.situacoes.every(s => /totalmente entregue|atendida integralmente|sem saldo|saldo cancelado|^cancelad/i.test(s));
     for(const v of pendentes){
       const pedido = pedidosPorNumero.get(String(v.numPedido));
       if(!pedido || !(pedido.valorTotal > 0)) continue;
       let novo = null;
       if(v.status==='realizado'){
         if(pedido.valorTotal - (v.valorRealizado||0) > 0.005) novo = { valorRealizado: pedido.valorTotal };
-      } else if(encerrado(pedido) || (pedido.saldoPedido!=null && pedido.saldoPedido <= 1)) novo = { valorRealizado: pedido.valorTotal, status: 'realizado' };
+      } else if(pedidoEncerradoNoSienge(pedido)) novo = { valorRealizado: pedido.valorTotal, status: 'realizado' };
       else if(Math.abs((v.valorRealizado||0) - pedido.valorTotal) > 0.005) novo = { valorRealizado: pedido.valorTotal };
       if(!novo) continue;
       const ok = await updateVinculoCredito(v.id, Object.assign({}, v, novo));
@@ -10582,8 +10598,8 @@ function renderCreditoKpis(lista){
   const grid = document.getElementById('creditoKpiGrid');
   if(!grid) return;
   const vinculosDaLista = vinculosCredito.filter(v=>lista.some(c=>String(c.id)===String(v.creditoId)));
-  const qtdReservados = vinculosDaLista.filter(v=>v.status==='previsto').length;
-  const qtdRealizados = vinculosDaLista.filter(v=>v.status==='realizado').length;
+  const qtdReservados = vinculosDaLista.filter(v=>vinculoStatusAtual(v)==='previsto').length;
+  const qtdRealizados = vinculosDaLista.filter(v=>vinculoStatusAtual(v)==='realizado').length;
   grid.innerHTML = `
     <div class="kpi-card c-total"><p class="kpi-label">Total lançado</p><div class="kpi-value">R$ ${fmtMoney(totalLancado)}</div><p class="kpi-foot">${lista.length} crédito(s)</p></div>
     <div class="kpi-card c-solic"><p class="kpi-label">Reservado (previsto)</p><div class="kpi-value">R$ ${fmtMoney(totalReservado)}</div><p class="kpi-foot">${qtdReservados} vínculo(s) sem nota ainda</p></div>
@@ -10720,14 +10736,14 @@ function renderCreditos(){
     let tPrev=0,tFat=0,tRes=0,tEf=0;
     const linhas = vinculos.map(v=>{
       const ped = pedidosMap.get(String(v.numPedido));
-      const cancel = v.status==='cancelado';
+      const status = vinculoStatusAtual(v), cancel = status==='cancelado';
       const fat = vinculoFaturado(v);
-      const res = (!cancel && v.status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-fat) : 0;
+      const res = (!cancel && status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-fat) : 0;
       const ef = vinculoValorEfetivo(v);
       tPrev += cancel?0:(v.valorPrevisto||0); tFat += fat; tRes += res; tEf += ef;
       let st;
       if(cancel) st = '<span class="cr-st off">Cancelado</span>';
-      else if(v.status==='realizado') st = '<span class="cr-st ok" title="Pedido encerrado no Sienge: vale o valor das notas">Concluído</span>';
+      else if(status==='realizado') st = '<span class="cr-st ok" title="Pedido encerrado no Sienge: vale o valor das notas">Concluído</span>';
       else if(fat>0.005) st = `<span class="cr-st fat" title="Pedido com entrega parcial: o restante continua reservado">Em faturamento · ${pctTxt(fat, v.valorPrevisto)}</span>`;
       else st = '<span class="cr-st res">Aguardando nota</span>';
       const sit = ped && ped.situacoes && ped.situacoes.length ? ped.situacoes.join(' / ') : (ped ? '' : 'não está no relatório atual');
@@ -10824,7 +10840,7 @@ function renderVinculosLista(){
       <td>${esc(v.numPedido)}</td>
       <td class="txt">${esc(v.obraPedido)}</td>
       <td class="txt">${esc(v.fornecedor)}</td>
-      <td>${vinculoStatusBadge(v.status, v)}</td>
+      <td>${vinculoStatusBadge(vinculoStatusAtual(v), v)}</td>
       <td>R$ ${fmtMoney(vinculoValorEfetivo(v))}</td>
       <td>${v.dataVinculo?fmtBRDate(v.dataVinculo):'—'}</td>
       <td class="txt">${esc(v.observacao)||'—'}</td>
@@ -11340,7 +11356,7 @@ function exportCreditosExcel(){
     'Fornecedor': v.fornecedor,
     'Comprador': v.comprador,
     'Nota(s) fiscal(is)': notasDoPedidoFormatadas(v.numPedido),
-    'Status': v.status === 'realizado' ? 'Realizado' : (v.status === 'cancelado' ? 'Cancelado' : 'Previsto'),
+    'Status': vinculoStatusAtual(v) === 'realizado' ? 'Realizado' : (v.status === 'cancelado' ? 'Cancelado' : 'Previsto'),
     'Valor previsto': v.valorPrevisto,
     'Valor realizado': vinculoFaturado(v),
     'Valor considerado no saldo': vinculoValorEfetivo(v),
