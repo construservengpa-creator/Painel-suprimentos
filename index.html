@@ -2527,8 +2527,13 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <button class="tab-btn" data-tab="contratos-importar"><span class="tab-label">Importar e regras</span></button>
       </div>
     </div>
-    <button class="tab-btn" data-tab="pxr"><span class="tab-icon">📊</span><span class="tab-label">Previsto × Realizado</span></button>
-    <button class="tab-btn" data-tab="cpg"><span class="tab-icon">💰</span><span class="tab-label">Contas a pagar</span></button>
+    <div class="nav-group gestor-credito-only" data-group="financeiro">
+      <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="pxr"><span class="tab-icon">💰</span><span class="tab-label">Financeiro</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <div class="nav-submenu">
+        <button class="tab-btn gestor-credito-only" data-tab="pxr"><span class="tab-label">Previsto × Realizado</span></button>
+        <button class="tab-btn gestor-credito-only" data-tab="cpg"><span class="tab-label">Contas a pagar</span></button>
+      </div>
+    </div>
     <button class="tab-btn" data-tab="admin"><span class="tab-icon">🔐</span><span class="tab-label">Administração</span></button>
   </nav>
 
@@ -8089,7 +8094,8 @@ function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); re
 var navTabGroupMap = {
   overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', fluxo:'suprimentos',
   'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos',
-  'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos'
+  'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos',
+  pxr:'financeiro', cpg:'financeiro'
 };
 
 /* ---- segredo: clicar na capivara do cabeçalho abre o jogo (jogo.html), sem pista visual ---- */
@@ -17015,6 +17021,7 @@ function exportarCpg(){
   XLSX.writeFile(wb,`contas_a_pagar_${D.ini}_${D.fim}.xlsx`);
 }
 function showCpg(){
+  if(!gestor())return;
   renderCpg();
   if(!cpCarregado)carregarContasPagar().catch(e=>{console.error('Contas a pagar:',e);cpCarregado=true}).then(renderCpg);
   // contratos: para ajustar as PCT pelo saldo
@@ -17025,6 +17032,7 @@ function atualizarContratos(){
   ctr=window.CTR?window.CTR.pxr():null;
 }
 function show(){
+  if(!gestor())return;
   atualizarContratos();
   render();
   if(!cpCarregado)carregarContasPagar().catch(e=>{console.error('Contas a pagar:',e);cpCarregado=true}).then(render);
@@ -17047,6 +17055,14 @@ $('cpgArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)import
 $('pxrDX').onclick=fecharComposicao;$('pxrScrim').onclick=fecharComposicao;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('pxrDrawer').classList.contains('on'))fecharComposicao()});
 $('pxrFinArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
+// Financeiro é só de admin e supervisor: quem perde o acesso (saiu, trocou
+// de usuário) e está numa das abas volta para a visão geral
+const gestor=()=>document.body.classList.contains('is-admin')||document.body.classList.contains('is-supervisor');
+document.addEventListener('perfil-atualizado',()=>{
+  if(gestor()||!['tab-pxr','tab-cpg'].some(id=>$(id).classList.contains('active')))return;
+  fecharComposicao();
+  const inicio=document.querySelector('.tab-btn[data-tab="overview"]');if(inicio)inicio.click();
+});
 window.PXR={show,showCpg,refresh,recarregarFinanceiro:()=>{cpCarregado=false;CP=null;if($('tab-pxr').classList.contains('active'))show();if($('tab-cpg').classList.contains('active'))showCpg()}};
 })();
 </script>
