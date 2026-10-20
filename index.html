@@ -1855,6 +1855,11 @@ table.data.pxr-tbl tr.pxr-sel td{background:var(--asphalt-3);}
 .pxr-neg{color:#ff6b6b;}
 .pxr-pos{color:#3ccf5a;}
 .pxr-est{color:var(--text-faint);}
+.pxr-fin-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto;}
+.pxr-fin-head .btn input{display:none;}
+.pxr-fin-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;margin-top:12px;}
+@media (max-width:900px){.pxr-fin-grid{grid-template-columns:minmax(0,1fr);}}
+.pxr-fin-grid h4{font:600 13px var(--font-display);margin:0 0 8px;letter-spacing:.03em;}
 .ctr-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900;}
 .ctr-scrim.on{opacity:1;pointer-events:auto;}
 .ctr-drawer{position:fixed;top:0;right:0;height:100%;width:min(560px,100%);background:var(--asphalt);border-left:1px solid var(--line);z-index:901;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;}
@@ -4120,11 +4125,36 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="pxrTObra"></table></div></div>
     </div>
     <div class="ctr-card" style="margin-top:16px">
+      <header><h3>Financeiro: previsões × documentos a pagar</h3><p id="pxrFinSub">Relatório de contas a pagar por vencimento do Sienge</p>
+        <div class="pxr-fin-head"><label class="btn small" title="Relatório de títulos a pagar por data de vencimento, exportado do Sienge em .csv">Importar contas a pagar (.csv)<input type="file" id="pxrFinArq" accept=".csv,.txt"></label></div>
+      </header>
+      <div class="ctr-body">
+        <div class="ctr-msg" id="pxrFinMsg"></div>
+        <div id="pxrFinVazio" class="ctr-mt">Importe o relatório de contas a pagar do Sienge para comparar as previsões de contratos (PCT) e pedidos (PPC) com os documentos já lançados.</div>
+        <div id="pxrFinDados" style="display:none">
+          <div class="kpi-grid" id="pxrFinKpis"></div>
+          <div class="chart-card" style="margin:12px 0">
+            <p class="chart-title">Títulos a pagar por mês de vencimento</p>
+            <p class="chart-sub">Previsões (PCT + PPC) × documentos lançados</p>
+            <div class="chart-wrap"><canvas id="pxrChartFin"></canvas></div>
+          </div>
+          <div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="pxrFinMes"></table></div>
+          <div class="pxr-fin-grid">
+            <div><h4>Por obra</h4><div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="pxrFinObra"></table></div></div>
+            <div><h4>Documentos por tipo</h4><div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="pxrFinTipo"></table></div></div>
+          </div>
+          <h4 style="font:600 13px var(--font-display);margin:16px 0 8px;letter-spacing:.03em">Previsões vencidas (ainda sem documento)</h4>
+          <div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="pxrFinVenc"></table></div>
+        </div>
+      </div>
+    </div>
+    <div class="ctr-card" style="margin-top:16px">
       <header><h3>Como é calculado</h3></header>
       <div class="ctr-body ctr-note">
         <p><b>Pedidos.</b> O Sienge não traz o valor do pedido, só o das notas, por isso o previsto é contado em itens de pedido. <b>Previstos</b> = itens não cancelados com previsão de entrega no mês. <b>Entregues</b> = desses, os que já foram atendidos; <b>no prazo</b> quando a entrega na obra (ou a nota, se não houver data de entrega) é até a previsão. <b>Em aberto</b> = ainda com saldo, incluindo os parcialmente entregues. <b>Notas emitidas</b> soma as notas fiscais emitidas no mês, pela data da nota.</p>
         <p><b>Contratos.</b> <b>Previsto</b> = cronograma de medições de cada contrato, pelo critério da Agenda de medições (cadastrado ou padrão) e pela data de emissão: o valor total do contrato dividido pelas medições da vigência; com parcelas iguais e valor da parcela cadastrado, vale a parcela; por etapa, o valor de cada etapa. <b>Realizado</b> = quanto o Total medido aumentou entre duas posições importadas, rateado pelos dias entre elas. O que já estava medido na primeira posição é espalhado desde o início do contrato e aparece marcado com * (estimado). Contratos em mais de uma obra são divididos pela participação de cada obra no valor.</p>
-        <p>Os indicadores comparam só os meses até o atual; meses futuros aparecem nas tabelas como previsão.</p>
+        <p><b>Financeiro.</b> Vem do relatório de contas a pagar por vencimento do Sienge (títulos em aberto). <b>Previsto</b> = provisões ainda não substituídas por documento: <b>PCT</b> (provisão de contrato, ligada ao contrato pelo número) e <b>PPC</b> (provisão de pedido de compra, ligada ao pedido pelo número). <b>Realizado</b> = documentos já lançados (notas, boletos, guias, faturas etc.); notas fiscais são ligadas à obra pelo número da nota e fornecedor do pedido. <b>PRV</b> (outras provisões) aparece à parte e não entra em nenhum dos dois. <b>% documentado</b> = realizado ÷ (previsto + realizado). <b>Vencido</b> = vencimento anterior à data de cálculo do relatório; previsão vencida indica medição ou entrega que já devia ter virado documento. Os valores são os do vencimento, pelo mês de vencimento.</p>
+        <p>Os indicadores de pedidos e contratos comparam só os meses até o atual; meses futuros aparecem nas tabelas como previsão.</p>
       </div>
     </div>
   </section>
@@ -16371,7 +16401,7 @@ function show(tab){
   if(!loadedOnce&&STATE!=='loading')loadOnce();else{paintState();render()}
 }
 window.CTR={show,reload:loadAll,ensure,pxr,dados:()=>({estado:STATE,lista:ALL,aditivos:AD,dataRef:POS?POS.data_ref:null})};
-window.refreshContratosAposLogin=function(){loadedOnce=false;POS=null;SNAPS=[];AD={};CRIT={};ALL=[];STATE='idle';updatePill();
+window.refreshContratosAposLogin=function(){if(window.PXR&&window.PXR.recarregarFinanceiro)window.PXR.recarregarFinanceiro();loadedOnce=false;POS=null;SNAPS=[];AD={};CRIT={};ALL=[];STATE='idle';updatePill();
   if(document.body.classList.contains('is-logged')&&!document.body.classList.contains('is-convidado'))loadAll();else{STATE='nologin';paintState()}};
 
 $('#ctrEmp').onchange=()=>{refreshFilters();limC=150;render()};
@@ -16461,6 +16491,183 @@ function pedidos(){
   return {obras,semPrev};
 }
 
+/* ---------- financeiro: títulos a pagar (PCT, PPC e documentos) ---------- */
+// Relatório "contas a pagar por vencimento" do Sienge (.csv; títulos em
+// aberto). PCT = provisão de contrato e PPC = provisão de pedido de compra:
+// o previsto que ainda não virou documento. Os demais tipos (NFE, NFSE,
+// boleto, guia...) são o realizado; PRV (outras provisões) fica à parte.
+// Gravado em contas_pagar_posicoes (última posição vale); sem a tabela ou
+// sem login, fica guardado só neste navegador.
+const CP_LOCAL='pxr.contasPagar';
+const CP_FIELDS=['venc','credor','doc','lanc','total'];
+let CP=null, cpCarregado=false;
+const isoOf=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const brData=s=>s?String(s).split('-').reverse().join('/'):'—';
+const tipoDoc=doc=>{const m=String(doc||'').match(/^\s*([A-Za-z]+)\s*\./);return m?m[1].toUpperCase():'OUTROS'};
+const numDoc=doc=>String(doc||'').replace(/^\s*[A-Za-z]+\s*\.\s*/,'').trim();
+const chaveNum=v=>{const k=normKey(v);return /^\d+$/.test(k)?k.replace(/^0+(?=\d)/,''):k};
+const grupoDe=t=>t==='PCT'?'pct':t==='PPC'?'ppc':t==='PRV'?'prv':'doc';
+const SEM_OBRA='x:sem-obra';
+
+function lerContasPagar(buf){
+  let txt;
+  try{txt=new TextDecoder('utf-8',{fatal:true}).decode(buf)}catch(e){txt=new TextDecoder('windows-1252').decode(buf)}
+  const cels=l=>{const s=l.trim().replace(/;$/,'');return s.startsWith('"')?s.slice(1,-1).split('";"'):s.split(';')};
+  let venc=null, ref=null, periodo='', blocos=0;
+  const rows=[];
+  for(const l of txt.split(/\r?\n/)){
+    const c=cels(l), h=String(c[0]||'').trim();
+    if(h==='Data de vencimento'){const d=parseDateBR(c[1]);venc=d?isoOf(d):null;blocos++;continue}
+    if(h==='Período'||h==='Periodo'){periodo=c[1]||'';const d=parseDateBR(c[3]);if(d)ref=isoOf(d);continue}
+    if(c.length<10||h==='Credor'||!venc)continue;
+    const total=parseNumBR(c[9]);
+    if(!(Math.abs(total)>0.005))continue;
+    rows.push([venc,h.replace(/\s+/g,' '),String(c[1]||'').replace(/\s+/g,' ').trim(),String(c[2]||'').trim(),Math.round(total*100)/100]);
+  }
+  if(!blocos||!rows.length)throw new Error('o arquivo não parece o relatório de contas a pagar por vencimento (não há "Data de vencimento" com títulos).');
+  return {data_ref:ref||isoOf(TODAY),periodo,dados:{fields:CP_FIELDS,rows}};
+}
+function cpLocal(){try{const x=JSON.parse(localStorage.getItem(CP_LOCAL)||'null');return x&&x.dados?Object.assign(x,{fonte:'local'}):null}catch(e){return null}}
+function cpGravarLocal(x){try{localStorage.setItem(CP_LOCAL,JSON.stringify(x));return true}catch(e){return false}}
+const logado=()=>document.body.classList.contains('is-logged')&&window.SB;
+async function carregarContasPagar(){
+  let x=null;
+  if(logado()){
+    const r=await window.SB.from('contas_pagar_posicoes').select('data_ref,nome_arquivo,periodo,dados,importado_em').order('data_ref',{ascending:false}).limit(1).maybeSingle();
+    if(!r.error&&r.data)x=Object.assign(r.data,{fonte:'nuvem'});
+  }
+  const loc=cpLocal();
+  if(loc&&(!x||loc.data_ref>x.data_ref))x=loc;
+  CP=x;cpCarregado=true;
+}
+function finMsg(t,ok){const m=$('pxrFinMsg');m.innerHTML=t;m.className='ctr-msg on '+(ok?'ok':'err')}
+async function importarContasPagar(f){
+  finMsg('Lendo '+esc(f.name)+'…',true);
+  try{
+    const x=Object.assign(lerContasPagar(await f.arrayBuffer()),{nome_arquivo:f.name});
+    const n=x.dados.rows.length;
+    let onde='', aviso='';
+    if(logado()){
+      const {error}=await window.SB.from('contas_pagar_posicoes').upsert({data_ref:x.data_ref,nome_arquivo:f.name,periodo:x.periodo,total_titulos:n,dados:x.dados},{onConflict:'data_ref'});
+      if(error)aviso=' Não foi possível gravar para todos ('+esc(error.message)+'); ficou guardado só neste navegador.';
+      else{onde='nuvem';try{localStorage.removeItem(CP_LOCAL)}catch(e){}}
+    } else aviso=' Sem login, ficou guardado só neste navegador.';
+    if(onde!=='nuvem'&&!cpGravarLocal(x))aviso+=' O navegador não deixou guardar: vale só até recarregar a página.';
+    CP=Object.assign(x,{fonte:onde||'local'});cpCarregado=true;
+    finMsg(`Importado <b>${esc(f.name)}</b>: ${int(n)} títulos, posição de <b>${brData(x.data_ref)}</b>.${aviso}`,!aviso);
+    render();
+  }catch(e){console.error(e);finMsg('Não foi possível importar: '+esc(e.message||String(e)))}
+}
+
+// obra de cada título: PCT pelo nº do contrato, PPC pelo nº do pedido e
+// documentos pelo nº da nota fiscal (com o fornecedor) dos pedidos.
+function indicesObra(){
+  const ctrs=new Map(), peds=new Map(), nfs=new Map(), nfNum=new Map();
+  const lista=window.CTR&&window.CTR.dados?window.CTR.dados().lista||[]:[];
+  for(const c of lista){
+    if(c.contrato==null)continue;
+    const nome=(c.obras&&c.obras[0])||c.obra||'';
+    const o=c.obraCod!=null?{key:'c:'+c.obraCod,label:c.obraCod+' - '+nome}:{key:obraKey(nome),label:nome||'(sem obra)'};
+    const k=chaveNum(c.contrato);let a=ctrs.get(k);if(!a){a=[];ctrs.set(k,a)}
+    a.push(Object.assign(o,{forn:normKey(c.fornecedor)}));
+  }
+  for(const r of (state.rows||[])){
+    if(!r.temPedido)continue;
+    const o={key:obraKey(r.obraLabel),label:r.obraLabel};
+    if(r.numPedido)peds.set(chaveNum(r.numPedido),o);
+    const forn=normKey(r.fornecedor);
+    (r.nfsAgrupadas||[{n:r.numNotaFiscal}]).forEach(n=>{
+      const k=chaveNum(n.n);if(!k)return;
+      nfs.set(forn+'§'+k,o);
+      let s=nfNum.get(k);if(!s){s=new Map();nfNum.set(k,s)}s.set(o.key,o);
+    });
+  }
+  return {ctrs,peds,nfs,nfNum,temCtr:lista.length>0,temPed:peds.size>0};
+}
+function obraDoTitulo(I,g,credor,doc){
+  const k=chaveNum(numDoc(doc));if(!k)return null;
+  if(g==='pct'){
+    const a=I.ctrs.get(k);if(!a)return null;
+    if(a.length===1)return a[0];
+    const f=normKey(credor);return a.find(x=>x.forn===f)||(new Set(a.map(x=>x.key)).size===1?a[0]:null);
+  }
+  if(g==='ppc')return I.peds.get(k)||null;
+  if(g==='doc'){
+    const o=I.nfs.get(normKey(credor)+'§'+k);if(o)return o;
+    const s=I.nfNum.get(k);return s&&s.size===1&&k.length>=4?[...s.values()][0]:null;
+  }
+  return null;
+}
+const vazioF=()=>({pct:0,ppc:0,doc:0,prv:0,vPrev:0,vDoc:0,n:0});
+function somaF(a,x){if(x)for(const k in a)a[k]+=x[k]||0;return a}
+function financeiro(){
+  if(!CP||!CP.dados)return null;
+  const F=CP.dados.fields||CP_FIELDS, ix=k=>F.indexOf(k), iV=ix('venc'), iC=ix('credor'), iD=ix('doc'), iT=ix('total');
+  const I=indicesObra(), obras=new Map(), titulos=[], lig={pct:[0,0],ppc:[0,0],doc:[0,0]};
+  const ref=CP.data_ref||isoOf(TODAY);
+  for(const r of CP.dados.rows){
+    const t=tipoDoc(r[iD]), g=grupoDe(t), v=+r[iT]||0, o=obraDoTitulo(I,g,r[iC],r[iD]);
+    if(lig[g]){lig[g][1]++;if(o)lig[g][0]++}
+    const key=o?o.key:SEM_OBRA, label=o?o.label:'(obra não identificada)', ym=String(r[iV]).slice(0,7), venc=r[iV]<ref;
+    let ob=obras.get(key);if(!ob){ob={label,m:new Map()};obras.set(key,ob)}
+    let x=ob.m.get(ym);if(!x){x=vazioF();ob.m.set(ym,x)}
+    x[g]+=v;x.n++;
+    if(venc&&(g==='pct'||g==='ppc'))x.vPrev+=v;else if(venc&&g==='doc')x.vDoc+=v;
+    titulos.push({venc:r[iV],ym,credor:r[iC],doc:r[iD],tipo:t,g,v,key,label,vencido:venc});
+  }
+  return {obras,titulos,lig,ref,temCtr:I.temCtr,temPed:I.temPed};
+}
+function renderFin(D){
+  const X=D.fin;
+  $('pxrFinVazio').style.display=X?'none':'';
+  $('pxrFinDados').style.display=X?'':'none';
+  if(!X){$('pxrFinSub').textContent=cpCarregado?'Relatório de contas a pagar por vencimento do Sienge':'Carregando…';destroyChart('pxrFin');return}
+  const naObra=k=>!obraSel||k===obraSel, mesesSet=new Set(D.meses);
+  const porMes=D.meses.map(ym=>{const a=vazioF();X.obras.forEach((o,k)=>{if(naObra(k))somaF(a,o.m.get(ym))});return {ym,a,fut:ym>D.hoje}});
+  const tot=porMes.reduce((s,x)=>somaF(s,x.a),vazioF());
+  const tits=X.titulos.filter(t=>naObra(t.key)&&mesesSet.has(t.ym));
+  const fora=X.titulos.filter(t=>naObra(t.key)&&!mesesSet.has(t.ym)).length;
+  const pctLig=g=>X.lig[g][1]?Math.round(X.lig[g][0]/X.lig[g][1]*100)+'%':'—';
+  $('pxrFinSub').textContent=`Posição de ${brData(X.ref)} · ${CP.nome_arquivo||''}${CP.fonte==='local'?' (só neste navegador)':''} · obra identificada: PCT ${pctLig('pct')}${X.temCtr?'':' (contratos não carregados)'}, PPC ${pctLig('ppc')}${X.temPed?'':' (base do Sienge não carregada)'}, documentos ${pctLig('doc')}${fora?` · ${int(fora)} títulos fora do período`:''}`;
+  const prev=tot.pct+tot.ppc, docPct=b=>pct(b.doc,b.pct+b.ppc+b.doc);
+  $('pxrFinKpis').innerHTML=`
+    <div class="kpi-card c-solic"><p class="kpi-label">Previsto (PCT + PPC)</p><div class="kpi-value">${brlC(prev)}</div><div class="kpi-foot">contratos ${brlC(tot.pct)} · pedidos ${brlC(tot.ppc)}</div></div>
+    <div class="kpi-card c-ped"><p class="kpi-label">Realizado (documentos)</p><div class="kpi-value">${brlC(tot.doc)}</div><div class="kpi-foot">${docPct(tot)} do previsto + realizado</div></div>
+    <div class="kpi-card c-late ${tot.vPrev>0.5?'ctr-kpi-hot':''}"><p class="kpi-label">Previsões vencidas</p><div class="kpi-value">${brlC(tot.vPrev)}</div><div class="kpi-foot">PCT/PPC vencidos sem documento</div></div>
+    <div class="kpi-card c-crit"><p class="kpi-label">Documentos vencidos</p><div class="kpi-value">${brlC(tot.vDoc)}</div><div class="kpi-foot">lançados e ainda em aberto</div></div>
+    <div class="kpi-card c-total"><p class="kpi-label">Total a pagar no período</p><div class="kpi-value">${brlC(prev+tot.doc+tot.prv)}</div><div class="kpi-foot">inclui ${brlC(tot.prv)} de outras provisões (PRV)</div></div>`;
+
+  prepararGraficos();
+  destroyChart('pxrFin');
+  const ds=(label,k,cor,stack)=>({label,data:porMes.map(x=>Math.round(x.a[k])),backgroundColor:cor,stack,borderRadius:4});
+  charts.pxrFin=new Chart($('pxrChartFin'),{type:'bar',
+    data:{labels:porMes.map(x=>ymLabel(x.ym)),datasets:[ds('PCT (contratos)','pct','#4C8DFF','p'),ds('PPC (pedidos)','ppc','#8FB8FF','p'),ds('Documentos','doc','#F5C433','r'),ds('Outras provisões (PRV)','prv','rgba(141,151,163,.45)','r')]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:t=>t.dataset.label+': '+brl(t.raw)}}},
+      scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:GRID_COLOR},ticks:{callback:v=>brlC(v)}}}}});
+
+  const venc=v=>v>0.5?`<span class="pxr-neg">${brl(v)}</span>`:'—';
+  const colsF=b=>`<td class="num pxr-sep">${brl(b.pct)}</td><td class="num">${brl(b.ppc)}</td><td class="num">${brl(b.pct+b.ppc)}</td><td class="num pxr-sep">${brl(b.doc)}</td><td class="num">${docPct(b)}</td><td class="num pxr-sep">${brl(b.prv)}</td><td class="num">${brl(b.pct+b.ppc+b.doc+b.prv)}</td><td class="num">${venc(b.vPrev+b.vDoc)}</td>`;
+  const headF=first=>`<thead><tr><th rowspan="2">${first}</th><th colspan="3" class="pxr-g pxr-sep">Previsto</th><th colspan="2" class="pxr-g pxr-sep">Realizado</th><th colspan="3" class="pxr-g pxr-sep">Total</th></tr>
+    <tr><th class="num pxr-sep">PCT (contratos)</th><th class="num">PPC (pedidos)</th><th class="num">Previsto</th><th class="num pxr-sep">Documentos</th><th class="num">% documentado</th><th class="num pxr-sep">PRV</th><th class="num">A pagar</th><th class="num">Vencido</th></tr></thead>`;
+  $('pxrFinMes').innerHTML=headF('Mês')+'<tbody>'+porMes.map(x=>`<tr class="${x.fut?'pxr-fut':''}${x.ym===D.hoje?' pxr-sel':''}"><td class="mono">${ymLabel(x.ym)}</td>${colsF(x.a)}</tr>`).join('')+`<tr class="pxr-tot"><td>Total</td>${colsF(tot)}</tr></tbody>`;
+
+  const obras=[...X.obras].map(([k,o])=>{const a=vazioF();D.meses.forEach(ym=>somaF(a,o.m.get(ym)));return {k,label:o.label,a}})
+    .filter(o=>naObra(o.k)&&o.a.n).sort((a,b)=>(b.a.pct+b.a.ppc+b.a.doc)-(a.a.pct+a.a.ppc+a.a.doc));
+  $('pxrFinObra').innerHTML=`<thead><tr><th>Obra</th><th class="num">Previsto</th><th class="num">Documentos</th><th class="num">% documentado</th><th class="num">Vencido</th></tr></thead><tbody>`+
+    (obras.map(o=>`<tr data-k="${esc(o.k)}" class="${o.k===obraSel?'pxr-sel':''}"><td><span class="ctr-subtxt" style="max-width:260px;color:var(--text)">${esc(o.label)}</span></td><td class="num">${brl(o.a.pct+o.a.ppc)}</td><td class="num">${brl(o.a.doc)}</td><td class="num">${docPct(o.a)}</td><td class="num">${venc(o.a.vPrev+o.a.vDoc)}</td></tr>`).join('')||'<tr><td colspan="5" class="ctr-mt">Nada no período.</td></tr>')+'</tbody>';
+  document.querySelectorAll('#pxrFinObra tbody tr[data-k]').forEach(tr=>tr.onclick=()=>{if(tr.dataset.k===SEM_OBRA)return;obraSel=obraSel===tr.dataset.k?'':tr.dataset.k;render()});
+
+  const tipos=new Map();tits.forEach(t=>{let x=tipos.get(t.tipo);if(!x){x={g:t.g,n:0,v:0};tipos.set(t.tipo,x)}x.n++;x.v+=t.v});
+  const GL={pct:'Previsto',ppc:'Previsto',prv:'Outras provisões',doc:'Documento'};
+  $('pxrFinTipo').innerHTML=`<thead><tr><th>Tipo</th><th>Conta como</th><th class="num">Títulos</th><th class="num">Valor</th></tr></thead><tbody>`+
+    [...tipos].sort((a,b)=>b[1].v-a[1].v).map(([t,x])=>`<tr><td class="mono">${esc(t)}</td><td>${GL[x.g]}</td><td class="num">${int(x.n)}</td><td class="num">${brl(x.v)}</td></tr>`).join('')+'</tbody>';
+
+  const vencidas=tits.filter(t=>t.vencido&&(t.g==='pct'||t.g==='ppc')).sort((a,b)=>b.v-a.v);
+  $('pxrFinVenc').innerHTML=`<thead><tr><th>Vencimento</th><th>Credor</th><th>Documento</th><th>Obra</th><th class="num">Valor</th></tr></thead><tbody>`+
+    (vencidas.slice(0,30).map(t=>`<tr><td class="mono">${brData(t.venc)}</td><td><span class="ctr-subtxt" style="max-width:280px;color:var(--text)">${esc(t.credor)}</span></td><td class="mono">${esc(t.doc)}</td><td><span class="ctr-subtxt" style="max-width:220px">${esc(t.label)}</span></td><td class="num">${brl(t.v)}</td></tr>`).join('')||'<tr><td colspan="5" class="ctr-mt">Nenhuma previsão vencida no período.</td></tr>')+
+    (vencidas.length>30?`<tr><td colspan="5" class="ctr-mt">Mais ${int(vencidas.length-30)} previsões vencidas na exportação para Excel.</td></tr>`:'')+'</tbody>';
+}
+
 let obraSel='', ctr=null, carregando=false;
 function periodo(){
   let de=$('pxrDe').value, ate=$('pxrAte').value;
@@ -16477,28 +16684,30 @@ function somaP(a,x){if(x)for(const k in a)a[k]+=x[k]||0;return a}
 function somaC(a,x){if(x){a.prev+=x.prev;a.real+=x.real;a.est+=x.est;x.ctr.forEach(i=>a.ctr.add(i))}return a}
 
 function montar(){
-  const P=pedidos(), C=ctr&&ctr.obras?ctr.obras:new Map(), meses=periodo(), hoje=ymOf(TODAY);
+  const P=pedidos(), C=ctr&&ctr.obras?ctr.obras:new Map(), meses=periodo(), hoje=ymOf(TODAY), fin=financeiro();
   // lista de obras (filtro): união de pedidos e contratos
   const labels=new Map();
   P.obras.forEach((o,k)=>labels.set(k,o.label));
   C.forEach((o,k)=>{if(!labels.has(k))labels.set(k,o.label)});
+  const labelsTab=new Map(labels);
+  if(fin)fin.obras.forEach((o,k)=>{if(k!==SEM_OBRA&&!labels.has(k))labels.set(k,o.label)});
   const sel=$('pxrObra'), ord=[...labels].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'pt-BR',{numeric:true}));
   sel.innerHTML='<option value="">Todas as obras</option>'+ord.map(([k,l])=>`<option value="${esc(k)}">${esc(l)}</option>`).join('');
   if(obraSel&&!labels.has(obraSel))obraSel='';
   sel.value=obraSel;
-  const keys=obraSel?[obraSel]:[...labels.keys()];
+  const keys=obraSel?[obraSel]:[...labelsTab.keys()];
   const porMes=meses.map(ym=>{
     const p=vazioP(), c=vazioC();
     keys.forEach(k=>{const po=P.obras.get(k), co=C.get(k);somaP(p,po&&po.m.get(ym));somaC(c,co&&co.m.get(ym))});
     return {ym,p,c,fut:ym>hoje};
   });
-  const porObra=[...labels].map(([k,label])=>{
+  const porObra=[...labelsTab].map(([k,label])=>{
     const p=vazioP(), c=vazioC(), po=P.obras.get(k), co=C.get(k);
     meses.forEach(ym=>{somaP(p,po&&po.m.get(ym));somaC(c,co&&co.m.get(ym))});
     return {k,label,p,c};
   }).filter(o=>o.p.prev||o.p.nf||Math.abs(o.c.prev)>0.5||Math.abs(o.c.real)>0.5)
     .sort((a,b)=>(b.c.prev+b.c.real)-(a.c.prev+a.c.real)||b.p.prev-a.p.prev);
-  return {P,meses,porMes,porObra,hoje};
+  return {P,meses,porMes,porObra,hoje,fin};
 }
 
 function render(){
@@ -16550,6 +16759,7 @@ function render(){
   $('pxrMesSub').textContent=obraSel?($('pxrObra').selectedOptions[0]||{}).textContent:'Todas as obras';
   $('pxrTObra').innerHTML=head('Obra')+'<tbody>'+(D.porObra.map(o=>`<tr data-k="${esc(o.k)}" class="${o.k===obraSel?'pxr-sel':''}"><td><span class="ctr-subtxt" style="max-width:280px;color:var(--text)">${esc(o.label)}</span></td>${cols(o)}</tr>`).join('')||'<tr><td colspan="11" class="ctr-mt">Nada previsto ou realizado no período.</td></tr>')+'</tbody>';
   document.querySelectorAll('#pxrTObra tbody tr[data-k]').forEach(tr=>tr.onclick=()=>{obraSel=obraSel===tr.dataset.k?'':tr.dataset.k;render()});
+  renderFin(D);
 }
 
 function exportar(){
@@ -16566,6 +16776,13 @@ function exportar(){
   }));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(linhas.length?linhas:[{'Obra':'Nada no período'}]),'Previsto x Realizado');
+  const fin=financeiro();
+  if(fin){
+    const ms=new Set(meses), GL={pct:'Previsto (PCT)',ppc:'Previsto (PPC)',prv:'Outras provisões (PRV)',doc:'Realizado (documento)'};
+    const tl=fin.titulos.filter(t=>ms.has(t.ym)&&(!obraSel||t.key===obraSel)).sort((a,b)=>a.venc<b.venc?-1:a.venc>b.venc?1:0)
+      .map(t=>({'Vencimento':brData(t.venc),'Mês':ymLabel(t.ym),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Conta como':GL[t.g],'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(tl.length?tl:[{'Credor':'Nada no período'}]),'Títulos a pagar');
+  }
   XLSX.writeFile(wb,`previsto_realizado_${meses[0]}_${meses[meses.length-1]}.xlsx`);
 }
 
@@ -16575,6 +16792,7 @@ function atualizarContratos(){
 function show(){
   atualizarContratos();
   render();
+  if(!cpCarregado)carregarContasPagar().catch(e=>{console.error('Contas a pagar:',e);cpCarregado=true}).then(render);
   if(window.CTR&&(!ctr||ctr.estado==='idle'||ctr.estado==='loading')){
     carregando=true;render();
     window.CTR.ensure().then(()=>{carregando=false;atualizarContratos();render()},()=>{carregando=false;render()});
@@ -16585,7 +16803,8 @@ function refresh(){if(!$('tab-pxr').classList.contains('active'))return;atualiza
 $('pxrDe').onchange=render;$('pxrAte').onchange=render;
 $('pxrObra').onchange=e=>{obraSel=e.target.value;render()};
 $('pxrExp').onclick=exportar;
-window.PXR={show,refresh};
+$('pxrFinArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
+window.PXR={show,refresh,recarregarFinanceiro:()=>{cpCarregado=false;CP=null;if($('tab-pxr').classList.contains('active'))show()}};
 })();
 </script>
 
