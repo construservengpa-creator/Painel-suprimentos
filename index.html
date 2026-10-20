@@ -1857,7 +1857,14 @@ table.data.pxr-tbl tr.pxr-sel td{background:var(--asphalt-3);}
 .pxr-est{color:var(--text-faint);}
 .pxr-selbar{display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:8px 12px;border:1px solid var(--yellow);border-radius:6px;font-size:13px;}
 .pxr-selbar.on{display:flex;}
-table.data.pxr-tbl tr.pxr-clk{cursor:pointer;}
+table.data.pxr-tbl tr.pxr-clk td:first-child{cursor:pointer;}
+table.data.pxr-tbl td.pxr-v{cursor:pointer;}
+table.data.pxr-tbl td.pxr-v:hover{text-decoration:underline;color:var(--yellow);}
+#pxrTMes th:first-child,#pxrTMes td:first-child,#pxrTObra th:first-child,#pxrTObra td:first-child{position:sticky;left:0;z-index:1;background:var(--asphalt-2);}
+#pxrDrawer{width:min(760px,100%);}
+#pxrDrawer .pxr-dtot{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 12px;font-size:13px;color:var(--text-dim);}
+#pxrDrawer .pxr-dtot b{color:var(--text);font-size:15px;}
+#pxrDrawer h4{font:600 13px var(--font-display);margin:16px 0 8px;letter-spacing:.03em;}
 .pxr-arq input{display:none;}
 .pxr-fontes{font-size:12px;color:var(--text-dim);margin:0 0 12px;line-height:1.5;}
 .ctr-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900;}
@@ -4136,9 +4143,16 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <p><b>Ajuste pelos contratos.</b> As PCT de um contrato não passam do que ele ainda pode medir: o saldo do contrato na última posição importada. Contrato cancelado, encerrado, reprovado ou totalmente medido não tem previsão. Quando as PCT passam do limite, valem as de vencimento mais antigo e o excesso sai do previsto (lista "Ajuste pelo saldo dos contratos"). PCT sem contrato encontrado ficam como estão.</p>
         <p><b>Realizado</b> = o que já aconteceu: <b>medições</b> (quanto o Total medido dos contratos aumentou entre duas posições importadas, rateado pelos dias e pelas obras; * marca medido estimado, anterior à 1ª posição) e <b>notas</b> dos pedidos (notas fiscais pela data da nota).</p>
         <p><b>% realizado</b> = realizado ÷ (realizado + previsto). <b>Previsto atrasado</b> = provisões com vencimento anterior à data do relatório, que já deviam ter virado documento. <b>A pagar</b> = documentos já lançados e ainda em aberto (notas, boletos, guias, faturas etc.), no mês de vencimento.</p>
-        <p><b>Filtro pelo gráfico.</b> Clique numa barra (ou numa linha da tabela por mês) para ver só aquele mês nos indicadores, na tabela por obra e na lista de previsões; as barras do previsto também filtram o tipo. Clique de novo ou em "Limpar filtro" para voltar ao período.</p>
+        <p><b>Filtro pelo gráfico.</b> Clique em qualquer ponto do gráfico (ou no mês da tabela por mês) para ver só aquele mês nos indicadores, na tabela por obra e na lista de previsões; clicando em cima de uma barra do previsto, filtra também o tipo. Clique de novo ou em "Limpar filtro" para voltar ao período.</p>
+        <p><b>Composição.</b> Clique em qualquer valor das tabelas por mês e por obra para ver de onde ele vem: os títulos (previsto, atrasado, a pagar), os contratos medidos (medições) ou as notas fiscais dos pedidos (notas).</p>
+        <p><b>Meses futuros</b> não têm realizado: medições só existem até a última posição de contratos importada e notas até a data de hoje. As parcelas futuras de notas já emitidas aparecem em <b>A pagar</b>, no mês de vencimento de cada parcela.</p>
       </div>
     </div>
+    <div class="ctr-scrim" id="pxrScrim"></div>
+    <aside class="ctr-drawer" id="pxrDrawer" aria-hidden="true">
+      <header><div><h3 id="pxrDT"></h3><p id="pxrDS"></p></div><button class="ctr-x" id="pxrDX" aria-label="Fechar">×</button></header>
+      <div class="ctr-db" id="pxrDB"></div>
+    </aside>
   </section>
 
   <section class="tab-panel" id="tab-admin">
@@ -16323,7 +16337,7 @@ function pxr(){
   if(STATE!=='ready'||!POS)return {estado:STATE,obras:new Map()};
   const ds=POS.dados, F=ds.fields||FIELDS, obras=new Map(), shares=new Map(), porNome=new Map();
   const cel=(key,label)=>{let o=obras.get(key);if(!o){o={label,m:new Map()};obras.set(key,o)}else if(label&&!o.label)o.label=label;return o};
-  const mes=(o,ym)=>{let x=o.m.get(ym);if(!x){x={prev:0,real:0,est:0,ctr:new Set()};o.m.set(ym,x)}return x};
+  const mes=(o,ym)=>{let x=o.m.get(ym);if(!x){x={prev:0,real:0,est:0,ctr:new Set(),det:new Map()};o.m.set(ym,x)}return x};
   // obra de cada linha do relatório: o mesmo contrato pode estar rateado em várias obras
   for(const r of ds.rows){
     const o={};F.forEach((k,i)=>o[k]=r[i]);
@@ -16349,12 +16363,16 @@ function pxr(){
     for(const x of pv)for(const [k,w] of ps){const z=mes(cel(k),ymOf(x.d));z.prev+=x.v*w;z.ctr.add(c.id)}
   }
   let prev=null;
-  const addReal=(id,obraTxt,d0,d1,v,est)=>{const ps=pesos(id,obraTxt);spreadMeses(d0,d1,v,(ym,q)=>{for(const [k,w] of ps){const z=mes(cel(k),ym);z.real+=q*w;if(est)z.est+=q*w;if(Math.abs(q)>0.005)z.ctr.add(id)}})};
+  // det: medido de cada contrato no mês/obra, para mostrar a composição do realizado
+  const info=new Map();
+  const addReal=(id,obraTxt,d0,d1,v,est)=>{const ps=pesos(id,obraTxt);spreadMeses(d0,d1,v,(ym,q)=>{for(const [k,w] of ps){const z=mes(cel(k),ym);z.real+=q*w;if(est)z.est+=q*w;
+    if(Math.abs(q)>0.005){z.ctr.add(id);const d=z.det.get(id)||{v:0,est:0};d.v+=q*w;if(est)d.est+=q*w;z.det.set(id,d)}}})};
   for(const s of SNAPS){
     if(!s.resumo)continue;
     const dB=toD(s.data_ref);if(!dB)continue;
     for(const id in s.resumo){
       const b=s.resumo[id], a=prev&&prev.r[id];
+      info.set(id,{contrato:b[3],fornecedor:b[4]});
       if(a){const dm=b[0]-a[0];if(Math.abs(dm)>0.01)addReal(id,b[5],prev.d,dB,dm,false);continue}
       if(!(b[0]>0.01))continue;
       const c=byId.get(id), ini=c&&toD(c.dtInicio);
@@ -16363,7 +16381,7 @@ function pxr(){
     }
     prev={d:dB,r:s.resumo};
   }
-  return {estado:STATE,obras,dataRef:POS.data_ref,primeiraPos:SNAPS.length?SNAPS[0].data_ref:null,nPos:SNAPS.length,semCron,comCron};
+  return {estado:STATE,obras,info,dataRef:POS.data_ref,primeiraPos:SNAPS.length?SNAPS[0].data_ref:null,nPos:SNAPS.length,semCron,comCron};
 }
 let loadP=null;
 const loadOnce=()=>loadP||(loadP=loadAll().finally(()=>{loadP=null}));
@@ -16453,8 +16471,10 @@ function notasPedidos(){
       const v=parseNumBR(n.v), d=parseDateBR(n.d);if(!(v>0)||!d)return;
       const k=r.numPedido+'§'+(normKey(n.n)||normLabel(n.d)+'§'+v);
       if(vistas.has(k))return;vistas.add(k);
-      let o=obras.get(key);if(!o){o={label,m:new Map()};obras.set(key,o)}
+      let o=obras.get(key);if(!o){o={label,m:new Map(),det:new Map()};obras.set(key,o)}
       const ym=ymOf(d);o.m.set(ym,(o.m.get(ym)||0)+v);
+      let l=o.det.get(ym);if(!l){l=[];o.det.set(ym,l)}
+      l.push({data:d,pedido:r.numPedido,fornecedor:normLabel(r.fornecedor),nota:n.n||'',v});
     });
   }
   return obras;
@@ -16614,6 +16634,11 @@ function selecionar(ym,g){
   else{selMes=ym;selGrupo=g}
   render();
 }
+// coluna (mês) do gráfico sob o ponteiro, pela posição no eixo x; -1 fora dele
+function mesDoClique(e,ch){
+  const xs=ch&&ch.scales&&ch.scales.x;if(!xs||e.x<xs.left||e.x>xs.right||e.y<ch.chartArea.top)return -1;
+  const i=Math.round(xs.getValueForPixel(e.x));return i>=0&&i<ch.data.labels.length?i:-1;
+}
 const esmaecer=cor=>{
   if(/^#[0-9a-f]{6}$/i.test(cor))return 'rgba('+[1,3,5].map(i=>parseInt(cor.substr(i,2),16)).join(',')+',.22)';
   const m=String(cor).match(/^rgba?\(([^)]+)\)$/);if(m){const v=m[1].split(',').slice(0,3);return 'rgba('+v.join(',')+',.12)'}
@@ -16655,7 +16680,7 @@ function montar(){
   const tot=porMes.filter(x=>mesesSel.includes(x.ym)).reduce((s,x)=>soma(s,x.a),vazio());
   const ms=new Set(mesesSel);
   const tits=T?T.lista.filter(t=>t.g!=='doc'&&naObra(t.key)&&ms.has(t.ym)&&(!selGrupo||t.g===selGrupo)):[];
-  return {meses,mesesSel,hoje,T,obras,porMes,porObra,tot,tits};
+  return {meses,mesesSel,hoje,T,N,C,obras,porMes,porObra,tot,tits,naObra};
 }
 
 function fontes(D){
@@ -16695,8 +16720,9 @@ function render(){
       ds('Realizado: medições','med','#F5C433','r'),ds('Realizado: notas','nf','#3CCF5A','r')]},
     options:{responsive:true,maintainAspectRatio:false,
       // o render recria o gráfico: só depois que o Chart.js terminar de tratar o clique
-      onClick:(e,els)=>{if(!els.length)return;const x=P[els[0].index], g=grupos[els[0].datasetIndex];if(x)setTimeout(()=>selecionar(x.ym,g),0)},
-      onHover:(e,els)=>{if(e.native&&e.native.target)e.native.target.style.cursor=els.length?'pointer':'default'},
+      // qualquer ponto da coluna do mês filtra o mês; em cima de uma barra, também o tipo
+      onClick:(e,els,ch)=>{const i=mesDoClique(e,ch);if(i<0)return;const g=els.length?grupos[els[0].datasetIndex]:'';setTimeout(()=>selecionar(P[i].ym,g),0)},
+      onHover:(e,els,ch)=>{if(e.native&&e.native.target)e.native.target.style.cursor=mesDoClique(e,ch)>=0?'pointer':'default'},
       plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.dataset.label+': '+brl(c.raw)}}},
       scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,beginAtZero:true,grid:{color:GRID_COLOR},ticks:{callback:v=>brlC(v)}}}}});
 
@@ -16705,18 +16731,22 @@ function render(){
   const est=a=>a.est>Math.max(1,Math.abs(a.med)*0.01)?'<span class="pxr-est" title="Inclui medido estimado (anterior à 1ª posição de contratos importada)">*</span>':'';
   const head=first=>`<thead><tr><th rowspan="2">${first}</th><th colspan="4" class="pxr-g pxr-sep">Previsto (R$)</th><th colspan="3" class="pxr-g pxr-sep">Realizado (R$)</th><th rowspan="2" class="num pxr-sep">% realizado</th><th rowspan="2" class="num">Previsto atrasado</th><th rowspan="2" class="num">A pagar</th></tr>
     <tr><th class="num pxr-sep">Contratos</th><th class="num">Pedidos</th><th class="num">Outras</th><th class="num">Total</th><th class="num pxr-sep">Medições</th><th class="num">Notas</th><th class="num">Total</th></tr></thead>`;
-  const cols=a=>`<td class="num pxr-sep">${brl(a.pct)}</td><td class="num">${brl(a.ppc)}</td><td class="num">${brl(a.prv)}</td><td class="num"><b>${brl(prevT(a))}</b></td>`+
-    `<td class="num pxr-sep">${brl(a.med)}${est(a)}</td><td class="num">${brl(a.nf)}</td><td class="num"><b>${brl(realT(a))}</b></td>`+
-    `<td class="num pxr-sep">${pct(realT(a),realT(a)+prevT(a))}</td><td class="num">${atr(a.atr)}</td><td class="num">${brl(a.doc)}</td>`;
+  // valores clicáveis (data-c): abrem a composição
+  const v=(c,val,html,cls)=>`<td class="num${cls||''}${Math.abs(val)>0.5?' pxr-v" data-c="'+c+'" title="Ver a composição':''}">${html}</td>`;
+  const cols=a=>v('pct',a.pct,brl(a.pct),' pxr-sep')+v('ppc',a.ppc,brl(a.ppc))+v('prv',a.prv,brl(a.prv))+v('prev',prevT(a),`<b>${brl(prevT(a))}</b>`)+
+    v('med',a.med,brl(a.med)+est(a),' pxr-sep')+v('nf',a.nf,brl(a.nf))+v('real',realT(a),`<b>${brl(realT(a))}</b>`)+
+    `<td class="num pxr-sep">${pct(realT(a),realT(a)+prevT(a))}</td>`+v('atr',a.atr,atr(a.atr))+v('doc',a.doc,brl(a.doc));
   const marcado=ym=>selMes?ym===selMes:ym===D.hoje;
   const totPer=P.reduce((s,x)=>soma(s,x.a),vazio());
   $('pxrTMes').innerHTML=head('Mês')+'<tbody>'+P.map(x=>`<tr data-ym="${x.ym}" class="pxr-clk${x.fut?' pxr-fut':''}${marcado(x.ym)?' pxr-sel':''}" title="${x.fut?'Mês futuro. ':x.ym===D.hoje?'Mês atual, em andamento. ':''}Clique para filtrar este mês"><td class="mono">${ymLabel(x.ym)}</td>${cols(x.a)}</tr>`).join('')+
     `<tr class="pxr-tot"><td>Total</td>${cols(totPer)}</tr></tbody>`;
-  document.querySelectorAll('#pxrTMes tbody tr[data-ym]').forEach(tr=>tr.onclick=()=>selecionar(tr.dataset.ym,''));
+  $('pxrTMes').onclick=e=>{const tr=e.target.closest('tbody tr');if(!tr)return;const td=e.target.closest('td[data-c]');
+    if(td)composicao(D,td.dataset.c,tr.dataset.ym?{ym:tr.dataset.ym}:{tot:true});else if(tr.dataset.ym)selecionar(tr.dataset.ym,'')};
   $('pxrMesSub').textContent=obraSel?($('pxrObra').selectedOptions[0]||{}).textContent:'Todas as obras';
   $('pxrObraSub').textContent=(selMes?'Mês de '+ymLabel(selMes):'Soma do período')+'. Clique numa obra para ver só ela';
   $('pxrTObra').innerHTML=head('Obra')+'<tbody>'+(D.porObra.map(o=>`<tr data-k="${esc(o.k)}" class="${o.k===SEM_OBRA?'':'pxr-clk'}${o.k===obraSel?' pxr-sel':''}"><td><span class="ctr-subtxt" style="max-width:280px;color:var(--text)">${esc(o.label)}</span></td>${cols(o.a)}</tr>`).join('')||'<tr><td colspan="11" class="ctr-mt">Nada previsto ou realizado no período.</td></tr>')+'</tbody>';
-  document.querySelectorAll('#pxrTObra tbody tr[data-k]').forEach(tr=>tr.onclick=()=>{if(tr.dataset.k===SEM_OBRA)return;obraSel=obraSel===tr.dataset.k?'':tr.dataset.k;render()});
+  $('pxrTObra').onclick=e=>{const tr=e.target.closest('tbody tr[data-k]');if(!tr)return;const td=e.target.closest('td[data-c]');
+    if(td)composicao(D,td.dataset.c,{k:tr.dataset.k,label:tr.querySelector('td').textContent});else if(tr.dataset.k!==SEM_OBRA){obraSel=obraSel===tr.dataset.k?'':tr.dataset.k;render()}};
 
   // títulos: sem filtro, as previsões atrasadas; com filtro, as previsões escolhidas
   const lst=(selMes?D.tits:D.tits.filter(x=>x.vencido&&x.aj>0.5)).sort((p,q)=>q.aj-p.aj||q.v-p.v);
@@ -16736,6 +16766,56 @@ function render(){
     aj.slice(0,30).map(a=>`<tr><td class="mono">${esc(a.contrato)}</td><td><span class="ctr-subtxt" style="max-width:260px;color:var(--text)">${esc(a.fornecedor||'')}</span></td><td><span class="ctr-subtxt" style="max-width:200px">${esc(a.obra)}</span></td><td>${esc(a.motivo)}</td><td class="num">${brl(a.pct)}</td><td class="num">${brl(a.limite)}</td><td class="num pxr-neg">${brl(a.fora)}</td></tr>`).join('')+
     (aj.length>30?`<tr><td colspan="7" class="ctr-mt">Mais ${int(aj.length-30)} contratos na exportação para Excel.</td></tr>`:'')+'</tbody>';
 }
+
+/* ---------- composição de um valor das tabelas ---------- */
+const COL_TXT={pct:'Previsto · contratos (PCT)',ppc:'Previsto · pedidos (PPC)',prv:'Previsto · outras (PRV)',prev:'Previsto total',med:'Realizado · medições',nf:'Realizado · notas',real:'Realizado total',atr:'Previsto atrasado',doc:'A pagar (documentos)'};
+function composicao(D,col,esc0){
+  // escopo: um mês (obras do filtro), uma obra (meses do filtro) ou o total do período
+  const meses=new Set(esc0.ym?[esc0.ym]:esc0.k?D.mesesSel:D.meses);
+  const naObra=k=>esc0.k?k===esc0.k:D.naObra(k);
+  const quando=esc0.ym?ymLabel(esc0.ym):esc0.k&&selMes?ymLabel(selMes):ymLabel(D.meses[0])+' a '+ymLabel(D.meses[D.meses.length-1]);
+  const onde=quando+' · '+(esc0.k?esc0.label:obraSel?($('pxrObra').selectedOptions[0]||{}).textContent:'todas as obras');
+  const lim=300, cut=n=>n>lim?`<p class="ctr-mt">Mostrando os ${lim} maiores de ${int(n)}.</p>`:'';
+  const tabela=(cab,linhas)=>`<div class="table-scroll"><table class="data ctr-tbl pxr-tbl"><thead><tr>${cab}</tr></thead><tbody>${linhas.join('')||'<tr><td colspan="9" class="ctr-mt">Nada.</td></tr>'}</tbody></table></div>`;
+  const txt=s=>`<span class="ctr-subtxt" style="max-width:240px;color:var(--text)">${esc(s||'')}</span>`;
+  const partes=[];let total=0, n=0;
+  const titulosDe=filtro=>{
+    const val=t=>t.g==='doc'?t.v:t.aj;
+    const l=(D.T?D.T.lista.filter(t=>meses.has(t.ym)&&naObra(t.key)&&filtro(t)):[]).sort((a,b)=>val(b)-val(a));
+    const s=l.reduce((a,t)=>a+val(t),0);total+=s;n+=l.length;
+    const vtxt=t=>t.g!=='doc'&&t.aj<t.v-0.5?`${brl(t.aj)} <span class="pxr-est" title="PCT acima do saldo do contrato">de ${brl(t.v)}</span>`:brl(val(t));
+    return {s,n:l.length,html:tabela('<th>Vencimento</th><th>Credor</th><th>Documento</th><th>Obra</th><th class="num">Valor</th>',
+      l.slice(0,lim).map(t=>`<tr><td class="mono${t.vencido?' pxr-neg':''}">${brData(t.venc)}</td><td>${txt(t.credor)}</td><td class="mono">${esc(t.doc)}</td><td>${txt(t.label)}</td><td class="num">${vtxt(t)}</td></tr>`))+cut(l.length)};
+  };
+  const medicoes=()=>{
+    const m=new Map(), info=ctr&&ctr.info||new Map();
+    D.C.forEach((o,k)=>{if(!naObra(k))return;o.m.forEach((z,ym)=>{if(!meses.has(ym)||!z.det)return;
+      z.det.forEach((d,id)=>{const key=id+'§'+k;let x=m.get(key);if(!x){const i=info.get(id)||{};x={contrato:i.contrato||id,fornecedor:i.fornecedor||'',obra:o.label,v:0,est:0};m.set(key,x)}x.v+=d.v;x.est+=d.est})})});
+    const l=[...m.values()].filter(x=>Math.abs(x.v)>0.5).sort((a,b)=>b.v-a.v), s=l.reduce((a,x)=>a+x.v,0);total+=s;n+=l.length;
+    return {s,n:l.length,html:tabela('<th>Contrato</th><th>Fornecedor</th><th>Obra</th><th class="num">Medido</th>',
+      l.slice(0,lim).map(x=>`<tr><td class="mono">${esc(x.contrato)}</td><td>${txt(x.fornecedor)}</td><td>${txt(x.obra)}</td><td class="num">${brl(x.v)}${x.est>Math.max(1,Math.abs(x.v)*0.01)?'<span class="pxr-est" title="Medido estimado (anterior à 1ª posição importada)">*</span>':''}</td></tr>`))+cut(l.length)};
+  };
+  const notas=()=>{
+    const l=[];D.N.forEach((o,k)=>{if(!naObra(k))return;o.det.forEach((arr,ym)=>{if(meses.has(ym))arr.forEach(x=>l.push(Object.assign({obra:o.label},x)))})});
+    l.sort((a,b)=>b.v-a.v);const s=l.reduce((a,x)=>a+x.v,0);total+=s;n+=l.length;
+    return {s,n:l.length,html:tabela('<th>Data</th><th>Pedido</th><th>Fornecedor</th><th>Nota</th><th>Obra</th><th class="num">Valor</th>',
+      l.slice(0,lim).map(x=>`<tr><td class="mono">${fmtDate(x.data)}</td><td class="mono">${esc(x.pedido)}</td><td>${txt(x.fornecedor)}</td><td class="mono">${esc(x.nota)}</td><td>${txt(x.obra)}</td><td class="num">${brl(x.v)}</td></tr>`))+cut(l.length)};
+  };
+  const secao=(titulo,r)=>partes.push(`<h4>${titulo} · ${brl(r.s)} (${int(r.n)})</h4>${r.html}`);
+  const G={pct:'Contratos (PCT)',ppc:'Pedidos (PPC)',prv:'Outras (PRV)'};
+  if(G[col])secao(G[col],titulosDe(t=>t.g===col&&t.aj>0.005));
+  else if(col==='prev')['pct','ppc','prv'].forEach(g=>secao(G[g],titulosDe(t=>t.g===g&&t.aj>0.005)));
+  else if(col==='atr')secao('Previsões vencidas sem documento',titulosDe(t=>t.g!=='doc'&&t.vencido&&t.aj>0.005));
+  else if(col==='doc')secao('Documentos lançados em aberto',titulosDe(t=>t.g==='doc'));
+  else if(col==='med')secao('Contratos medidos',medicoes());
+  else if(col==='nf')secao('Notas fiscais dos pedidos',notas());
+  else if(col==='real'){secao('Medições dos contratos',medicoes());secao('Notas fiscais dos pedidos',notas())}
+  $('pxrDT').textContent=COL_TXT[col]||'Composição';
+  $('pxrDS').textContent=onde;
+  $('pxrDB').innerHTML=`<div class="pxr-dtot"><span>Total <b>${brl(total)}</b></span><span>${int(n)} itens</span></div>`+partes.join('');
+  $('pxrScrim').classList.add('on');$('pxrDrawer').classList.add('on');$('pxrDrawer').setAttribute('aria-hidden','false');
+}
+function fecharComposicao(){$('pxrScrim').classList.remove('on');$('pxrDrawer').classList.remove('on');$('pxrDrawer').setAttribute('aria-hidden','true')}
 
 function exportar(){
   if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
@@ -16776,6 +16856,8 @@ $('pxrDe').onchange=render;$('pxrAte').onchange=render;
 $('pxrObra').onchange=e=>{obraSel=e.target.value;render()};
 $('pxrExp').onclick=exportar;
 $('pxrSelLimpar').onclick=()=>{selMes=selGrupo='';render()};
+$('pxrDX').onclick=fecharComposicao;$('pxrScrim').onclick=fecharComposicao;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('pxrDrawer').classList.contains('on'))fecharComposicao()});
 $('pxrFinArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
 window.PXR={show,refresh,recarregarFinanceiro:()=>{cpCarregado=false;CP=null;if($('tab-pxr').classList.contains('active'))show()}};
 })();
