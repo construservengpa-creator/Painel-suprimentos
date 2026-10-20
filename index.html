@@ -10020,7 +10020,7 @@ function getPedidosUnicos(){
   (state.rows||[]).forEach(r=>{
     if(!r.numPedido) return;
     if(!map.has(r.numPedido)){
-      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'', valorTotal:0, notas:[], _notasVistas:new Set(), _situacoes:new Set() });
+      map.set(r.numPedido, { numPedido:r.numPedido, obra:r.obraLabel, fornecedor: normLabel(r.fornecedor)||'', comprador:r.compradorLabel||'', valorTotal:0, notas:[], _notasVistas:new Set(), _notaPorChave:new Map(), _situacoes:new Set() });
     }
     if(r.situacaoPedido) map.get(r.numPedido)._situacoes.add(String(r.situacaoPedido).trim());
     // O Sienge não traz um "valor do pedido" único, só o valor de cada nota
@@ -10037,20 +10037,34 @@ function getPedidosUnicos(){
       if(!p._notasVistas.has(chaveNota)){
         p._notasVistas.add(chaveNota);
         p.valorTotal += valor;
-        p.notas.push({ numero: numNota || '(sem número)', valor, data: normLabel(r.dataNotaFiscal)||'' });
+        const nota = { numero: numNota || '(sem número)', valor, data: normLabel(r.dataNotaFiscal)||'' };
+        p.notas.push(nota);
+        p._notaPorChave.set(chaveNota, nota);
       }
     }
   });
-  // completa com as notas do relatório Pedido x Nota Fiscal (sem duplicar)
+  // completa com as notas do relatório Pedido x Nota Fiscal (sem duplicar).
+  // Quando a mesma nota já veio da base principal, vale o "Total atendido
+  // nota" deste relatório: é o quanto o Sienge abate do pedido, e pode
+  // diferir do "Valor da nota" da base (ex.: frete/impostos rateados) —
+  // assim faturado e saldo batem com o Acompanhamento de Pedidos.
   notasExtrasCredito.forEach((lista, num)=>{
     let p = map.get(num);
     if(!p){
-      p = { numPedido:num, obra:'', fornecedor:'', comprador:'', valorTotal:0, notas:[], _notasVistas:new Set(), _situacoes:new Set() };
+      p = { numPedido:num, obra:'', fornecedor:'', comprador:'', valorTotal:0, notas:[], _notasVistas:new Set(), _notaPorChave:new Map(), _situacoes:new Set() };
       map.set(num, p);
     }
     lista.forEach(n=>{
       if(n.saldoPedido!=null && (!p._saldoEm || n.importadoEm >= p._saldoEm)){ p._saldoPedido = n.saldoPedido; p._saldoEm = n.importadoEm; }
-      if(!n.chave || p._notasVistas.has(n.chave) || !(n.valor>0)) return;
+      if(!n.chave || !(n.valor>0)) return;
+      const daBase = p._notaPorChave.get(n.chave);
+      if(daBase){
+        p.valorTotal += n.valor - daBase.valor;
+        daBase.valor = n.valor;
+        p._notaPorChave.delete(n.chave);
+        return;
+      }
+      if(p._notasVistas.has(n.chave)) return;
       p._notasVistas.add(n.chave);
       p.valorTotal += n.valor;
       p.notas.push({ numero:n.numero, valor:n.valor, data:n.data });
