@@ -1866,6 +1866,13 @@ table.data.pxr-tbl td.pxr-v:hover{text-decoration:underline;color:var(--yellow);
 #pxrDrawer .pxr-dtot{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 12px;font-size:13px;color:var(--text-dim);}
 #pxrDrawer .pxr-dtot b{color:var(--text);font-size:15px;}
 #pxrDrawer h4{font:600 13px var(--font-display);margin:16px 0 8px;letter-spacing:.03em;}
+#pxrDrawer h5{font:600 12px var(--font-body);margin:12px 0 6px;color:var(--text-dim);}
+.cpg-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;}
+.cpg-chip{border:1px solid var(--line);background:var(--asphalt-2);color:var(--text-dim);border-radius:999px;padding:4px 10px;font:500 12px var(--font-body);cursor:pointer;}
+.cpg-chip:hover{color:var(--text);}
+.cpg-chip.on{border-color:var(--yellow);color:var(--text);background:var(--asphalt-3);}
+table.data.pxr-tbl tr.cpg-cls td{cursor:pointer;}
+table.data.pxr-tbl tr.cpg-cls.on td{background:var(--asphalt-3);}
 .pxr-arq input{display:none;}
 .pxr-fontes{font-size:12px;color:var(--text-dim);margin:0 0 12px;line-height:1.5;}
 .ctr-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900;}
@@ -4164,6 +4171,9 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <label>De <input type="month" id="cpgDe"></label>
         <label>até <input type="month" id="cpgAte"></label>
         <select id="cpgObra" aria-label="Obra"><option value="">Todas as obras</option></select>
+        <select id="cpgClasse" aria-label="Classificação"><option value="">Todas as classificações</option><option value="doc">A pagar (documentos)</option><option value="prev">Previsão financeira (PCT, PPC e PRV)</option><option value="pct">Previsão · contratos (PCT)</option><option value="ppc">Previsão · pedidos (PPC)</option><option value="prv">Previsão · outras (PRV)</option></select>
+        <select id="cpgTipo" aria-label="Tipo de documento"><option value="">Todos os tipos de documento</option></select>
+        <select id="cpgSit" aria-label="Situação"><option value="">Vencidos e a vencer</option><option value="venc">Só vencidos</option><option value="avencer">Só a vencer</option></select>
         <input type="search" id="cpgBusca" placeholder="Credor ou documento" aria-label="Credor ou documento" style="max-width:200px">
         <label title="Limita as PCT de cada contrato ao saldo que ele ainda pode medir"><input type="checkbox" id="cpgAjuste" checked> Ajustar PCT pelo saldo dos contratos</label>
         <label class="btn small pxr-arq" title="Relatório de títulos a pagar por data de vencimento, exportado do Sienge em .csv">Importar contas a pagar<input type="file" id="cpgArq" accept=".csv,.txt"></label>
@@ -4193,6 +4203,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <p>Vem do relatório de contas a pagar por vencimento do Sienge (títulos em aberto), o mesmo da aba Previsto × Realizado. <b>A pagar</b> = documentos já lançados (notas, boletos, guias, faturas, financiamentos etc.). <b>Previsão financeira</b> = provisões que ainda não viraram documento: <b>PCT</b> (contratos), <b>PPC</b> (pedidos de compra) e <b>PRV</b> (outras provisões).</p>
         <p>Com <b>Ajustar PCT pelo saldo dos contratos</b> marcado, as PCT de cada contrato não passam do saldo que ele ainda pode medir (contrato cancelado, encerrado, reprovado ou totalmente medido fica sem previsão), como em Previsto × Realizado; desmarcado, valem os valores do relatório.</p>
         <p><b>Vencido</b> = vencimento anterior à data do relatório e ainda em aberto. Títulos com vencimento antes ou depois do período escolhido aparecem nas linhas "Antes de" e "Depois de", para o total bater com o relatório. <b>Acumulado</b> soma o total mês a mês desde o início do período.</p>
+        <p><b>Filtros</b>: classificação (a pagar ou cada tipo de previsão), tipo de documento (prefixo do documento no Sienge: NFE, NFSE, boleto, PCT…) e situação (vencido ou a vencer) valem para os indicadores, o gráfico, as tabelas e a exportação. Ao abrir a composição de um valor, os títulos vêm separados por classificação, com um resumo no topo; clique numa classificação para ver só os títulos dela.</p>
       </div>
     </div>
   </section>
@@ -16829,6 +16840,7 @@ function titulosHTML(l,val){
 function abrirPainel(titulo,sub,total,n,partes){
   $('pxrDT').textContent=titulo;
   $('pxrDS').textContent=sub;
+  $('pxrDB').onclick=null;
   $('pxrDB').innerHTML=`<div class="pxr-dtot"><span>Total <b>${brl(total)}</b></span><span>${int(n)} itens</span></div>`+partes.join('');
   $('pxrScrim').classList.add('on');$('pxrDrawer').classList.add('on');$('pxrDrawer').setAttribute('aria-hidden','false');
 }
@@ -16925,7 +16937,14 @@ function cpgDados(){
   if(cpgObra&&cpgObra!==SEM_OBRA&&!obras.has(cpgObra))cpgObra='';
   sel.value=cpgObra;
   if(cpgMes&&!meses.includes(cpgMes))cpgMes='';
-  const base=T.lista.filter(t=>(!cpgObra||t.key===cpgObra)&&(!busca||normTxt(t.credor+' '+t.doc).includes(busca)));
+  // filtros de classificação, tipo de documento e situação
+  const classe=$('cpgClasse').value, sit=$('cpgSit').value, selT=$('cpgTipo');
+  const naClasse=t=>!classe||(classe==='prev'?t.g!=='doc':t.g===classe);
+  const tipos=new Map();T.lista.forEach(t=>{if(naClasse(t))tipos.set(t.tipo,(tipos.get(t.tipo)||0)+1)});
+  const tipoSel=tipos.has(selT.value)?selT.value:'';
+  selT.innerHTML='<option value="">Todos os tipos de documento</option>'+[...tipos].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<option value="${esc(k)}">${esc(cpgTipoNome(k))} (${int(n)})</option>`).join('');
+  selT.value=tipoSel;
+  const base=T.lista.filter(t=>(!cpgObra||t.key===cpgObra)&&naClasse(t)&&(!tipoSel||t.tipo===tipoSel)&&(!sit||(sit==='venc')===t.vencido)&&(!busca||normTxt(t.credor+' '+t.doc).includes(busca)));
   const porMes=new Map(meses.map(m=>[m,cpgVazio()])), antes=cpgVazio(), depois=cpgVazio();
   base.forEach(t=>cpgAdd(t.ym<ini?antes:t.ym>fim?depois:porMes.get(t.ym),t));
   // escopo dos indicadores e da tabela por credor: o mês filtrado ou o período
@@ -16938,13 +16957,39 @@ function cpgTitulos(D,col,esc0){
   const naCol=col==='doc'?t=>t.g==='doc':['pct','ppc','prv'].includes(col)?t=>t.g===col:col==='prev'?t=>t.g!=='doc':col==='venc'?t=>t.vencido:()=>true;
   return D.base.filter(t=>naLinha(t)&&naCol(t)&&cpgVal(t)>0.005);
 }
+// classificação de cada título: o tipo do documento (prefixo antes do ponto)
+const CPG_TIPOS={NFE:'Nota fiscal eletrônica',NF:'Nota fiscal',NFS:'Nota fiscal de serviço',NFSE:'Nota fiscal de serviço',CTE:'Conhecimento de transporte',BOL:'Boleto',BOLETO:'Boleto',FAT:'Fatura',DUP:'Duplicata',REC:'Recibo',GUIA:'Guia',DARF:'DARF',GPS:'GPS',GRF:'FGTS',FGTS:'FGTS',ALU:'Aluguel',CONT:'Contrato',ADT:'Adiantamento',PCT:'Previsão de contrato',PPC:'Previsão de pedido',PRV:'Outras previsões',OUTROS:'Sem tipo'};
+const cpgTipoNome=k=>CPG_TIPOS[k]&&k!=='OUTROS'?k+' · '+CPG_TIPOS[k]:CPG_TIPOS[k]||k;
+const CPG_GRUPOS=[['doc','A pagar (documentos)'],['pct','Previsão · contratos (PCT)'],['ppc','Previsão · pedidos (PPC)'],['prv','Previsão · outras (PRV)']];
 function cpgComposicao(D,col,esc0){
-  const l=cpgTitulos(D,col,esc0), partes=[];let total=0;
-  const grupos=[['doc','A pagar (documentos)'],['pct','Previsão · contratos (PCT)'],['ppc','Previsão · pedidos (PPC)'],['prv','Previsão · outras (PRV)']];
-  grupos.forEach(([g,nome])=>{const x=l.filter(t=>t.g===g).sort((a,b)=>cpgVal(b)-cpgVal(a));if(!x.length)return;
-    const s=x.reduce((a,t)=>a+cpgVal(t),0);total+=s;partes.push(`<h4>${nome} · ${brl(s)} (${int(x.length)})</h4>`+titulosHTML(x,cpgVal))});
+  const l=cpgTitulos(D,col,esc0);
+  // classificações: grupo (a pagar/PCT/PPC/PRV) e, dentro dele, o tipo do documento
+  const cls=[];
+  CPG_GRUPOS.forEach(([g,nome])=>{
+    const porTipo=new Map();l.filter(t=>t.g===g).forEach(t=>{let a=porTipo.get(t.tipo);if(!a){a=[];porTipo.set(t.tipo,a)}a.push(t)});
+    [...porTipo].map(([tipo,x])=>({id:g+'§'+tipo,g,grupo:nome,tipo,x:x.sort((a,b)=>cpgVal(b)-cpgVal(a)),s:x.reduce((a,t)=>a+cpgVal(t),0)}))
+      .sort((a,b)=>b.s-a.s).forEach(c=>cls.push(c));
+  });
+  const total=cls.reduce((a,c)=>a+c.s,0);
   const quando=esc0.ym?ymLabel(esc0.ym):esc0.antes?'antes de '+ymLabel(D.ini):esc0.depois?'depois de '+ymLabel(D.fim):esc0.credor!=null?(cpgMes?ymLabel(cpgMes):ymLabel(D.ini)+' a '+ymLabel(D.fim)):'todos os vencimentos';
-  abrirPainel((esc0.credor!=null?esc0.credor+' · ':'')+(CPG_COL[col]||'Títulos'),quando+' · '+(cpgObra?($('cpgObra').selectedOptions[0]||{}).textContent:'todas as obras'),total,l.length,partes);
+  abrirPainel((esc0.credor!=null?esc0.credor+' · ':'')+(CPG_COL[col]||'Títulos'),quando+' · '+(cpgObra?($('cpgObra').selectedOptions[0]||{}).textContent:'todas as obras'),total,l.length,[]);
+  const B=$('pxrDB'), topo=B.innerHTML;let sel='';
+  const desenhar=()=>{
+    const vis=cls.filter(c=>!sel||c.id===sel||c.g===sel);
+    const chips=cls.length>1?`<div class="cpg-chips"><button class="cpg-chip${sel?'':' on'}" data-f="">Todas</button>`+
+      CPG_GRUPOS.filter(([g])=>cls.filter(c=>c.g===g).length>1).map(([g,nome])=>`<button class="cpg-chip${sel===g?' on':''}" data-f="${g}">${esc(nome)}</button>`).join('')+
+      cls.map(c=>`<button class="cpg-chip${sel===c.id?' on':''}" data-f="${esc(c.id)}">${esc(c.tipo)}</button>`).join('')+'</div>':'';
+    const resumo=cls.length>1?`<h4>Por classificação</h4>`+tabela('<th>Classificação</th><th>Tipo de documento</th><th class="num">Títulos</th><th class="num">Valor</th><th class="num">%</th>',
+      cls.map(c=>`<tr class="cpg-cls${sel===c.id?' on':''}" data-f="${esc(c.id)}" title="Ver só esta classificação"><td>${esc(c.grupo)}</td><td>${esc(cpgTipoNome(c.tipo))}</td><td class="num">${int(c.x.length)}</td><td class="num">${brl(c.s)}</td><td class="num">${pct(c.s,total)}</td></tr>`)):'';
+    let grupoAnt='';
+    const secoes=vis.map(c=>{
+      const cab=c.grupo!==grupoAnt?`<h4>${esc(c.grupo)} · ${brl(cls.filter(z=>z.g===c.g).reduce((a,z)=>a+z.s,0))}</h4>`:'';grupoAnt=c.grupo;
+      return cab+`<h5>${esc(cpgTipoNome(c.tipo))} · ${brl(c.s)} (${int(c.x.length)})</h5>`+titulosHTML(c.x,cpgVal);
+    });
+    B.innerHTML=topo+chips+resumo+secoes.join('');
+  };
+  B.onclick=e=>{const el=e.target.closest('[data-f]');if(!el)return;const f=el.dataset.f;sel=sel===f?'':f;desenhar()};
+  desenhar();
 }
 function renderCpg(){
   if(!$('tab-cpg').classList.contains('active'))return;
@@ -17049,6 +17094,7 @@ $('pxrExp').onclick=exportar;
 $('pxrSelLimpar').onclick=()=>{selMes=selGrupo='';render()};
 $('cpgDe').onchange=renderCpg;$('cpgAte').onchange=renderCpg;$('cpgAjuste').onchange=renderCpg;$('cpgBusca').oninput=renderCpg;
 $('cpgObra').onchange=e=>{cpgObra=e.target.value;renderCpg()};
+$('cpgClasse').onchange=renderCpg;$('cpgTipo').onchange=renderCpg;$('cpgSit').onchange=renderCpg;
 $('cpgExp').onclick=exportarCpg;
 $('cpgSelLimpar').onclick=()=>{cpgMes='';renderCpg()};
 $('cpgArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
