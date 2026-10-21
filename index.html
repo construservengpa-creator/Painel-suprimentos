@@ -4206,7 +4206,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <p>Vem do relatório de contas a pagar por vencimento do Sienge (títulos em aberto), o mesmo da aba Previsto × Realizado. <b>A pagar</b> = documentos já lançados (notas, boletos, guias, faturas, financiamentos etc.). <b>Previsão financeira</b> = provisões que ainda não viraram documento: <b>PCT</b> (contratos), <b>PPC</b> (pedidos de compra) e <b>PRV</b> (outras provisões).</p>
         <p>Com <b>Ajustar PCT pelo saldo dos contratos</b> marcado, as PCT de cada contrato não passam do saldo que ele ainda pode medir (contrato cancelado, encerrado, reprovado ou totalmente medido fica sem previsão), como em Previsto × Realizado; desmarcado, valem os valores do relatório.</p>
         <p><b>Vencido</b> = vencimento anterior à data do relatório e ainda em aberto. Títulos com vencimento antes ou depois do período escolhido aparecem nas linhas "Antes de" e "Depois de", para o total bater com o relatório. <b>Acumulado</b> soma o total mês a mês desde o início do período.</p>
-        <p><b>Filtros</b>: classificação (a pagar ou cada tipo de previsão), tipo de documento (prefixo do documento no Sienge: NFE, NFSE, boleto, PCT…) e situação (vencido ou a vencer) valem para os indicadores, o gráfico, as tabelas e a exportação. Ao abrir a composição de um valor, os títulos vêm separados por classificação, com um resumo no topo; clique numa classificação para ver só os títulos dela.</p>
+        <p><b>Filtros</b>: classificação (a pagar ou cada tipo de previsão), tipo de documento (prefixo do documento no Sienge: NFE, NFSE, boleto, PCT…) e situação (vencido ou a vencer) valem para os indicadores, o gráfico, as tabelas e a exportação. Ao abrir a composição de um valor, os títulos vêm separados por classificação, com um resumo no topo; marque uma ou mais classificações para ver (e exportar) só os títulos delas.</p>
       </div>
     </div>
   </section>
@@ -17000,10 +17000,11 @@ function cpgComposicao(D,col,esc0){
   const total=cls.reduce((a,c)=>a+c.s,0);
   const quando=esc0.ym?ymLabel(esc0.ym):esc0.antes?'antes de '+ymLabel(D.ini):esc0.depois?'depois de '+ymLabel(D.fim):esc0.credor!=null?(cpgMes?ymLabel(cpgMes):ymLabel(D.ini)+' a '+ymLabel(D.fim)):'todos os vencimentos';
   const titulo=(esc0.credor!=null?esc0.credor+' · ':'')+(CPG_COL[col]||'Títulos'), onde=quando+' · '+(cpgObra?($('cpgObra').selectedOptions[0]||{}).textContent:'todas as obras');
-  let sel='';
+  // classificações marcadas (várias ao mesmo tempo); vazio = todas
+  const sel=new Set(), marcada=c=>sel.has(c.id)||sel.has(c.g), visiveis=()=>cls.filter(c=>!sel.size||marcada(c));
   // exporta a classificação escolhida (ou todas), sem o limite de linhas
   const exportar=()=>{
-    const vis=cls.filter(c=>!sel||c.id===sel||c.g===sel), tv=vis.reduce((a,c)=>a+c.s,0);
+    const vis=visiveis(), tv=vis.reduce((a,c)=>a+c.s,0);
     exportarPainel(titulo+' '+onde,[
       {nome:'Por classificação',linhas:vis.map(c=>({'Classificação':c.grupo,'Tipo de documento':cpgTipoNome(c.tipo),'Títulos':c.x.length,'Valor (R$)':r2x(c.s),'%':tv>0?+(c.s/tv*100).toFixed(1):0}))},
       {nome:'Títulos',linhas:vis.flatMap(c=>c.x.map(t=>({'Classificação':c.grupo,'Tipo de documento':cpgTipoNome(c.tipo),'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2x(cpgVal(t))})))}]);
@@ -17011,12 +17012,13 @@ function cpgComposicao(D,col,esc0){
   abrirPainel(titulo,onde,total,l.length,[],{redesenhar:()=>desenhar(),exportar});
   const B=$('pxrDB'), topo=B.innerHTML;
   const desenhar=()=>{
-    const vis=cls.filter(c=>!sel||c.id===sel||c.g===sel);
-    const chips=cls.length>1?`<div class="cpg-chips"><button class="cpg-chip${sel?'':' on'}" data-f="">Todas</button>`+
-      CPG_GRUPOS.filter(([g])=>cls.filter(c=>c.g===g).length>1).map(([g,nome])=>`<button class="cpg-chip${sel===g?' on':''}" data-f="${g}">${esc(nome)}</button>`).join('')+
-      cls.map(c=>`<button class="cpg-chip${sel===c.id?' on':''}" data-f="${esc(c.id)}">${esc(c.tipo)}</button>`).join('')+'</div>':'';
+    const vis=visiveis();
+    const chips=cls.length>1?`<div class="cpg-chips"><button class="cpg-chip${sel.size?'':' on'}" data-f="">Todas</button>`+
+      CPG_GRUPOS.filter(([g])=>cls.filter(c=>c.g===g).length>1).map(([g,nome])=>`<button class="cpg-chip${sel.has(g)?' on':''}" data-f="${g}">${esc(nome)}</button>`).join('')+
+      cls.map(c=>`<button class="cpg-chip${marcada(c)?' on':''}" data-f="${esc(c.id)}">${esc(c.tipo)}</button>`).join('')+'</div>'+
+      (sel.size?`<p class="pxr-fontes">Marcados: <b>${brl(vis.reduce((a,c)=>a+c.s,0))}</b> em ${int(vis.reduce((a,c)=>a+c.x.length,0))} títulos (${pct(vis.reduce((a,c)=>a+c.s,0),total)} do total) · clique de novo para desmarcar</p>`:'<p class="pxr-fontes">Marque um ou mais tipos para ver só os títulos deles</p>'):'';
     const resumo=cls.length>1?`<h4>Por classificação</h4>`+tabela('<th>Classificação</th><th>Tipo de documento</th><th class="num">Títulos</th><th class="num">Valor</th><th class="num">%</th>',
-      cls.map(c=>`<tr class="cpg-cls${sel===c.id?' on':''}" data-f="${esc(c.id)}" title="Ver só esta classificação"><td>${esc(c.grupo)}</td><td>${esc(cpgTipoNome(c.tipo))}</td><td class="num">${int(c.x.length)}</td><td class="num">${brl(c.s)}</td><td class="num">${pct(c.s,total)}</td></tr>`)):'';
+      cls.map(c=>`<tr class="cpg-cls${marcada(c)?' on':''}" data-f="${esc(c.id)}" title="Marcar ou desmarcar esta classificação"><td><input type="checkbox" tabindex="-1"${marcada(c)?' checked':''} style="pointer-events:none;margin:0 6px 0 0;vertical-align:middle">${esc(c.grupo)}</td><td>${esc(cpgTipoNome(c.tipo))}</td><td class="num">${int(c.x.length)}</td><td class="num">${brl(c.s)}</td><td class="num">${pct(c.s,total)}</td></tr>`)):'';
     let grupoAnt='';
     const secoes=vis.map(c=>{
       const cab=c.grupo!==grupoAnt?`<h4>${esc(c.grupo)} · ${brl(cls.filter(z=>z.g===c.g).reduce((a,z)=>a+z.s,0))}</h4>`:'';grupoAnt=c.grupo;
@@ -17024,7 +17026,16 @@ function cpgComposicao(D,col,esc0){
     });
     B.innerHTML=topo+chips+resumo+secoes.join('');
   };
-  B.onclick=e=>{const el=e.target.closest('[data-f]');if(!el)return;const f=el.dataset.f;sel=sel===f?'':f;desenhar()};
+  B.onclick=e=>{const el=e.target.closest('[data-f]');if(!el)return;const f=el.dataset.f;
+    if(!f)sel.clear();
+    else if(sel.has(f))sel.delete(f);
+    else{
+      // tipo dentro de um grupo marcado: desmarca o grupo e mantém os outros tipos dele
+      const c=cls.find(z=>z.id===f);
+      if(c&&sel.has(c.g)){sel.delete(c.g);cls.forEach(z=>{if(z.g===c.g&&z.id!==f)sel.add(z.id)})}
+      else{sel.add(f);if(!c)cls.forEach(z=>{if(z.g===f)sel.delete(z.id)})}
+    }
+    desenhar()};
   desenhar();
 }
 function renderCpg(){
