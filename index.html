@@ -1866,6 +1866,9 @@ table.data.pxr-tbl td.pxr-v:hover{text-decoration:underline;color:var(--yellow);
 #pxrDrawer .pxr-dtot{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 12px;font-size:13px;color:var(--text-dim);}
 #pxrDrawer .pxr-dtot b{color:var(--text);font-size:15px;}
 #pxrDrawer h4{font:600 13px var(--font-display);margin:16px 0 8px;letter-spacing:.03em;}
+#pxrDrawer .pxr-dacoes{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+#pxrDrawer .pxr-dacoes select{background:var(--asphalt-2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:500 12px var(--font-body);}
+#pxrDrawer .ctr-x{margin-left:0;}
 #pxrDrawer h5{font:600 12px var(--font-body);margin:12px 0 6px;color:var(--text-dim);}
 .cpg-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;}
 .cpg-chip{border:1px solid var(--line);background:var(--asphalt-2);color:var(--text-dim);border-radius:999px;padding:4px 10px;font:500 12px var(--font-body);cursor:pointer;}
@@ -4209,7 +4212,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   </section>
   <div class="ctr-scrim" id="pxrScrim"></div>
   <aside class="ctr-drawer" id="pxrDrawer" aria-hidden="true">
-    <header><div><h3 id="pxrDT"></h3><p id="pxrDS"></p></div><button class="ctr-x" id="pxrDX" aria-label="Fechar">×</button></header>
+    <header><div><h3 id="pxrDT"></h3><p id="pxrDS"></p></div><div class="pxr-dacoes"><select id="pxrDLim" aria-label="Linhas por tabela" title="Quantos títulos mostrar em cada tabela"><option value="100">100 linhas</option><option value="300">300 linhas</option><option value="1000">1.000 linhas</option><option value="5000">5.000 linhas</option><option value="0">Todas as linhas</option></select><button class="btn small" id="pxrDXls" title="Exporta todos os itens da composição, sem o limite de linhas">Exportar Excel</button></div><button class="ctr-x" id="pxrDX" aria-label="Fechar">×</button></header>
     <div class="ctr-db" id="pxrDB"></div>
   </aside>
 
@@ -16828,7 +16831,27 @@ function render(){
 }
 
 /* ---------- painel lateral de composição (Previsto × Realizado e Contas a pagar) ---------- */
-const LIM=300, cortado=n=>n>LIM?`<p class="ctr-mt">Mostrando os ${LIM} maiores de ${int(n)}.</p>`:'';
+// limite de linhas por tabela do painel (escolhido no topo do painel e lembrado no navegador)
+const LIM_KEY='pxr.limitePainel';
+let LIM=(()=>{try{const v=localStorage.getItem(LIM_KEY);return v==null?300:+v||Infinity}catch(e){return 300}})();
+const cortado=n=>n>LIM?`<p class="ctr-mt">Mostrando os ${int(LIM)} maiores de ${int(n)}. <button class="btn small" data-lim="0">Mostrar todos</button></p>`:'';
+// painel aberto: como redesenhar (ao mudar o limite) e como exportar
+let painel={redesenhar:null,exportar:null};
+function limitePainel(v){
+  LIM=+v||Infinity;$('pxrDLim').value=LIM===Infinity?'0':String(LIM);
+  try{localStorage.setItem(LIM_KEY,LIM===Infinity?'0':String(LIM))}catch(e){}
+  const B=$('pxrDB'), y=B.scrollTop;if(painel.redesenhar){painel.redesenhar();B.scrollTop=y}
+}
+// planilhas: [{nome, linhas:[{...}]}]
+function exportarPainel(nome,abas){
+  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  const wb=XLSX.utils.book_new(), usados=new Set();
+  abas.forEach(a=>{let n=String(a.nome).replace(/[\\/?*\[\]:]/g,' ').slice(0,31)||'Planilha', i=2;
+    while(usados.has(n))n=n.slice(0,28)+' '+(i++);usados.add(n);
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(a.linhas.length?a.linhas:[{'':'Nada'}]),n)});
+  XLSX.writeFile(wb,'composicao_'+normTxt(nome).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,60)+'.xlsx');
+}
+const r2x=v=>+(v||0).toFixed(2);
 const tabela=(cab,linhas)=>`<div class="table-scroll"><table class="data ctr-tbl pxr-tbl"><thead><tr>${cab}</tr></thead><tbody>${linhas.join('')||'<tr><td colspan="9" class="ctr-mt">Nada.</td></tr>'}</tbody></table></div>`;
 const txt=s=>`<span class="ctr-subtxt" style="max-width:240px;color:var(--text)">${esc(s||'')}</span>`;
 // títulos do contas a pagar; val dá o valor considerado (PCT ajustada ou não)
@@ -16837,7 +16860,10 @@ function titulosHTML(l,val){
   return tabela('<th>Vencimento</th><th>Credor</th><th>Documento</th><th>Obra</th><th class="num">Valor</th>',
     l.slice(0,LIM).map(t=>`<tr><td class="mono${t.vencido?' pxr-neg':''}">${brData(t.venc)}</td><td>${txt(t.credor)}</td><td class="mono">${esc(t.doc)}</td><td>${txt(t.label)}</td><td class="num">${vtxt(t)}</td></tr>`))+cortado(l.length);
 }
-function abrirPainel(titulo,sub,total,n,partes){
+function abrirPainel(titulo,sub,total,n,partes,op){
+  painel=op||{redesenhar:null,exportar:null};
+  $('pxrDXls').style.display=painel.exportar?'':'none';
+  $('pxrDLim').value=LIM===Infinity?'0':String(LIM);
   $('pxrDT').textContent=titulo;
   $('pxrDS').textContent=sub;
   $('pxrDB').onclick=null;
@@ -16854,28 +16880,28 @@ function composicao(D,col,esc0){
   const naObra=k=>esc0.k?k===esc0.k:D.naObra(k);
   const quando=esc0.ym?ymLabel(esc0.ym):esc0.k&&selMes?ymLabel(selMes):ymLabel(D.meses[0])+' a '+ymLabel(D.meses[D.meses.length-1]);
   const onde=quando+' · '+(esc0.k?esc0.label:obraSel?($('pxrObra').selectedOptions[0]||{}).textContent:'todas as obras');
-  const partes=[];let total=0, n=0;
+  const partes=[], abas=[];let total=0, n=0;
   const titulosDe=filtro=>{
     const val=t=>t.g==='doc'?t.v:t.aj;
     const l=(D.T?D.T.lista.filter(t=>meses.has(t.ym)&&naObra(t.key)&&filtro(t)):[]).sort((a,b)=>val(b)-val(a));
     const s=l.reduce((a,t)=>a+val(t),0);total+=s;n+=l.length;
-    return {s,n:l.length,html:titulosHTML(l,val)};
+    return {s,n:l.length,html:titulosHTML(l,val),xl:l.map(t=>({'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2x(val(t))}))};
   };
   const medicoes=()=>{
     const m=new Map(), info=ctr&&ctr.info||new Map();
     D.C.forEach((o,k)=>{if(!naObra(k))return;o.m.forEach((z,ym)=>{if(!meses.has(ym)||!z.det)return;
       z.det.forEach((d,id)=>{const key=id+'§'+k;let x=m.get(key);if(!x){const i=info.get(id)||{};x={contrato:i.contrato||id,fornecedor:i.fornecedor||'',obra:o.label,v:0,est:0};m.set(key,x)}x.v+=d.v;x.est+=d.est})})});
     const l=[...m.values()].filter(x=>Math.abs(x.v)>0.5).sort((a,b)=>b.v-a.v), s=l.reduce((a,x)=>a+x.v,0);total+=s;n+=l.length;
-    return {s,n:l.length,html:tabela('<th>Contrato</th><th>Fornecedor</th><th>Obra</th><th class="num">Medido</th>',
+    return {s,n:l.length,xl:l.map(x=>({'Contrato':x.contrato,'Fornecedor':x.fornecedor,'Obra':x.obra,'Medido (R$)':r2x(x.v),'Medido estimado (R$)':r2x(x.est)})),html:tabela('<th>Contrato</th><th>Fornecedor</th><th>Obra</th><th class="num">Medido</th>',
       l.slice(0,LIM).map(x=>`<tr><td class="mono">${esc(x.contrato)}</td><td>${txt(x.fornecedor)}</td><td>${txt(x.obra)}</td><td class="num">${brl(x.v)}${x.est>Math.max(1,Math.abs(x.v)*0.01)?'<span class="pxr-est" title="Medido estimado (anterior à 1ª posição importada)">*</span>':''}</td></tr>`))+cortado(l.length)};
   };
   const notas=()=>{
     const l=[];D.N.forEach((o,k)=>{if(!naObra(k))return;o.det.forEach((arr,ym)=>{if(meses.has(ym))arr.forEach(x=>l.push(Object.assign({obra:o.label},x)))})});
     l.sort((a,b)=>b.v-a.v);const s=l.reduce((a,x)=>a+x.v,0);total+=s;n+=l.length;
-    return {s,n:l.length,html:tabela('<th>Data</th><th>Pedido</th><th>Fornecedor</th><th>Nota</th><th>Obra</th><th class="num">Valor</th>',
+    return {s,n:l.length,xl:l.map(x=>({'Data':fmtDate(x.data),'Pedido':x.pedido,'Fornecedor':x.fornecedor,'Nota':x.nota,'Obra':x.obra,'Valor (R$)':r2x(x.v)})),html:tabela('<th>Data</th><th>Pedido</th><th>Fornecedor</th><th>Nota</th><th>Obra</th><th class="num">Valor</th>',
       l.slice(0,LIM).map(x=>`<tr><td class="mono">${fmtDate(x.data)}</td><td class="mono">${esc(x.pedido)}</td><td>${txt(x.fornecedor)}</td><td class="mono">${esc(x.nota)}</td><td>${txt(x.obra)}</td><td class="num">${brl(x.v)}</td></tr>`))+cortado(l.length)};
   };
-  const secao=(titulo,r)=>partes.push(`<h4>${titulo} · ${brl(r.s)} (${int(r.n)})</h4>${r.html}`);
+  const secao=(titulo,r)=>{partes.push(`<h4>${titulo} · ${brl(r.s)} (${int(r.n)})</h4>${r.html}`);abas.push({nome:titulo,linhas:r.xl})};
   const G={pct:'Contratos (PCT)',ppc:'Pedidos (PPC)',prv:'Outras (PRV)'};
   if(G[col])secao(G[col],titulosDe(t=>t.g===col&&t.aj>0.005));
   else if(col==='prev')['pct','ppc','prv'].forEach(g=>secao(G[g],titulosDe(t=>t.g===g&&t.aj>0.005)));
@@ -16884,7 +16910,8 @@ function composicao(D,col,esc0){
   else if(col==='med')secao('Contratos medidos',medicoes());
   else if(col==='nf')secao('Notas fiscais dos pedidos',notas());
   else if(col==='real'){secao('Medições dos contratos',medicoes());secao('Notas fiscais dos pedidos',notas())}
-  abrirPainel(COL_TXT[col]||'Composição',onde,total,n,partes);
+  const titulo=COL_TXT[col]||'Composição';
+  abrirPainel(titulo,onde,total,n,partes,{redesenhar:()=>composicao(D,col,esc0),exportar:()=>exportarPainel(titulo+' '+onde,abas)});
 }
 
 function exportar(){
@@ -16972,8 +16999,17 @@ function cpgComposicao(D,col,esc0){
   });
   const total=cls.reduce((a,c)=>a+c.s,0);
   const quando=esc0.ym?ymLabel(esc0.ym):esc0.antes?'antes de '+ymLabel(D.ini):esc0.depois?'depois de '+ymLabel(D.fim):esc0.credor!=null?(cpgMes?ymLabel(cpgMes):ymLabel(D.ini)+' a '+ymLabel(D.fim)):'todos os vencimentos';
-  abrirPainel((esc0.credor!=null?esc0.credor+' · ':'')+(CPG_COL[col]||'Títulos'),quando+' · '+(cpgObra?($('cpgObra').selectedOptions[0]||{}).textContent:'todas as obras'),total,l.length,[]);
-  const B=$('pxrDB'), topo=B.innerHTML;let sel='';
+  const titulo=(esc0.credor!=null?esc0.credor+' · ':'')+(CPG_COL[col]||'Títulos'), onde=quando+' · '+(cpgObra?($('cpgObra').selectedOptions[0]||{}).textContent:'todas as obras');
+  let sel='';
+  // exporta a classificação escolhida (ou todas), sem o limite de linhas
+  const exportar=()=>{
+    const vis=cls.filter(c=>!sel||c.id===sel||c.g===sel), tv=vis.reduce((a,c)=>a+c.s,0);
+    exportarPainel(titulo+' '+onde,[
+      {nome:'Por classificação',linhas:vis.map(c=>({'Classificação':c.grupo,'Tipo de documento':cpgTipoNome(c.tipo),'Títulos':c.x.length,'Valor (R$)':r2x(c.s),'%':tv>0?+(c.s/tv*100).toFixed(1):0}))},
+      {nome:'Títulos',linhas:vis.flatMap(c=>c.x.map(t=>({'Classificação':c.grupo,'Tipo de documento':cpgTipoNome(c.tipo),'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2x(cpgVal(t))})))}]);
+  };
+  abrirPainel(titulo,onde,total,l.length,[],{redesenhar:()=>desenhar(),exportar});
+  const B=$('pxrDB'), topo=B.innerHTML;
   const desenhar=()=>{
     const vis=cls.filter(c=>!sel||c.id===sel||c.g===sel);
     const chips=cls.length>1?`<div class="cpg-chips"><button class="cpg-chip${sel?'':' on'}" data-f="">Todas</button>`+
@@ -17098,7 +17134,10 @@ $('cpgClasse').onchange=renderCpg;$('cpgTipo').onchange=renderCpg;$('cpgSit').on
 $('cpgExp').onclick=exportarCpg;
 $('cpgSelLimpar').onclick=()=>{cpgMes='';renderCpg()};
 $('cpgArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
-$('pxrDX').onclick=fecharComposicao;$('pxrScrim').onclick=fecharComposicao;
+$('pxrDX').onclick=fecharComposicao;
+$('pxrDLim').onchange=e=>limitePainel(e.target.value);
+$('pxrDXls').onclick=()=>{if(painel.exportar)painel.exportar()};
+$('pxrDrawer').addEventListener('click',e=>{const b=e.target.closest('[data-lim]');if(b)limitePainel(b.dataset.lim)});$('pxrScrim').onclick=fecharComposicao;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('pxrDrawer').classList.contains('on'))fecharComposicao()});
 $('pxrFinArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
 // Financeiro é só de admin e supervisor: quem perde o acesso (saiu, trocou
