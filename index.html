@@ -1876,6 +1876,20 @@ table.data.pxr-tbl td.pxr-v:hover{text-decoration:underline;color:var(--yellow);
 #pxrDrawer .ctr-x{margin-left:0;}
 #pxrDrawer .cpg-det{font-size:11px;color:var(--text-faint);margin-top:3px;line-height:1.35;max-width:380px;white-space:normal;}
 #pxrDrawer .cpg-obs{color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px;}
+/* seleção de várias empresas (lista com caixas de seleção) */
+.cpg-ms{position:relative;}
+.cpg-ms-btn{background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);padding:8px 30px 8px 10px;border-radius:5px;font:13px var(--font-body);cursor:pointer;max-width:260px;min-width:180px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;}
+.cpg-ms-btn::after{content:'';position:absolute;right:11px;top:50%;margin-top:-3px;border:5px solid transparent;border-top-color:var(--text-dim);border-bottom:0;}
+.cpg-ms-btn.on{border-color:var(--yellow);}
+.cpg-ms-pop{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:60;width:min(380px,90vw);background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 32px -12px rgba(0,0,0,.45);padding:8px;}
+.cpg-ms.aberto .cpg-ms-pop{display:block;}
+.cpg-ms-pop input[type=search]{width:100%;box-sizing:border-box;margin-bottom:6px;}
+.cpg-ms-acoes{display:flex;gap:6px;margin-bottom:6px;}
+.cpg-ms-lista{max-height:300px;overflow:auto;}
+.cpg-ms-lista label{display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:5px;font-size:12.5px;color:var(--text);cursor:pointer;}
+.cpg-ms-lista label:hover{background:var(--asphalt-3);}
+.cpg-ms-lista label span{flex:1;}
+.cpg-ms-lista label small{color:var(--text-faint);}
 #cpgCtrlKpis .kpi-card{cursor:pointer;}
 #cpgCtrlKpis .kpi-card.on{outline:2px solid var(--yellow);}
 #cpgCtrlKpis .kpi-value{font-size:22px;}
@@ -4187,7 +4201,10 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <select id="cpgObra" aria-label="Obra"><option value="">Todas as obras</option></select>
         <select id="cpgClasse" aria-label="Classificação"><option value="">Todas as classificações</option><option value="doc">A pagar (documentos)</option><option value="prev">Previsão financeira (PCT, PPC e PRV)</option><option value="pct">Previsão · contratos (PCT)</option><option value="ppc">Previsão · pedidos (PPC)</option><option value="prv">Previsão · outras (PRV)</option></select>
         <select id="cpgTipo" aria-label="Tipo de documento"><option value="">Todos os tipos de documento</option></select>
-        <select id="cpgEmp" class="cpg-comp" aria-label="Empresa"><option value="">Todas as empresas</option></select>
+        <div class="cpg-ms cpg-comp" id="cpgEmpBox"><button type="button" class="cpg-ms-btn" id="cpgEmpBtn" aria-haspopup="true" aria-expanded="false">Todas as empresas</button>
+          <div class="cpg-ms-pop" id="cpgEmpPop"><input type="search" id="cpgEmpBusca" placeholder="Procurar empresa" aria-label="Procurar empresa">
+            <div class="cpg-ms-acoes"><button type="button" class="btn small" id="cpgEmpTodas">Marcar as visíveis</button><button type="button" class="btn small" id="cpgEmpLimpar">Limpar (todas as empresas)</button></div>
+            <div class="cpg-ms-lista" id="cpgEmpLista"></div></div></div>
         <select id="cpgOrig" class="cpg-comp" aria-label="Origem"><option value="">Todas as origens</option><option value="AC">Compras (pedido)</option><option value="ME">Medição de contrato</option><option value="CP">Lançamento financeiro</option><option value="out">Outras origens</option><option value="sem">Sem o relatório de títulos</option></select>
         <select id="cpgCtrl" class="cpg-comp" aria-label="Controle"><option value="">Sem filtro de controle</option><option value="semCiencia">Documentos sem ciência</option><option value="semAnexo">Documentos sem anexo</option><option value="inconsist">Registro inconsistente</option><option value="parcial">Com pagamento parcial</option></select>
         <select id="cpgSit" aria-label="Situação"><option value="">Vencidos e a vencer</option><option value="venc">Só vencidos</option><option value="avencer">Só a vencer</option></select>
@@ -17090,6 +17107,20 @@ function cpgPeriodo(){
 }
 const cpgVal=t=>t.g==='doc'||!$('cpgAjuste').checked?t.v:t.aj;
 const SEM_EMP='x:sem-empresa';
+// empresas marcadas (várias); vazio = todas
+const cpgEmps=new Set();let cpgEmpLista=[];
+const empNome=k=>k===SEM_EMP?'(sem o relatório de títulos)':k;
+function cpgEmpUI(){
+  const n=cpgEmps.size, b=$('cpgEmpBtn');
+  b.textContent=!n?'Todas as empresas':n===1?empNome([...cpgEmps][0]):n+' empresas';
+  b.title=n?[...cpgEmps].map(empNome).join('\n'):'Filtrar por uma ou mais empresas';
+  b.classList.toggle('on',n>0);
+  if(!$('cpgEmpBox').classList.contains('aberto'))return;
+  const q=normTxt($('cpgEmpBusca').value), L=$('cpgEmpLista'), y=L.scrollTop;
+  L.innerHTML=cpgEmpLista.filter(([k])=>!q||normTxt(empNome(k)).includes(q)).map(([k,c])=>
+    `<label><input type="checkbox" value="${esc(k)}"${cpgEmps.has(k)?' checked':''}><span>${esc(empNome(k))}</span><small>${int(c)}</small></label>`).join('')||'<p class="ctr-mt">Nenhuma empresa.</p>';
+  L.scrollTop=y;
+}
 // controles do relatório de títulos (complemento)
 const CPG_CTRL={semCiencia:['Documentos sem ciência',t=>!!t.c&&t.g==='doc'&&!t.c.ciencia,'documentos em aberto ainda sem ciência no Sienge'],
   semAnexo:['Documentos sem anexo',t=>!!t.c&&t.g==='doc'&&!t.c.anexo,'documentos em aberto sem arquivo anexado'],
@@ -17118,14 +17149,14 @@ function cpgDados(){
   selT.value=tipoSel;
   // complemento (relatório de títulos): empresa, origem e controle
   document.body.classList.toggle('cpg-tem-comp',T.comp.tem);
-  let emp='', orig='', ctrl='';
+  let orig='', ctrl='';
   if(T.comp.tem){
-    const se=$('cpgEmp'), emps=new Map();T.lista.forEach(t=>{if(t.emp)emps.set(t.emp,(emps.get(t.emp)||0)+1)});
-    emp=se.value&&(emps.has(se.value)||se.value===SEM_EMP)?se.value:'';
-    se.innerHTML='<option value="">Todas as empresas</option>'+[...emps].sort((a,b)=>a[0].localeCompare(b[0],'pt-BR')).map(([k,n])=>`<option value="${esc(k)}">${esc(k)} (${int(n)})</option>`).join('')+`<option value="${SEM_EMP}">(sem o relatório de títulos)</option>`;
-    se.value=emp;orig=$('cpgOrig').value;ctrl=$('cpgCtrl').value;
-  }
-  const naEmp=t=>!emp||(emp===SEM_EMP?!t.c:t.emp===emp);
+    const emps=new Map();T.lista.forEach(t=>{const k=t.emp||SEM_EMP;emps.set(k,(emps.get(k)||0)+1)});
+    [...cpgEmps].forEach(k=>{if(!emps.has(k))cpgEmps.delete(k)});
+    cpgEmpLista=[...emps].sort((a,b)=>a[0]===SEM_EMP?1:b[0]===SEM_EMP?-1:a[0].localeCompare(b[0],'pt-BR'));
+    cpgEmpUI();orig=$('cpgOrig').value;ctrl=$('cpgCtrl').value;
+  } else cpgEmps.clear();
+  const naEmp=t=>!cpgEmps.size||cpgEmps.has(t.emp||SEM_EMP);
   const naOrig=t=>!orig||(orig==='sem'?!t.c:orig==='out'?!!t.c&&!ORIGENS[t.orig]:t.orig===orig);
   const naCtrl=t=>!ctrl||cpgCtrlDe(ctrl)(t);
   const base=T.lista.filter(t=>(!cpgObra||t.key===cpgObra)&&naClasse(t)&&(!tipoSel||t.tipo===tipoSel)&&(!sit||(sit==='venc')===t.vencido)&&naEmp(t)&&naOrig(t)&&naCtrl(t)&&(!busca||normTxt(t.credor+' '+t.doc+' '+t.emp+' '+(t.c?t.c.obs:'')).includes(busca)));
@@ -17318,7 +17349,14 @@ $('pxrExp').onclick=exportar;
 $('pxrSelLimpar').onclick=()=>{selMes=selGrupo='';render()};
 $('cpgDe').onchange=renderCpg;$('cpgAte').onchange=renderCpg;$('cpgAjuste').onchange=renderCpg;$('cpgBusca').oninput=renderCpg;
 $('cpgObra').onchange=e=>{cpgObra=e.target.value;renderCpg()};
-$('cpgClasse').onchange=renderCpg;$('cpgEmp').onchange=renderCpg;$('cpgOrig').onchange=renderCpg;$('cpgCtrl').onchange=renderCpg;
+$('cpgClasse').onchange=renderCpg;
+$('cpgEmpBtn').onclick=()=>{const bx=$('cpgEmpBox'), ab=!bx.classList.contains('aberto');bx.classList.toggle('aberto',ab);$('cpgEmpBtn').setAttribute('aria-expanded',ab);if(ab){$('cpgEmpBusca').value='';cpgEmpUI();$('cpgEmpBusca').focus()}};
+$('cpgEmpBusca').oninput=cpgEmpUI;
+$('cpgEmpLista').onchange=e=>{const c=e.target;if(c.type!=='checkbox')return;if(c.checked)cpgEmps.add(c.value);else cpgEmps.delete(c.value);renderCpg()};
+$('cpgEmpTodas').onclick=()=>{$('cpgEmpLista').querySelectorAll('input[type=checkbox]').forEach(c=>cpgEmps.add(c.value));renderCpg()};
+$('cpgEmpLimpar').onclick=()=>{cpgEmps.clear();renderCpg()};
+document.addEventListener('click',e=>{const bx=$('cpgEmpBox');if(bx.classList.contains('aberto')&&!bx.contains(e.target)){bx.classList.remove('aberto');$('cpgEmpBtn').setAttribute('aria-expanded','false')}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('cpgEmpBox').classList.contains('aberto')){$('cpgEmpBox').classList.remove('aberto');$('cpgEmpBtn').focus()}});$('cpgOrig').onchange=renderCpg;$('cpgCtrl').onchange=renderCpg;
 $('cpgArqTit').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarTitulosCompl(f)};$('cpgTipo').onchange=renderCpg;$('cpgSit').onchange=renderCpg;
 $('cpgExp').onclick=exportarCpg;
 $('cpgSelLimpar').onclick=()=>{cpgMes='';renderCpg()};
