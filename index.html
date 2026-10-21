@@ -1874,6 +1874,12 @@ table.data.pxr-tbl td.pxr-v:hover{text-decoration:underline;color:var(--yellow);
 #pxrDrawer .pxr-dacoes{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
 #pxrDrawer .pxr-dacoes select{background:var(--asphalt-2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:500 12px var(--font-body);}
 #pxrDrawer .ctr-x{margin-left:0;}
+#pxrDrawer .cpg-det{font-size:11px;color:var(--text-faint);margin-top:3px;line-height:1.35;max-width:380px;white-space:normal;}
+#pxrDrawer .cpg-obs{color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:380px;}
+#cpgCtrlKpis .kpi-card{cursor:pointer;}
+#cpgCtrlKpis .kpi-card.on{outline:2px solid var(--yellow);}
+#cpgCtrlKpis .kpi-value{font-size:22px;}
+body:not(.cpg-tem-comp) .cpg-comp{display:none !important;}
 #pxrDrawer h5{font:600 12px var(--font-body);margin:12px 0 6px;color:var(--text-dim);}
 .cpg-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;}
 .cpg-chip{border:1px solid var(--line);background:var(--asphalt-2);color:var(--text-dim);border-radius:999px;padding:4px 10px;font:500 12px var(--font-body);cursor:pointer;}
@@ -4181,10 +4187,14 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <select id="cpgObra" aria-label="Obra"><option value="">Todas as obras</option></select>
         <select id="cpgClasse" aria-label="Classificação"><option value="">Todas as classificações</option><option value="doc">A pagar (documentos)</option><option value="prev">Previsão financeira (PCT, PPC e PRV)</option><option value="pct">Previsão · contratos (PCT)</option><option value="ppc">Previsão · pedidos (PPC)</option><option value="prv">Previsão · outras (PRV)</option></select>
         <select id="cpgTipo" aria-label="Tipo de documento"><option value="">Todos os tipos de documento</option></select>
+        <select id="cpgEmp" class="cpg-comp" aria-label="Empresa"><option value="">Todas as empresas</option></select>
+        <select id="cpgOrig" class="cpg-comp" aria-label="Origem"><option value="">Todas as origens</option><option value="AC">Compras (pedido)</option><option value="ME">Medição de contrato</option><option value="CP">Lançamento financeiro</option><option value="out">Outras origens</option><option value="sem">Sem o relatório de títulos</option></select>
+        <select id="cpgCtrl" class="cpg-comp" aria-label="Controle"><option value="">Sem filtro de controle</option><option value="semCiencia">Documentos sem ciência</option><option value="semAnexo">Documentos sem anexo</option><option value="inconsist">Registro inconsistente</option><option value="parcial">Com pagamento parcial</option></select>
         <select id="cpgSit" aria-label="Situação"><option value="">Vencidos e a vencer</option><option value="venc">Só vencidos</option><option value="avencer">Só a vencer</option></select>
         <input type="search" id="cpgBusca" placeholder="Credor ou documento" aria-label="Credor ou documento" style="max-width:200px">
         <label title="Limita as PCT de cada contrato ao saldo que ele ainda pode medir"><input type="checkbox" id="cpgAjuste" checked> Ajustar PCT pelo saldo dos contratos</label>
         <label class="btn small pxr-arq" title="Relatório de títulos a pagar por data de vencimento, exportado do Sienge em .csv">Importar contas a pagar<input type="file" id="cpgArq" accept=".csv,.txt"></label>
+        <label class="btn small pxr-arq" title="Complemento: relatório de títulos do Sienge (.xlsx, uma linha por título, com empresa, origem, ciência, anexo, observação...)">Importar títulos (complemento)<input type="file" id="cpgArqTit" accept=".xlsx,.xls"></label>
         <button class="btn small" id="cpgExp">Exportar Excel</button>
       </div>
     </div>
@@ -4192,6 +4202,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     <div class="ctr-msg" id="cpgMsg" style="margin:0 0 12px"></div>
     <div class="pxr-selbar" id="cpgSel"><span id="cpgSelTxt"></span><button class="btn small" id="cpgSelLimpar">Limpar filtro</button></div>
     <div class="kpi-grid" id="cpgKpis"></div>
+    <div class="kpi-grid cpg-comp" id="cpgCtrlKpis" style="margin-top:-14px"></div>
     <div class="chart-card" style="margin-bottom:16px">
       <p class="chart-title">A pagar × previsão financeira por mês</p>
       <p class="chart-sub">Clique numa coluna para filtrar o mês</p>
@@ -4200,6 +4211,10 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     <div class="ctr-card">
       <header><h3>Por mês de vencimento</h3><p>Clique num valor para ver os títulos; no mês, para filtrar</p></header>
       <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="cpgTMes"></table></div></div>
+    </div>
+    <div class="ctr-card cpg-comp" style="margin-top:16px">
+      <header><h3>Por empresa</h3><p id="cpgEmpSub"></p></header>
+      <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl pxr-tbl" id="cpgTEmp"></table></div></div>
     </div>
     <div class="ctr-card" style="margin-top:16px">
       <header><h3>Por credor</h3><p id="cpgCredSub"></p></header>
@@ -4212,6 +4227,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <p>Com <b>Ajustar PCT pelo saldo dos contratos</b> marcado, as PCT de cada contrato não passam do saldo que ele ainda pode medir (contrato cancelado, encerrado, reprovado ou totalmente medido fica sem previsão), como em Previsto × Realizado; desmarcado, valem os valores do relatório.</p>
         <p><b>Vencido</b> = vencimento anterior à data do relatório e ainda em aberto. Títulos com vencimento antes ou depois do período escolhido aparecem nas linhas "Antes de" e "Depois de", para o total bater com o relatório. <b>Acumulado</b> soma o total mês a mês desde o início do período.</p>
         <p><b>Filtros</b>: classificação (a pagar ou cada tipo de previsão), tipo de documento (prefixo do documento no Sienge: NFE, NFSE, boleto, PCT…) e situação (vencido ou a vencer) valem para os indicadores, o gráfico, as tabelas e a exportação. Ao abrir a composição de um valor, os títulos vêm separados por classificação, com um resumo no topo; marque uma ou mais classificações para ver (e exportar) só os títulos delas.</p>
+        <p><b>Relatório de títulos (complemento, opcional)</b>: o relatório de títulos do Sienge (.xlsx, uma linha por título) é cruzado com o relatório por vencimento pelo documento e pelo credor. Ele traz a <b>empresa</b>, a <b>origem</b> (compras, medição de contrato ou lançamento financeiro), a <b>ciência</b>, o <b>anexo</b>, a <b>consistência do registro</b>, os valores do título (original, pago e a pagar) e a <b>observação</b>. Documentos marcados como <b>Documento previsão</b> (ex.: PICT, estimativas de impostos) passam a contar como previsão (PRV), e não como a pagar. Ele não tem vencimento nem obra, por isso o relatório por vencimento continua sendo a base.</p>
       </div>
     </div>
   </section>
@@ -16595,6 +16611,7 @@ async function carregarContasPagar(){
   }
   const loc=cpLocal();
   if(loc&&(!x||loc.data_ref>x.data_ref))x=loc;
+  try{await carregarTitulosCompl()}catch(e){console.error('Relatório de títulos:',e)}
   CP=x;cpCarregado=true;
 }
 function finMsg(t,ok){['pxrFinMsg','cpgMsg'].forEach(id=>{const m=$(id);m.innerHTML=t;m.className='ctr-msg on '+(ok?'ok':'err')})}
@@ -16614,6 +16631,107 @@ async function importarContasPagar(f){
     finMsg(`Importado <b>${esc(f.name)}</b>: ${int(n)} títulos, posição de <b>${brData(x.data_ref)}</b>.${aviso}`,!aviso);
     render();renderCpg();
   }catch(e){console.error(e);finMsg('Não foi possível importar: '+esc(e.message||String(e)))}
+}
+
+/* ---------- complemento: relatório de títulos do Sienge (.xlsx) ---------- */
+// Uma linha por título (sem vencimento nem obra). Guardamos só os títulos em
+// aberto e casamos com os do relatório por vencimento por tipo + nº do
+// documento (e credor, quando o mesmo documento aparece para mais de um).
+const CT_LOCAL='pxr.contasPagarTitulos';
+const CT_FIELDS=['tit','tipo','ndoc','credor','codEmp','empresa','origem','prev','ciencia','anexo','consist','vOrig','vLiq','vPago','vAPagar','imposto','desc','acresc','emissao','compet','obs','usuCad','usuCiencia','parcelas','chave'];
+const CT_COLS={tit:'Título',tipo:'Documento',ndoc:'Nº documento',credor:'Credor',codEmp:'Cód empresa',empresa:'Empresa',origem:'Origem',prev:'Documento previsão',ciencia:'Ciência do título',anexo:'Anexo',consist:'Consistência do registro',vOrig:'Valor original',vLiq:'Valor líquido',vPago:'Valor pago',vAPagar:'Valor a pagar',imposto:'Imposto retido',desc:'Desconto do título',acresc:'Acréscimo',emissao:'Data emissão',compet:'Data competência',obs:'Observação',usuCad:'Usuário que cadastrou',usuCiencia:'Usuário da ciência',parcelas:'Nº de parcelas',chave:'Chave NFE'};
+let CT=null;
+const ORIGENS={AC:'Compras (pedido)',ME:'Medição de contrato',CP:'Lançamento financeiro'};
+const origemNome=o=>ORIGENS[o]||(o?'Outras ('+o+')':'—');
+const simNao=v=>v===true||v===1||/^(s|sim|true|1|verdadeiro)$/i.test(String(v==null?'':v).trim())?1:0;
+const isoDe=v=>{
+  if(v==null||v==='')return '';
+  if(typeof v==='number'&&typeof XLSX!=='undefined'&&XLSX.SSF){const d=XLSX.SSF.parse_date_code(v);return d?d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0'):''}
+  const d=parseDateBR(v);return d?isoOf(d):'';
+};
+function lerTitulosCompl(buf){
+  if(typeof XLSX==='undefined')throw new Error('a biblioteca de Excel não carregou. Recarregue a página.');
+  const wb=XLSX.read(buf,{type:'array'});
+  let aoa=null, h=-1;
+  for(const n of wb.SheetNames){
+    const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''});
+    const i=a.slice(0,30).findIndex(r=>r.some(c=>normTxt(c)==='titulo')&&r.some(c=>normTxt(c)==='valor a pagar'));
+    if(i>=0){aoa=a;h=i;break}
+  }
+  if(!aoa)throw new Error('o arquivo não parece o relatório de títulos do Sienge (faltam as colunas "Título" e "Valor a pagar").');
+  const H=aoa[h].map(normTxt), C={};
+  for(const k of CT_FIELDS)C[k]=H.indexOf(normTxt(CT_COLS[k]));
+  const faltam=['tipo','ndoc','credor','vAPagar'].filter(k=>C[k]<0).map(k=>'"'+CT_COLS[k]+'"');
+  if(faltam.length)throw new Error('faltam as colunas '+faltam.join(', ')+'.');
+  const get=(r,k)=>C[k]<0?'':r[C[k]];
+  const NUM=new Set(['vOrig','vLiq','vPago','vAPagar','imposto','desc','acresc','parcelas']), BOOL=new Set(['prev','ciencia','anexo']);
+  const rows=[];
+  for(const r of aoa.slice(h+1)){
+    const tipo=String(get(r,'tipo')||'').trim().toUpperCase();
+    if(!tipo||!(parseNumBR(get(r,'vAPagar'))>0.005))continue;
+    rows.push(CT_FIELDS.map(k=>{const v=get(r,k);
+      if(NUM.has(k))return Math.round(parseNumBR(v)*100)/100;
+      if(BOOL.has(k))return simNao(v);
+      if(k==='consist')return C[k]<0||String(v).trim()===''?1:simNao(v);
+      if(k==='emissao'||k==='compet')return isoDe(v);
+      if(k==='tipo')return tipo;
+      return String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,k==='obs'?400:120);
+    }));
+  }
+  if(!rows.length)throw new Error('nenhum título em aberto (Valor a pagar maior que zero) no arquivo.');
+  return {data_ref:isoOf(TODAY),dados:{fields:CT_FIELDS,rows}};
+}
+function ctLocal(){try{const x=JSON.parse(localStorage.getItem(CT_LOCAL)||'null');return x&&x.dados?Object.assign(x,{fonte:'local'}):null}catch(e){return null}}
+async function carregarTitulosCompl(){
+  let x=null;
+  if(logado()){
+    const r=await window.SB.from('contas_pagar_titulos').select('data_ref,nome_arquivo,dados,importado_em').order('data_ref',{ascending:false}).limit(1).maybeSingle();
+    if(!r.error&&r.data)x=Object.assign(r.data,{fonte:'nuvem'});
+  }
+  const loc=ctLocal();
+  if(loc&&(!x||loc.data_ref>=x.data_ref))x=loc;
+  CT=x;
+}
+async function importarTitulosCompl(f){
+  finMsg('Lendo '+esc(f.name)+'…',true);
+  try{
+    const x=Object.assign(lerTitulosCompl(await f.arrayBuffer()),{nome_arquivo:f.name});
+    const n=x.dados.rows.length;let onde='', aviso='';
+    if(logado()){
+      const {error}=await window.SB.from('contas_pagar_titulos').upsert({data_ref:x.data_ref,nome_arquivo:f.name,total_titulos:n,dados:x.dados},{onConflict:'data_ref'});
+      if(error)aviso=' Não foi possível gravar para todos ('+esc(error.message)+'); ficou guardado só neste navegador.';
+      else{onde='nuvem';try{localStorage.removeItem(CT_LOCAL)}catch(e){}}
+    } else aviso=' Sem login, ficou guardado só neste navegador.';
+    if(onde!=='nuvem'){try{localStorage.setItem(CT_LOCAL,JSON.stringify(x))}catch(e){aviso+=' O navegador não deixou guardar: vale só até recarregar a página.'}}
+    CT=Object.assign(x,{fonte:onde||'local'});
+    const T=titulos(), cas=T?T.comp.casados:0;
+    finMsg(`Importado <b>${esc(f.name)}</b>: ${int(n)} títulos em aberto${T?`, ${int(cas)} de ${int(T.lista.length)} parcelas do contas a pagar casadas`:''}.${aviso}`,!aviso);
+    render();renderCpg();
+  }catch(e){console.error(e);finMsg('Não foi possível importar os títulos: '+esc(e.message||String(e)))}
+}
+// índice do complemento: tipo § nº do documento -> títulos
+function indiceCompl(){
+  if(!CT||!CT.dados)return null;
+  const F=CT.dados.fields||CT_FIELDS, m=new Map();
+  for(const r of CT.dados.rows){
+    const o={};F.forEach((k,i)=>o[k]=r[i]);
+    const k=o.tipo+'§'+chaveNum(o.ndoc);let a=m.get(k);if(!a){a=[];m.set(k,a)}a.push(o);
+  }
+  return m;
+}
+function complDe(CI,tipo,credor,doc){
+  if(!CI)return null;
+  const a=CI.get(tipo+'§'+chaveNum(numDoc(doc)));if(!a)return null;
+  if(a.length===1)return a[0];
+  const f=normKey(credor);return a.find(x=>normKey(x.credor)===f)||null;
+}
+// colunas do complemento na exportação para Excel
+function complXL(t){
+  if(!CT)return {};
+  const c=t.c||{}, sn=v=>t.c?(v?'Sim':'Não'):'';
+  return {'Empresa':t.emp||'','Origem':t.c?origemNome(c.origem):'','Documento previsão':sn(c.prev),'Ciência':sn(c.ciencia),'Anexo':sn(c.anexo),'Registro consistente':sn(c.consist),
+    'Valor original do título (R$)':t.c?c.vOrig:'','Valor pago do título (R$)':t.c?c.vPago:'','Valor a pagar do título (R$)':t.c?c.vAPagar:'','Imposto retido (R$)':t.c?c.imposto:'',
+    'Emissão':brData(c.emissao),'Competência':brData(c.compet),'Nº de parcelas':t.c?c.parcelas:'','Observação':c.obs||'','Cadastrado por':c.usuCad||'','Ciência por':c.usuCiencia||''};
 }
 
 // obra de cada título: PCT pelo nº do contrato, PPC pelo nº do pedido e
@@ -16667,12 +16785,17 @@ function limiteContrato(c){
 function titulos(){
   if(!CP||!CP.dados)return null;
   const F=CP.dados.fields||CP_FIELDS, ix=k=>F.indexOf(k), iV=ix('venc'), iC=ix('credor'), iD=ix('doc'), iT=ix('total');
-  const I=indices(), ref=CP.data_ref||isoOf(TODAY), lista=[], porCtr=new Map(), lig={pct:[0,0],ppc:[0,0],doc:[0,0]};
+  const I=indices(), CI=indiceCompl(), ref=CP.data_ref||isoOf(TODAY), lista=[], porCtr=new Map(), lig={pct:[0,0],ppc:[0,0],doc:[0,0]};
+  const comp={tem:!!CI,casados:0,prevN:0,prevV:0,ref:CT&&CT.data_ref,fonte:CT&&CT.fonte};
   for(const r of CP.dados.rows){
-    const t=tipoDoc(r[iD]), g=grupoDe(t), v=+r[iT]||0, o=obraDoTitulo(I,g,r[iC],r[iD]);
-    if(lig[g]){lig[g][1]++;if(o)lig[g][0]++}
+    const t=tipoDoc(r[iD]), g0=grupoDe(t), v=+r[iT]||0, o=obraDoTitulo(I,g0,r[iC],r[iD]), c=complDe(CI,t,r[iC],r[iD]);
+    if(lig[g0]){lig[g0][1]++;if(o)lig[g0][0]++}
+    // documento marcado como "Documento previsão" no Sienge (ex.: PICT, estimativa de impostos) conta como previsão
+    const prevC=!!(c&&c.prev&&g0==='doc'), g=prevC?'prv':g0;
+    if(c)comp.casados++;if(prevC){comp.prevN++;comp.prevV+=v}
     const x={venc:r[iV],ym:String(r[iV]).slice(0,7),credor:r[iC],doc:r[iD],tipo:t,g,v,aj:v,
-      key:o?o.key:SEM_OBRA,label:o?o.label:'(obra não identificada)',vencido:r[iV]<ref};
+      key:o?o.key:SEM_OBRA,label:o?o.label:'(obra não identificada)',vencido:r[iV]<ref,
+      c,emp:c?c.empresa:'',orig:c?c.origem:'',prevC};
     lista.push(x);
     if(g==='pct'&&o&&o.c){let a=porCtr.get(o.c.id);if(!a){a={c:o.c,obra:o.label,tits:[]};porCtr.set(o.c.id,a)}a.tits.push(x)}
   }
@@ -16686,7 +16809,7 @@ function titulos(){
     ajustes.push({contrato:a.c.contrato,fornecedor:a.c.fornecedor,obra:a.obra,motivo:lim.motivo,pct:tot,limite:lim.v,fora:tot-lim.v,n:a.tits.length});
   });
   ajustes.sort((p,q)=>q.fora-p.fora);
-  return {lista,ajustes,ref,lig,temCtr:I.temCtr,temPed:I.temPed};
+  return {lista,ajustes,ref,lig,comp,temCtr:I.temCtr,temPed:I.temPed};
 }
 
 const vazio=()=>({pct:0,ppc:0,prv:0,med:0,est:0,nf:0,doc:0,atr:0,docVenc:0,fora:0});
@@ -16861,10 +16984,19 @@ const r2x=v=>+(v||0).toFixed(2);
 const tabela=(cab,linhas)=>`<div class="table-scroll"><table class="data ctr-tbl pxr-tbl"><thead><tr>${cab}</tr></thead><tbody>${linhas.join('')||'<tr><td colspan="9" class="ctr-mt">Nada.</td></tr>'}</tbody></table></div>`;
 const txt=s=>`<span class="ctr-subtxt" style="max-width:240px;color:var(--text)">${esc(s||'')}</span>`;
 // títulos do contas a pagar; val dá o valor considerado (PCT ajustada ou não)
+// detalhes do relatório de títulos (complemento): empresa, origem, pago, alertas e observação
+function detTitulo(t){
+  const c=t.c;if(!c)return '';
+  const b=[];if(t.emp)b.push(esc(t.emp));b.push(esc(origemNome(c.origem)));
+  if(c.vPago>0.005)b.push(`pago ${brl(c.vPago)} de ${brl(c.vLiq||c.vOrig)}`);
+  const f=[];if(t.prevC)f.push('documento previsão');
+  if(t.g==='doc'&&!c.ciencia)f.push('sem ciência');if(t.g==='doc'&&!c.anexo)f.push('sem anexo');if(!c.consist)f.push('registro inconsistente');
+  return `<div class="cpg-det">${b.join(' · ')}${f.length?` · <span class="pxr-neg">${f.join(' · ')}</span>`:''}${c.obs?`<div class="cpg-obs" title="${esc(c.obs)}">${esc(c.obs)}</div>`:''}</div>`;
+}
 function titulosHTML(l,val){
   const vtxt=t=>val(t)<t.v-0.5?`${brl(val(t))} <span class="pxr-est" title="PCT acima do saldo do contrato">de ${brl(t.v)}</span>`:brl(val(t));
   return tabela('<th>Vencimento</th><th>Credor</th><th>Documento</th><th>Obra</th><th class="num">Valor</th>',
-    l.slice(0,LIM).map(t=>`<tr><td class="mono${t.vencido?' pxr-neg':''}">${brData(t.venc)}</td><td>${txt(t.credor)}</td><td class="mono">${esc(t.doc)}</td><td>${txt(t.label)}</td><td class="num">${vtxt(t)}</td></tr>`))+cortado(l.length);
+    l.slice(0,LIM).map(t=>`<tr><td class="mono${t.vencido?' pxr-neg':''}">${brData(t.venc)}</td><td>${txt(t.credor)}${detTitulo(t)}</td><td class="mono">${esc(t.doc)}</td><td>${txt(t.label)}</td><td class="num">${vtxt(t)}</td></tr>`))+cortado(l.length);
 }
 function abrirPainel(titulo,sub,total,n,partes,op){
   painel=op||{redesenhar:null,exportar:null};
@@ -16891,7 +17023,7 @@ function composicao(D,col,esc0){
     const val=t=>t.g==='doc'?t.v:t.aj;
     const l=(D.T?D.T.lista.filter(t=>meses.has(t.ym)&&naObra(t.key)&&filtro(t)):[]).sort((a,b)=>val(b)-val(a));
     const s=l.reduce((a,t)=>a+val(t),0);total+=s;n+=l.length;
-    return {s,n:l.length,html:titulosHTML(l,val),xl:l.map(t=>({'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2x(val(t))}))};
+    return {s,n:l.length,html:titulosHTML(l,val),xl:l.map(t=>Object.assign({'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2x(val(t))},complXL(t)))};
   };
   const medicoes=()=>{
     const m=new Map(), info=ctr&&ctr.info||new Map();
@@ -16934,7 +17066,7 @@ function exportar(){
   if(T){
     const ms=new Set(D.mesesSel), GL={pct:'Previsto contratos (PCT)',ppc:'Previsto pedidos (PPC)',prv:'Previsto outras (PRV)',doc:'A pagar (documento)'};
     const tl=T.lista.filter(t=>ms.has(t.ym)&&(!obraSel||t.key===obraSel)&&(!selGrupo||t.g===selGrupo)).sort((p,q)=>p.venc<q.venc?-1:p.venc>q.venc?1:0)
-      .map(t=>({'Vencimento':brData(t.venc),'Mês':ymLabel(t.ym),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Conta como':GL[t.g],'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2(t.aj)}));
+      .map(t=>Object.assign({'Vencimento':brData(t.venc),'Mês':ymLabel(t.ym),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Conta como':GL[t.g],'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2(t.aj)},complXL(t)));
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(tl.length?tl:[{'Credor':'Nada no período'}]),'Títulos');
     if(T.ajustes.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(T.ajustes.map(a=>({'Contrato':a.contrato,'Fornecedor':a.fornecedor,'Obra':a.obra,'Limite':a.motivo,'PCT em aberto (R$)':r2(a.pct),'Pode medir (R$)':r2(a.limite),'Desconsiderado (R$)':r2(a.fora),'Títulos PCT':a.n}))),'Ajuste contratos');
   }
@@ -16957,6 +17089,13 @@ function cpgPeriodo(){
   return meses;
 }
 const cpgVal=t=>t.g==='doc'||!$('cpgAjuste').checked?t.v:t.aj;
+const SEM_EMP='x:sem-empresa';
+// controles do relatório de títulos (complemento)
+const CPG_CTRL={semCiencia:['Documentos sem ciência',t=>!!t.c&&t.g==='doc'&&!t.c.ciencia,'documentos em aberto ainda sem ciência no Sienge'],
+  semAnexo:['Documentos sem anexo',t=>!!t.c&&t.g==='doc'&&!t.c.anexo,'documentos em aberto sem arquivo anexado'],
+  inconsist:['Registro inconsistente',t=>!!t.c&&!t.c.consist,'títulos com consistência do registro = N'],
+  parcial:['Pagamento parcial',t=>!!t.c&&t.c.vPago>0.005,'títulos que já tiveram parte paga']};
+const cpgCtrlDe=k=>CPG_CTRL[k]?CPG_CTRL[k][1]:()=>true;
 const cpgVazio=()=>({doc:0,pct:0,ppc:0,prv:0,venc:0,n:0});
 function cpgAdd(a,t){const v=cpgVal(t);a[t.g]+=v;if(t.vencido)a.venc+=v;a.n++;return a}
 const cpgPrev=a=>a.pct+a.ppc+a.prv, cpgTot=a=>a.doc+cpgPrev(a);
@@ -16977,7 +17116,19 @@ function cpgDados(){
   const tipoSel=tipos.has(selT.value)?selT.value:'';
   selT.innerHTML='<option value="">Todos os tipos de documento</option>'+[...tipos].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<option value="${esc(k)}">${esc(cpgTipoNome(k))} (${int(n)})</option>`).join('');
   selT.value=tipoSel;
-  const base=T.lista.filter(t=>(!cpgObra||t.key===cpgObra)&&naClasse(t)&&(!tipoSel||t.tipo===tipoSel)&&(!sit||(sit==='venc')===t.vencido)&&(!busca||normTxt(t.credor+' '+t.doc).includes(busca)));
+  // complemento (relatório de títulos): empresa, origem e controle
+  document.body.classList.toggle('cpg-tem-comp',T.comp.tem);
+  let emp='', orig='', ctrl='';
+  if(T.comp.tem){
+    const se=$('cpgEmp'), emps=new Map();T.lista.forEach(t=>{if(t.emp)emps.set(t.emp,(emps.get(t.emp)||0)+1)});
+    emp=se.value&&(emps.has(se.value)||se.value===SEM_EMP)?se.value:'';
+    se.innerHTML='<option value="">Todas as empresas</option>'+[...emps].sort((a,b)=>a[0].localeCompare(b[0],'pt-BR')).map(([k,n])=>`<option value="${esc(k)}">${esc(k)} (${int(n)})</option>`).join('')+`<option value="${SEM_EMP}">(sem o relatório de títulos)</option>`;
+    se.value=emp;orig=$('cpgOrig').value;ctrl=$('cpgCtrl').value;
+  }
+  const naEmp=t=>!emp||(emp===SEM_EMP?!t.c:t.emp===emp);
+  const naOrig=t=>!orig||(orig==='sem'?!t.c:orig==='out'?!!t.c&&!ORIGENS[t.orig]:t.orig===orig);
+  const naCtrl=t=>!ctrl||cpgCtrlDe(ctrl)(t);
+  const base=T.lista.filter(t=>(!cpgObra||t.key===cpgObra)&&naClasse(t)&&(!tipoSel||t.tipo===tipoSel)&&(!sit||(sit==='venc')===t.vencido)&&naEmp(t)&&naOrig(t)&&naCtrl(t)&&(!busca||normTxt(t.credor+' '+t.doc+' '+t.emp+' '+(t.c?t.c.obs:'')).includes(busca)));
   const porMes=new Map(meses.map(m=>[m,cpgVazio()])), antes=cpgVazio(), depois=cpgVazio();
   base.forEach(t=>cpgAdd(t.ym<ini?antes:t.ym>fim?depois:porMes.get(t.ym),t));
   // escopo dos indicadores e da tabela por credor: o mês filtrado ou o período
@@ -16986,12 +17137,12 @@ function cpgDados(){
 }
 // títulos de uma célula: esc0 = {ym} | {antes} | {depois} | {tot} | {credor}
 function cpgTitulos(D,col,esc0){
-  const naLinha=esc0.ym?t=>t.ym===esc0.ym:esc0.antes?t=>t.ym<D.ini:esc0.depois?t=>t.ym>D.fim:esc0.credor!=null?t=>t.credor===esc0.credor&&D.noEscopo(t):()=>true;
+  const naLinha=esc0.ym?t=>t.ym===esc0.ym:esc0.antes?t=>t.ym<D.ini:esc0.depois?t=>t.ym>D.fim:esc0.credor!=null?t=>t.credor===esc0.credor&&D.noEscopo(t):esc0.emp!=null?t=>(t.emp||SEM_EMP)===esc0.emp&&D.noEscopo(t):()=>true;
   const naCol=col==='doc'?t=>t.g==='doc':['pct','ppc','prv'].includes(col)?t=>t.g===col:col==='prev'?t=>t.g!=='doc':col==='venc'?t=>t.vencido:()=>true;
   return D.base.filter(t=>naLinha(t)&&naCol(t)&&cpgVal(t)>0.005);
 }
 // classificação de cada título: o tipo do documento (prefixo antes do ponto)
-const CPG_TIPOS={NFE:'Nota fiscal eletrônica',NF:'Nota fiscal',NFS:'Nota fiscal de serviço',NFSE:'Nota fiscal de serviço',CTE:'Conhecimento de transporte',BOL:'Boleto',BOLETO:'Boleto',FAT:'Fatura',DUP:'Duplicata',REC:'Recibo',GUIA:'Guia',DARF:'DARF',GPS:'GPS',GRF:'FGTS',FGTS:'FGTS',ALU:'Aluguel',CONT:'Contrato',ADT:'Adiantamento',PCT:'Previsão de contrato',PPC:'Previsão de pedido',PRV:'Outras previsões',OUTROS:'Sem tipo'};
+const CPG_TIPOS={NFE:'Nota fiscal eletrônica',NF:'Nota fiscal',NFS:'Nota fiscal de serviço',NFSE:'Nota fiscal de serviço',CTE:'Conhecimento de transporte',BOL:'Boleto',BOLETO:'Boleto',FAT:'Fatura',DUP:'Duplicata',REC:'Recibo',GUIA:'Guia',DARF:'DARF',GPS:'GPS',GRF:'FGTS',FGTS:'FGTS',ALU:'Aluguel',CONT:'Contrato',ADT:'Adiantamento',PCT:'Previsão de contrato',PPC:'Previsão de pedido',PRV:'Outras previsões',PICT:'Estimativa de impostos',OUTROS:'Sem tipo'};
 const cpgTipoNome=k=>CPG_TIPOS[k]&&k!=='OUTROS'?k+' · '+CPG_TIPOS[k]:CPG_TIPOS[k]||k;
 const CPG_GRUPOS=[['doc','A pagar (documentos)'],['pct','Previsão · contratos (PCT)'],['ppc','Previsão · pedidos (PPC)'],['prv','Previsão · outras (PRV)']];
 function cpgComposicao(D,col,esc0){
@@ -17004,8 +17155,8 @@ function cpgComposicao(D,col,esc0){
       .sort((a,b)=>b.s-a.s).forEach(c=>cls.push(c));
   });
   const total=cls.reduce((a,c)=>a+c.s,0);
-  const quando=esc0.ym?ymLabel(esc0.ym):esc0.antes?'antes de '+ymLabel(D.ini):esc0.depois?'depois de '+ymLabel(D.fim):esc0.credor!=null?(cpgMes?ymLabel(cpgMes):ymLabel(D.ini)+' a '+ymLabel(D.fim)):'todos os vencimentos';
-  const titulo=(esc0.credor!=null?esc0.credor+' · ':'')+(CPG_COL[col]||'Títulos'), onde=quando+' · '+(cpgObra?($('cpgObra').selectedOptions[0]||{}).textContent:'todas as obras');
+  const quando=esc0.ym?ymLabel(esc0.ym):esc0.antes?'antes de '+ymLabel(D.ini):esc0.depois?'depois de '+ymLabel(D.fim):esc0.credor!=null||esc0.emp!=null?(cpgMes?ymLabel(cpgMes):ymLabel(D.ini)+' a '+ymLabel(D.fim)):'todos os vencimentos';
+  const titulo=(esc0.credor!=null?esc0.credor+' · ':esc0.emp!=null?(esc0.emp===SEM_EMP?'(sem o relatório de títulos)':esc0.emp)+' · ':'')+(CPG_COL[col]||'Títulos'), onde=quando+' · '+(cpgObra?($('cpgObra').selectedOptions[0]||{}).textContent:'todas as obras');
   // classificações marcadas (várias ao mesmo tempo); vazio = todas
   const sel=new Set(), marcada=c=>sel.has(c.id)||sel.has(c.g), visiveis=()=>cls.filter(c=>!sel.size||marcada(c));
   // exporta a classificação escolhida (ou todas), sem o limite de linhas
@@ -17013,7 +17164,7 @@ function cpgComposicao(D,col,esc0){
     const vis=visiveis(), tv=vis.reduce((a,c)=>a+c.s,0);
     exportarPainel(titulo+' '+onde,[
       {nome:'Por classificação',linhas:vis.map(c=>({'Classificação':c.grupo,'Tipo de documento':cpgTipoNome(c.tipo),'Títulos':c.x.length,'Valor (R$)':r2x(c.s),'%':tv>0?+(c.s/tv*100).toFixed(1):0}))},
-      {nome:'Títulos',linhas:vis.flatMap(c=>c.x.map(t=>({'Classificação':c.grupo,'Tipo de documento':cpgTipoNome(c.tipo),'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2x(cpgVal(t))})))}]);
+      {nome:'Títulos',linhas:vis.flatMap(c=>c.x.map(t=>Object.assign({'Classificação':c.grupo,'Tipo de documento':cpgTipoNome(c.tipo),'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2x(cpgVal(t))},complXL(t))))}]);
   };
   abrirPainel(titulo,onde,total,l.length,[],{redesenhar:()=>desenhar(),exportar});
   const B=$('pxrDB'), topo=B.innerHTML;
@@ -17048,10 +17199,11 @@ function renderCpg(){
   if(!$('tab-cpg').classList.contains('active'))return;
   const D=cpgDados();
   const ajTxt=D&&D.T.ajustes.length?` · ajuste das PCT pelo saldo dos contratos: −${brl(D.T.ajustes.reduce((a,x)=>a+x.fora,0))}${$('cpgAjuste').checked?'':' (desligado)'}`:D&&!D.T.temCtr?' · sem contratos carregados, as PCT não foram ajustadas':'';
-  $('cpgFontes').innerHTML=D?`Contas a pagar de ${brData(D.T.ref)}${CP.fonte==='local'?' (só neste navegador)':''} · ${int(D.T.lista.length)} títulos${ajTxt}`:cpCarregado?'<b>Importe o relatório de contas a pagar do Sienge</b> (títulos a pagar por data de vencimento, .csv)':'Carregando contas a pagar…';
+  const cm=D&&D.T.comp, compTxt=cm&&cm.tem?` · relatório de títulos de ${brData(cm.ref)}${cm.fonte==='local'?' (só neste navegador)':''}: ${int(cm.casados)} de ${int(D.T.lista.length)} parcelas casadas (${pct(cm.casados,D.T.lista.length)})${cm.prevN?` · ${int(cm.prevN)} marcadas como documento previsão contam como previsão (${brlC(cm.prevV)})`:''}`:D?' · importe o relatório de títulos (complemento) para ver empresa, origem e controles':'';
+  $('cpgFontes').innerHTML=D?`Contas a pagar de ${brData(D.T.ref)}${CP.fonte==='local'?' (só neste navegador)':''} · ${int(D.T.lista.length)} títulos${ajTxt}${compTxt}`:cpCarregado?'<b>Importe o relatório de contas a pagar do Sienge</b> (títulos a pagar por data de vencimento, .csv)':'Carregando contas a pagar…';
   $('cpgSel').classList.toggle('on',!!cpgMes);
   $('cpgSelTxt').innerHTML=cpgMes?`Filtrado pelo gráfico: <b>${ymLabel(cpgMes)}</b>`:'';
-  if(!D){$('cpgKpis').innerHTML='';$('cpgTMes').innerHTML='';$('cpgTCred').innerHTML='';destroyChart('cpg');return}
+  if(!D){$('cpgKpis').innerHTML='';$('cpgCtrlKpis').innerHTML='';$('cpgTEmp').innerHTML='';$('cpgTMes').innerHTML='';$('cpgTCred').innerHTML='';destroyChart('cpg');return}
   const esc0=D.base.filter(D.noEscopo).reduce((a,t)=>cpgAdd(a,t),cpgVazio());
   const venc=D.base.filter(t=>t.vencido).reduce((a,t)=>cpgAdd(a,t),cpgVazio());
   const hoje=ymOf(TODAY), mesAtual=D.base.filter(t=>t.ym===hoje).reduce((a,t)=>cpgAdd(a,t),cpgVazio());
@@ -17062,6 +17214,11 @@ function renderCpg(){
     <div class="kpi-card c-ped"><p class="kpi-label">Total ${quando}</p><div class="kpi-value">${brlC(cpgTot(esc0))}</div><div class="kpi-foot">${pct(esc0.doc,cpgTot(esc0))} já em documento</div></div>
     <div class="kpi-card c-crit"><p class="kpi-label">Mês atual (${ymLabel(hoje)})</p><div class="kpi-value">${brlC(cpgTot(mesAtual))}</div><div class="kpi-foot">a pagar ${brlC(mesAtual.doc)} · previsão ${brlC(cpgPrev(mesAtual))}</div></div>
     <div class="kpi-card c-late ${venc.n?'ctr-kpi-hot':''}"><p class="kpi-label">Vencido em aberto</p><div class="kpi-value">${brlC(cpgTot(venc))}</div><div class="kpi-foot">documentos ${brlC(venc.doc)} · previsões ${brlC(cpgPrev(venc))}</div></div>`;
+  // controles do relatório de títulos, sobre todos os vencimentos em aberto (clique para filtrar)
+  const ctrlSel=$('cpgCtrl').value;
+  $('cpgCtrlKpis').innerHTML=D.T.comp.tem?Object.entries(CPG_CTRL).map(([k,[nome,f,dica]])=>{const l=D.base.filter(f), s=l.reduce((a,t)=>a+cpgVal(t),0);
+    return `<div class="kpi-card c-late${ctrlSel===k?' on':''}" data-ctrl="${k}" title="${esc(dica)} · clique para filtrar"><p class="kpi-label">${esc(nome)}</p><div class="kpi-value">${brlC(s)}</div><div class="kpi-foot">${int(l.length)} parcelas · todos os vencimentos</div></div>`}).join(''):'';
+  $('cpgCtrlKpis').onclick=e=>{const c=e.target.closest('[data-ctrl]');if(!c)return;$('cpgCtrl').value=$('cpgCtrl').value===c.dataset.ctrl?'':c.dataset.ctrl;renderCpg()};
 
   prepararGraficos();
   destroyChart('cpg');
@@ -17101,6 +17258,16 @@ function renderCpg(){
     (cl.slice(0,100).map(([c,a])=>`<tr data-cr="${esc(c)}"><td>${txt(c)}</td>${v('doc',a.doc,brl(a.doc),' pxr-sep')}${v('pct',a.pct,brl(a.pct),' pxr-sep')}${v('ppc',a.ppc,brl(a.ppc))}${v('prv',a.prv,brl(a.prv))}${v('prev',cpgPrev(a),brl(cpgPrev(a)))}${v('tot',cpgTot(a),`<b>${brl(cpgTot(a))}</b>`,' pxr-sep')}${v('venc',a.venc,a.venc>0.5?`<span class="pxr-neg">${brl(a.venc)}</span>`:'—')}<td class="num">${int(a.n)}</td></tr>`).join('')||'<tr><td colspan="9" class="ctr-mt">Nada no período.</td></tr>')+
     (cl.length>100?`<tr><td colspan="9" class="ctr-mt">Mais ${int(cl.length-100)} credores na exportação para Excel.</td></tr>`:'')+'</tbody>';
   $('cpgTCred').onclick=e=>{const tr=e.target.closest('tbody tr[data-cr]');if(!tr)return;const td=e.target.closest('td[data-c]');cpgComposicao(D,td?td.dataset.c:'tot',{credor:tr.dataset.cr})};
+
+  // por empresa (relatório de títulos), no escopo
+  if(D.T.comp.tem){
+    const em=new Map();D.base.filter(D.noEscopo).forEach(t=>{const k=t.emp||SEM_EMP;let a=em.get(k);if(!a){a=cpgVazio();em.set(k,a)}cpgAdd(a,t)});
+    const el=[...em].filter(([,a])=>cpgTot(a)>0.5).sort((p,q)=>cpgTot(q[1])-cpgTot(p[1]));
+    $('cpgEmpSub').textContent=`${cpgMes?ymLabel(cpgMes):ymLabel(D.ini)+' a '+ymLabel(D.fim)} · ${int(el.length)} empresas · clique num valor para ver os títulos`;
+    $('cpgTEmp').innerHTML=`<thead><tr><th>Empresa</th><th class="num pxr-sep">A pagar</th><th class="num pxr-sep">PCT</th><th class="num">PPC</th><th class="num">PRV</th><th class="num">Previsão</th><th class="num pxr-sep">Total</th><th class="num">Vencido</th><th class="num">Títulos</th></tr></thead><tbody>`+
+      (el.map(([k,a])=>`<tr data-emp="${esc(k)}"><td>${k===SEM_EMP?'<span class="pxr-est">(sem o relatório de títulos)</span>':txt(k)}</td>${v('doc',a.doc,brl(a.doc),' pxr-sep')}${v('pct',a.pct,brl(a.pct),' pxr-sep')}${v('ppc',a.ppc,brl(a.ppc))}${v('prv',a.prv,brl(a.prv))}${v('prev',cpgPrev(a),brl(cpgPrev(a)))}${v('tot',cpgTot(a),`<b>${brl(cpgTot(a))}</b>`,' pxr-sep')}${v('venc',a.venc,a.venc>0.5?`<span class="pxr-neg">${brl(a.venc)}</span>`:'—')}<td class="num">${int(a.n)}</td></tr>`).join('')||'<tr><td colspan="9" class="ctr-mt">Nada no período.</td></tr>')+'</tbody>';
+    $('cpgTEmp').onclick=e=>{const tr=e.target.closest('tbody tr[data-emp]');if(!tr)return;const td=e.target.closest('td[data-c]');cpgComposicao(D,td?td.dataset.c:'tot',{emp:tr.dataset.emp})};
+  } else $('cpgTEmp').innerHTML='';
 }
 function exportarCpg(){
   if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
@@ -17114,8 +17281,12 @@ function exportarCpg(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(meses),'Por mês');
   const cred=new Map();D.base.filter(D.noEscopo).forEach(t=>{let a=cred.get(t.credor);if(!a){a=cpgVazio();cred.set(t.credor,a)}cpgAdd(a,t)});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([...cred].sort((p,q)=>cpgTot(q[1])-cpgTot(p[1])).map(([c,a])=>Object.assign({'Credor':c},valores(a)))),'Por credor');
+  if(D.T.comp.tem){
+    const em=new Map();D.base.filter(D.noEscopo).forEach(t=>{const k=t.emp||'(sem o relatório de títulos)';let a=em.get(k);if(!a){a=cpgVazio();em.set(k,a)}cpgAdd(a,t)});
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([...em].sort((p,q)=>cpgTot(q[1])-cpgTot(p[1])).map(([c,a])=>Object.assign({'Empresa':c},valores(a)))),'Por empresa');
+  }
   const GL={doc:'A pagar (documento)',pct:'Previsão contratos (PCT)',ppc:'Previsão pedidos (PPC)',prv:'Previsão outras (PRV)'};
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(D.base.slice().sort((p,q)=>p.venc<q.venc?-1:p.venc>q.venc?1:0).map(t=>({'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Conta como':GL[t.g],'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2(cpgVal(t))}))),'Títulos');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(D.base.slice().sort((p,q)=>p.venc<q.venc?-1:p.venc>q.venc?1:0).map(t=>Object.assign({'Vencimento':brData(t.venc),'Credor':t.credor,'Documento':t.doc,'Tipo':t.tipo,'Conta como':GL[t.g],'Obra':t.label,'Vencido':t.vencido?'Sim':'Não','Valor (R$)':t.v,'Valor considerado (R$)':r2(cpgVal(t))},complXL(t)))),'Títulos');
   XLSX.writeFile(wb,`contas_a_pagar_${D.ini}_${D.fim}.xlsx`);
 }
 function showCpg(){
@@ -17147,7 +17318,8 @@ $('pxrExp').onclick=exportar;
 $('pxrSelLimpar').onclick=()=>{selMes=selGrupo='';render()};
 $('cpgDe').onchange=renderCpg;$('cpgAte').onchange=renderCpg;$('cpgAjuste').onchange=renderCpg;$('cpgBusca').oninput=renderCpg;
 $('cpgObra').onchange=e=>{cpgObra=e.target.value;renderCpg()};
-$('cpgClasse').onchange=renderCpg;$('cpgTipo').onchange=renderCpg;$('cpgSit').onchange=renderCpg;
+$('cpgClasse').onchange=renderCpg;$('cpgEmp').onchange=renderCpg;$('cpgOrig').onchange=renderCpg;$('cpgCtrl').onchange=renderCpg;
+$('cpgArqTit').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarTitulosCompl(f)};$('cpgTipo').onchange=renderCpg;$('cpgSit').onchange=renderCpg;
 $('cpgExp').onclick=exportarCpg;
 $('cpgSelLimpar').onclick=()=>{cpgMes='';renderCpg()};
 $('cpgArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
@@ -17186,7 +17358,7 @@ document.addEventListener('perfil-atualizado',()=>{
   fecharComposicao();
   const inicio=document.querySelector('.tab-btn[data-tab="overview"]');if(inicio)inicio.click();
 });
-window.PXR={show,showCpg,refresh,recarregarFinanceiro:()=>{cpCarregado=false;CP=null;if($('tab-pxr').classList.contains('active'))show();if($('tab-cpg').classList.contains('active'))showCpg()}};
+window.PXR={show,showCpg,refresh,recarregarFinanceiro:()=>{cpCarregado=false;CP=null;CT=null;if($('tab-pxr').classList.contains('active'))show();if($('tab-cpg').classList.contains('active'))showCpg()}};
 })();
 </script>
 
