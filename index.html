@@ -1862,7 +1862,12 @@ table.data.pxr-tbl tr.pxr-clk td:first-child{cursor:pointer;}
 table.data.pxr-tbl td.pxr-v{cursor:pointer;}
 table.data.pxr-tbl td.pxr-v:hover{text-decoration:underline;color:var(--yellow);}
 #pxrTMes th:first-child,#pxrTMes td:first-child,#pxrTObra th:first-child,#pxrTObra td:first-child{position:sticky;left:0;z-index:1;background:var(--asphalt-2);}
-#pxrDrawer{width:min(760px,100%);}
+#pxrDrawer{width:min(760px,100%);max-width:100%;}
+#pxrDrawer.pxr-arrastando{transition:none;user-select:none;}
+.pxr-dres{position:absolute;left:-4px;top:0;bottom:0;width:10px;cursor:ew-resize;z-index:2;touch-action:none;}
+.pxr-dres::after{content:'';position:absolute;left:3px;top:50%;width:4px;height:44px;margin-top:-22px;border-radius:2px;background:var(--line);transition:background .15s;}
+.pxr-dres:hover::after,#pxrDrawer.pxr-arrastando .pxr-dres::after{background:var(--yellow);}
+#pxrDLarg{min-width:32px;}
 #pxrDrawer .pxr-dtot{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 12px;font-size:13px;color:var(--text-dim);}
 #pxrDrawer .pxr-dtot b{color:var(--text);font-size:15px;}
 #pxrDrawer h4{font:600 13px var(--font-display);margin:16px 0 8px;letter-spacing:.03em;}
@@ -4212,7 +4217,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   </section>
   <div class="ctr-scrim" id="pxrScrim"></div>
   <aside class="ctr-drawer" id="pxrDrawer" aria-hidden="true">
-    <header><div><h3 id="pxrDT"></h3><p id="pxrDS"></p></div><div class="pxr-dacoes"><select id="pxrDLim" aria-label="Linhas por tabela" title="Quantos títulos mostrar em cada tabela"><option value="100">100 linhas</option><option value="300">300 linhas</option><option value="1000">1.000 linhas</option><option value="5000">5.000 linhas</option><option value="0">Todas as linhas</option></select><button class="btn small" id="pxrDXls" title="Exporta todos os itens da composição, sem o limite de linhas">Exportar Excel</button></div><button class="ctr-x" id="pxrDX" aria-label="Fechar">×</button></header>
+    <div class="pxr-dres" id="pxrDRes" title="Arraste para aumentar ou diminuir o painel (duplo clique: tamanho padrão)"></div>
+    <header><div><h3 id="pxrDT"></h3><p id="pxrDS"></p></div><div class="pxr-dacoes"><select id="pxrDLim" aria-label="Linhas por tabela" title="Quantos títulos mostrar em cada tabela"><option value="100">100 linhas</option><option value="300">300 linhas</option><option value="1000">1.000 linhas</option><option value="5000">5.000 linhas</option><option value="0">Todas as linhas</option></select><button class="btn small" id="pxrDLarg" title="Ampliar o painel para a tela toda">⤢</button><button class="btn small" id="pxrDXls" title="Exporta todos os itens da composição, sem o limite de linhas">Exportar Excel</button></div><button class="ctr-x" id="pxrDX" aria-label="Fechar">×</button></header>
     <div class="ctr-db" id="pxrDB"></div>
   </aside>
 
@@ -17147,6 +17153,27 @@ $('cpgSelLimpar').onclick=()=>{cpgMes='';renderCpg()};
 $('cpgArq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarContasPagar(f)};
 $('pxrDX').onclick=fecharComposicao;
 $('pxrDLim').onchange=e=>limitePainel(e.target.value);
+// largura do painel: arrastar a borda esquerda ou ampliar; lembrada no navegador
+(()=>{
+  const dr=$('pxrDrawer'), KEY='pxr.larguraPainel', MIN=420;
+  const aplicar=(w,salvar)=>{
+    if(w==null){dr.style.width='';}else{w=Math.max(MIN,Math.min(window.innerWidth,Math.round(w)));dr.style.width=w+'px'}
+    const cheio=w!=null&&w>=window.innerWidth-2;
+    $('pxrDLarg').textContent=cheio?'⤡':'⤢';$('pxrDLarg').title=cheio?'Voltar ao tamanho padrão':'Ampliar o painel para a tela toda';
+    if(salvar)try{w==null?localStorage.removeItem(KEY):localStorage.setItem(KEY,String(w))}catch(e){}
+  };
+  try{const w=+localStorage.getItem(KEY);aplicar(w>0?w:null)}catch(e){aplicar(null)}
+  $('pxrDLarg').onclick=()=>aplicar(dr.offsetWidth>=window.innerWidth-2?null:window.innerWidth,true);
+  const h=$('pxrDRes');
+  h.addEventListener('pointerdown',e=>{
+    e.preventDefault();h.setPointerCapture(e.pointerId);dr.classList.add('pxr-arrastando');
+    const mover=ev=>aplicar(window.innerWidth-ev.clientX,false);
+    const soltar=()=>{h.removeEventListener('pointermove',mover);h.removeEventListener('pointerup',soltar);h.removeEventListener('pointercancel',soltar);
+      dr.classList.remove('pxr-arrastando');aplicar(dr.offsetWidth,true)};
+    h.addEventListener('pointermove',mover);h.addEventListener('pointerup',soltar);h.addEventListener('pointercancel',soltar);
+  });
+  h.addEventListener('dblclick',()=>aplicar(null,true));
+})();
 $('pxrDXls').onclick=()=>{if(painel.exportar)painel.exportar()};
 $('pxrDrawer').addEventListener('click',e=>{const b=e.target.closest('[data-lim]');if(b)limitePainel(b.dataset.lim)});$('pxrScrim').onclick=fecharComposicao;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('pxrDrawer').classList.contains('on'))fecharComposicao()});
