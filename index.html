@@ -10602,6 +10602,27 @@ function linhasExcel(wb){
   return out;
 }
 
+// Notas gravadas de pedidos que não têm (ou deixaram de ter) vínculo com
+// crédito — sobras de importações anteriores ou de vínculos excluídos. Só
+// apaga depois que o usuário confirma, mostrando quantas e de quais pedidos.
+async function limparNotasSemVinculo(vinculados){
+  const orfaos = [...notasExtrasCredito.keys()].filter(num=>!vinculados.has(String(num)));
+  if(!orfaos.length) return;
+  const qtd = orfaos.reduce((s,num)=>s+(notasExtrasCredito.get(num)||[]).length,0);
+  const lista = orfaos.slice(0,15).join(', ') + (orfaos.length>15 ? ` e mais ${orfaos.length-15}` : '');
+  if(!confirm(`Há ${qtd} nota(s) gravada(s) de ${orfaos.length} pedido(s) sem vínculo com crédito (${lista}).\nElas não entram em nenhum cálculo. Apagar do banco?`)) return;
+  for(let i=0;i<orfaos.length;i+=200){
+    const { error } = await window.SB.from('creditos_notas').delete().in('num_pedido', orfaos.slice(i,i+200));
+    if(error){
+      console.error('Falha ao apagar notas sem vínculo:', error);
+      alert('Não foi possível apagar as notas sem vínculo: ' + (error.message || error));
+      break;
+    }
+  }
+  await loadNotasExtrasCredito();
+  renderCreditos();
+}
+
 async function importarNotasPedidoSienge(file){
   try{
     const ehPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
@@ -10620,22 +10641,29 @@ async function importarNotasPedidoSienge(file){
       const k = l.num_pedido+'|'+l.nota_key;
       if(!vistos.has(k)) vistos.set(k, Object.assign(l, { arquivo:file.name, importado_em:new Date().toISOString() }));   // a mesma nota se repete por parcela
     });
-    const linhas = [...vistos.values()];
-    if(!linhas.length) throw new Error('não encontrei notas fiscais no arquivo. Use o relatório "Acompanhamento de Pedidos" do Sienge (com as colunas Pedido, Nota Fiscal, Emissão e Total atendido nota), em PDF ou Excel.');
+    const lidasValidas = [...vistos.values()];
+    if(!lidasValidas.length) throw new Error('não encontrei notas fiscais no arquivo. Use o relatório "Acompanhamento de Pedidos" do Sienge (com as colunas Pedido, Nota Fiscal, Emissão e Total atendido nota), em PDF ou Excel.');
+    // Só interessam notas de pedidos vinculados a algum crédito: as demais
+    // não são gravadas (o relatório pode vir com todos os pedidos do período).
+    await loadVinculosCredito();
+    const vinculados = new Set(vinculosCredito.map(v=>String(v.numPedido)));
+    const linhas = lidasValidas.filter(l=>vinculados.has(String(l.num_pedido)));
+    const ignoradas = lidasValidas.length - linhas.length;
     for(let i=0;i<linhas.length;i+=500){
       const { error } = await window.SB.from('creditos_notas').upsert(linhas.slice(i,i+500), { onConflict:'num_pedido,nota_key' });
       if(error) throw error;
     }
     await loadNotasExtrasCredito();
-    await loadVinculosCredito();
     await reconciliarVinculosComNotasFiscais();
     await loadVinculosCredito();
     renderCreditos();
     const peds = [...new Set(linhas.map(l=>l.num_pedido))];
     const tot = linhas.reduce((s,l)=>s+l.valor,0);
-    const afetados = vinculosCredito.filter(v=>peds.includes(String(v.numPedido))).length;
-    alert(`Importadas ${linhas.length} nota(s) fiscal(is), total R$ ${fmtMoney(tot)}, do(s) pedido(s) ${peds.join(', ')}.` +
-      (afetados ? `\n${afetados} pedido(s) vinculado(s) a créditos foram recalculados.` : '\nNenhum desses pedidos está vinculado a um crédito.'));
+    alert((linhas.length
+        ? `Importadas ${linhas.length} nota(s) fiscal(is), total R$ ${fmtMoney(tot)}, de ${peds.length} pedido(s) vinculado(s) a créditos: ${peds.join(', ')}. Os vínculos foram recalculados.`
+        : 'Nenhuma nota do arquivo é de pedido vinculado a um crédito; nada foi gravado.') +
+      (ignoradas ? `\n${ignoradas} nota(s) de pedidos sem vínculo foram ignoradas.` : ''));
+    await limparNotasSemVinculo(vinculados);
   }catch(e){
     console.error('Falha ao importar notas:', e);
     alert('Não foi possível importar as notas: ' + (e.message || e));
