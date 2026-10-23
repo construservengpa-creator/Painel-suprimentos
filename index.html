@@ -3610,6 +3610,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <label for="dashFiltroPedido">Pedido de compra</label>
         <select id="dashFiltroPedido"><option value="">Todos os pedidos</option></select>
       </div>
+      <label style="align-self:end;display:flex;gap:6px;align-items:center;margin-bottom:8px;"><input type="checkbox" class="capExibirConcluidos" style="width:auto"> Exibir pedidos concluídos</label>
     </div>
     <div class="card">
       <h2>Saldo por Pedido de Compra</h2>
@@ -3631,6 +3632,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     <div class="toolbar">
       <div class="filters">
         <span class="hint">Pedidos de compra contratados com o fornecedor</span>
+        <label style="display:flex;gap:6px;align-items:center;margin-left:12px;"><input type="checkbox" class="capExibirConcluidos" style="width:auto"> Exibir pedidos concluídos</label>
+        <span class="hint" id="pedidosOcultosInfo"></span>
       </div>
       <button class="btn primary pode-lancar-cap-only" id="btnNovoPedido">+ Novo Pedido de Compra</button>
     </div>
@@ -12654,6 +12657,11 @@ function comRecorte(f, fn) {
 function listaFornecedoresCap() {
   return Array.from(new Set(state.pedidos.map(fornNome))).sort((a,b) => a.localeCompare(b, 'pt-BR'));
 }
+// Caixa "Exibir pedidos concluídos" (Dashboard e Pedidos de Compra, sincronizadas)
+function exibirConcluidos() {
+  const cb = document.querySelector('.capExibirConcluidos');
+  return !!(cb && cb.checked);
+}
 function fillPedidoSelect(sel, fornecedor) {
   const cur = sel.value;
   const peds = state.pedidos
@@ -12678,7 +12686,7 @@ function renderDashboard() {
   fillFornecedorSelect(sel);
   const selP = document.getElementById('dashFiltroPedido');
   fillPedidoSelect(selP, sel.value);
-  comRecorte({ fornecedor: sel.value, pedidoId: selP.value }, () => renderDashboardConteudo(sel.value, selP.value));
+  comRecorte({ fornecedor: sel.value, pedidoId: selP.value, soAbertos: !selP.value && !exibirConcluidos() }, () => renderDashboardConteudo(sel.value, selP.value));
 }
 function renderDashboardConteudo(fornecedorFiltro, pedidoFiltro) {
   const totalContratado = state.pedidos.reduce((s,p) => s + p.qtdContratada, 0);
@@ -12756,10 +12764,18 @@ function renderBarChart(containerId, items) {
 function renderPedidos() {
   const tbody = document.getElementById('pedidosTbody');
   if (!state.pedidos.length) {
+    document.getElementById('pedidosOcultosInfo').textContent = '';
     tbody.innerHTML = `<tr class="empty-row"><td colspan="10">Nenhum pedido de compra cadastrado. Clique em “+ Novo Pedido de Compra”.</td></tr>`;
     return;
   }
-  tbody.innerHTML = state.pedidos.map(p => {
+  const lista = exibirConcluidos() ? state.pedidos : state.pedidos.filter(p => !pedidoStats(p).concluido);
+  const ocultos = state.pedidos.length - lista.length;
+  document.getElementById('pedidosOcultosInfo').textContent = ocultos ? `· ${ocultos} concluído(s) oculto(s)` : '';
+  if (!lista.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">Nenhum pedido com saldo em aberto. Marque “Exibir pedidos concluídos” para ver os demais.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = lista.map(p => {
     const s = pedidoStats(p);
     return `<tr>
       <td><b>${escapeHtml(p.numero)}</b>${p.anexoNome ? ` <span title="${escapeHtml(p.anexoNome)}" style="color:var(--text-faint);">📎</span>` : ''}${s.soQtd ? ' <span class="badge qtd" title="Controle apenas por quantidade">só qtd.</span>' : ''}</td>
@@ -13767,6 +13783,12 @@ async function deleteDevolucao(id) {
 
 document.getElementById('dashFiltroFornecedor').addEventListener('change', renderDashboard);
 document.getElementById('dashFiltroPedido').addEventListener('change', renderDashboard);
+document.querySelectorAll('.capExibirConcluidos').forEach(cb => cb.addEventListener('change', () => {
+  document.querySelectorAll('.capExibirConcluidos').forEach(o => { o.checked = cb.checked; });
+  document.getElementById('relIncluirConcluidos').checked = cb.checked;
+  renderDashboard();
+  renderPedidos();
+}));
 ['fornFiltroFornecedor','fornFiltroObra','fornFiltroSituacao','fornFiltroDe','fornFiltroAte'].forEach(id => {
   document.getElementById(id).addEventListener('change', renderResumoFornecedor);
 });
@@ -14010,6 +14032,7 @@ document.getElementById('btnGerarRelatorio').addEventListener('click', () => {
   const dashForn = document.getElementById('dashFiltroFornecedor').value;
   if (dashForn && [...sel.options].some(o => o.value === dashForn)) sel.value = dashForn;
   fillPedidoSelect(document.getElementById('relFiltroPedido'), sel.value);
+  document.getElementById('relIncluirConcluidos').checked = exibirConcluidos();
   const dashPed = document.getElementById('dashFiltroPedido').value;
   document.getElementById('relFiltroPedido').value = dashPed && pedidoById(dashPed) ? dashPed : '';
   atualizarResumoRelatorio();
@@ -14499,6 +14522,7 @@ window.CAP = {
    no escopo local desta IIFE. Sem expor essas funções em window, o clique falha silenciosamente
    (a função "não existe" do ponto de vista do atributo onclick). */
 window.openPedidoModal = openPedidoModal;
+window.openSaldoDevModal = openSaldoDevModal;
 window.deletePedido = deletePedido;
 window.openEntregaModal = openEntregaModal;
 window.deleteEntrega = deleteEntrega;
