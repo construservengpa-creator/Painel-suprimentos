@@ -13839,21 +13839,71 @@ function dateBRtoIso(dBR) {
 }
 
 async function readPdfText(file) {
+  return (await readPdfDoc(file)).text;
+}
+// Texto corrido + cada trecho com sua posição na página (x, y, largura), para layouts em colunas
+async function readPdfDoc(file) {
   if (typeof pdfjsLib === 'undefined') {
     throw new Error('Biblioteca de leitura de PDF não carregou (verifique sua conexão com a internet).');
   }
   const buf = await file.arrayBuffer();
   const doc = await pdfjsLib.getDocument({ data: buf }).promise;
   let text = '';
+  const items = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
     text += content.items.map(it => it.str).join(' ') + '\n';
+    content.items.forEach(it => {
+      if (it.str && it.str.trim()) items.push({ str: it.str.trim(), x: it.transform[4], y: it.transform[5], w: it.width || 0, page: i });
+    });
   }
-  return text;
+  return { text, items };
 }
 
-function extractPedidoFields(text) {
+// Pedido de Compra do Sienge: o nome do fornecedor fica na coluna da esquerda do bloco
+// "Dados do fornecedor", quebrado em linhas e intercalado com os rótulos Endereço/CNPJ/IE.
+function siengeFornecedor(items) {
+  const hdr = items.find(it => /^dados do fornecedor$/i.test(it.str));
+  if (!hdr) return null;
+  const pag = items.filter(it => it.page === hdr.page);
+  const lbl = pag.filter(it => /^endere[çc]o$/i.test(it.str) && Math.abs(it.y - hdr.y) < 4 && it.x > hdr.x)
+    .sort((a, b) => a.x - b.x)[0];
+  const limX = lbl ? lbl.x : hdr.x + hdr.w + 20;
+  const fim = pag.filter(it => /^dados d[ao] (obra|entrega)$|^insumo$/i.test(it.str) && it.y < hdr.y)
+    .sort((a, b) => b.y - a.y)[0];
+  const minY = fim ? fim.y + 2 : hdr.y - 40;
+  const partes = pag.filter(it => it.y < hdr.y - 2 && it.y > minY && it.x + it.w <= limX)
+    .sort((a, b) => (b.y - a.y) || (a.x - b.x));
+  const nome = partes.map(it => it.str).join(' ').replace(/^\d+\s*-\s*/, '').replace(/\s+/g, ' ').trim();
+  return nome ? { value: nome, snippet: partes.map(it => it.str).join(' / ') } : null;
+}
+
+// Itens do pedido no formato Sienge: "Insumo ... Qtde. Unid. Pr. unitário ... Preço final"
+// seguido de linhas "4738 - CAP ASFALTO   200,0000 t   6.250,0000   0,00 ...   1.250.000,00".
+function siengeItens(text) {
+  const ini = text.search(/pr\.?\s*unit[aá]rio/i);
+  if (ini < 0) return null;
+  const fimRel = text.slice(ini).search(/cond\.?\s*pagamento|total\s*das\s*mercadorias|total\s*do\s*pedido/i);
+  const trecho = text.slice(ini, fimRel < 0 ? undefined : ini + fimRel);
+  const re = /(\d{1,3}(?:\.\d{3})*,\d+)\s+(t|ton|kg)\s+(\d{1,3}(?:\.\d{3})*,\d+)/gi;
+  let qtd = 0, total = 0, n = 0, snip = [];
+  let m;
+  while ((m = re.exec(trecho))) {
+    const kg = m[2].toLowerCase() === 'kg';
+    let q = parseNumBR(m[1]), pu = parseNumBR(m[3]);
+    if (q === null || pu === null) continue;
+    if (kg) { q = q / 1000; pu = pu * 1000; }
+    qtd += q; total += q * pu; n++; snip.push(m[0].trim());
+  }
+  if (!n || qtd <= 0) return null;
+  return {
+    qtd: { value: Math.round(qtd * 10000) / 10000, snippet: snip.join(' | ') },
+    preco: { value: Math.round((total / qtd) * 100) / 100, snippet: snip.join(' | '), derived: n > 1 },
+  };
+}
+
+function extractPedidoFields(text, items) {
   const out = {};
   let m = firstMatch(text, [
     /pedido\s*(?:de\s*compra)?\s*n?[ºo°]?\.?\s*:?\s*(\d{3,8})/i,
@@ -13864,7 +13914,9 @@ function extractPedidoFields(text) {
   m = firstMatch(text, [
     /fornecedor\s*:?\s*([A-Za-zÀ-ÿ0-9.,&\-\/\s]+?)(?=\s+(?:item|material|quantidade|cnpj|endere[çc]o|pedido|data|condi[çc][õo]es|local|valor)\b|$)/i,
   ]);
-  out.fornecedor = m ? { value: m[1].trim(), snippet: m[0].trim() } : null;
+  out.fornecedor = m && !/^endere[çc]o\b/i.test(m[1].trim()) ? { value: m[1].trim(), snippet: m[0].trim() } : null;
+  const fornSienge = items ? siengeFornecedor(items) : null;
+  if (fornSienge) out.fornecedor = fornSienge;
 
   m = firstMatch(text, [
     /quantidade\s*(?:contratada)?\s*:?\s*([\d.,]+)\s*(?:t\b|ton)/i,
@@ -13877,13 +13929,20 @@ function extractPedidoFields(text) {
   ]);
   out.precoTon = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : null;
 
+  const itensSienge = siengeItens(text);
+  if (itensSienge) {
+    out.qtdContratada = itensSienge.qtd;
+    out.precoTon = itensSienge.preco;
+  }
+
   m = firstMatch(text, [
     /valor\s*total\s*(?:do\s*pedido)?\s*:?\s*r?\$?\s*([\d.,]+)/i,
+    /total\s*do\s*pedido\s*:?\s*r?\$?\s*([\d.,]+)/i,
   ]);
   out.valorTotal = m ? { value: parseNumBR(m[1]), snippet: m[0].trim() } : null;
 
   m = firstMatch(text, [
-    /data\s*(?:do\s*pedido)?\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
+    /data\s*(?:(?:do\s*)?pedido)?\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
     /emitido\s*em\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i,
   ]);
   out.data = m ? { value: m[1], snippet: m[0].trim() } : (anyDateBR(text) ? { value: anyDateBR(text), snippet: null, fallback: true } : null);
@@ -14039,13 +14098,13 @@ document.getElementById('pedidoAnexo').addEventListener('change', async (ev) => 
   statusEl.textContent = 'Lendo PDF...';
   statusEl.className = 'attach-status busy';
   try {
-    const text = await readPdfText(file);
+    const { text, items } = await readPdfDoc(file);
     if (text.trim().length < 15) {
       statusEl.textContent = '⚠ Este PDF parece não ter texto (provável digitalização/imagem). Preencha os campos manualmente.';
       statusEl.className = 'attach-status error';
       return;
     }
-    const fields = extractPedidoFields(text);
+    const fields = extractPedidoFields(text, items);
     if (fields.numero) document.getElementById('pedidoNumero').value = fields.numero.value;
     if (fields.fornecedor) document.getElementById('pedidoFornecedor').value = fields.fornecedor.value;
     if (fields.qtdContratada) document.getElementById('pedidoQtd').value = fields.qtdContratada.value;
