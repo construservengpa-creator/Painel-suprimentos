@@ -3606,6 +3606,10 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <label for="dashFiltroFornecedor">Fornecedor</label>
         <select id="dashFiltroFornecedor"><option value="">Todos os fornecedores</option></select>
       </div>
+      <div class="field">
+        <label for="dashFiltroPedido">Pedido de compra</label>
+        <select id="dashFiltroPedido"><option value="">Todos os pedidos</option></select>
+      </div>
     </div>
     <div class="card">
       <h2>Saldo por Pedido de Compra</h2>
@@ -3836,6 +3840,39 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   </div>
 </div>
 
+<!-- MODAL DEVOLUÇÃO DO SALDO PELO FORNECEDOR -->
+<div class="modal-backdrop" id="modalSaldoDev">
+  <div class="modal">
+    <h3 id="saldoDevTitle">Devolução do saldo pelo fornecedor</h3>
+    <input type="hidden" id="saldoDevPedidoId">
+    <p class="hint" id="saldoDevInfo" style="margin-top:0;"></p>
+    <div class="field-row">
+      <div class="field">
+        <label>Data da devolução</label>
+        <input type="date" id="saldoDevData">
+      </div>
+      <div class="field">
+        <label>Qtd. abatida (t)</label>
+        <input type="number" id="saldoDevQtd" step="0.0001" min="0">
+      </div>
+      <div class="field" id="saldoDevValorField">
+        <label>Valor devolvido (R$)</label>
+        <input type="number" id="saldoDevValor" step="0.01" min="0">
+      </div>
+    </div>
+    <div class="field">
+      <label>Observação <span class="hint">(opcional — ex.: nº do crédito, depósito ou nota de estorno)</span></label>
+      <input type="text" id="saldoDevObs">
+    </div>
+    <div class="hint" id="saldoDevPreview" style="margin-top:2px;"></div>
+    <div class="modal-actions">
+      <button class="btn danger" id="btnRemoverSaldoDev" style="margin-right:auto;">Remover devolução</button>
+      <button class="btn" data-close="modalSaldoDev">Cancelar</button>
+      <button class="btn primary" id="btnSalvarSaldoDev">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL GERAR RELATÓRIO -->
 <div class="modal-backdrop" id="modalRelatorio">
   <div class="modal">
@@ -3844,6 +3881,11 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <label>Fornecedor</label>
       <select id="relFiltroFornecedor" style="width:100%;"><option value="">Todos os fornecedores</option></select>
     </div>
+    <div class="field">
+      <label>Pedido de compra</label>
+      <select id="relFiltroPedido" style="width:100%;"><option value="">Todos os pedidos</option></select>
+    </div>
+    <label style="display:flex;gap:6px;align-items:center;margin:2px 0 6px;"><input type="checkbox" id="relIncluirConcluidos" style="width:auto"> Incluir pedidos concluídos (saldo zerado)</label>
     <div class="hint" id="relFiltroResumo" style="margin-top:2px;"></div>
     <div class="modal-actions">
       <button class="btn" data-close="modalRelatorio">Cancelar</button>
@@ -12232,7 +12274,14 @@ function capPedidoFromDb(row) {
     // false = apenas quantidade (sem R$ no saldo, entregas e devoluções).
     controleValor: row.controle_valor !== false,
     dataRecebimento: row.data_recebimento,
-    anexoNome: row.anexo_nome || null
+    anexoNome: row.anexo_nome || null,
+    // Devolução do saldo pelo fornecedor (abate qtd. e valor e zera o saldo do pedido)
+    saldoDev: row.saldo_dev_qtd != null ? {
+      qtd: Number(row.saldo_dev_qtd) || 0,
+      valor: Number(row.saldo_dev_valor) || 0,
+      data: row.saldo_dev_data || null,
+      obs: row.saldo_dev_obs || ''
+    } : null
   };
 }
 function capEntregaFromDb(row) {
@@ -12335,6 +12384,24 @@ async function updateCapPedido(id, p) {
   } catch (e) {
     console.error('Falha ao atualizar pedido:', e);
     alert(mensagemErroCapPedido(e, 'Não foi possível salvar as alterações.'));
+    return false;
+  }
+}
+// Grava (ou remove, com sd = null) a devolução do saldo pelo fornecedor
+async function updateCapPedidoSaldoDev(id, sd) {
+  try {
+    const { error } = await window.SB.from('cap_pedidos').update({
+      saldo_dev_qtd: sd ? sd.qtd : null, saldo_dev_valor: sd ? sd.valor : null,
+      saldo_dev_data: sd ? (sd.data || null) : null, saldo_dev_obs: sd ? (sd.obs || null) : null
+    }).eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    console.error('Falha ao gravar devolução de saldo:', e);
+    const msg = String((e && (e.message || e.details)) || e || '');
+    alert(/saldo_dev/.test(msg)
+      ? 'Não foi possível salvar.\n\nAs colunas de devolução de saldo ainda não existem em cap_pedidos. Rode o script cap_saldo_devolvido.sql no Supabase.'
+      : mensagemErroCapPedido(e, 'Não foi possível salvar a devolução de saldo.'));
     return false;
   }
 }
@@ -12466,22 +12533,28 @@ function pedidoStats(p) {
   const entregueQtd = entregueQtdBruto - devolvidoQtd;
   const entregueValor = entregueValorBruto - devolvidoValor;
   const valorTotal = p.qtdContratada * precoEfetivo(p);
-  const saldoQtd = p.qtdContratada - entregueQtd;
-  const saldoValor = valorTotal - entregueValor;
-  const pct = p.qtdContratada > 0 ? Math.min(100, (entregueQtd / p.qtdContratada) * 100) : 0;
-  return { entregueQtdBruto, entregueValorBruto, devolvidoQtd, devolvidoValor, entregueQtd, entregueValor, valorTotal, saldoQtd, saldoValor, pct, soQtd: soQuantidade(p) };
+  // Saldo devolvido pelo fornecedor: sai do contratado (qtd. e valor), sem passar pelo estoque
+  const saldoDevQtd = p.saldoDev ? Number(p.saldoDev.qtd || 0) : 0;
+  const saldoDevValor = p.saldoDev && !soQuantidade(p) ? Number(p.saldoDev.valor || 0) : 0;
+  const qtdEfetiva = p.qtdContratada - saldoDevQtd;
+  const saldoQtd = qtdEfetiva - entregueQtd;
+  const saldoValor = valorTotal - saldoDevValor - entregueValor;
+  const pct = qtdEfetiva > 0 ? Math.min(100, (entregueQtd / qtdEfetiva) * 100) : 0;
+  const concluido = saldoQtd <= 0.005;
+  return { entregueQtdBruto, entregueValorBruto, devolvidoQtd, devolvidoValor, entregueQtd, entregueValor, valorTotal, saldoQtd, saldoValor, pct, soQtd: soQuantidade(p), saldoDevQtd, saldoDevValor, qtdEfetiva, concluido };
 }
+function pedidoQtdEfetiva(p) { return p.qtdContratada - (p.saldoDev ? Number(p.saldoDev.qtd || 0) : 0); }
 
 function estoqueLedger() {
   // Combine receipts (pedidos with dataRecebimento) and deliveries into one chronological ledger.
   // Pedidos without a dataRecebimento are treated as already in stock (opening balance).
   const opening = state.pedidos
     .filter(p => !p.dataRecebimento)
-    .reduce((s,p) => s + Number(p.qtdContratada||0), 0);
+    .reduce((s,p) => s + pedidoQtdEfetiva(p), 0);
 
   const events = [];
   state.pedidos.filter(p => p.dataRecebimento).forEach(p => {
-    events.push({ data: p.dataRecebimento, tipo: 'Recebimento', desc: `Recebimento Pedido ${p.numero}`, mov: Number(p.qtdContratada||0), order: 0 });
+    events.push({ data: p.dataRecebimento, tipo: 'Recebimento', desc: `Recebimento Pedido ${p.numero}`, mov: pedidoQtdEfetiva(p), order: 0 });
   });
   state.entregas.forEach(e => {
     const p = pedidoById(e.pedidoId);
@@ -12502,7 +12575,7 @@ function estoqueLedger() {
   });
 
   let saldo = opening;
-  let saldoValor = state.pedidos.filter(p=>!p.dataRecebimento).reduce((s,p)=>s+p.qtdContratada*precoEfetivo(p),0);
+  let saldoValor = state.pedidos.filter(p=>!p.dataRecebimento).reduce((s,p)=>s+pedidoQtdEfetiva(p)*precoEfetivo(p),0);
   // approximate R$ value per ton using weighted avg price of stock currently "in": simplistic FIFO not tracked, so
   // we show R$ saldo per event using the price of the pedido tied to that movement.
   const rows = [];
@@ -12558,9 +12631,18 @@ function resumoPorObra() {
    entregas/devoluções desses pedidos). Assim o Dashboard e o relatório
    reaproveitam exatamente os mesmos cálculos da visão geral. */
 function comFornecedor(fornecedor, fn) {
-  if (!fornecedor) return fn();
+  return comRecorte({ fornecedor }, fn);
+}
+// Recorte geral: fornecedor, um pedido específico e/ou só pedidos com saldo em aberto
+function comRecorte(f, fn) {
+  f = f || {};
+  if (!f.fornecedor && !f.pedidoId && !f.soAbertos) return fn();
   const original = state;
-  const ids = new Set(original.pedidos.filter(p => fornNome(p) === fornecedor).map(p => String(p.id)));
+  const ids = new Set(original.pedidos
+    .filter(p => !f.fornecedor || fornNome(p) === f.fornecedor)
+    .filter(p => !f.pedidoId || String(p.id) === String(f.pedidoId))
+    .filter(p => !f.soAbertos || !pedidoStats(p).concluido)
+    .map(p => String(p.id)));
   state = {
     ...original,
     pedidos: original.pedidos.filter(p => ids.has(String(p.id))),
@@ -12571,6 +12653,17 @@ function comFornecedor(fornecedor, fn) {
 }
 function listaFornecedoresCap() {
   return Array.from(new Set(state.pedidos.map(fornNome))).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+}
+function fillPedidoSelect(sel, fornecedor) {
+  const cur = sel.value;
+  const peds = state.pedidos
+    .filter(p => !fornecedor || fornNome(p) === fornecedor)
+    .slice().sort((a,b) => String(a.numero).localeCompare(String(b.numero), 'pt-BR', { numeric:true }));
+  sel.innerHTML = '<option value="">Todos os pedidos</option>' + peds.map(p => {
+    const st = pedidoStats(p);
+    return `<option value="${p.id}">${escapeHtml(p.numero)} · ${escapeHtml(fornNome(p))}${st.concluido ? ' (concluído)' : ''}</option>`;
+  }).join('');
+  sel.value = peds.some(p => String(p.id) === cur) ? cur : '';
 }
 function fillFornecedorSelect(sel) {
   const cur = sel.value;
@@ -12583,9 +12676,11 @@ function fillFornecedorSelect(sel) {
 function renderDashboard() {
   const sel = document.getElementById('dashFiltroFornecedor');
   fillFornecedorSelect(sel);
-  comFornecedor(sel.value, () => renderDashboardConteudo(sel.value));
+  const selP = document.getElementById('dashFiltroPedido');
+  fillPedidoSelect(selP, sel.value);
+  comRecorte({ fornecedor: sel.value, pedidoId: selP.value }, () => renderDashboardConteudo(sel.value, selP.value));
 }
-function renderDashboardConteudo(fornecedorFiltro) {
+function renderDashboardConteudo(fornecedorFiltro, pedidoFiltro) {
   const totalContratado = state.pedidos.reduce((s,p) => s + p.qtdContratada, 0);
   const totalEntregue = state.entregas.reduce((s,e) => s + Number(e.qtd||0), 0);
   const totalDevolvido = (state.devolucoes||[]).reduce((s,d) => s + Number(d.qtd||0), 0);
@@ -12599,7 +12694,7 @@ function renderDashboardConteudo(fornecedorFiltro) {
     { cls: 'c-crit', label: 'Entregue (líquido)', value: fmtT(totalEntregue - totalDevolvido), sub: fmtT(totalEntregue) + ' brutas · ' + state.entregas.length + ' entrega(s)' },
     { cls: 'c-ped', label: 'Devolvido', value: fmtT(totalDevolvido), sub: (state.devolucoes||[]).length + ' devolução(ões)/estorno(s)' },
     { cls: 'c-solic', label: 'Saldo a entregar', value: fmtT(totalSaldoQtd), sub: fmtR(totalSaldoValor) + (state.pedidos.some(soQuantidade) ? ' · R$ só de pedidos com valor' : '') },
-    { cls: '', label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
+    { cls: '', label: 'Estoque físico atual', value: fmtT(estoqueAtual), sub: pedidoFiltro ? 'saldo em tanque deste pedido' : fornecedorFiltro ? 'saldo em tanque deste fornecedor' : 'saldo combinado em tanque' },
   ];
   document.getElementById('dashKpis').innerHTML = kpis.map(k => `
     <div class="kpi-card ${k.cls}">
@@ -12609,7 +12704,7 @@ function renderDashboardConteudo(fornecedorFiltro) {
     </div>`).join('');
 
   document.getElementById('dashPoGrid').innerHTML = state.pedidos.map(p => renderPoCard(p)).join('') ||
-    `<div class="hint">${fornecedorFiltro ? 'Nenhum pedido deste fornecedor.' : 'Nenhum pedido cadastrado.'}</div>`;
+    `<div class="hint">${fornecedorFiltro || pedidoFiltro ? 'Nenhum pedido para este filtro.' : 'Nenhum pedido cadastrado.'}</div>`;
 
   renderBarChart('dashObraChart', resumoPorObra().map(o => ({ label: o.local, value: o.qtd })));
 }
@@ -12633,11 +12728,12 @@ function renderPoCard(p) {
     <div class="cap-bar" title="Entregue ${pctTxt(s.entregueQtd)} · Devolvido ${pctTxt(s.devolvidoQtd)} · Saldo ${pctTxt(Math.max(0, s.saldoQtd))}"><i class="ent" style="width:${pe.toFixed(1)}%"></i><i class="dev" style="width:${pd.toFixed(1)}%"></i></div>
     <div class="cap-num"><span class="cap-dot ent"></span><span class="lbl">Entregue</span> ${fmtT(s.entregueQtd)} <span class="pct">(${pctTxt(s.entregueQtd)})</span></div>
     ${s.devolvidoQtd > 0 ? `<div class="cap-num"><span class="cap-dot dev"></span><span class="lbl">Devolvido</span> ${fmtT(s.devolvidoQtd)} <span class="pct">(${pctTxt(s.devolvidoQtd)})</span></div>` : ''}
+    ${s.saldoDevQtd > 0 ? `<div class="cap-num" title="${escapeHtml(p.saldoDev.obs || '')}"><span class="cap-dot"></span><span class="lbl">Saldo devolvido pelo fornecedor</span> ${fmtT(s.saldoDevQtd)}${s.soQtd ? '' : ' · ' + fmtR(s.saldoDevValor)}${p.saldoDev.data ? ' <span class="pct">em ' + fmtDate(p.saldoDev.data) + '</span>' : ''}</div>` : ''}
     <div class="po-foot">
       <div>
         <span class="lbl">Saldo a entregar</span>
         <span class="saldo-pill ${saldoCls}">${fmtT(s.saldoQtd)}</span>
-        <span class="sub">${pctTxt(Math.max(0, s.saldoQtd))} do contratado${low && s.saldoQtd > 0.005 ? ' · saldo baixo' : ''}</span>
+        <span class="sub">${s.concluido ? 'pedido concluído' : pctTxt(Math.max(0, s.saldoQtd)) + ' do contratado' + (low ? ' · saldo baixo' : '')}</span>
       </div>
       ${s.soQtd ? '' : `<div style="text-align:right;"><span class="lbl">Saldo (R$)</span><b class="tabular" style="font-size:13.5px;">${fmtR(s.saldoValor)}</b></div>`}
     </div>
@@ -12673,10 +12769,11 @@ function renderPedidos() {
       <td class="num tabular">${fmtRPedido(p, s.valorTotal)}</td>
       <td class="num tabular">${fmtT(s.entregueQtd)}</td>
       <td class="num tabular">${s.devolvidoQtd > 0 ? fmtT(s.devolvidoQtd) : '<span class="hint">—</span>'}</td>
-      <td class="num tabular">${fmtT(s.saldoQtd)}</td>
-      <td class="num tabular">${fmtRPedido(p, s.saldoValor)}</td>
+      <td class="num tabular">${fmtT(s.saldoQtd)}${s.concluido ? '<div><span class="badge ok">concluído</span></div>' : ''}</td>
+      <td class="num tabular">${fmtRPedido(p, s.saldoValor)}${s.saldoDevQtd > 0 ? `<div class="hint" title="${escapeHtml(p.saldoDev.obs || '')}">devolvido pelo forn.: ${fmtT(s.saldoDevQtd)}${s.soQtd ? '' : ' · ' + fmtR(s.saldoDevValor)}</div>` : ''}</td>
       <td class="row-actions">
         <button title="Editar" class="gestor-credito-only" onclick="openPedidoModal('${p.id}')">✎</button>
+        <button title="Devolução do saldo pelo fornecedor (zera o saldo do pedido)" class="gestor-credito-only" onclick="openSaldoDevModal('${p.id}')">⇤</button>
         <button title="Excluir" class="danger gestor-credito-only" onclick="deletePedido('${p.id}')">🗑</button>
       </td>
     </tr>`;
@@ -12928,6 +13025,7 @@ function resumoPorFornecedor(f) {
     const contratado = sum(x => x.p.qtdContratada);
     const valorContratado = sum(x => x.s.valorTotal);
     const entregueTotal = sum(x => x.s.entregueQtd);
+    const contratadoEfetivo = sum(x => x.s.qtdEfetiva);
     const contratadoComValor = sum(x => x.s.soQtd ? 0 : x.p.qtdContratada);
     return {
       nome: g.nome,
@@ -12941,7 +13039,8 @@ function resumoPorFornecedor(f) {
       saldoValor: sum(x => x.s.saldoValor),
       precoMedio: contratadoComValor > 0 ? valorContratado / contratadoComValor : 0,
       soQtd: contratadoComValor === 0,
-      pct: contratado > 0 ? Math.min(100, entregueTotal / contratado * 100) : 0
+      contratadoEfetivo,
+      pct: contratadoEfetivo > 0 ? Math.min(100, entregueTotal / contratadoEfetivo * 100) : 0
     };
   }).sort((a,b) => b.contratado - a.contratado);
 }
@@ -13030,11 +13129,11 @@ function renderResumoFornecedor() {
     return linha + subs;
   }).join('');
 
-  const tContr = tot('contratado'), tValor = tot('valorContratado'), tEntTotal = tot('entregueTotal');
+  const tContr = tot('contratadoEfetivo'), tValor = tot('valorContratado'), tEntTotal = tot('entregueTotal');
   tfoot.innerHTML = `<tr>
     <td>Total</td>
     <td class="num tabular">${nPedidos}</td>
-    <td class="num tabular">${fmtT(tContr)}</td>
+    <td class="num tabular">${fmtT(tot('contratado'))}</td>
     <td class="num tabular">${fmtR(tValor)}</td>
     <td class="num tabular">${fmtT(tot('entregueQtd'))}</td>
     <td class="num tabular">${fmtT(tot('devolvidoQtd'))}</td>
@@ -13140,6 +13239,78 @@ document.querySelectorAll('.modal-backdrop').forEach(bd => bd.addEventListener('
 
 /* ============ PEDIDOS: CRUD ============ */
 document.getElementById('btnNovoPedido').addEventListener('click', () => openPedidoModal(null));
+
+/* ============ DEVOLUÇÃO DO SALDO PELO FORNECEDOR ============
+   O fornecedor não vai entregar o restante e devolve o valor: a quantidade e
+   o valor abatidos saem do contratado e o saldo do pedido vai a zero. */
+function openSaldoDevModal(id) {
+  const p = pedidoById(id);
+  if (!p) return;
+  const s = pedidoStats(p);
+  // saldo antes de qualquer devolução já registrada (para editar a existente)
+  const saldoQtdAntes = s.saldoQtd + s.saldoDevQtd;
+  const saldoValorAntes = s.saldoValor + s.saldoDevValor;
+  document.getElementById('saldoDevPedidoId').value = p.id;
+  document.getElementById('saldoDevTitle').textContent = `Devolução do saldo pelo fornecedor · Pedido ${p.numero}`;
+  document.getElementById('saldoDevInfo').innerHTML =
+    `${escapeHtml(fornNome(p))} · contratado ${fmtT(p.qtdContratada)}${s.soQtd ? '' : ' (' + fmtR(s.valorTotal) + ')'} · entregue líq. ${fmtT(s.entregueQtd)}.<br>` +
+    `Saldo a abater: <b>${fmtT(saldoQtdAntes)}</b>${s.soQtd ? '' : ' · <b>' + fmtR(saldoValorAntes) + '</b>'}`;
+  document.getElementById('saldoDevValorField').style.display = s.soQtd ? 'none' : '';
+  const sd = p.saldoDev;
+  document.getElementById('saldoDevData').value = sd && sd.data ? sd.data : todayIso();
+  document.getElementById('saldoDevQtd').value = sd ? sd.qtd : Math.max(0, Math.round(saldoQtdAntes * 10000) / 10000);
+  document.getElementById('saldoDevValor').value = sd ? sd.valor : Math.max(0, Math.round(saldoValorAntes * 100) / 100);
+  document.getElementById('saldoDevObs').value = sd ? sd.obs : '';
+  document.getElementById('btnRemoverSaldoDev').style.display = sd ? '' : 'none';
+  updateSaldoDevPreview();
+  openModal('modalSaldoDev');
+}
+function updateSaldoDevPreview() {
+  const p = pedidoById(document.getElementById('saldoDevPedidoId').value);
+  if (!p) return;
+  const s = pedidoStats(p);
+  const q = Number(document.getElementById('saldoDevQtd').value || 0);
+  const v = Number(document.getElementById('saldoDevValor').value || 0);
+  const restaQtd = s.saldoQtd + s.saldoDevQtd - q;
+  const restaValor = s.saldoValor + s.saldoDevValor - v;
+  document.getElementById('saldoDevPreview').textContent =
+    `Saldo do pedido após a devolução: ${fmtT(restaQtd)}${s.soQtd ? '' : ' · ' + fmtR(restaValor)}` +
+    (Math.abs(restaQtd) <= 0.005 ? ' — pedido concluído (sai do relatório).' : '');
+}
+['saldoDevQtd','saldoDevValor'].forEach(id => document.getElementById(id).addEventListener('input', updateSaldoDevPreview));
+document.getElementById('btnSalvarSaldoDev').addEventListener('click', async () => {
+  const id = document.getElementById('saldoDevPedidoId').value;
+  const p = pedidoById(id);
+  if (!p) return;
+  const s = pedidoStats(p);
+  const qtd = Number(document.getElementById('saldoDevQtd').value);
+  const valor = s.soQtd ? 0 : Number(document.getElementById('saldoDevValor').value || 0);
+  const data = document.getElementById('saldoDevData').value;
+  if (!data) { toast('Informe a data da devolução'); return; }
+  if (!(qtd > 0)) { toast('Informe a quantidade abatida'); return; }
+  const saldoQtdAntes = s.saldoQtd + s.saldoDevQtd;
+  if (qtd > saldoQtdAntes + 0.0001 && !confirm(`A quantidade abatida (${fmtT(qtd)}) é maior que o saldo do pedido (${fmtT(saldoQtdAntes)}). Salvar mesmo assim?`)) return;
+  const btn = document.getElementById('btnSalvarSaldoDev');
+  btn.disabled = true;
+  const ok = await updateCapPedidoSaldoDev(id, { qtd, valor, data, obs: document.getElementById('saldoDevObs').value.trim() });
+  btn.disabled = false;
+  if (!ok) return;
+  toast(`Devolução de saldo registrada no pedido ${p.numero}`);
+  closeModal('modalSaldoDev');
+  await reloadCapData();
+  renderAll();
+});
+document.getElementById('btnRemoverSaldoDev').addEventListener('click', async () => {
+  const id = document.getElementById('saldoDevPedidoId').value;
+  const p = pedidoById(id);
+  if (!p || !confirm(`Remover a devolução de saldo do pedido ${p.numero}? O saldo volta a ficar em aberto.`)) return;
+  const ok = await updateCapPedidoSaldoDev(id, null);
+  if (!ok) return;
+  toast('Devolução de saldo removida');
+  closeModal('modalSaldoDev');
+  await reloadCapData();
+  renderAll();
+});
 
 let pedidoAnexoNomeAtual = null;
 
@@ -13595,6 +13766,7 @@ async function deleteDevolucao(id) {
 });
 
 document.getElementById('dashFiltroFornecedor').addEventListener('change', renderDashboard);
+document.getElementById('dashFiltroPedido').addEventListener('change', renderDashboard);
 ['fornFiltroFornecedor','fornFiltroObra','fornFiltroSituacao','fornFiltroDe','fornFiltroAte'].forEach(id => {
   document.getElementById(id).addEventListener('change', renderResumoFornecedor);
 });
@@ -13621,7 +13793,10 @@ function exportXlsx() {
       'Preço/t (R$)': s.soQtd ? '' : p.precoTon, 'Qtd. contratada (t)': p.qtdContratada,
       'Valor total (R$)': s.valorTotal, 'Entregue bruto (t)': s.entregueQtdBruto, 'Devolvido (t)': s.devolvidoQtd,
       'Entregue líquido (t)': s.entregueQtd, 'Entregue líquido (R$)': s.entregueValor,
-      'Saldo (t)': s.saldoQtd, 'Saldo (R$)': s.saldoValor, 'Data recebimento': p.dataRecebimento || ''
+      'Saldo devolvido pelo fornecedor (t)': s.saldoDevQtd || '', 'Saldo devolvido pelo fornecedor (R$)': s.saldoDevValor || '',
+      'Data devolução do saldo': p.saldoDev ? (p.saldoDev.data || '') : '',
+      'Saldo (t)': s.saldoQtd, 'Saldo (R$)': s.saldoValor, 'Situação': s.concluido ? 'Concluído' : 'Em aberto',
+      'Data recebimento': p.dataRecebimento || ''
     };
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pedidosRows), 'Pedidos de Compra');
@@ -13682,10 +13857,17 @@ document.getElementById('btnExportXlsx2').addEventListener('click', () => {
 });
 
 /* ============ RELATÓRIO EM A4 (mesmo formato do Controle de Crédito entre Obras) ============ */
-function buildReportHtml(fornecedor) {
-  return comFornecedor(fornecedor || '', () => buildReportHtmlConteudo(fornecedor || ''));
+// Por padrão o relatório traz só pedidos com saldo em aberto; um pedido escolhido no filtro sai sempre.
+function relRecorte(fornecedor, pedidoId, incluirConcluidos) {
+  return { fornecedor: fornecedor || '', pedidoId: pedidoId || '', soAbertos: !pedidoId && !incluirConcluidos };
 }
-function buildReportHtmlConteudo(fornecedorFiltro) {
+function buildReportHtml(fornecedor, pedidoId, incluirConcluidos) {
+  const f = relRecorte(fornecedor, pedidoId, incluirConcluidos);
+  const concluidosFora = f.soAbertos
+    ? comRecorte({ fornecedor: f.fornecedor }, () => state.pedidos.filter(p => pedidoStats(p).concluido).length) : 0;
+  return comRecorte(f, () => buildReportHtmlConteudo(f.fornecedor, f.pedidoId, concluidosFora));
+}
+function buildReportHtmlConteudo(fornecedorFiltro, pedidoFiltro, concluidosFora) {
   const e = escapeHtml;
   const pc = (v,t) => t>0 ? (v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '0%';
   const rs = (p, v) => soQuantidade(p) ? '—' : fmtR(v);
@@ -13703,8 +13885,20 @@ function buildReportHtmlConteudo(fornecedorFiltro) {
         ...entregasDoPedido(p.id).map(x=>({ ...x, tipo:'ent', sinal:-1 })),
         ...devolucoesDoPedido(p.id).map(x=>({ ...x, tipo:'dev', sinal:1 }))
       ].sort((a,b)=>(a.data||'').localeCompare(b.data||'') || (a.tipo==='ent'?-1:1));
+      if (p.saldoDev) movs.push({ tipo:'sdev', sinal:-1, data: p.saldoDev.data, nf: '', qtd: s.saldoDevQtd, valor: s.saldoDevValor, motivo: p.saldoDev.obs, pedidoId: p.id });
       let saldo = p.qtdContratada;
       const linhas = movs.map(m=>{
+        if (m.tipo==='sdev') {
+          saldo -= Number(m.qtd||0);
+          return `<tr>
+          <td>${fmtDate(m.data)}</td>
+          <td><b>—</b></td>
+          <td><span class="st res">Saldo devolvido</span></td>
+          <td>Devolução do saldo pelo fornecedor${m.motivo?`<div class="mut">${e(m.motivo)}</div>`:''}</td>
+          <td class="n">−${fmtT(m.qtd)}</td>
+          <td class="n">${rs(p, m.valor)}</td>
+          <td class="n"><b>${fmtT(saldo)}</b></td></tr>`;
+        }
         saldo += m.sinal * Number(m.qtd||0);
         const entOrig = m.tipo==='dev' && m.entregaId ? state.entregas.find(x=>String(x.id)===String(m.entregaId)) : null;
         const obs = m.tipo==='dev'
@@ -13726,7 +13920,7 @@ function buildReportHtmlConteudo(fornecedorFiltro) {
           <div class="cv">${fmtT(p.qtdContratada)}${s.soQtd ? '' : `<div class="mut">${fmtR(s.valorTotal)}</div>`}</div>
         </div>
         <div class="bar"><i class="f" style="width:${pe}%"></i></div>
-        <div class="eq"><span><i class="d f"></i>Entregue (líquido) <b>${fmtT(s.entregueQtd)}</b>${s.soQtd?'':` · ${fmtR(s.entregueValor)}`} (${pc(s.entregueQtd,p.qtdContratada)})</span>${s.devolvidoQtd>0?`<span><i class="d r"></i>Devolvido <b>${fmtT(s.devolvidoQtd)}</b></span>`:''}<span><i class="d l"></i>Saldo a entregar <b>${fmtT(s.saldoQtd)}</b>${s.soQtd?'':` · ${fmtR(s.saldoValor)}`} (${pc(Math.max(0,s.saldoQtd),p.qtdContratada)})</span></div>
+        <div class="eq"><span><i class="d f"></i>Entregue (líquido) <b>${fmtT(s.entregueQtd)}</b>${s.soQtd?'':` · ${fmtR(s.entregueValor)}`} (${pc(s.entregueQtd,p.qtdContratada)})</span>${s.devolvidoQtd>0?`<span><i class="d r"></i>Devolvido <b>${fmtT(s.devolvidoQtd)}</b></span>`:''}${s.saldoDevQtd>0?`<span><i class="d r"></i>Saldo devolvido pelo fornecedor <b>${fmtT(s.saldoDevQtd)}</b>${s.soQtd?'':` · ${fmtR(s.saldoDevValor)}`}</span>`:''}<span><i class="d l"></i>Saldo a entregar <b>${fmtT(s.saldoQtd)}</b>${s.soQtd?'':` · ${fmtR(s.saldoValor)}`} (${pc(Math.max(0,s.saldoQtd),p.qtdContratada)})</span></div>
         ${movs.length ? `<table><colgroup><col style="width:10%"><col style="width:12%"><col style="width:11%"><col style="width:27%"><col style="width:12%"><col style="width:15%"><col style="width:13%"></colgroup>
           <thead><tr><th>Data</th><th>NF</th><th>Movimento</th><th>Local / observação</th><th class="n">Qtd.</th><th class="n">Valor</th><th class="n">Saldo do pedido</th></tr></thead>
           <tbody>${linhas}</tbody>
@@ -13785,11 +13979,11 @@ function buildReportHtmlConteudo(fornecedorFiltro) {
     .st.ok{background:#e3f2e5;color:#2e7d32;} .st.res{background:#fff3d6;color:#8a6100;}
     .foot{margin-top:8px;font-size:7pt;color:#8a929c;}
   </style></head><body>
-    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos</div><h1>Controle de Saldo — CAP</h1>${fornecedorFiltro?`<div class="mut">Fornecedor: <b>${e(fornecedorFiltro)}</b></div>`:''}</div>
-      <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${state.pedidos.length} pedido(s)${fornecedorFiltro?'':' · todos os fornecedores'}</div></div>
+    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos</div><h1>Controle de Saldo — CAP</h1>${fornecedorFiltro?`<div class="mut">Fornecedor: <b>${e(fornecedorFiltro)}</b></div>`:''}${pedidoFiltro && state.pedidos[0]?`<div class="mut">Pedido de compra: <b>${e(state.pedidos[0].numero)}</b></div>`:''}</div>
+      <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${state.pedidos.length} pedido(s)${fornecedorFiltro||pedidoFiltro?'':' · todos os fornecedores'}${concluidosFora?`<br>${concluidosFora} pedido(s) concluído(s) não incluído(s)`:''}</div></div>
     <div class="kp"><div><span class="mut">Contratado</span><b>${fmtT(gQ)}</b><span class="mut">${fmtR(gV)}</span></div><div><span class="mut">Entregue (líquido)</span><b>${fmtT(gE)}</b><span class="mut">${fmtR(gEV)}${gD>0?` · devolvido ${fmtT(gD)}`:''}</span></div><div><span class="mut">Saldo a entregar</span><b>${fmtT(gS)}</b><span class="mut">${fmtR(gSV)}</span></div><div><span class="mut">Estoque físico atual</span><b>${fmtT(estoque)}</b><span class="mut">${fornecedorFiltro?'em tanque deste fornecedor':'combinado em tanque'}</span></div></div>
     <div class="leg"><i class="d f"></i><b>Entregue</b>: notas fiscais de entrega lançadas no pedido, já descontadas as devoluções. <i class="d r"></i><b>Devolvido</b>: devoluções e estornos, que voltam para o saldo do pedido. <i class="d l"></i><b>Saldo a entregar</b>: quantidade contratada que ainda falta entregar. Pedidos "apenas quantidade" não somam valores em R$.</div>
-    ${blocos || '<div class="mut">Nenhum pedido de compra cadastrado.</div>'}
+    ${blocos || `<div class="mut">${concluidosFora ? 'Nenhum pedido com saldo em aberto.' : 'Nenhum pedido de compra cadastrado.'}</div>`}
     ${fornHtml}
     ${obrasHtml}
     <div class="foot">Fonte: pedidos, entregas e devoluções cadastrados no Controle de Saldo CAP no momento da emissão.</div>
@@ -13798,12 +13992,16 @@ function buildReportHtmlConteudo(fornecedorFiltro) {
 
 function atualizarResumoRelatorio() {
   const forn = document.getElementById('relFiltroFornecedor').value;
-  const info = comFornecedor(forn, () => ({
+  const selP = document.getElementById('relFiltroPedido');
+  fillPedidoSelect(selP, forn);
+  const incl = document.getElementById('relIncluirConcluidos').checked;
+  document.getElementById('relIncluirConcluidos').disabled = !!selP.value;
+  const info = comRecorte(relRecorte(forn, selP.value, incl), () => ({
     pedidos: state.pedidos.length,
     saldo: state.pedidos.reduce((s,p) => s + pedidoStats(p).saldoQtd, 0)
   }));
   document.getElementById('relFiltroResumo').textContent =
-    `${forn ? 'Só este fornecedor' : 'Relatório geral, com resumo por fornecedor'}: ${info.pedidos} pedido(s), saldo a entregar de ${fmtT(info.saldo)}.`;
+    `${selP.value ? 'Só este pedido' : forn ? 'Só este fornecedor' : 'Relatório geral, com resumo por fornecedor'}: ${info.pedidos} pedido(s)${selP.value || incl ? '' : ' com saldo em aberto'}, saldo a entregar de ${fmtT(info.saldo)}.`;
 }
 document.getElementById('btnGerarRelatorio').addEventListener('click', () => {
   const sel = document.getElementById('relFiltroFornecedor');
@@ -13811,13 +14009,18 @@ document.getElementById('btnGerarRelatorio').addEventListener('click', () => {
   // Já abre com o fornecedor escolhido no Dashboard, se houver.
   const dashForn = document.getElementById('dashFiltroFornecedor').value;
   if (dashForn && [...sel.options].some(o => o.value === dashForn)) sel.value = dashForn;
+  fillPedidoSelect(document.getElementById('relFiltroPedido'), sel.value);
+  const dashPed = document.getElementById('dashFiltroPedido').value;
+  document.getElementById('relFiltroPedido').value = dashPed && pedidoById(dashPed) ? dashPed : '';
   atualizarResumoRelatorio();
   openModal('modalRelatorio');
 });
 document.getElementById('relFiltroFornecedor').addEventListener('change', atualizarResumoRelatorio);
+document.getElementById('relFiltroPedido').addEventListener('change', atualizarResumoRelatorio);
+document.getElementById('relIncluirConcluidos').addEventListener('change', atualizarResumoRelatorio);
 document.getElementById('btnConfirmarRelatorio').addEventListener('click', () => {
   const forn = document.getElementById('relFiltroFornecedor').value;
-  const html = buildReportHtml(forn);
+  const html = buildReportHtml(forn, document.getElementById('relFiltroPedido').value, document.getElementById('relIncluirConcluidos').checked);
   closeModal('modalRelatorio');
   // Abre a impressão (ou "Salvar como PDF") em A4, como o relatório de créditos.
   const fr = document.createElement('iframe');
