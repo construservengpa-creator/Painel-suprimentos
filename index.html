@@ -10287,7 +10287,9 @@ async function insertCentroCustoCredito(cc){
 // Sienge (tabela creditos_notas). O relatório principal traz só uma nota por
 // item de pedido; estas completam as demais notas do mesmo pedido.
 let notasExtrasCredito = new Map();   // num_pedido -> [{numero, valor, data, chave, saldoPedido}]
-const chaveNotaFiscal = (n)=>{ const m = String(n||'').match(/\d{3,}/); return m ? String(Number(m[0])) : ''; };
+// Número da nota: o que vem depois do tipo ("NFSE.4 / SU" → 4, "NFE .8670 / 1"
+// → 8670); sem tipo na frente, o primeiro número com 3 dígitos ou mais.
+const chaveNotaFiscal = (n)=>{ const s = String(n||''), m = s.match(/^\s*NF[A-Z]*\s*[.\-\/]?\s*\.?\s*(\d+)/i) || s.match(/(\d{3,})/); return m ? String(Number(m[1])) : ''; };
 async function loadNotasExtrasCredito(){
   try{
     const { data, error } = await window.SB.from('creditos_notas').select('num_pedido,nota,nota_key,emissao,valor,saldo_pedido,importado_em');
@@ -10504,7 +10506,7 @@ const _dtISO = v => {
   const m = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : null;
 };
 const _numBR = s => { const v = parseNumBR(String(s)); return isNaN(v) ? 0 : v; };
-const RX_NF = /\bNF[A-Z]*\s*[.\-\/]?\s*\.?\s*(\d{2,})(?:\s*\/\s*\d+)?/i;
+const RX_NF = /\bNF[A-Z]*\s*[.\-\/]?\s*\.?\s*(\d+)(?:\s*\/\s*\d+)?/i;
 const RX_MONEY = /-?\d{1,3}(?:\.\d{3})*,\d{2}/g;
 
 // Interpreta uma linha de texto do relatório (vinda do PDF ou de uma linha do Excel)
@@ -10584,7 +10586,7 @@ function linhasExcel(wb){
           const a = aoa[r]; if(!a) continue;
           const ped = a[iP]==null ? '' : String(a[iP]).replace(/\.0+$/,'').trim();
           const nota = a[iN]==null ? '' : String(a[iN]).replace(/\s+/g,' ').trim();
-          const nk = (nota.match(/\d{2,}/)||[])[0];
+          const nk = chaveNotaFiscal(nota);
           if(!/^\d{4,7}$/.test(ped) || !nk) continue;
           const num = v => typeof v === 'number' ? v : _numBR(v);
           out.porCabecalho.push({ num_pedido:ped, nota, nota_key:String(Number(nk)), emissao:iE>=0?_dtISO(a[iE]):null,
