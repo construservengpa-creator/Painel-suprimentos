@@ -13339,6 +13339,17 @@ document.getElementById('entregaQtd').addEventListener('input', () => {
   updateEntregaPreview();
 });
 
+// Entrega já cadastrada com a mesma NF no mesmo pedido (ignora zeros à esquerda e a própria entrega em edição)
+function entregaDuplicada(nf, pedidoId, ignorarId) {
+  const nfNorm = String(nf || '').trim().replace(/^0+/, '');
+  if (!nfNorm) return null;
+  return state.entregas.find(e =>
+    String(e.id) !== String(ignorarId || '') &&
+    String(e.nf || '').trim().replace(/^0+/, '') === nfNorm &&
+    String(e.pedidoId || '') === String(pedidoId || '')
+  ) || null;
+}
+
 document.getElementById('btnSalvarEntrega').addEventListener('click', async () => {
   const id = document.getElementById('entregaEditId').value;
   const data = document.getElementById('entregaData').value;
@@ -13352,6 +13363,13 @@ document.getElementById('btnSalvarEntrega').addEventListener('click', async () =
   if (!data) { toast('Informe a data do registro'); return; }
   if (!(qtd > 0)) { toast('Informe a quantidade entregue'); return; }
   if (!local) { toast('Informe o local de entrega'); return; }
+
+  const dup = entregaDuplicada(nf, pedidoId, id);
+  if (dup) {
+    const p = pedidoId ? pedidoById(pedidoId) : null;
+    toast(`A NF ${dup.nf} já está cadastrada${p ? ' no pedido ' + p.numero : ''} (registro de ${fmtDate(dup.data)}). Entrega não salva.`);
+    return;
+  }
 
   if (pedidoId) {
     const p = pedidoById(pedidoId);
@@ -14174,8 +14192,14 @@ document.getElementById('entregaAnexo').addEventListener('change', async (ev) =>
     updateEntregaPreview();
 
     entregaAnexoNomeAtual = file.name;
-    statusEl.textContent = `📄 ${file.name} — campos preenchidos automaticamente, confira antes de salvar.`;
-    statusEl.className = 'attach-status';
+    const dup = entregaDuplicada(document.getElementById('entregaNf').value, document.getElementById('entregaPedido').value, document.getElementById('entregaEditId').value);
+    if (dup) {
+      statusEl.textContent = `⚠ ${file.name} — a NF ${dup.nf} já está cadastrada neste pedido (registro de ${fmtDate(dup.data)}). Esta entrega não poderá ser salva em duplicidade.`;
+      statusEl.className = 'attach-status error';
+    } else {
+      statusEl.textContent = `📄 ${file.name} — campos preenchidos automaticamente, confira antes de salvar.`;
+      statusEl.className = 'attach-status';
+    }
     renderExtractReport('entregaAnexoReport', text, [
       { label: 'Nº da NF', data: fields.nf },
       { label: 'Quantidade (t)', data: fields.qtd },
