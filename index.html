@@ -3496,6 +3496,28 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <div class="section">
         <div class="section-head">
           <div>
+            <div class="eyebrow">Notas fiscais</div>
+            <h2>🧾 Notas do contas a pagar para os pedidos vinculados</h2>
+          </div>
+          <div class="toolbar">
+            <span class="count-badge" id="notaAutoCountBadge">0 nota(s)</span>
+            <button class="primary" id="notaAutoBtnTodas" disabled>Vincular notas</button>
+          </div>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:10px;">Notas fiscais em aberto no relatório de títulos do Sienge (Contas a pagar → complemento) do mesmo fornecedor de um pedido já vinculado a um crédito e ainda em faturamento, que ainda não estão em nenhum pedido da base. Quando o fornecedor tem um só pedido vinculado em aberto (ou a observação do título cita o número do pedido), a nota já vem casada; senão, escolha o pedido. Ao vincular, a nota entra no pedido como as do relatório "Acompanhamento de Pedidos" e o faturado do crédito é recalculado.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th class="no-print"><input type="checkbox" id="notaAutoMarcarTodas" title="Marcar todas" checked></th><th>Nota fiscal</th><th>Fornecedor (credor)</th><th>Empresa</th><th>Emissão</th><th>Valor</th><th>Pedido vinculado</th></tr>
+            </thead>
+            <tbody id="notaAutoTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
             <div class="eyebrow">Já vinculados</div>
             <h2>🔗 Pedidos já vinculados</h2>
           </div>
@@ -11294,6 +11316,7 @@ function renderSugestoesVinculo(){
   const badge = document.getElementById('vinculoAutoCountBadge');
   const btnTodos = document.getElementById('vinculoAutoBtnTodos');
   const painel = document.querySelector('[data-ctab-panel="vincular"]');
+  if(!titulosPedidoCarregado || !titulosPedidoCredito) renderNotasParaVinculos();
   if(!titulosPedidoCarregado){
     // carrega na primeira vez que a aba Vincular Pedido estiver aberta
     if(painel && painel.classList.contains('active') && (document.body.classList.contains('is-admin') || document.body.classList.contains('is-supervisor'))) carregarSugestoesVinculo();
@@ -11308,6 +11331,7 @@ function renderSugestoesVinculo(){
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:18px;">Sem relatório de títulos do Sienge. Importe-o em Financeiro → Contas a pagar → "Importar títulos (complemento)".</td></tr>`;
     return;
   }
+  renderNotasParaVinculos();
   sugestoesVinculoAtuais = calcularSugestoesVinculo();
   const cabem = sugestoesVinculoAtuais.filter(x=>x.cabe);
   if(badge) badge.textContent = `${sugestoesVinculoAtuais.length} sugestão(ões)`;
@@ -11346,6 +11370,119 @@ function renderSugestoesVinculo(){
       document.getElementById('vinculo-fPedido').scrollIntoView({behavior:'smooth', block:'center'});
     });
   });
+}
+// Notas fiscais do contas a pagar para pedidos já vinculados: casadas pelo
+// fornecedor (credor do título), só as que ainda não estão em nenhum pedido.
+let notasParaVinculosAtuais = [];
+const chaveFornecedor = f => normKey(String(f||'').replace(/^\s*\d+\s*-\s*/,''));
+function mesmoFornecedor(a, b){
+  const ka = chaveFornecedor(a), kb = chaveFornecedor(b);
+  if(!ka || !kb) return false;
+  return ka===kb || (Math.min(ka.length, kb.length) >= 10 && (ka.includes(kb) || kb.includes(ka)));
+}
+function calcularNotasParaVinculos(){
+  if(!titulosPedidoCredito || !titulosPedidoCredito.todos) return [];
+  const pedidos = getPedidosUnicos(), pedidosMap = new Map(pedidos.map(p=>[String(p.numPedido), p]));
+  // pedidos vinculados ainda em faturamento (não cancelados nem concluídos)
+  const abertos = vinculosCredito.filter(v=>vinculoStatusAtual(v)==='previsto').map(v=>{
+    const p = pedidosMap.get(String(v.numPedido));
+    return { v, p, fornecedor: (p && p.fornecedor) || v.fornecedor, credito: creditos.find(c=>String(c.id)===String(v.creditoId)) };
+  });
+  if(!abertos.length) return [];
+  // notas que já estão em algum pedido (do mesmo fornecedor, ou sem fornecedor informado)
+  const jaUsada = (forn, chave) => pedidos.some(p=>(p.notas||[]).some(n=>chaveNotaFiscal(n.numero)===chave) && (!p.fornecedor || mesmoFornecedor(p.fornecedor, forn)));
+  const porNota = new Map();
+  titulosPedidoCredito.todos.forEach(t=>{
+    if(t.grupo!=='doc' || t.prev) return;
+    const chave = chaveNotaFiscal(t.ndoc);
+    if(!chave) return;
+    const cands = abertos.filter(a=>mesmoFornecedor(a.fornecedor, t.credor));
+    if(!cands.length || jaUsada(t.credor, chave)) return;
+    const k = chaveFornecedor(t.credor)+'§'+chave;
+    let x = porNota.get(k);
+    if(!x){ x = { chave, tipo:t.tipo, ndoc:t.ndoc, credor:t.credor, empresa:t.empresa, emissao:t.emissao, obs:'', valor:0, tits:new Set(), cands }; porNota.set(k, x); }
+    const id = t.tit || (t.tipo+' '+t.ndoc+' '+x.tits.size);
+    if(x.tits.has(id)) return;
+    x.tits.add(id);
+    x.valor += Number(t.vOrig) || Number(t.vAPagar) || 0;
+    if(t.obs) x.obs = x.obs ? x.obs+' · '+t.obs : t.obs;
+  });
+  const lista = [...porNota.values()].map(x=>{
+    // pedido escolhido: o citado na observação do título; senão, o único candidato
+    const citado = x.cands.filter(a=>new RegExp('(^|\\D)'+String(a.v.numPedido)+'(\\D|$)').test(x.obs));
+    const escolhido = citado.length===1 ? citado[0] : x.cands.length===1 ? x.cands[0] : null;
+    return Object.assign(x, { valor: Math.round(x.valor*100)/100, pedidoSel: escolhido ? String(escolhido.v.numPedido) : '' });
+  }).filter(x=>x.valor > 0.005);
+  lista.sort((a,b)=>String(a.credor).localeCompare(String(b.credor)) || String(a.emissao||'').localeCompare(String(b.emissao||'')));
+  return lista;
+}
+function renderNotasParaVinculos(){
+  const tbody = document.getElementById('notaAutoTableBody');
+  if(!tbody) return;
+  const badge = document.getElementById('notaAutoCountBadge');
+  const btn = document.getElementById('notaAutoBtnTodas');
+  const vazio = txt => { notasParaVinculosAtuais = []; if(badge) badge.textContent = '0 nota(s)'; if(btn) btn.disabled = true;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:18px;">${txt}</td></tr>`; };
+  if(!titulosPedidoCarregado) return vazio('Abra esta aba ou clique em "Atualizar" para buscar as notas.');
+  if(!titulosPedidoCredito) return vazio('Sem relatório de títulos do Sienge. Importe-o em Financeiro → Contas a pagar → "Importar títulos (complemento)".');
+  notasParaVinculosAtuais = calcularNotasParaVinculos();
+  if(!notasParaVinculosAtuais.length) return vazio('Nenhuma nota do contas a pagar pendente para os pedidos vinculados em faturamento.');
+  if(badge) badge.textContent = `${notasParaVinculosAtuais.length} nota(s)`;
+  tbody.innerHTML = notasParaVinculosAtuais.map((x,i)=>{
+    const opts = x.cands.map(a=>{
+      const fat = vinculoFaturado(a.v), resta = Math.max(0,(a.v.valorPrevisto||0)-fat);
+      return `<option value="${esc(a.v.numPedido)}" ${String(a.v.numPedido)===x.pedidoSel?'selected':''}>${esc(a.v.numPedido)} · ${esc(a.credito ? a.credito.obra : '')} · resta R$ ${fmtMoney(resta)}</option>`;
+    }).join('');
+    return `<tr>
+      <td class="no-print"><input type="checkbox" data-nota-auto-marca="${i}" ${x.pedidoSel?'checked':''}></td>
+      <td>${esc(x.tipo)} ${esc(x.ndoc)}${x.obs?`<div style="font-size:11px;color:var(--text-faint);max-width:260px;">${esc(x.obs.slice(0,160))}</div>`:''}</td>
+      <td class="txt">${esc(x.credor)}</td>
+      <td class="txt">${esc(x.empresa)||'—'}</td>
+      <td>${x.emissao?fmtBRDate(x.emissao):'—'}</td>
+      <td>R$ ${fmtMoney(x.valor)}</td>
+      <td><select data-nota-auto-pedido="${i}">${x.pedidoSel?'':'<option value="">Escolha o pedido…</option>'}${opts}</select></td>
+    </tr>`;
+  }).join('');
+  const atualizarBotao = ()=>{
+    const n = notasParaVinculosAtuais.filter(x=>x.marcada && x.pedidoSel).length;
+    if(btn){ btn.disabled = !n; btn.textContent = n ? `Vincular notas (${n})` : 'Vincular notas'; }
+  };
+  notasParaVinculosAtuais.forEach(x=>{ x.marcada = !!x.pedidoSel; });
+  tbody.querySelectorAll('[data-nota-auto-pedido]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const i = Number(sel.getAttribute('data-nota-auto-pedido')), x = notasParaVinculosAtuais[i];
+      x.pedidoSel = sel.value;
+      const chk = tbody.querySelector(`[data-nota-auto-marca="${i}"]`);
+      if(chk && sel.value){ chk.checked = true; x.marcada = true; }
+      atualizarBotao();
+    });
+  });
+  tbody.querySelectorAll('[data-nota-auto-marca]').forEach(chk=>{
+    chk.addEventListener('change', ()=>{ notasParaVinculosAtuais[Number(chk.getAttribute('data-nota-auto-marca'))].marcada = chk.checked; atualizarBotao(); });
+  });
+  atualizarBotao();
+}
+async function vincularNotasAosPedidos(){
+  const lista = notasParaVinculosAtuais.filter(x=>x.marcada && x.pedidoSel);
+  if(!lista.length) return;
+  const total = lista.reduce((s,x)=>s+x.valor,0);
+  if(!confirm(`Vincular ${lista.length} nota(s) fiscal(is), somando R$ ${fmtMoney(total)}, aos pedidos escolhidos? O faturado dos créditos será recalculado.`)) return;
+  const agora = new Date().toISOString(), arquivo = 'Contas a pagar' + (titulosPedidoCredito && titulosPedidoCredito.arquivo ? ': '+titulosPedidoCredito.arquivo : '');
+  const linhas = lista.map(x=>({ num_pedido:String(x.pedidoSel), nota:`${x.tipo} ${x.ndoc}`, nota_key:x.chave, emissao:x.emissao||null,
+    valor:x.valor, fornecedor:x.credor||null, arquivo, importado_em:agora }));
+  try{
+    const { error } = await window.SB.from('creditos_notas').upsert(linhas, { onConflict:'num_pedido,nota_key' });
+    if(error) throw error;
+  }catch(e){
+    console.error('Falha ao vincular notas aos pedidos:', e);
+    alert('Não foi possível vincular as notas: ' + (e.message || e) + '\nVerifique se você está logado como administrador ou supervisor.');
+    return;
+  }
+  await loadNotasExtrasCredito();
+  await loadVinculosCredito();
+  await reconciliarVinculosComNotasFiscais();
+  await loadVinculosCredito();
+  renderCreditos();
 }
 function observacaoSugestao(x){
   const docs = x.titulos.map(t=>`${t.tipo} ${t.ndoc}`).filter((d,i,a)=>a.indexOf(d)===i).slice(0,4).join(', ');
@@ -12037,6 +12174,14 @@ async function init(){
     carregarSugestoesVinculo();
   });
   document.getElementById('vinculoAutoBtnTodos').addEventListener('click', ()=> vincularSugestoes(sugestoesVinculoAtuais));
+  document.getElementById('notaAutoBtnTodas').addEventListener('click', vincularNotasAosPedidos);
+  document.getElementById('notaAutoMarcarTodas').addEventListener('change', (e)=>{
+    document.querySelectorAll('#notaAutoTableBody [data-nota-auto-marca]').forEach(chk=>{
+      const x = notasParaVinculosAtuais[Number(chk.getAttribute('data-nota-auto-marca'))];
+      if(!x || !x.pedidoSel) return;
+      chk.checked = e.target.checked; chk.dispatchEvent(new Event('change'));
+    });
+  });
   document.getElementById('fCreditoBeneficiaria').addEventListener('change', renderCreditos);
   document.getElementById('fCreditoEmpresa').addEventListener('change', renderCreditos);
   document.getElementById('fCreditoObra').addEventListener('change', renderCreditos);
@@ -17938,9 +18083,10 @@ async function titulosPorPedido(){
       let s=nfNum.get(k);if(!s){s=new Set();nfNum.set(k,s)}s.add(String(r.numPedido));
     });
   }
-  const F=CT.dados.fields||CT_FIELDS, m=new Map();
+  const F=CT.dados.fields||CT_FIELDS, m=new Map(), todos=[];
   for(const r of CT.dados.rows){
     const o={};F.forEach((k,i)=>o[k]=r[i]);
+    todos.push(Object.assign(o,{grupo:grupoDe(o.tipo)}));
     const k=chaveNum(o.ndoc);if(!k)continue;
     let ped=null;
     if(o.tipo==='PPC')ped=k;
@@ -17951,7 +18097,7 @@ async function titulosPorPedido(){
     if(!ped)continue;
     let a=m.get(ped);if(!a){a=[];m.set(ped,a)}a.push(Object.assign(o,{chaveNf:k}));
   }
-  return {mapa:m,dataRef:CT.data_ref,arquivo:CT.nome_arquivo||''};
+  return {mapa:m,todos,dataRef:CT.data_ref,arquivo:CT.nome_arquivo||''};
 }
 window.PXR={show,showCpg,refresh,titulosPorPedido,recarregarFinanceiro:()=>{cpCarregado=false;CP=null;CT=null;if($('tab-pxr').classList.contains('active'))show();if($('tab-cpg').classList.contains('active'))showCpg()}};
 })();
