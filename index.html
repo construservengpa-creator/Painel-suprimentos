@@ -5724,6 +5724,14 @@ async function fetchLatestRelatorio(){
   if(err1) throw err1;
   if(!ultimo) return null;
 
+  // O relatório inteiro (dezenas de milhares de linhas) é o que mais pesa na
+  // cota de tráfego do Supabase: se este navegador já baixou este mesmo lote,
+  // usa a cópia guardada e não baixa de novo.
+  const guardado = await relatorioCacheLer();
+  if(guardado && guardado.lote === ultimo.lote && Array.isArray(guardado.dados) && guardado.dados.length){
+    return { dados: guardado.dados, nome_arquivo: ultimo.nome_arquivo, importado_em: ultimo.importado_em };
+  }
+
   // ...depois busca TODOS os pedaços desse lote e junta na ordem certa.
   const { data: partes, error: err2 } = await window.SB
     .from('relatorio_importacoes')
@@ -5733,7 +5741,37 @@ async function fetchLatestRelatorio(){
   if(err2) throw err2;
 
   const dados = (partes||[]).flatMap(p => Array.isArray(p.dados) ? p.dados : []);
+  if(dados.length) relatorioCacheGravar({ lote: ultimo.lote, dados });
   return { dados, nome_arquivo: ultimo.nome_arquivo, importado_em: ultimo.importado_em };
+}
+
+// Cópia do último relatório publicado neste navegador (IndexedDB), por lote.
+// Melhor esforço: sem IndexedDB (aba anônima, bloqueio), baixa como antes.
+const RELATORIO_CACHE_DB = 'PainelSuprimentosRelatorio';
+function relatorioCacheDB(){
+  return new Promise((resolve, reject)=>{
+    if(!('indexedDB' in window)) return reject(new Error('IndexedDB indisponível'));
+    const req = indexedDB.open(RELATORIO_CACHE_DB, 1);
+    req.onupgradeneeded = (e)=>{ const db = e.target.result; if(!db.objectStoreNames.contains('relatorio')) db.createObjectStore('relatorio'); };
+    req.onsuccess = (e)=>resolve(e.target.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function relatorioCacheLer(){
+  try{
+    const db = await relatorioCacheDB();
+    return await new Promise((resolve)=>{
+      const req = db.transaction('relatorio', 'readonly').objectStore('relatorio').get('ultimo');
+      req.onsuccess = ()=>resolve(req.result || null);
+      req.onerror = ()=>resolve(null);
+    });
+  }catch(e){ return null; }
+}
+async function relatorioCacheGravar(valor){
+  try{
+    const db = await relatorioCacheDB();
+    db.transaction('relatorio', 'readwrite').objectStore('relatorio').put(valor, 'ultimo');
+  }catch(e){ /* sem cópia local: na próxima abertura baixa de novo */ }
 }
 
 // Publica um relatório grande em vários pedaços pequenos, em vez de um único
@@ -5789,6 +5827,8 @@ async function publicarRelatorio(rawRows, nomeArquivo){
       enviados += chunk.length;
       setUploadProgress({ percent: (enviados/rawRows.length)*100 });
     }
+
+    relatorioCacheGravar({ lote, dados: rawRows });
 
     // Publicação concluída — apaga as importações anteriores para não
     // acumular relatórios antigos no banco (o painel só usa o mais recente).
