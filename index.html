@@ -6,18 +6,61 @@
 <title>Capivara Suprimentos — Painel de Compras · Sienge</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23F5C433'/><g fill='%231A1E24' transform='translate(0.00 0.00) scale(1.0)'><rect x='12' y='40' width='6' height='12' rx='2.5'/><rect x='22' y='41' width='5.5' height='11' rx='2.5'/><rect x='35.5' y='40' width='6' height='12' rx='2.5'/><circle cx='41.5' cy='18.8' r='2.7'/><path fill-rule='evenodd' d='M10 44C5.5 40 5.5 30 9.5 25.5C13.5 20 21 17 28.5 17.8C33 18.3 35.5 20 38 20L44 19.6C50.5 19.8 55.5 21 58.5 23.5C60.8 25.5 61 31 59.5 33.5C58.3 35.2 55.5 35.8 52.5 35.8L46 35.8C44.5 40.5 41 44.5 36 45.5L16 46.5C13.5 46.5 11.3 45.5 10 44ZM48.6 24.3a1.6 1.6 0 1 0-3.2 0a1.6 1.6 0 1 0 3.2 0ZM59.2 26.6a.8 1.1 0 1 0-1.6 0a.8 1.1 0 1 0 1.6 0Z'/></g></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
   /* tema escolhido pelo usuário (fica salvo neste navegador); aplicado antes de
      desenhar a página para não piscar o tema padrão */
   (function(){ try{ var t = localStorage.getItem('painel-tema'); if(t === 'estoque') document.documentElement.setAttribute('data-tema', t); }catch(e){} })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';"></script>
 <script>
-  if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
+  /* Excel (SheetJS, ~900 KB) e PDF (pdf.js, ~300 KB) só servem para importar e exportar
+     arquivos: em vez de travar a abertura da página, são baixados em segundo plano depois
+     que ela abre, ou na hora em que forem usados (garantirXLSX / garantirPdf). */
+  (function(){
+    var libs = {};
+    function baixar(urls){
+      return new Promise(function(resolve, reject){
+        var i = 0;
+        (function prox(){
+          if(i >= urls.length) return reject(new Error('sem conexão'));
+          var sc = document.createElement('script');
+          sc.src = urls[i++];
+          sc.onload = resolve;
+          sc.onerror = function(){ sc.remove(); prox(); };
+          document.head.appendChild(sc);
+        })();
+      });
+    }
+    function lib(nome, pronta, urls, msg, depois){
+      if(pronta()) return Promise.resolve();
+      if(!libs[nome]) libs[nome] = baixar(urls).then(function(){
+        if(!pronta()) throw new Error('incompleta');
+        if(depois) depois();
+      }).catch(function(){ libs[nome] = null; throw new Error(msg); });
+      return libs[nome];
+    }
+    window.garantirXLSX = function(){
+      return lib('xlsx', function(){ return typeof XLSX !== 'undefined'; },
+        ['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'],
+        'A biblioteca de Excel não carregou (verifique a conexão com a internet) — tente de novo.');
+    };
+    window.garantirPdf = function(){
+      return lib('pdf', function(){ return typeof pdfjsLib !== 'undefined'; },
+        ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'],
+        'O leitor de PDF não carregou (verifique a conexão com a internet) — tente de novo.',
+        function(){ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; });
+    };
+    // botões de exportação (funções síncronas): baixa o Excel se preciso e repete a ação
+    window.comXLSX = function(fn){
+      garantirXLSX().then(fn, function(e){ alert(e.message); });
+    };
+    window.addEventListener('load', function(){
+      var ocioso = window.requestIdleCallback || function(f){ setTimeout(f, 1500); };
+      ocioso(function(){ garantirXLSX().catch(function(){}); garantirPdf().catch(function(){}); }, { timeout: 4000 });
+    });
+  })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js';"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js';"></script>
@@ -5474,10 +5517,7 @@ document.getElementById('fileInput').addEventListener('change', async function(e
   const files = Array.from(e.target.files || []);
   e.target.value = '';
   if(!files.length) return;
-  if(typeof XLSX === 'undefined'){
-    alert('A biblioteca de leitura de planilhas ainda não carregou (é necessária conexão com a internet na primeira vez). Aguarde alguns segundos e tente novamente.');
-    return;
-  }
+  try{ await garantirXLSX(); }catch(err){ alert(err.message); return; }
   try{
     const aoas = await Promise.all(files.map(lerArquivoComoAoa));
     let rawRows, nome;
@@ -5559,20 +5599,8 @@ const EMBEDDED_CADASTRO_JSON = {
 
 const BASE_DADOS_FILENAME = 'Base_dados.xlsx';
 
-function waitForXLSX(timeoutMs){
-  timeoutMs = timeoutMs || 12000;
-  return new Promise(function(resolve, reject){
-    const start = Date.now();
-    (function check(){
-      if(typeof XLSX !== 'undefined') return resolve();
-      if(Date.now() - start > timeoutMs) return reject(new Error('Biblioteca de leitura de planilhas não carregou a tempo (verifique a conexão com a internet).'));
-      setTimeout(check, 300);
-    })();
-  });
-}
-
 async function loadWorkbookRows(data){
-  await waitForXLSX();
+  await garantirXLSX();
   const wb = XLSX.read(data, {type:'array'});
   const ws = wb.Sheets[wb.SheetNames[0]];
   const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:''});
@@ -10534,7 +10562,7 @@ function linhaNotaPedido(txt){
 }
 
 async function linhasTextoPdf(file){
-  if(typeof pdfjsLib === 'undefined') throw new Error('o leitor de PDF não carregou. Recarregue a página.');
+  await garantirPdf();
   const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
   const linhas = [];
   for(let pg = 1; pg <= doc.numPages; pg++){
@@ -10630,7 +10658,7 @@ async function importarNotasPedidoSienge(file){
     if(ehPdf){
       lidas = (await linhasTextoPdf(file)).map(linhaNotaPedido).filter(Boolean);
     } else {
-      if(typeof XLSX === 'undefined') throw new Error('a biblioteca de Excel não carregou. Recarregue a página.');
+      await garantirXLSX();
       const wb = XLSX.read(await file.arrayBuffer(), { type:'array', cellDates:true });
       const x = linhasExcel(wb);
       lidas = x.porCabecalho.length ? x.porCabecalho : x.texto.map(linhaNotaPedido).filter(Boolean);
@@ -11743,8 +11771,9 @@ async function renderAuditoria(){
   </tr>`).join('');
 }
 
-/* ---- Exportação para Excel (usa a biblioteca SheetJS já carregada) ---- */
+/* ---- Exportação para Excel (SheetJS, baixada sob demanda) ---- */
 function exportCreditosExcel(){
+  if(typeof XLSX==='undefined'){comXLSX(exportCreditosExcel);return}
   const lista = getCreditosFiltrados();
   const wsCreditos = XLSX.utils.json_to_sheet(lista.map(c=>({
     'Empresa beneficiária': c.empresaBeneficiaria,
@@ -11778,6 +11807,7 @@ function exportCreditosExcel(){
   XLSX.writeFile(wb, `controle_credito_${todayISO()}.xlsx`);
 }
 function exportAuditoriaExcel(){
+  if(typeof XLSX==='undefined'){comXLSX(exportAuditoriaExcel);return}
   const lista = getAuditoriaFiltrada();
   const acaoLabel = {INSERT:'Lançamento',UPDATE:'Alteração',DELETE:'Exclusão'};
   const ws = XLSX.utils.json_to_sheet(lista.map(a=>({
@@ -13900,12 +13930,10 @@ function getAllEntregasSorted() {
   return state.entregas.slice().sort((a,b) => (a.data||'').localeCompare(b.data||''));
 }
 document.getElementById('btnExportXlsx').addEventListener('click', () => {
-  if (typeof XLSX === 'undefined') { alert('Não foi possível carregar a biblioteca de exportação Excel (sem conexão com a internet). Tente novamente com internet disponível, ou use o backup JSON.'); return; }
-  exportXlsx();
+  comXLSX(exportXlsx);
 });
 document.getElementById('btnExportXlsx2').addEventListener('click', () => {
-  if (typeof XLSX === 'undefined') { alert('Não foi possível carregar a biblioteca de exportação Excel (sem conexão com a internet). Tente novamente com internet disponível, ou use o backup JSON.'); return; }
-  exportXlsx();
+  comXLSX(exportXlsx);
 });
 
 /* ============ RELATÓRIO EM A4 (mesmo formato do Controle de Crédito entre Obras) ============ */
@@ -14117,9 +14145,7 @@ async function readPdfText(file) {
 }
 // Texto corrido + cada trecho com sua posição na página (x, y, largura), para layouts em colunas
 async function readPdfDoc(file) {
-  if (typeof pdfjsLib === 'undefined') {
-    throw new Error('Biblioteca de leitura de PDF não carregou (verifique sua conexão com a internet).');
-  }
+  await garantirPdf();
   const buf = await file.arrayBuffer();
   const doc = await pdfjsLib.getDocument({ data: buf }).promise;
   let text = '';
@@ -16402,7 +16428,7 @@ function renderRules(){
 }
 function msg(t,ok){const m=$('#ctrImpMsg');m.innerHTML=t;m.className='ctr-msg on '+(ok?'ok':'err')}
 async function importFile(f){
-  if(typeof XLSX==='undefined'){msg('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  try{await garantirXLSX()}catch(e){msg(esc(e.message));return}
   if(!isGestor()){msg('Só administradores e supervisores importam o relatório.');return}
   msg('Lendo '+esc(f.name)+'…',true);
   try{
@@ -16494,7 +16520,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&curId)closeD()});
 
 /* ---------- exportação ---------- */
 function xls(list,name){
-  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  if(typeof XLSX==='undefined'){comXLSX(()=>xls(list,name));return}
   const data=list.map(c=>{const a=AD[c.id]||{};return{'Contrato':c.contrato,'Empresa':c.empresa,'Obra':c.obra,'Fornecedor':c.fornecedor,'CPF/CNPJ':c.cnpj,'Tipo':c.tipo,'Situação':c.situacao,'Início':br(c.dtInicio),'Término':br(c.dtTermino),'Dias restantes':c.diasRest,'% prazo':c.pPrazo!=null?+(c.pPrazo*100).toFixed(1):null,'% medido':+(c.pMed*100).toFixed(1),'Total':c.total,'Medido':c.medido,'Saldo':c.saldo,'Média mensal':+c.mensal.toFixed(2),'Saldo acaba em':c.dtEsg?br(c.dtEsg):'','Necessidade':NECL[c.nec],'Severidade':SEVL[c.sev],'Motivos':[...c.motP,...c.motQ,...c.motE].map(m=>m[1]).join(' | '),'Nova data sugerida':c.sugData?br(c.sugData):'','Acréscimo sugerido':c.sugValor||'','Status aditivo':a.status||'','Tipo aditivo':a.tipo||'','Nova data (controle)':a.nova_data?br(a.nova_data):'','Acréscimo (controle)':a.valor_acrescimo??'','Observações':a.observacoes||'','Responsável':c.responsavel,'Próxima medição':c.agNext?br(c.agNext):'','Situação da medição':c.ag?AGL[c.ag.status]:'','Critério de pagamento':c.ag?critTxt(c.ag.k):'','Origem do critério':c.ag?(c.ag.k.cadastrado?'Cadastrado':'Padrão'):''}});
   const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Contratos');
   XLSX.writeFile(wb,name+'_'+(POS?POS.data_ref:'')+'.xlsx');
@@ -16640,7 +16666,7 @@ function renderAgenda(){
   $$('#ctrAgAtr tbody tr[data-id],#ctrAgFut tbody tr[data-id]').forEach(r=>r.onclick=()=>openD(r.dataset.id));
 }
 function xlsAgenda(){
-  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  if(typeof XLSX==='undefined'){comXLSX(xlsAgenda);return}
   const {atr,fut}=agItems();
   const base=c=>({'Contrato':c.contrato,'Fornecedor':c.fornecedor,'Obra':c.obra,'Empresa':c.empresa,'Responsável':c.responsavel,'Critério':critTxt(c.ag.k),'Origem do critério':c.ag.k.cadastrado?'Cadastrado':'Padrão'});
   const d1=atr.map(a=>Object.assign({'Situação':'Em atraso','Emitir em':br(a.desde),'Medições':a.n,'Valor estimado':+a.v.toFixed(2)},base(a.c)));
@@ -17063,6 +17089,7 @@ async function carregarTitulosCompl(){
 async function importarTitulosCompl(f){
   finMsg('Lendo '+esc(f.name)+'…',true);
   try{
+    await garantirXLSX();
     const x=Object.assign(lerTitulosCompl(await f.arrayBuffer()),{nome_arquivo:f.name});
     const n=x.dados.rows.length;let onde='', aviso='';
     if(logado()){
@@ -17341,7 +17368,7 @@ function limitePainel(v){
 }
 // planilhas: [{nome, linhas:[{...}]}]
 function exportarPainel(nome,abas){
-  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  if(typeof XLSX==='undefined'){comXLSX(()=>exportarPainel(nome,abas));return}
   const wb=XLSX.utils.book_new(), usados=new Set();
   abas.forEach(a=>{let n=String(a.nome).replace(/[\\/?*\[\]:]/g,' ').slice(0,31)||'Planilha', i=2;
     while(usados.has(n))n=n.slice(0,28)+' '+(i++);usados.add(n);
@@ -17421,7 +17448,7 @@ function composicao(D,col,esc0){
 }
 
 function exportar(){
-  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  if(typeof XLSX==='undefined'){comXLSX(exportar);return}
   const D=montar(), wb=XLSX.utils.book_new(), r2=v=>+(v||0).toFixed(2);
   const T=D.T, linhas=[];
   // obra × mês com as mesmas colunas da tela
@@ -17652,7 +17679,7 @@ function renderCpg(){
   } else $('cpgTEmp').innerHTML='';
 }
 function exportarCpg(){
-  if(typeof XLSX==='undefined'){alert('A biblioteca de Excel não carregou. Recarregue a página.');return}
+  if(typeof XLSX==='undefined'){comXLSX(exportarCpg);return}
   const D=cpgDados();if(!D){alert('Importe o relatório de contas a pagar primeiro.');return}
   const r2=x=>+(x||0).toFixed(2), wb=XLSX.utils.book_new();
   const valores=a=>({'A pagar (R$)':r2(a.doc),'PCT (R$)':r2(a.pct),'PPC (R$)':r2(a.ppc),'PRV (R$)':r2(a.prv),'Previsão (R$)':r2(cpgPrev(a)),'Total (R$)':r2(cpgTot(a)),'Vencido (R$)':r2(a.venc),'Títulos':a.n});
