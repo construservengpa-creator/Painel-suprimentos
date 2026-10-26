@@ -5713,7 +5713,89 @@ async function reconnectRememberedFile(key, onFile){
   }
 }
 
+/* ============================================================
+   Relatório publicado — formato incremental
+   Cada linha do relatório do Sienge fica em relatorio_linhas com uma "chave"
+   (impressão digital do conteúdo). Publicar grava só as linhas novas ou
+   alteradas e marca em relatorio_remocoes as que saíram; cada publicação vira
+   uma linha de relatorio_versoes. As três usam o mesmo contador (seq), então
+   o navegador, que guarda a cópia da última versão que viu, baixa só o que
+   entrou ou saiu depois dela. Sem essas tabelas (supabase/relatorio_incremental.sql
+   ainda não rodado), tudo segue no formato antigo (relatorio_importacoes).
+   ============================================================ */
+const RELATORIO_PURGA_DIAS = 7;   // remoções mais antigas que isso são apagadas de vez
+function relatorioIncIndisponivel(err){
+  const m = String((err && (err.code + ' ' + err.message)) || '');
+  return /PGRST205|42P01|does not exist|schema cache|Could not find/i.test(m);
+}
+// Chave de uma linha: duas funções de hash (cyrb53) do conteúdo com as chaves
+// em ordem fixa, normalizado como o jsonb devolve (ida e volta em JSON).
+function relatorioChaveConteudo(row){
+  const o = JSON.parse(JSON.stringify(row || {}));
+  const txt = JSON.stringify(o, Object.keys(o).sort());
+  const h = (seed)=>{ let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+    for(let i = 0; i < txt.length; i++){ const c = txt.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36); };
+  return h(1) + h(7);
+}
+// Linhas idênticas repetidas no relatório viram chaves diferentes (#0, #1...).
+function relatorioChaves(rows){
+  const vistas = new Map();
+  return rows.map(r=>{ const c = relatorioChaveConteudo(r); const n = vistas.get(c) || 0; vistas.set(c, n + 1); return c + '#' + n; });
+}
+async function relatorioLerPaginas(mk){
+  let all = [];
+  for(let de = 0; ; de += 1000){
+    const { data, error } = await mk().range(de, de + 999);
+    if(error) throw error;
+    all = all.concat(data || []);
+    if(!data || data.length < 1000) return all;
+  }
+}
+async function relatorioVersaoAtual(){
+  const { data, error } = await window.SB.from('relatorio_versoes')
+    .select('versao,nome_arquivo,importado_em,seq_purgado,total_linhas')
+    .order('versao', { ascending:false }).limit(1).maybeSingle();
+  if(error) throw error;
+  return data || null;
+}
+// Atualiza a cópia local até a versão v: baixa só as linhas que entraram e a
+// lista das que saíram desde a versão guardada. Devolve Map id -> dados.
+async function relatorioSincronizar(v){
+  const guardado = await relatorioCacheLer();
+  let base = 0, linhas = new Map();
+  if(guardado && guardado.modo === 'inc' && Array.isArray(guardado.linhas) && guardado.versao <= v.versao && guardado.versao >= (Number(v.seq_purgado) || 0)){
+    base = guardado.versao; linhas = new Map(guardado.linhas);
+  }
+  if(base !== v.versao){
+    const [novas, saidas] = await Promise.all([
+      relatorioLerPaginas(()=>window.SB.from('relatorio_linhas_estado').select('id,dados')
+        .gt('seq', base).lte('seq', v.versao).or(`seq_rem.is.null,seq_rem.gt.${v.versao}`).order('id', { ascending:true })),
+      base ? relatorioLerPaginas(()=>window.SB.from('relatorio_remocoes').select('linha_id')
+        .gt('seq', base).lte('seq', v.versao).order('seq', { ascending:true })) : Promise.resolve([]),
+    ]);
+    saidas.forEach(r=>linhas.delete(r.linha_id));
+    novas.forEach(r=>linhas.set(r.id, r.dados));
+    relatorioCacheGravar({ modo:'inc', versao: v.versao, linhas: [...linhas] });
+  }
+  return linhas;
+}
+
 async function fetchLatestRelatorio(){
+  let v = null;
+  try{ v = await relatorioVersaoAtual(); }
+  catch(err){ if(!relatorioIncIndisponivel(err)) throw err; }
+  if(v){
+    const linhas = await relatorioSincronizar(v);
+    const dados = [...linhas.keys()].sort((a, b)=>a - b).map(id=>linhas.get(id));
+    return { dados, nome_arquivo: v.nome_arquivo, importado_em: v.importado_em };
+  }
+  return fetchLatestRelatorioAntigo();
+}
+
+async function fetchLatestRelatorioAntigo(){
   // Pega o lote (grupo) da importação mais recente...
   const { data: ultimo, error: err1 } = await window.SB
     .from('relatorio_importacoes')
@@ -5804,6 +5886,90 @@ async function publicarRelatorio(rawRows, nomeArquivo){
     alert('Faça login como administrador para publicar um novo relatório.');
     return false;
   }
+  let v0;
+  try{ v0 = await relatorioVersaoAtual(); }
+  catch(err){
+    if(relatorioIncIndisponivel(err)) return publicarRelatorioAntigo(rawRows, nomeArquivo, session);
+    v0 = undefined;
+  }
+  if(v0 !== undefined) return publicarRelatorioIncremental(rawRows, nomeArquivo, v0);
+  return publicarRelatorioAntigo(rawRows, nomeArquivo, session);
+}
+
+// Compara o relatório novo com o publicado e envia só a diferença.
+async function publicarRelatorioIncremental(rawRows, nomeArquivo, v0){
+  const LOTE_ENVIO = 500;
+  setUploadProgress({ label:`Comparando "${nomeArquivo}" com o relatório publicado…`, percent:0, msg:'' });
+  try{
+    const SB = window.SB;
+    const base = v0 ? v0.versao : 0;
+    // restos de uma publicação que falhou no meio (gravados depois da última versão)
+    await SB.from('relatorio_remocoes').delete().gt('seq', base);
+    await SB.from('relatorio_linhas').delete().gt('seq', base);
+
+    const atuais = v0 ? await relatorioSincronizar(v0) : new Map();
+    const idsAtuais = [...atuais.keys()].sort((a, b)=>a - b);
+    const chavesAtuais = relatorioChaves(idsAtuais.map(id=>atuais.get(id)));
+    const porChave = new Map(); idsAtuais.forEach((id, i)=>porChave.set(chavesAtuais[i], id));
+    const chavesNovas = relatorioChaves(rawRows);
+    const ficam = new Set(chavesNovas);
+    const novas = rawRows.map((r, i)=>({ chave: chavesNovas[i], dados: r })).filter(x=>!porChave.has(x.chave));
+    const saem = idsAtuais.filter((id, i)=>!ficam.has(chavesAtuais[i]));
+
+    const total = novas.length + saem.length;
+    let feitos = 0;
+    const passo = (txt)=>setUploadProgress({ label:`Publicando "${nomeArquivo}"… ${txt}`, percent: total ? feitos/total*100 : 100 });
+    for(let i = 0; i < novas.length; i += LOTE_ENVIO){
+      passo(`${novas.length.toLocaleString('pt-BR')} linha(s) nova(s) ou alterada(s)`);
+      const { error } = await SB.from('relatorio_linhas').insert(novas.slice(i, i + LOTE_ENVIO));
+      if(error) throw error;
+      feitos += Math.min(LOTE_ENVIO, novas.length - i);
+    }
+    for(let i = 0; i < saem.length; i += LOTE_ENVIO){
+      passo(`${saem.length.toLocaleString('pt-BR')} linha(s) que saíram`);
+      const { error } = await SB.from('relatorio_remocoes').insert(saem.slice(i, i + LOTE_ENVIO).map(id=>({ linha_id:id })));
+      if(error) throw error;
+      feitos += Math.min(LOTE_ENVIO, saem.length - i);
+    }
+
+    // apaga de vez o que saiu há mais de RELATORIO_PURGA_DIAS dias; quem tiver
+    // cópia mais antiga que isso baixa o relatório inteiro de novo
+    let seqPurgado = v0 ? (Number(v0.seq_purgado) || 0) : 0;
+    try{
+      const limite = new Date(Date.now() - RELATORIO_PURGA_DIAS*864e5).toISOString();
+      const velhas = await relatorioLerPaginas(()=>SB.from('relatorio_remocoes').select('linha_id,seq').lt('removido_em', limite).order('seq', { ascending:true }));
+      for(let i = 0; i < velhas.length; i += LOTE_ENVIO){
+        const parte = velhas.slice(i, i + LOTE_ENVIO);
+        const { error } = await SB.from('relatorio_linhas').delete().in('id', parte.map(r=>r.linha_id));
+        if(error) throw error;
+        seqPurgado = Math.max(seqPurgado, ...parte.map(r=>Number(r.seq)));
+      }
+    }catch(purgaErr){ console.warn('Limpeza de linhas antigas do relatório (não crítico):', describeSupabaseError(purgaErr)); }
+
+    // a versão só vale (para quem lê) depois que tudo acima foi gravado
+    const { error: errV } = await SB.from('relatorio_versoes').insert({ nome_arquivo: nomeArquivo, total_linhas: rawRows.length, seq_purgado: seqPurgado });
+    if(errV) throw errV;
+    try{ await SB.from('relatorio_versoes').delete().lt('importado_em', new Date(Date.now() - 30*864e5).toISOString()).lt('versao', base || 1); }catch(e){}
+    try{ await SB.from('relatorio_importacoes').delete().neq('lote', '__nenhum__'); }catch(e){}   // formato antigo, não é mais lido
+
+    const v1 = await relatorioVersaoAtual();
+    if(v1) await relatorioSincronizar(v1);   // baixa só o que acabou de enviar (ganha os ids)
+
+    setUploadProgress({
+      label: 'Publicação concluída',
+      percent: 100,
+      msg: `✔ ${rawRows.length.toLocaleString('pt-BR')} linha(s) no relatório: ${novas.length.toLocaleString('pt-BR')} nova(s) ou alterada(s), ${saem.length.toLocaleString('pt-BR')} saíram, o resto já estava publicado.`
+    });
+    return true;
+  }catch(err){
+    setUploadProgress({ error: true, msg: `✖ Falha ao publicar: ${describeSupabaseError(err)}` });
+    alert('Não foi possível publicar o relatório no servidor (é preciso estar logado como administrador).\n\n'+describeSupabaseError(err));
+    return false;
+  }
+}
+
+// Formato antigo: o relatório inteiro em pedaços, substituindo o anterior.
+async function publicarRelatorioAntigo(rawRows, nomeArquivo, session){
   const CHUNK = 2000;
   const lote = (crypto.randomUUID ? crypto.randomUUID() : (Date.now()+'-'+Math.random().toString(36).slice(2)));
   const total = Math.max(1, Math.ceil(rawRows.length / CHUNK));
