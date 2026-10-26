@@ -3505,7 +3505,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
             <div class="form-field"><label>Data do vínculo</label><input type="date" id="vinculo-fData"></div>
             <div class="form-field"><label>Observação (opcional)</label><input type="text" id="vinculo-fObs" placeholder="Ex.: referente à NF 12345"></div>
           </div>
-          <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;">O pedido de compra é o mesmo importado do Sienge no Painel de Suprimentos. Ao selecionar um pedido, se ele já tiver nota fiscal emitida, o valor a abater é sugerido automaticamente (soma das notas fiscais daquele pedido) — mas continua editável, já que pedidos sem nota emitida ainda não têm valor conhecido nessa base. Clique no campo "Pedido de compra" para ver a lista (já filtrada pela empresa do crédito selecionado, pelo código no início do nome da obra) e digite para pesquisar — só é possível vincular pedidos da mesma empresa devedora.</div>
+          <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;">O pedido de compra é o mesmo importado do Sienge no Painel de Suprimentos. Ao selecionar um pedido, o valor a abater já vem com o valor total do pedido de compra (do relatório "Acompanhamento de Pedidos" importado em Créditos; sem ele, a soma das notas fiscais já emitidas) — e continua editável. Clique no campo "Pedido de compra" para ver a lista (já filtrada pela empresa do crédito selecionado, pelo código no início do nome da obra) e digite para pesquisar — só é possível vincular pedidos da mesma empresa devedora.</div>
           <button class="primary" id="vinculo-btnAdd">Vincular</button>
           <button class="ghost" id="vinculo-btnCancelEdit" style="display:none;">Cancelar edição</button>
           <span id="vinculo-formMsg" style="margin-left:10px;font-size:12px;color:var(--bad);"></span>
@@ -10315,6 +10315,25 @@ async function insertCentroCustoCredito(cc){
 // Sienge (tabela creditos_notas). O relatório principal traz só uma nota por
 // item de pedido; estas completam as demais notas do mesmo pedido.
 let notasExtrasCredito = new Map();   // num_pedido -> [{numero, valor, data, chave, saldoPedido}]
+// "Total do pedido" de cada pedido do mesmo relatório (tabela
+// creditos_pedidos_totais) — de todos os pedidos importados, não só dos
+// vinculados: é o que preenche o "Valor a abater" ao escolher o pedido no
+// formulário de vínculo. Sem a tabela, o painel segue sem esse valor.
+let totaisPedidoCredito = new Map();  // num_pedido -> total do pedido (R$)
+async function loadTotaisPedidoCredito(){
+  try{
+    const m = new Map();
+    for(let de = 0; ; de += 1000){
+      const { data, error } = await window.SB.from('creditos_pedidos_totais').select('num_pedido,total_pedido').range(de, de + 999);
+      if(error) throw error;
+      (data||[]).forEach(r=>{ if(Number(r.total_pedido) > 0) m.set(String(r.num_pedido).trim(), Number(r.total_pedido)); });
+      if(!data || data.length < 1000) break;
+    }
+    totaisPedidoCredito = m;
+  }catch(e){
+    console.warn('Totais de pedido indisponíveis (rode supabase/creditos_pedidos_totais.sql):', e.message || e);
+  }
+}
 // Número da nota: o que vem depois do tipo ("NFSE.4 / SU" → 4, "NFE .8670 / 1"
 // → 8670); sem tipo na frente, o primeiro número com 3 dígitos ou mais.
 const chaveNotaFiscal = (n)=>{ const s = String(n||''), m = s.match(/^\s*NF[A-Z]*\s*[.\-\/]?\s*\.?\s*(\d+)/i) || s.match(/(\d{3,})/); return m ? String(Number(m[1])) : ''; };
@@ -10332,6 +10351,7 @@ async function loadNotasExtrasCredito(){
   }catch(e){
     console.error('Falha ao carregar notas complementares:', e);
   }
+  await loadTotaisPedidoCredito();
 }
 async function loadVinculosCredito(){
   try{
@@ -10518,7 +10538,7 @@ function getPedidosUnicos(){
     });
   });
   return [...map.values()]
-    .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, notas:p.notas, situacoes:[...p._situacoes], saldoPedido:p._saldoPedido==null?null:p._saldoPedido }))
+    .map(p=>({ numPedido:p.numPedido, obra:p.obra, fornecedor:p.fornecedor, comprador:p.comprador, valorTotal:p.valorTotal, totalPedido:totaisPedidoCredito.get(String(p.numPedido))||0, notas:p.notas, situacoes:[...p._situacoes], saldoPedido:p._saldoPedido==null?null:p._saldoPedido }))
     .sort((a,b)=>String(a.numPedido).localeCompare(String(b.numPedido),'pt-BR',{numeric:true}));
 }
 
@@ -10561,6 +10581,20 @@ function linhaNotaPedido(txt){
            fornecedor: forn || null, contrato, situacao: sit };
 }
 
+// Linha de pedido ainda sem nota fiscal: "59333  FORNECEDOR LTDA  643.623,00
+// 643.623,00 ..." — o primeiro valor é o total do pedido. Linhas com nota
+// ficam com linhaNotaPedido (que também traz o total).
+function linhaTotalPedido(txt){
+  const m = String(txt||'').match(/^\s*(\d{4,7})\s+(.*)$/);
+  if(!m || RX_NF.test(m[2])) return null;
+  const vals = m[2].match(RX_MONEY);
+  if(!vals) return null;
+  const forn = m[2].slice(0, m[2].search(RX_MONEY)).trim();
+  if(!/[A-Za-zÀ-ú]{3,}/.test(forn)) return null;   // precisa do fornecedor antes do valor
+  const total = _numBR(vals[0]);
+  return total > 0 ? { num_pedido: m[1], total_pedido: total } : null;
+}
+
 async function linhasTextoPdf(file){
   await garantirPdf();
   const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -10584,7 +10618,7 @@ async function linhasTextoPdf(file){
 }
 
 function linhasExcel(wb){
-  const out = { porCabecalho: [], texto: [] };
+  const out = { porCabecalho: [], texto: [], totais: [] };
   const fmt = v => {
     if(v == null) return '';
     if(v instanceof Date) return String(v.getDate()).padStart(2,'0')+'/'+String(v.getMonth()+1).padStart(2,'0')+'/'+v.getFullYear();
@@ -10615,8 +10649,9 @@ function linhasExcel(wb){
           const ped = a[iP]==null ? '' : String(a[iP]).replace(/\.0+$/,'').trim();
           const nota = a[iN]==null ? '' : String(a[iN]).replace(/\s+/g,' ').trim();
           const nk = chaveNotaFiscal(nota);
-          if(!/^\d{4,7}$/.test(ped) || !nk) continue;
           const num = v => typeof v === 'number' ? v : _numBR(v);
+          if(/^\d{4,7}$/.test(ped) && iT >= 0 && a[iT] != null && num(a[iT]) > 0) out.totais.push({ num_pedido:ped, total_pedido:num(a[iT]) });
+          if(!/^\d{4,7}$/.test(ped) || !nk) continue;
           out.porCabecalho.push({ num_pedido:ped, nota, nota_key:String(Number(nk)), emissao:iE>=0?_dtISO(a[iE]):null,
             valor:Math.round(num(a[iV])*100)/100, saldo_pedido:iS>=0&&a[iS]!=null?num(a[iS]):null,
             total_pedido:iT>=0&&a[iT]!=null?num(a[iT]):null, fornecedor:iF>=0&&a[iF]!=null?String(a[iF]).replace(/\s+/g,' ').trim():null,
@@ -10651,18 +10686,45 @@ async function limparNotasSemVinculo(vinculados){
   renderCreditos();
 }
 
+// Guarda o "Total do pedido" de cada pedido do relatório (com ou sem nota
+// fiscal) em creditos_pedidos_totais. Melhor esforço: sem a tabela, avisa
+// no console e a importação das notas segue normalmente.
+async function gravarTotaisPedido(lidas, arquivo){
+  const totais = new Map();
+  lidas.forEach(l=>{ if(l && /^\d{4,7}$/.test(String(l.num_pedido)) && l.total_pedido > 0) totais.set(String(l.num_pedido), Math.round(l.total_pedido*100)/100); });
+  if(!totais.size) return 0;
+  const agora = new Date().toISOString();
+  const linhas = [...totais].map(([num_pedido, total_pedido])=>({ num_pedido, total_pedido, arquivo, importado_em: agora }));
+  try{
+    for(let i=0;i<linhas.length;i+=500){
+      const { error } = await window.SB.from('creditos_pedidos_totais').upsert(linhas.slice(i,i+500), { onConflict:'num_pedido' });
+      if(error) throw error;
+    }
+    return linhas.length;
+  }catch(e){
+    console.warn('Não foi possível gravar os totais dos pedidos (rode supabase/creditos_pedidos_totais.sql):', e.message || e);
+    return 0;
+  }
+}
+
 async function importarNotasPedidoSienge(file){
   try{
     const ehPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
     let lidas = [];
+    let totaisLidos = [];   // pedidos ainda sem nota: só o "Total do pedido"
     if(ehPdf){
-      lidas = (await linhasTextoPdf(file)).map(linhaNotaPedido).filter(Boolean);
+      const txt = await linhasTextoPdf(file);
+      lidas = txt.map(linhaNotaPedido).filter(Boolean);
+      totaisLidos = txt.map(linhaTotalPedido).filter(Boolean);
     } else {
       await garantirXLSX();
       const wb = XLSX.read(await file.arrayBuffer(), { type:'array', cellDates:true });
       const x = linhasExcel(wb);
       lidas = x.porCabecalho.length ? x.porCabecalho : x.texto.map(linhaNotaPedido).filter(Boolean);
+      totaisLidos = x.totais;
+      if(!x.porCabecalho.length) totaisLidos = totaisLidos.concat(x.texto.map(linhaTotalPedido).filter(Boolean));
     }
+    const totaisGravados = await gravarTotaisPedido(lidas.concat(totaisLidos), file.name);
     const vistos = new Map();
     lidas.forEach(l=>{
       if(!l || !l.nota_key || !(l.valor > 0)) return;
@@ -10670,6 +10732,12 @@ async function importarNotasPedidoSienge(file){
       if(!vistos.has(k)) vistos.set(k, Object.assign(l, { arquivo:file.name, importado_em:new Date().toISOString() }));   // a mesma nota se repete por parcela
     });
     const lidasValidas = [...vistos.values()];
+    if(!lidasValidas.length && totaisGravados){
+      await loadNotasExtrasCredito();
+      renderCreditos();
+      alert(`Nenhuma nota fiscal no arquivo; gravado o valor total de ${totaisGravados} pedido(s), usado para preencher o "Valor a abater" ao vincular.`);
+      return;
+    }
     if(!lidasValidas.length) throw new Error('não encontrei notas fiscais no arquivo. Use o relatório "Acompanhamento de Pedidos" do Sienge (com as colunas Pedido, Nota Fiscal, Emissão e Total atendido nota), em PDF ou Excel.');
     // Só interessam notas de pedidos vinculados a algum crédito: as demais
     // não são gravadas (o relatório pode vir com todos os pedidos do período).
@@ -10689,8 +10757,9 @@ async function importarNotasPedidoSienge(file){
     const tot = linhas.reduce((s,l)=>s+l.valor,0);
     alert((linhas.length
         ? `Importadas ${linhas.length} nota(s) fiscal(is), total R$ ${fmtMoney(tot)}, de ${peds.length} pedido(s) vinculado(s) a créditos: ${peds.join(', ')}. Os vínculos foram recalculados.`
-        : 'Nenhuma nota do arquivo é de pedido vinculado a um crédito; nada foi gravado.') +
-      (ignoradas ? `\n${ignoradas} nota(s) de pedidos sem vínculo foram ignoradas.` : ''));
+        : 'Nenhuma nota do arquivo é de pedido vinculado a um crédito; nenhuma nota foi gravada.') +
+      (ignoradas ? `\n${ignoradas} nota(s) de pedidos sem vínculo foram ignoradas.` : '') +
+      (totaisGravados ? `\nValor total de ${totaisGravados} pedido(s) gravado — preenche o "Valor a abater" ao vincular.` : ''));
     await limparNotasSemVinculo(vinculados);
   }catch(e){
     console.error('Falha ao importar notas:', e);
@@ -10980,7 +11049,9 @@ function renderPedidoSearchResults(){
   if(!pedidos.length){
     box.innerHTML = `<div class="pedido-search-empty">${termo ? 'Nenhum pedido encontrado com esse termo.' : 'Nenhum pedido disponível para a empresa deste crédito.'}</div>`;
   } else {
-    box.innerHTML = pedidos.map(p=>`<div class="pedido-search-item" data-pedido="${esc(p.numPedido)}" data-valor="${p.valorTotal||0}"><b>${esc(p.numPedido)}</b> — ${esc(p.obra)} — ${esc(p.fornecedor)}${p.valorTotal>0 ? ` — R$ ${fmtMoney(p.valorTotal)}` : ''}</div>`).join('');
+    box.innerHTML = pedidos.map(p=>`<div class="pedido-search-item" data-pedido="${esc(p.numPedido)}" data-valor="${valorSugeridoPedido(p)}"><b>${esc(p.numPedido)}</b> — ${esc(p.obra)} — ${esc(p.fornecedor)}${
+      p.totalPedido>0 ? ` — pedido R$ ${fmtMoney(p.totalPedido)}${p.valorTotal>0 ? ` (faturado R$ ${fmtMoney(p.valorTotal)})` : ''}`
+      : p.valorTotal>0 ? ` — faturado R$ ${fmtMoney(p.valorTotal)}` : ''}</div>`).join('');
     box.querySelectorAll('[data-pedido]').forEach(item=>{
       item.addEventListener('mousedown', (ev)=>{
         ev.preventDefault();
@@ -10992,6 +11063,21 @@ function renderPedidoSearchResults(){
     });
   }
   box.classList.add('open');
+}
+
+// Valor a abater sugerido ao escolher o pedido: o total do pedido (relatório
+// "Acompanhamento de Pedidos"); sem ele, a soma das notas já emitidas.
+function valorSugeridoPedido(p){
+  return p ? (p.totalPedido > 0 ? p.totalPedido : (p.valorTotal || 0)) : 0;
+}
+// Pedido digitado em vez de escolhido na lista: ao sair do campo, preenche o
+// valor se ele ainda estiver vazio.
+function preencherValorPedidoDigitado(){
+  const num = document.getElementById('vinculo-fPedido').value.trim();
+  const campo = document.getElementById('vinculo-fValor');
+  if(!num || campo.value) return;
+  const v = valorSugeridoPedido(getPedidosDisponiveisParaVinculo().find(p=>String(p.numPedido)===num));
+  if(v > 0) campo.value = v.toFixed(2);
 }
 
 // Formata as notas fiscais de um pedido como texto para exibir no
@@ -11885,6 +11971,7 @@ async function init(){
   })();
   document.getElementById('vinculo-fPedido').addEventListener('input', renderPedidoSearchResults);
   document.getElementById('vinculo-fPedido').addEventListener('focus', renderPedidoSearchResults);
+  document.getElementById('vinculo-fPedido').addEventListener('change', preencherValorPedidoDigitado);
   document.addEventListener('click', (ev)=>{
     const box = document.getElementById('vinculo-fPedidoResults');
     if(box && !ev.target.closest('.pedido-search-wrap')) box.classList.remove('open');
