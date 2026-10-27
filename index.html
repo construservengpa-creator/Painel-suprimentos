@@ -10995,7 +10995,9 @@ function imprimirRelatorioCreditos(){
       const stc = cancel ? 'off' : status==='realizado' ? 'ok' : f>0.005 ? 'fat' : 'res';
       const sit = ped && ped.situacoes && ped.situacoes.length ? ped.situacoes.join(' / ') : '';
       const nfs = ped && ped.notas && ped.notas.length ? ped.notas.map(n=>`<div class="nf">${e(n.numero)}${n.data?` · ${e(n.data)}`:''}<span>${m(n.valor)}</span></div>`).join('') : '<div class="mut">sem nota</div>';
-      return `<tr>
+      // Pedido com muitas notas não cabe numa página: deixa a linha quebrar
+      // em vez de empurrá-la inteira e deixar a página anterior em branco.
+      return `<tr${ped && ped.notas && ped.notas.length > 8 ? ' class="longa"' : ''}>
         <td><b>${e(v.numPedido)}</b><div class="mut">${v.dataVinculo?fmtBRDate(v.dataVinculo):''}</div></td>
         <td>${e(v.fornecedor)}${v.observacao?`<div class="mut">${e(v.observacao)}</div>`:''}</td>
         <td><span class="st ${stc}">${st}</span>${sit?`<div class="mut">Sienge: ${e(sit)}</div>`:''}${ped&&ped.saldoPedido!=null?`<div class="mut">Saldo do pedido: ${m(ped.saldoPedido)}</div>`:''}</td>
@@ -11003,7 +11005,7 @@ function imprimirRelatorioCreditos(){
         <td class="n">${nfs}</td>
         <td class="n">${r>0.005?m(r):'—'}</td>
         <td class="n"><b>${m(ef)}</b></td></tr>`;
-    }).join('');
+    });
     return `<section class="cred">
       <div class="ch">
         <div><div class="who">${e(c.empresaBeneficiaria)||'—'} <span class="mut">←</span> ${e(c.empresaDevedora)||'—'}</div>
@@ -11014,8 +11016,8 @@ function imprimirRelatorioCreditos(){
       <div class="eq"><span><i class="d f"></i>Faturado <b>${m(fat)}</b> (${pc(fat,c.valorTotal)})</span><span><i class="d r"></i>Reservado <b>${m(res)}</b> (${pc(res,c.valorTotal)})</span><span><i class="d l"></i>Saldo livre <b>${m(sal)}</b> (${pc(Math.max(0,sal),c.valorTotal)})</span></div>
       ${vs.length ? `<table><colgroup><col style="width:9.5%"><col style="width:16.5%"><col style="width:15%"><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:13%"></colgroup>
         <thead><tr><th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="n">Previsto</th><th class="n">Faturado (notas)</th><th class="n">Reservado</th><th class="n">Conta no crédito</th></tr></thead>
-        <tbody>${linhas}</tbody>
-        <tfoot><tr><td colspan="3">Total dos pedidos vinculados</td><td class="n">${m(tP)}</td><td class="n">${m(tF)}</td><td class="n">${m(tR)}</td><td class="n">${m(tE)}</td></tr></tfoot></table>`
+        <tbody>${linhas.slice(0,-1).join('')}</tbody>
+        <tbody class="fim">${linhas[linhas.length-1]}<tr class="tot"><td colspan="3">Total dos pedidos vinculados</td><td class="n">${m(tP)}</td><td class="n">${m(tF)}</td><td class="n">${m(tR)}</td><td class="n">${m(tE)}</td></tr></tbody></table>`
       : '<div class="mut" style="padding:6px 0">Nenhum pedido vinculado a este crédito.</div>'}
     </section>`;
   }).join('');
@@ -11044,10 +11046,12 @@ function imprimirRelatorioCreditos(){
     th{font-size:7pt;text-transform:uppercase;letter-spacing:.3px;color:#4b5563;text-align:left;border-bottom:1px solid #9aa3ad;padding:3px 4px;}
     td{padding:4px 4px;border-bottom:1px solid #e3e6ea;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere;}
     tr{break-inside:avoid;}
+    tr.longa{break-inside:auto;}
     thead{display:table-header-group;}
+    tbody.fim{break-inside:avoid;}
     .n{text-align:right;}
     td.n{white-space:nowrap;font-size:8pt;}
-    tfoot td{font-weight:700;border-top:1px solid #9aa3ad;border-bottom:0;}
+    tr.tot td{font-weight:700;border-top:1px solid #9aa3ad;border-bottom:0;}
     .nf{font-size:7.3pt;line-height:1.3;white-space:normal;text-align:right;margin-bottom:2px;}
     .nf span{display:block;white-space:nowrap;font-weight:600;}
     .st{display:inline-block;font-size:7pt;font-weight:700;padding:1px 5px;border-radius:7px;}
