@@ -12595,7 +12595,14 @@ init();
     });
   }
 
-  window.SB.auth.onAuthStateChange((event)=>{
+  window.SB.auth.onAuthStateChange((event, session)=>{
+    // Ao voltar para a aba (e a cada renovação do token) o Supabase avisa SIGNED_IN /
+    // TOKEN_REFRESHED de novo com o mesmo usuário: recarregar tudo aí só gasta tráfego
+    // (perfil, usuários, créditos, contratos e contas a pagar). INITIAL_SESSION já é
+    // coberto pelo refreshAuthUI() logo abaixo.
+    const uid = session && session.user ? session.user.id : null;
+    if(event === 'INITIAL_SESSION') return;
+    if((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && window.PERFIL && window.PERFIL.logado && window.PERFIL.id === uid) return;
     if(event === 'PASSWORD_RECOVERY'){
       authDropdown.classList.add('open');
       authLoggedOut.style.display = 'none';
@@ -14894,10 +14901,16 @@ async function initCap() {
   // exigem usuário autenticado (mesmo cuidado do init() principal do painel:
   // sem essa espera, a política de RLS pode simplesmente não devolver
   // nenhuma linha porque a sessão ainda não estava pronta no primeiro pedido).
-  try { await window.SB.auth.getSession(); } catch (e) { /* segue mesmo assim */ }
+  let uidCap = null;
+  try { const r = await window.SB.auth.getSession(); uidCap = r.data.session ? r.data.session.user.id : null; } catch (e) { /* segue mesmo assim */ }
   await reloadCapData();
   renderAll();
-  window.SB.auth.onAuthStateChange(async () => {
+  // só recarrega quando o usuário muda (login, logout, troca): voltar para a aba e
+  // renovar o token avisam o mesmo usuário de novo e não precisam buscar tudo outra vez
+  window.SB.auth.onAuthStateChange(async (event, session) => {
+    const uid = session && session.user ? session.user.id : null;
+    if (uid === uidCap) return;
+    uidCap = uid;
     await reloadCapData();
     renderAll();
   });
