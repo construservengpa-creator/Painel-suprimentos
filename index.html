@@ -4165,7 +4165,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <span class="ctr-count" id="ctrAdCount"></span>
       </div>
       <div class="ctr-board" id="ctrBoard"></div>
-      <p class="ctr-note" style="margin-top:12px">Contratos entram aqui quando as regras apontam necessidade de aditivo. O andamento é compartilhado por todos os usuários; só administradores e supervisores alteram. Numa nova importação, contratos com prazo ou valor aumentados no Sienge são marcados como assinados automaticamente.</p>
+      <p class="ctr-note" style="margin-top:12px">Contratos entram aqui quando as regras apontam necessidade de aditivo. O andamento é compartilhado por todos os usuários; só administradores e supervisores alteram. Numa nova importação, contratos com prazo ou valor aumentados no Sienge são marcados como aditados automaticamente.</p>
     </div>
   </section>
 
@@ -16165,7 +16165,7 @@ window.JARVIS_CONFIG = {
       t += ` ${plural(crit.length, "é crítico", "são críticos")}.`;
       if (crit.length) t += " Críticos: " + crit.slice().sort((a, b) => (a.diasRest ?? 9e9) - (b.diasRest ?? 9e9)).slice(0, 3).map(descC).join("; ") + ".";
       const andamento = {};
-      Object.values(d.aditivos || {}).forEach((a) => { if (a && a.status && a.status !== "A analisar") andamento[a.status] = (andamento[a.status] || 0) + 1; });
+      Object.values(d.aditivos || {}).forEach((a) => { if (a && a.status && a.status !== "A analisar") { const st = a.status === "Assinado" ? "Aditado" : a.status; andamento[st] = (andamento[st] || 0) + 1; } });
       const partes = Object.entries(andamento).map(([s, n]) => `${n} ${s.toLowerCase()}`);
       if (partes.length) t += ` Aditivos em andamento: ${juntar(partes)}.`;
       return R(t, [{ v: crit.length, l: "críticos", tom: "ruim" }, { v: prazo.length, l: "aditivo de prazo", tom: "neutro" }, { v: quant.length, l: "aditivo de quantidade", tom: "neutro" }]);
@@ -16467,6 +16467,8 @@ const RULES=[
  ['prazoEmissao','Emissão após o corte (dias)','Prazo padrão entre o corte e a emissão da medição']
 ];
 const STATUS=['A analisar','Em elaboração','Em aprovação','Assinado','Dispensado'];
+// No banco o status continua "Assinado"; na tela aparece como "Aditado".
+const STL=s=>s==='Assinado'?'Aditado':s;
 const SEVR={crit:3,alto:2,aten:1,ok:0,off:-1};
 const SEVL={crit:'Crítico',alto:'Alto',aten:'Atenção',ok:'Em dia',off:'Inativo'};
 const NECL={prazo:'Prazo',quant:'Quantidade',ambos:'Prazo + quantidade',encerrar:'Encerrar ou aditar',ok:'Sem necessidade',off:'—'};
@@ -16727,7 +16729,7 @@ function renderMap(A){
 let sortC={k:'sev',d:-1}, limC=150;
 const rg=c=>{const p=c.pPrazo||0;return `<div class="ctr-rg" title="Prazo ${pct(c.pPrazo)} · Medido ${pct(c.pMed)}"><div class="b t ${p>1?'over':''}"><i style="width:${Math.min(100,p*100)}%"></i></div><div class="b m"><i style="width:${Math.min(100,c.pMed*100)}%"></i></div><span><em>P ${pct(c.pPrazo)}</em><em>M ${pct(c.pMed)}</em></span></div>`};
 const necTag=c=>c.nec==='off'?`<span class="ctr-tag off">${esc(c.situacao)}</span>`:c.nec==='ok'?'<span class="ctr-tag ok">Em dia</span>':`<span class="ctr-tag ${c.sev}">${NECL[c.nec]}</span>`;
-const stTag=c=>{const a=AD[c.id];return a&&a.status?`<span class="ctr-tag st">${esc(a.status)}</span>`:''};
+const stTag=c=>{const a=AD[c.id];return a&&a.status?`<span class="ctr-tag st">${esc(STL(a.status))}</span>`:''};
 function filtC(){
   const q=norm($('#ctrQ').value), s=$('#ctrFSit').value, t=$('#ctrFTipo').value, n=$('#ctrFNec').value;
   return scope().filter(c=>(!s||(s==='ativos'?c.ativo:c.situacao===s))&&(!t||c.tipo===t)&&
@@ -16766,7 +16768,7 @@ function renderAditivos(){
   const L=adList(), by=Object.fromEntries(STATUS.map(s=>[s,[]]));
   for(const c of L){const s=(AD[c.id]&&AD[c.id].status)||'A analisar';(by[s]||by['A analisar']).push(c)}
   $('#ctrBoard').innerHTML=STATUS.map(s=>{const it=by[s].sort((a,b)=>SEVR[b.sev]-SEVR[a.sev]||(a.diasRest??9e9)-(b.diasRest??9e9));
-    return `<div class="ctr-bcol"><h4>${s}<em>${it.length}</em></h4><div class="ctr-items">${it.slice(0,60).map(c=>{const m=[...c.motP,...c.motQ,...c.motE].sort((x,y)=>SEVR[y[0]]-SEVR[x[0]])[0];
+    return `<div class="ctr-bcol"><h4>${STL(s)}<em>${it.length}</em></h4><div class="ctr-items">${it.slice(0,60).map(c=>{const m=[...c.motP,...c.motQ,...c.motE].sort((x,y)=>SEVR[y[0]]-SEVR[x[0]])[0];
       return `<div class="ctr-ad ${c.sev}" data-id="${esc(c.id)}"><div class="h"><span>${esc(c.contrato)}</span><span class="ctr-tag ${FLAG.includes(c.nec)?c.sev:'off'}">${NECL[c.nec]}</span></div><div class="f">${esc(c.fornecedor)}</div><div class="r">${m?esc(m[1]):esc(c.situacao)}</div></div>`}).join('')||'<div class="ctr-mt">Vazio</div>'}${it.length>60?`<div class="ctr-mt">+${it.length-60}: use a lista de contratos</div>`:''}</div></div>`}).join('');
   $$('#ctrBoard .ctr-ad').forEach(e=>e.onclick=()=>openD(e.dataset.id));
   $('#ctrAdCount').textContent=plural(L.length,'contrato','contratos');
@@ -16846,7 +16848,7 @@ async function importFile(f){
     let autoErr='';
     if(auto.length){const r=await SB.from('contratos_aditivos').upsert(auto,{onConflict:'contrato_key'});if(r.error)autoErr=' Não foi possível marcar os aditivos detectados: '+esc(r.error.message)+'.'}
     await loadAll();
-    msg(`Importado <b>${esc(f.name)}</b>: ${rows.length} linhas, ${list.length} contratos, posição de <b>${br(ref)}</b>.${m?'':' A data foi tirada de hoje porque o nome do arquivo não traz a data do relatório.'}${auto.length&&!autoErr?` ${plural(auto.length,'aditivo formalizado foi detectado e marcado','aditivos formalizados foram detectados e marcados')} como assinado.`:''}${autoErr}`,true);
+    msg(`Importado <b>${esc(f.name)}</b>: ${rows.length} linhas, ${list.length} contratos, posição de <b>${br(ref)}</b>.${m?'':' A data foi tirada de hoje porque o nome do arquivo não traz a data do relatório.'}${auto.length&&!autoErr?` ${plural(auto.length,'aditivo formalizado foi detectado e marcado','aditivos formalizados foram detectados e marcados')} como aditado.`:''}${autoErr}`,true);
   }catch(e){console.error(e);msg('Não foi possível importar: '+esc(e.message||String(e)))}
 }
 
@@ -16888,7 +16890,7 @@ function openD(id){
    ${critForm(c)}
    <div class="ctr-sec">Controle do aditivo</div>
    <div class="ctr-frm">
-     <label>Status<select id="ctrASt" ${dis}>${STATUS.map(s=>`<option ${((a.status||'A analisar')===s)?'selected':''}>${s}</option>`).join('')}</select></label>
+     <label>Status<select id="ctrASt" ${dis}>${STATUS.map(s=>`<option value="${s}" ${((a.status||'A analisar')===s)?'selected':''}>${STL(s)}</option>`).join('')}</select></label>
      <label>Tipo<select id="ctrATp" ${dis}>${['','Prazo','Valor/quantidade','Prazo e valor'].map(s=>`<option value="${s}" ${tipoDef===s?'selected':''}>${s||'—'}</option>`).join('')}</select></label>
      <label>Nova data de término<input type="date" id="ctrADt" value="${esc(a.nova_data||c.sugData||'')}" ${dis}></label>
      <label>Valor do acréscimo (R$)<input type="number" step="0.01" id="ctrAVl" value="${esc(a.valor_acrescimo??c.sugValor??'')}" ${dis}></label>
@@ -16914,7 +16916,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&curId)closeD()});
 /* ---------- exportação ---------- */
 function xls(list,name){
   if(typeof XLSX==='undefined'){comXLSX(()=>xls(list,name));return}
-  const data=list.map(c=>{const a=AD[c.id]||{};return{'Contrato':c.contrato,'Empresa':c.empresa,'Obra':c.obra,'Fornecedor':c.fornecedor,'CPF/CNPJ':c.cnpj,'Tipo':c.tipo,'Situação':c.situacao,'Início':br(c.dtInicio),'Término':br(c.dtTermino),'Dias restantes':c.diasRest,'% prazo':c.pPrazo!=null?+(c.pPrazo*100).toFixed(1):null,'% medido':+(c.pMed*100).toFixed(1),'Total':c.total,'Medido':c.medido,'Saldo':c.saldo,'Média mensal':+c.mensal.toFixed(2),'Saldo acaba em':c.dtEsg?br(c.dtEsg):'','Necessidade':NECL[c.nec],'Severidade':SEVL[c.sev],'Motivos':[...c.motP,...c.motQ,...c.motE].map(m=>m[1]).join(' | '),'Nova data sugerida':c.sugData?br(c.sugData):'','Acréscimo sugerido':c.sugValor||'','Status aditivo':a.status||'','Tipo aditivo':a.tipo||'','Nova data (controle)':a.nova_data?br(a.nova_data):'','Acréscimo (controle)':a.valor_acrescimo??'','Observações':a.observacoes||'','Responsável':c.responsavel,'Próxima medição':c.agNext?br(c.agNext):'','Situação da medição':c.ag?AGL[c.ag.status]:'','Critério de pagamento':c.ag?critTxt(c.ag.k):'','Origem do critério':c.ag?(c.ag.k.cadastrado?'Cadastrado':'Padrão'):''}});
+  const data=list.map(c=>{const a=AD[c.id]||{};return{'Contrato':c.contrato,'Empresa':c.empresa,'Obra':c.obra,'Fornecedor':c.fornecedor,'CPF/CNPJ':c.cnpj,'Tipo':c.tipo,'Situação':c.situacao,'Início':br(c.dtInicio),'Término':br(c.dtTermino),'Dias restantes':c.diasRest,'% prazo':c.pPrazo!=null?+(c.pPrazo*100).toFixed(1):null,'% medido':+(c.pMed*100).toFixed(1),'Total':c.total,'Medido':c.medido,'Saldo':c.saldo,'Média mensal':+c.mensal.toFixed(2),'Saldo acaba em':c.dtEsg?br(c.dtEsg):'','Necessidade':NECL[c.nec],'Severidade':SEVL[c.sev],'Motivos':[...c.motP,...c.motQ,...c.motE].map(m=>m[1]).join(' | '),'Nova data sugerida':c.sugData?br(c.sugData):'','Acréscimo sugerido':c.sugValor||'','Status aditivo':STL(a.status||''),'Tipo aditivo':a.tipo||'','Nova data (controle)':a.nova_data?br(a.nova_data):'','Acréscimo (controle)':a.valor_acrescimo??'','Observações':a.observacoes||'','Responsável':c.responsavel,'Próxima medição':c.agNext?br(c.agNext):'','Situação da medição':c.ag?AGL[c.ag.status]:'','Critério de pagamento':c.ag?critTxt(c.ag.k):'','Origem do critério':c.ag?(c.ag.k.cadastrado?'Cadastrado':'Padrão'):''}});
   const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Contratos');
   XLSX.writeFile(wb,name+'_'+(POS?POS.data_ref:'')+'.xlsx');
 }
