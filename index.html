@@ -1884,7 +1884,7 @@ table.data.ctr-tbl tr.ctr-obra-c.ctr-obra-n2 td:first-child{padding-left:68px;}
 .ctr-seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;}
 .ctr-seg button{border:0;background:var(--asphalt-2);padding:8px 13px;cursor:pointer;color:var(--text-dim);font:600 12.5px var(--font-body);}
 .ctr-seg button.on{background:var(--yellow);color:#1A1E24;}
-.ctr-board{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px;}
+.ctr-board{display:grid;grid-template-columns:repeat(6,minmax(200px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px;}
 .ctr-bcol{min-width:0;background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:120px;}
 .ctr-bcol>h4{font:600 14px var(--font-display);letter-spacing:.03em;margin:0;padding:12px 12px 8px;display:flex;justify-content:space-between;border-bottom:1px solid var(--line);}
 .ctr-bcol>h4 em{font:600 12px var(--font-mono);font-style:normal;color:var(--text-dim);}
@@ -16168,7 +16168,7 @@ window.JARVIS_CONFIG = {
       t += ` ${plural(crit.length, "é crítico", "são críticos")}.`;
       if (crit.length) t += " Críticos: " + crit.slice().sort((a, b) => (a.diasRest ?? 9e9) - (b.diasRest ?? 9e9)).slice(0, 3).map(descC).join("; ") + ".";
       const andamento = {};
-      Object.values(d.aditivos || {}).forEach((a) => { if (a && a.status && a.status !== "A analisar") { const st = a.status === "Assinado" ? "Aditado" : a.status; andamento[st] = (andamento[st] || 0) + 1; } });
+      Object.values(d.aditivos || {}).forEach((a) => { if (a && a.status && a.status !== "A analisar") { const st = a.status === "Assinado" ? (a.automatico ? "a validar" : "Aditado") : a.status; andamento[st] = (andamento[st] || 0) + 1; } });
       const partes = Object.entries(andamento).map(([s, n]) => `${n} ${s.toLowerCase()}`);
       if (partes.length) t += ` Aditivos em andamento: ${juntar(partes)}.`;
       return R(t, [{ v: crit.length, l: "críticos", tom: "ruim" }, { v: prazo.length, l: "aditivo de prazo", tom: "neutro" }, { v: quant.length, l: "aditivo de quantidade", tom: "neutro" }]);
@@ -16472,6 +16472,11 @@ const RULES=[
 const STATUS=['A analisar','Em elaboração','Em aprovação','Assinado','Dispensado'];
 // No banco o status continua "Assinado"; na tela aparece como "Aditado".
 const STL=s=>s==='Assinado'?'Aditado':s;
+// Aditivo detectado sozinho na importação do Sienge aparece como "Validar" até alguém confirmar.
+const VAL='Validar';
+const stKey=a=>a&&a.status==='Assinado'&&a.automatico?VAL:(a&&a.status)||'A analisar';
+const stL=a=>STL(stKey(a));
+const BOARD=['A analisar','Em elaboração','Em aprovação',VAL,'Assinado','Dispensado'];
 const SEVR={crit:3,alto:2,aten:1,ok:0,off:-1};
 const SEVL={crit:'Crítico',alto:'Alto',aten:'Atenção',ok:'Em dia',off:'Inativo'};
 const NECL={prazo:'Prazo',quant:'Quantidade',ambos:'Prazo + quantidade',encerrar:'Encerrar ou aditar',ok:'Sem necessidade',off:'—'};
@@ -16756,7 +16761,7 @@ function renderMap(A){
 let sortC={k:'sev',d:-1}, limC=150;
 const rg=c=>{const p=c.pPrazo||0;return `<div class="ctr-rg" title="Prazo ${pct(c.pPrazo)} · Medido ${pct(c.pMed)}"><div class="b t ${p>1?'over':''}"><i style="width:${Math.min(100,p*100)}%"></i></div><div class="b m"><i style="width:${Math.min(100,c.pMed*100)}%"></i></div><span><em>P ${pct(c.pPrazo)}</em><em>M ${pct(c.pMed)}</em></span></div>`};
 const necTag=c=>c.nec==='off'?`<span class="ctr-tag off">${esc(c.situacao)}</span>`:c.nec==='ok'?'<span class="ctr-tag ok">Em dia</span>':`<span class="ctr-tag ${c.sev}">${NECL[c.nec]}</span>`;
-const stTag=c=>{const a=AD[c.id];return a&&a.status?`<span class="ctr-tag st">${esc(STL(a.status))}</span>`:''};
+const stTag=c=>{const a=AD[c.id];return a&&a.status?`<span class="ctr-tag st">${esc(stL(a))}</span>`:''};
 function filtC(){
   const q=norm($('#ctrQ').value), s=$('#ctrFSit').value, t=$('#ctrFTipo').value, n=$('#ctrFNec').value;
   return scope().filter(c=>(!s||(s==='ativos'?c.ativo:c.situacao===s))&&(!t||c.tipo===t)&&
@@ -16792,9 +16797,9 @@ function adList(){
   });
 }
 function renderAditivos(){
-  const L=adList(), by=Object.fromEntries(STATUS.map(s=>[s,[]]));
-  for(const c of L){const s=(AD[c.id]&&AD[c.id].status)||'A analisar';(by[s]||by['A analisar']).push(c)}
-  $('#ctrBoard').innerHTML=STATUS.map(s=>{const it=by[s].sort((a,b)=>SEVR[b.sev]-SEVR[a.sev]||(a.diasRest??9e9)-(b.diasRest??9e9));
+  const L=adList(), by=Object.fromEntries(BOARD.map(s=>[s,[]]));
+  for(const c of L){const s=stKey(AD[c.id]);(by[s]||by['A analisar']).push(c)}
+  $('#ctrBoard').innerHTML=BOARD.map(s=>{const it=by[s].sort((a,b)=>SEVR[b.sev]-SEVR[a.sev]||(a.diasRest??9e9)-(b.diasRest??9e9));
     return `<div class="ctr-bcol"><h4>${STL(s)}<em>${it.length}</em></h4><div class="ctr-items">${it.slice(0,60).map(c=>{const m=[...c.motP,...c.motQ,...c.motE].sort((x,y)=>SEVR[y[0]]-SEVR[x[0]])[0];
       return `<div class="ctr-ad ${c.sev}" data-id="${esc(c.id)}"><div class="h"><span>${esc(c.contrato)}</span><span class="ctr-tag ${FLAG.includes(c.nec)?c.sev:'off'}">${NECL[c.nec]}</span></div><div class="f">${esc(c.fornecedor)}</div><div class="r">${m?esc(m[1]):esc(c.situacao)}</div></div>`}).join('')||'<div class="ctr-mt">Vazio</div>'}${it.length>60?`<div class="ctr-mt">+${it.length-60}: use a lista de contratos</div>`:''}</div></div>`}).join('');
   $$('#ctrBoard .ctr-ad').forEach(e=>e.onclick=()=>openD(e.dataset.id));
@@ -16917,7 +16922,7 @@ function openD(id){
    ${critForm(c)}
    <div class="ctr-sec">Controle do aditivo</div>
    <div class="ctr-frm">
-     <label>Status<select id="ctrASt" ${dis}>${STATUS.map(s=>`<option value="${s}" ${((a.status||'A analisar')===s)?'selected':''}>${STL(s)}</option>`).join('')}</select></label>
+     <label>Status<select id="ctrASt" ${dis}>${(stKey(a)===VAL?[VAL,...STATUS]:STATUS).map(s=>`<option value="${s}" ${stKey(a)===s?'selected':''}>${STL(s)}</option>`).join('')}</select></label>
      <label>Tipo<select id="ctrATp" ${dis}>${['','Prazo','Valor/quantidade','Prazo e valor'].map(s=>`<option value="${s}" ${tipoDef===s?'selected':''}>${s||'—'}</option>`).join('')}</select></label>
      <label>Nova data de término<input type="date" id="ctrADt" value="${esc(a.nova_data||c.sugData||'')}" ${dis}></label>
      <label>Valor do acréscimo (R$)<input type="number" step="0.01" id="ctrAVl" value="${esc(a.valor_acrescimo??c.sugValor??'')}" ${dis}></label>
@@ -16930,7 +16935,8 @@ function openD(id){
   if(sv)sv.onclick=async()=>{
     sv.disabled=true;
     try{
-      await saveAditivo(c,{status:$('#ctrASt').value,tipo:$('#ctrATp').value||null,nova_data:$('#ctrADt').value||null,valor_acrescimo:$('#ctrAVl').value===''?null:Number($('#ctrAVl').value),observacoes:$('#ctrAOb').value.trim()||null,automatico:false});
+      const stv=$('#ctrASt').value;
+      await saveAditivo(c,{status:stv===VAL?'Assinado':stv,tipo:$('#ctrATp').value||null,nova_data:$('#ctrADt').value||null,valor_acrescimo:$('#ctrAVl').value===''?null:Number($('#ctrAVl').value),observacoes:$('#ctrAOb').value.trim()||null,automatico:stv===VAL});
       render();openD(id);const s=$('#ctrASaved');s.classList.add('on');setTimeout(()=>s.classList.remove('on'),1600);
     }catch(e){alert('Não foi possível salvar: '+(e.message||e));sv.disabled=false}
   };
@@ -16943,7 +16949,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&curId)closeD()});
 /* ---------- exportação ---------- */
 function xls(list,name){
   if(typeof XLSX==='undefined'){comXLSX(()=>xls(list,name));return}
-  const data=list.map(c=>{const a=AD[c.id]||{};return{'Contrato':c.contrato,'Empresa':c.empresa,'Obra':c.obra,'Fornecedor':c.fornecedor,'CPF/CNPJ':c.cnpj,'Tipo':c.tipo,'Situação':c.situacao,'Início':br(c.dtInicio),'Término':br(c.dtTermino),'Dias restantes':c.diasRest,'% prazo':c.pPrazo!=null?+(c.pPrazo*100).toFixed(1):null,'% medido':+(c.pMed*100).toFixed(1),'Total':c.total,'Medido':c.medido,'Saldo':c.saldo,'Média mensal':+c.mensal.toFixed(2),'Saldo acaba em':c.dtEsg?br(c.dtEsg):'','Necessidade':NECL[c.nec],'Severidade':SEVL[c.sev],'Motivos':[...c.motP,...c.motQ,...c.motE].map(m=>m[1]).join(' | '),'Nova data sugerida':c.sugData?br(c.sugData):'','Acréscimo sugerido':c.sugValor||'','Status aditivo':STL(a.status||''),'Tipo aditivo':a.tipo||'','Nova data (controle)':a.nova_data?br(a.nova_data):'','Acréscimo (controle)':a.valor_acrescimo??'','Observações':a.observacoes||'','Responsável':c.responsavel,'Próxima medição':c.agNext?br(c.agNext):'','Situação da medição':c.ag?AGL[c.ag.status]:'','Critério de pagamento':c.ag?critTxt(c.ag.k):'','Origem do critério':c.ag?(c.ag.k.cadastrado?'Cadastrado':'Padrão'):''}});
+  const data=list.map(c=>{const a=AD[c.id]||{};return{'Contrato':c.contrato,'Empresa':c.empresa,'Obra':c.obra,'Fornecedor':c.fornecedor,'CPF/CNPJ':c.cnpj,'Tipo':c.tipo,'Situação':c.situacao,'Início':br(c.dtInicio),'Término':br(c.dtTermino),'Dias restantes':c.diasRest,'% prazo':c.pPrazo!=null?+(c.pPrazo*100).toFixed(1):null,'% medido':+(c.pMed*100).toFixed(1),'Total':c.total,'Medido':c.medido,'Saldo':c.saldo,'Média mensal':+c.mensal.toFixed(2),'Saldo acaba em':c.dtEsg?br(c.dtEsg):'','Necessidade':NECL[c.nec],'Severidade':SEVL[c.sev],'Motivos':[...c.motP,...c.motQ,...c.motE].map(m=>m[1]).join(' | '),'Nova data sugerida':c.sugData?br(c.sugData):'','Acréscimo sugerido':c.sugValor||'','Status aditivo':a.status?stL(a):'','Tipo aditivo':a.tipo||'','Nova data (controle)':a.nova_data?br(a.nova_data):'','Acréscimo (controle)':a.valor_acrescimo??'','Observações':a.observacoes||'','Responsável':c.responsavel,'Próxima medição':c.agNext?br(c.agNext):'','Situação da medição':c.ag?AGL[c.ag.status]:'','Critério de pagamento':c.ag?critTxt(c.ag.k):'','Origem do critério':c.ag?(c.ag.k.cadastrado?'Cadastrado':'Padrão'):''}});
   const ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Contratos');
   XLSX.writeFile(wb,name+'_'+(POS?POS.data_ref:'')+'.xlsx');
 }
