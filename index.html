@@ -6505,15 +6505,63 @@ function stackedStatusDatasets(labels, statsMap){
         formatter:(v,ctx)=> statsMap[labels[ctx.dataIndex]].total } }
   ];
 }
-function stackedStatusOptions(){
+function stackedStatusOptions(onIrParaDados){
   return { indexAxis:'y', responsive:true, maintainAspectRatio:false,
     layout:{ padding:{ right:34 } },
+    onClick:(evt, els, chart)=>{
+      // clique numa barra/segmento → abre a lista com os dados correspondentes;
+      // clique fora do segmento mas na linha (ou no rótulo de total) → todos os status da linha
+      let el = els.find(e=>chart.data.datasets[e.datasetIndex].label!=='Total');
+      const status = el ? chart.data.datasets[el.datasetIndex].label : null;
+      if(!el){
+        const linha = chart.getElementsAtEventForMode(evt, 'index', { intersect:false, axis:'y' }, false);
+        if(!linha.length) return;
+        el = linha[0];
+      }
+      onIrParaDados(chart.data.labels[el.index], STATUS_DATASET_PRAZOS[status] || []);
+    },
+    onHover:cursorClicavel,
     plugins:{
       legend:{ position:'bottom', labels:{ filter:(item)=>item.text!=='Total' } },
       tooltip:{ filter:(item)=>item.dataset.label!=='Total' }
     },
     scales:{ x:{stacked:true,grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,precision:0},grace:'12%'},
              y:{stacked:true,grid:{display:false},ticks:{color:TICK_COLOR,autoSkip:false}} } };
+}
+
+// status do prazo correspondentes a cada série das barras empilhadas
+const STATUS_DATASET_PRAZOS = { 'Em dia':['dentro','hoje'], 'Em atraso':['atrasado'], 'Sem data':['sem-data'] };
+// status do prazo de cada fatia dos gráficos de rosca / séries dos materiais críticos (mesma ordem)
+const PRAZO_FATIAS = ['dentro','hoje','atrasado','sem-data'];
+function cursorClicavel(evt, els){
+  if(evt.native && evt.native.target) evt.native.target.style.cursor = els.length ? 'pointer' : 'default';
+}
+// define os valores de um filtro de múltipla seleção (cria a opção se ainda não existir)
+function selDefinir(id, vals){
+  const el = document.getElementById(id);
+  if(!el) return;
+  vals.forEach(v=>{
+    if(!Array.from(el.options).some(o=>o.value===v)){
+      const o = document.createElement('option'); o.value = v; o.textContent = v; el.appendChild(o);
+    }
+  });
+  Array.from(el.options).forEach(o=>{ o.selected = o.value!=='' && vals.includes(o.value); });
+  el.dispatchEvent(new Event('ms-sync'));
+}
+// abre a aba de solicitações / pedidos já filtrada pelo item clicado num gráfico da visão geral,
+// limpando os demais filtros da aba para que a lista bata com o número do gráfico
+function irParaDados(aba, filtros){
+  const cfg = aba==='compradores'
+    ? { multi:['fSolicComprador','fSolicCentro','fSolicPrazo','fSolicMaterial'], busca:'fSolicSearch', col:'solic', render:renderCompradores }
+    : { multi:['fPedCentro','fPedComprador','fPedMaterial','fPedPrazo'], busca:'fPedSearch', col:'ped', render:renderCentros };
+  cfg.multi.forEach(id=>selDefinir(id, filtros[id] || []));
+  document.getElementById(cfg.busca).value = '';
+  colFiltros[cfg.col] = {};
+  if(aba==='centros') document.getElementById('fPedStatusEntrega').value = 'pendente';
+  cfg.render();
+  const btn = document.querySelector(`.tab-btn[data-tab="${aba}"]`);
+  if(btn) btn.click();
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 
 function renderOverview(){
@@ -6608,7 +6656,8 @@ function renderOverview(){
   charts.compradorSolic = new Chart(document.getElementById('chartCompradorSolic'), {
     type:'bar',
     data:{ labels:compradorLabels, datasets: stackedStatusDatasets(compradorLabels, compradorStats) },
-    options: stackedStatusOptions()
+    options: stackedStatusOptions((lbl, prazos)=>irParaDados('compradores', {
+      fSolicComprador:[lbl==='Aguardando Distribuição' ? 'Nenhum' : lbl], fSolicPrazo:prazos }))
   });
 
   // Chart 2 — prazo solicitações donut
@@ -6621,6 +6670,8 @@ function renderOverview(){
       datasets:[{ data:[solicPrazoCounts.dentro,solicPrazoCounts.hoje,solicPrazoCounts.atrasado,solicPrazoCounts['sem-data']],
         backgroundColor:[CHART_COLORS.dentro,CHART_COLORS.hoje,CHART_COLORS.atrasado,CHART_COLORS['sem-data']] }]},
     options:{ responsive:true, maintainAspectRatio:false,
+      onClick:(evt, els)=>{ if(els.length) irParaDados('compradores', { fSolicPrazo:[PRAZO_FATIAS[els[0].index]] }); },
+      onHover:cursorClicavel,
       plugins:{legend:{position:'bottom'}, graficoFx:{ centro:'pendentes' },
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:12}, formatter:(v)=>v }} }
   });
@@ -6645,7 +6696,7 @@ function renderOverview(){
   charts.centroPed = new Chart(document.getElementById('chartCentroPed'), {
     type:'bar',
     data:{ labels:centroLabels, datasets: stackedStatusDatasets(centroLabels, centroStats) },
-    options: stackedStatusOptions()
+    options: stackedStatusOptions((lbl, prazos)=>irParaDados('centros', { fPedCentro:[lbl], fPedPrazo:prazos }))
   });
 
   // Chart 4 — prazo pedidos donut
@@ -6658,6 +6709,8 @@ function renderOverview(){
       datasets:[{ data:[pedPrazoCounts.dentro,pedPrazoCounts.hoje,pedPrazoCounts.atrasado,pedPrazoCounts['sem-data']],
         backgroundColor:[CHART_COLORS.dentro,CHART_COLORS.hoje,CHART_COLORS.atrasado,CHART_COLORS['sem-data']] }]},
     options:{ responsive:true, maintainAspectRatio:false,
+      onClick:(evt, els)=>{ if(els.length) irParaDados('centros', { fPedPrazo:[PRAZO_FATIAS[els[0].index]] }); },
+      onHover:cursorClicavel,
       plugins:{legend:{position:'bottom'}, graficoFx:{ centro:'pendentes' },
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:12}, formatter:(v)=>v }} }
   });
@@ -6675,6 +6728,9 @@ function renderOverview(){
         data: stackData[s], backgroundColor: CHART_COLORS[s], borderRadius:6, maxBarThickness:56
       }))},
     options:{ responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:16 } },
+      onClick:(evt, els)=>{ if(els.length) irParaDados('centros', {
+        fPedMaterial:[materiais[els[0].index]], fPedPrazo:[statusKeys[els[0].datasetIndex]] }); },
+      onHover:cursorClicavel,
       plugins:{legend:{position:'bottom'},
         datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#12151A', font:{weight:'700',size:11}, formatter:(v)=>v }},
       scales:{ x:{stacked:true,grid:{display:false},ticks:{color:TICK_COLOR,font:{size:12}}},
