@@ -1874,7 +1874,10 @@ tr.ctr-obra-open .ctr-obra-tg svg{transform:rotate(90deg);}
 tr.ctr-obra-open td{font-weight:600;}
 table.data.ctr-tbl tr.ctr-obra-c td{font-size:12.5px;background:transparent;}
 table.data.ctr-tbl tr.ctr-obra-c td:first-child{padding-left:38px;}
-.ctr-obra-acts{display:flex;justify-content:flex-end;gap:12px;margin:-4px 0 8px;}
+.ctr-obra-acts{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-4px 0 10px;}
+.ctr-obra-acts .ctr-seg button{padding:6px 12px;}
+table.data.ctr-tbl tr.ctr-obra-n1 td:first-child{padding-left:34px;}
+table.data.ctr-tbl tr.ctr-obra-c.ctr-obra-n2 td:first-child{padding-left:68px;}
 .ctr-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
 .ctr-toolbar input[type=text]{flex:1 1 240px;}
 .ctr-count{font-size:12px;color:var(--text-dim);margin-left:auto;}
@@ -4094,7 +4097,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         </div>
       </div>
       <div class="ctr-card">
-        <header><h3>Por obra</h3><p id="ctrObrasSub">Clique numa obra para filtrar; a seta mostra os contratos</p></header>
+        <header><h3 id="ctrObrasTit">Por obra</h3><p id="ctrObrasSub">Clique numa obra para filtrar; a seta mostra os contratos</p></header>
         <div class="ctr-body"><div class="ctr-obra-acts" id="ctrObrasActs"></div><div class="table-scroll"><table class="data ctr-tbl" id="ctrTObras"></table></div></div>
       </div>
     </div>
@@ -16660,7 +16663,8 @@ function fillStatic(){
 const scope=()=>{const e=$('#ctrEmp').value,o=$('#ctrObra').value;return ALL.filter(c=>(!e||c.empresa===e)&&(!o||c.obras.includes(o)))};
 
 /* ---------- visão geral ---------- */
-let obrasAb={}, obrasKey=null;
+let obrasAb={}, obrasKey=null, obrasModo='obra';
+try{if(localStorage.getItem('ctrObrasModo')==='empresa')obrasModo='empresa'}catch(e){}
 function renderGeral(){
   const S=scope(), A=S.filter(c=>c.ativo), sum=(a,k)=>a.reduce((s,c)=>s+(c[k]||0),0);
   const nP=A.filter(c=>c.nec==='prazo'||c.nec==='ambos').length, nQ=A.filter(c=>c.nec==='quant'||c.nec==='ambos').length;
@@ -16679,22 +16683,45 @@ function renderGeral(){
   $('#ctrVenc').innerHTML=vh?vh+(V.length>12?`<div style="text-align:center;margin-top:8px"><button class="ctr-lnk" id="ctrVMore">Mais ${V.length-12} na lista de contratos</button></div>`:''):'<div class="ctr-mt">Nada vencido ou vencendo nos próximos 60 dias.</div>';
   $$('#ctrVenc .ctr-it').forEach(e=>e.onclick=()=>openD(e.dataset.id));
   const vm=$('#ctrVMore');if(vm)vm.onclick=()=>{$('#ctrFNec').value='';$('#ctrFSit').value='ativos';sortC={k:'diasRest',d:1};goTab('contratos-lista')};
-  const g=new Map();
-  for(const c of A)for(const o of c.obras){let x=g.get(o);if(!x){x={o,n:0,t:0,m:0,s:0,p:0,q:0,cr:0};g.set(o,x)}const k=c.obras.length;x.n++;x.t+=c.total/k;x.m+=c.medido/k;x.s+=c.saldo/k;if(c.nec==='prazo'||c.nec==='ambos')x.p++;if(c.nec==='quant'||c.nec==='ambos')x.q++;if(c.sev==='crit')x.cr++}
-  const G=[...g.values()].sort((a,b)=>b.cr-a.cr||(b.p+b.q)-(a.p+a.q)||b.s-a.s);
-  // Com uma obra filtrada (ou só uma obra na tabela) os contratos já vêm abertos; a seta abre/oculta cada obra.
-  const fk=$('#ctrEmp').value+'|'+$('#ctrObra').value;if(fk!==obrasKey){obrasKey=fk;obrasAb={}}
-  const abertaPadrao=!!$('#ctrObra').value||G.length===1, aberta=o=>obrasAb[o]??abertaPadrao;
+  // Agrupa por obra ou por empresa (empresa → obras → contratos). Com filtro aplicado (ou um só grupo) já vem aberto; a seta abre/oculta.
+  const porEmp=obrasModo==='empresa', fe=$('#ctrEmp').value, fo=$('#ctrObra').value;
+  const fk=obrasModo+'|'+fe+'|'+fo;if(fk!==obrasKey){obrasKey=fk;obrasAb={}}
+  const ordem=(a,b)=>b.cr-a.cr||(b.p+b.q)-(a.p+a.q)||b.s-a.s;
+  const agrega=(lista,chaves,dividir)=>{const g=new Map();
+    for(const c of lista)for(const o of chaves(c)){let x=g.get(o);if(!x){x={o,n:0,t:0,m:0,s:0,p:0,q:0,cr:0};g.set(o,x)}const k=dividir?c.obras.length:1;x.n++;x.t+=c.total/k;x.m+=c.medido/k;x.s+=c.saldo/k;if(c.nec==='prazo'||c.nec==='ambos')x.p++;if(c.nec==='quant'||c.nec==='ambos')x.q++;if(c.sev==='crit')x.cr++}
+    return [...g.values()].sort(ordem)};
+  const G=porEmp?agrega(A,c=>[c.empresa||'Sem empresa'],false):agrega(A,c=>c.obras,true);
   const seta='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg>';
-  const subRows=x=>A.filter(c=>c.obras.includes(x.o)).sort((a,b)=>SEVR[b.sev]-SEVR[a.sev]||(a.diasRest??9e9)-(b.diasRest??9e9)).map(c=>
-    `<tr class="ctr-obra-c" data-id="${esc(c.id)}"><td><span class="mono">${esc(c.contrato)}</span> · ${esc(c.fornecedor)}<span class="ctr-subtxt">${esc(c.objeto)}</span></td><td class="num mono" title="Término">${br(c.dtTermino)}</td><td class="num">${brlC(c.total)}</td><td class="num">${pct(c.pMed)}</td><td class="num">${brlC(c.saldo)}</td><td colspan="3" class="num"><div class="ctr-tags" style="justify-content:flex-end">${necTag(c)}${stTag(c)}</div></td></tr>`).join('');
-  $('#ctrTObras').innerHTML=`<thead><tr><th>Obra</th><th class="num">Ativos</th><th class="num">Contratado</th><th class="num">Medido</th><th class="num">Saldo</th><th class="num">Prazo</th><th class="num">Quantidade</th><th class="num">Críticos</th></tr></thead><tbody>`+
-   (G.map(x=>{const ab=aberta(x.o);return `<tr data-o="${esc(x.o)}" class="${ab?'ctr-obra-open':''}"><td><button type="button" class="ctr-obra-tg" title="${ab?'Ocultar':'Mostrar'} contratos" aria-expanded="${ab}">${seta}</button>${esc(x.o)}</td><td class="num">${x.n}</td><td class="num">${brlC(x.t)}</td><td class="num">${pct(x.t?x.m/x.t:0)}</td><td class="num">${brlC(x.s)}</td><td class="num">${x.p||'—'}</td><td class="num">${x.q||'—'}</td><td class="num">${x.cr?`<span class="ctr-tag crit">${x.cr}</span>`:'—'}</td></tr>`+(ab?subRows(x):'')}).join('')||'<tr><td colspan="8" class="ctr-mt">Sem contratos ativos neste filtro.</td></tr>')+'</tbody>';
-  const nAb=G.filter(x=>aberta(x.o)).length;
-  $('#ctrObrasActs').innerHTML=G.length?`<button type="button" class="ctr-lnk" data-all="1">Expandir todas</button><button type="button" class="ctr-lnk" data-all="0">Ocultar todas</button>`:'';
-  $$('#ctrObrasActs [data-all]').forEach(b=>{b.disabled=b.dataset.all==='1'?nAb===G.length:!nAb;b.onclick=()=>{G.forEach(x=>obrasAb[x.o]=b.dataset.all==='1');renderGeral()}});
-  $$('#ctrTObras .ctr-obra-tg').forEach(b=>b.onclick=e=>{e.stopPropagation();const o=b.closest('tr').dataset.o;obrasAb[o]=!aberta(o);renderGeral()});
-  $$('#ctrTObras tbody tr[data-o]').forEach(r=>r.onclick=()=>{const o=r.dataset.o;if($('#ctrObra').value===o){obrasAb[o]=!aberta(o);renderGeral()}else{$('#ctrObra').value=o;render()}});
+  const aberta=(k,pad)=>obrasAb[k]??pad;
+  const cols=x=>`<td class="num">${x.n}</td><td class="num">${brlC(x.t)}</td><td class="num">${pct(x.t?x.m/x.t:0)}</td><td class="num">${brlC(x.s)}</td><td class="num">${x.p||'—'}</td><td class="num">${x.q||'—'}</td><td class="num">${x.cr?`<span class="ctr-tag crit">${x.cr}</span>`:'—'}</td>`;
+  const linha=(k,ab,attrs,nome,x,nivel)=>`<tr ${attrs} data-k="${esc(k)}" class="${ab?'ctr-obra-open':''} ${nivel?'ctr-obra-n'+nivel:''}"><td><button type="button" class="ctr-obra-tg" title="${ab?'Ocultar':'Mostrar'} ${porEmp&&!nivel?'obras':'contratos'}" aria-expanded="${ab}">${seta}</button>${esc(nome)}</td>${cols(x)}</tr>`;
+  const contratos=(lista,nivel)=>lista.slice().sort((a,b)=>SEVR[b.sev]-SEVR[a.sev]||(a.diasRest??9e9)-(b.diasRest??9e9)).map(c=>
+    `<tr class="ctr-obra-c ${nivel?'ctr-obra-n'+nivel:''}" data-id="${esc(c.id)}"><td><span class="mono">${esc(c.contrato)}</span> · ${esc(c.fornecedor)}<span class="ctr-subtxt">${esc(c.objeto)}</span></td><td class="num mono" title="Término">${br(c.dtTermino)}</td><td class="num">${brlC(c.total)}</td><td class="num">${pct(c.pMed)}</td><td class="num">${brlC(c.saldo)}</td><td colspan="3" class="num"><div class="ctr-tags" style="justify-content:flex-end">${necTag(c)}${stTag(c)}</div></td></tr>`).join('');
+  let corpo='', nAb=0;
+  if(porEmp){
+    const padE=!!fe||G.length===1;
+    corpo=G.map(x=>{const k='e:'+x.o, ab=aberta(k,padE);if(ab)nAb++;
+      if(!ab)return linha(k,false,`data-e="${esc(x.o)}"`,x.o,x,0);
+      const LE=A.filter(c=>(c.empresa||'Sem empresa')===x.o), O=agrega(LE,c=>c.obras,true), padO=!!fo||O.length===1;
+      return linha(k,true,`data-e="${esc(x.o)}"`,x.o,x,0)+O.map(y=>{const ko='eo:'+x.o+'|'+y.o, abo=aberta(ko,padO);
+        return linha(ko,abo,`data-o="${esc(y.o)}"`,y.o,y,1)+(abo?contratos(LE.filter(c=>c.obras.includes(y.o)),2):'')}).join('')}).join('');
+  }else{
+    const padO=!!fo||G.length===1;
+    corpo=G.map(x=>{const k='o:'+x.o, ab=aberta(k,padO);if(ab)nAb++;return linha(k,ab,`data-o="${esc(x.o)}"`,x.o,x,0)+(ab?contratos(A.filter(c=>c.obras.includes(x.o)),0):'')}).join('');
+  }
+  $('#ctrObrasTit').textContent=porEmp?'Por empresa':'Por obra';
+  $('#ctrObrasSub').textContent=porEmp?'Clique numa empresa ou obra para filtrar; a seta mostra as obras e os contratos':'Clique numa obra para filtrar; a seta mostra os contratos';
+  $('#ctrTObras').innerHTML=`<thead><tr><th>${porEmp?'Empresa / obra':'Obra'}</th><th class="num">Ativos</th><th class="num">Contratado</th><th class="num">Medido</th><th class="num">Saldo</th><th class="num">Prazo</th><th class="num">Quantidade</th><th class="num">Críticos</th></tr></thead><tbody>`+
+   (corpo||'<tr><td colspan="8" class="ctr-mt">Sem contratos ativos neste filtro.</td></tr>')+'</tbody>';
+  $('#ctrObrasActs').innerHTML=`<div class="ctr-seg" id="ctrObrasModo"><button type="button" data-m="obra" class="${porEmp?'':'on'}">Por obra</button><button type="button" data-m="empresa" class="${porEmp?'on':''}">Por empresa</button></div><span style="flex:1"></span>`+
+   (G.length?`<button type="button" class="ctr-lnk" data-all="1">Expandir todas</button><button type="button" class="ctr-lnk" data-all="0">Ocultar todas</button>`:'');
+  $$('#ctrObrasModo button').forEach(b=>b.onclick=()=>{obrasModo=b.dataset.m;try{localStorage.setItem('ctrObrasModo',obrasModo)}catch(e){}renderGeral()});
+  $$('#ctrObrasActs [data-all]').forEach(b=>{b.disabled=b.dataset.all==='1'?nAb===G.length:!nAb;b.onclick=()=>{
+    G.forEach(x=>obrasAb[(porEmp?'e:':'o:')+x.o]=b.dataset.all==='1');renderGeral()}});
+  const alterna=tr=>{const k=tr.dataset.k;obrasAb[k]=!tr.classList.contains('ctr-obra-open');renderGeral()};
+  $$('#ctrTObras .ctr-obra-tg').forEach(b=>b.onclick=e=>{e.stopPropagation();alterna(b.closest('tr'))});
+  $$('#ctrTObras tbody tr[data-o]').forEach(r=>r.onclick=()=>{const o=r.dataset.o;if(fo===o)alterna(r);else{$('#ctrObra').value=o;render()}});
+  $$('#ctrTObras tbody tr[data-e]').forEach(r=>r.onclick=()=>{const e=r.dataset.e;if(fe===e||e==='Sem empresa')alterna(r);else{$('#ctrEmp').value=e;refreshFilters();render()}});
   $$('#ctrTObras tbody tr[data-id]').forEach(r=>r.onclick=()=>openD(r.dataset.id));
 }
 function renderMap(A){
