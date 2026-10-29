@@ -1828,6 +1828,7 @@ body:not(.is-logged) .ctr-logged{display:none !important;}
 .ctr-kpi-warm .kpi-value{color:#FF9447;}
 .ctr-kpi-card button.ctr-lnk{margin-top:8px;}
 .ctr-lnk{border:0;background:none;color:var(--yellow);cursor:pointer;padding:0;font:600 12px var(--font-body);}
+.ctr-lnk:disabled{opacity:.4;cursor:default;}
 .ctr-grid2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:16px;margin-bottom:16px;}
 .ctr-card{background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;min-width:0;}
 .ctr-card>header{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 16px 0;}
@@ -1865,6 +1866,15 @@ table.data.ctr-tbl td.mono{font-family:var(--font-mono);font-size:12px;}
 .ctr-tag.off{background:var(--asphalt-3);color:var(--text-dim);}
 .ctr-tag.st{border-color:var(--line);color:var(--text);font-weight:500;background:transparent;}
 .ctr-tags{display:flex;gap:4px;flex-wrap:wrap;}
+/* Por obra: contratos de cada obra, expansíveis */
+.ctr-obra-tg{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:-3px 6px -3px -4px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--text-dim);cursor:pointer;vertical-align:middle;}
+.ctr-obra-tg:hover{background:var(--asphalt-3);color:var(--text);}
+.ctr-obra-tg svg{width:14px;height:14px;transition:transform .15s;}
+tr.ctr-obra-open .ctr-obra-tg svg{transform:rotate(90deg);}
+tr.ctr-obra-open td{font-weight:600;}
+table.data.ctr-tbl tr.ctr-obra-c td{font-size:12.5px;background:transparent;}
+table.data.ctr-tbl tr.ctr-obra-c td:first-child{padding-left:38px;}
+.ctr-obra-acts{display:flex;justify-content:flex-end;gap:12px;margin:-4px 0 8px;}
 .ctr-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
 .ctr-toolbar input[type=text]{flex:1 1 240px;}
 .ctr-count{font-size:12px;color:var(--text-dim);margin-left:auto;}
@@ -4084,8 +4094,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         </div>
       </div>
       <div class="ctr-card">
-        <header><h3>Por obra</h3><p>Clique numa obra para filtrar</p></header>
-        <div class="ctr-body"><div class="table-scroll"><table class="data ctr-tbl" id="ctrTObras"></table></div></div>
+        <header><h3>Por obra</h3><p id="ctrObrasSub">Clique numa obra para filtrar; a seta mostra os contratos</p></header>
+        <div class="ctr-body"><div class="ctr-obra-acts" id="ctrObrasActs"></div><div class="table-scroll"><table class="data ctr-tbl" id="ctrTObras"></table></div></div>
       </div>
     </div>
   </section>
@@ -16648,6 +16658,7 @@ function fillStatic(){
 const scope=()=>{const e=$('#ctrEmp').value,o=$('#ctrObra').value;return ALL.filter(c=>(!e||c.empresa===e)&&(!o||c.obras.includes(o)))};
 
 /* ---------- visão geral ---------- */
+let obrasAb={}, obrasKey=null;
 function renderGeral(){
   const S=scope(), A=S.filter(c=>c.ativo), sum=(a,k)=>a.reduce((s,c)=>s+(c[k]||0),0);
   const nP=A.filter(c=>c.nec==='prazo'||c.nec==='ambos').length, nQ=A.filter(c=>c.nec==='quant'||c.nec==='ambos').length;
@@ -16669,9 +16680,20 @@ function renderGeral(){
   const g=new Map();
   for(const c of A)for(const o of c.obras){let x=g.get(o);if(!x){x={o,n:0,t:0,m:0,s:0,p:0,q:0,cr:0};g.set(o,x)}const k=c.obras.length;x.n++;x.t+=c.total/k;x.m+=c.medido/k;x.s+=c.saldo/k;if(c.nec==='prazo'||c.nec==='ambos')x.p++;if(c.nec==='quant'||c.nec==='ambos')x.q++;if(c.sev==='crit')x.cr++}
   const G=[...g.values()].sort((a,b)=>b.cr-a.cr||(b.p+b.q)-(a.p+a.q)||b.s-a.s);
+  // Com uma obra filtrada (ou só uma obra na tabela) os contratos já vêm abertos; a seta abre/oculta cada obra.
+  const fk=$('#ctrEmp').value+'|'+$('#ctrObra').value;if(fk!==obrasKey){obrasKey=fk;obrasAb={}}
+  const abertaPadrao=!!$('#ctrObra').value||G.length===1, aberta=o=>obrasAb[o]??abertaPadrao;
+  const seta='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg>';
+  const subRows=x=>A.filter(c=>c.obras.includes(x.o)).sort((a,b)=>SEVR[b.sev]-SEVR[a.sev]||(a.diasRest??9e9)-(b.diasRest??9e9)).map(c=>
+    `<tr class="ctr-obra-c" data-id="${esc(c.id)}"><td><span class="mono">${esc(c.contrato)}</span> · ${esc(c.fornecedor)}<span class="ctr-subtxt">${esc(c.objeto)}</span></td><td class="num mono" title="Término">${br(c.dtTermino)}</td><td class="num">${brlC(c.total)}</td><td class="num">${pct(c.pMed)}</td><td class="num">${brlC(c.saldo)}</td><td colspan="3" class="num"><div class="ctr-tags" style="justify-content:flex-end">${necTag(c)}${stTag(c)}</div></td></tr>`).join('');
   $('#ctrTObras').innerHTML=`<thead><tr><th>Obra</th><th class="num">Ativos</th><th class="num">Contratado</th><th class="num">Medido</th><th class="num">Saldo</th><th class="num">Prazo</th><th class="num">Quantidade</th><th class="num">Críticos</th></tr></thead><tbody>`+
-   (G.map(x=>`<tr data-o="${esc(x.o)}"><td>${esc(x.o)}</td><td class="num">${x.n}</td><td class="num">${brlC(x.t)}</td><td class="num">${pct(x.t?x.m/x.t:0)}</td><td class="num">${brlC(x.s)}</td><td class="num">${x.p||'—'}</td><td class="num">${x.q||'—'}</td><td class="num">${x.cr?`<span class="ctr-tag crit">${x.cr}</span>`:'—'}</td></tr>`).join('')||'<tr><td colspan="8" class="ctr-mt">Sem contratos ativos neste filtro.</td></tr>')+'</tbody>';
-  $$('#ctrTObras tbody tr[data-o]').forEach(r=>r.onclick=()=>{$('#ctrObra').value=r.dataset.o;render()});
+   (G.map(x=>{const ab=aberta(x.o);return `<tr data-o="${esc(x.o)}" class="${ab?'ctr-obra-open':''}"><td><button type="button" class="ctr-obra-tg" title="${ab?'Ocultar':'Mostrar'} contratos" aria-expanded="${ab}">${seta}</button>${esc(x.o)}</td><td class="num">${x.n}</td><td class="num">${brlC(x.t)}</td><td class="num">${pct(x.t?x.m/x.t:0)}</td><td class="num">${brlC(x.s)}</td><td class="num">${x.p||'—'}</td><td class="num">${x.q||'—'}</td><td class="num">${x.cr?`<span class="ctr-tag crit">${x.cr}</span>`:'—'}</td></tr>`+(ab?subRows(x):'')}).join('')||'<tr><td colspan="8" class="ctr-mt">Sem contratos ativos neste filtro.</td></tr>')+'</tbody>';
+  const nAb=G.filter(x=>aberta(x.o)).length;
+  $('#ctrObrasActs').innerHTML=G.length?`<button type="button" class="ctr-lnk" data-all="1">Expandir todas</button><button type="button" class="ctr-lnk" data-all="0">Ocultar todas</button>`:'';
+  $$('#ctrObrasActs [data-all]').forEach(b=>{b.disabled=b.dataset.all==='1'?nAb===G.length:!nAb;b.onclick=()=>{G.forEach(x=>obrasAb[x.o]=b.dataset.all==='1');renderGeral()}});
+  $$('#ctrTObras .ctr-obra-tg').forEach(b=>b.onclick=e=>{e.stopPropagation();const o=b.closest('tr').dataset.o;obrasAb[o]=!aberta(o);renderGeral()});
+  $$('#ctrTObras tbody tr[data-o]').forEach(r=>r.onclick=()=>{const o=r.dataset.o;if($('#ctrObra').value===o){obrasAb[o]=!aberta(o);renderGeral()}else{$('#ctrObra').value=o;render()}});
+  $$('#ctrTObras tbody tr[data-id]').forEach(r=>r.onclick=()=>openD(r.dataset.id));
 }
 function renderMap(A){
   const W=640,H=400,L=46,R=16,T=14,B=38,xm=1.3,ym=1.1;
