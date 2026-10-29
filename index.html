@@ -17486,17 +17486,29 @@ function indiceCompl(){
   return m;
 }
 // nomes das empresas como vêm no relatório de títulos, pelo código e pelo nome normalizado,
-// para pôr na empresa certa a PCT que não está nesse relatório (pela empresa do contrato)
+// para pôr na empresa certa o título que não está nesse relatório: a PCT pela empresa do
+// contrato e os demais (PPC, documentos) pela empresa da obra, vista nos contratos importados
 function indiceEmpresas(){
-  const porCod=new Map(), porNome=new Map();
-  if(!CT||!CT.dados)return {porCod,porNome};
+  const porCod=new Map(), porNome=new Map(), porObra=new Map();
+  const lista=window.CTR&&window.CTR.dados?window.CTR.dados().lista||[]:[];
+  for(const c of lista){
+    if(c.obraCod==null||(c.empresaCod==null&&!c.empresa))continue;
+    const k='c:'+c.obraCod;let m=porObra.get(k);if(!m){m=new Map();porObra.set(k,m)}
+    m.set(c,(m.get(c)||0)+1);
+  }
+  // obra → contrato representativo da empresa mais frequente na obra
+  porObra.forEach((m,k)=>{
+    const n=new Map();m.forEach((q,c)=>{const e=c.empresaCod!=null?'#'+c.empresaCod:normKey(c.empresa);const a=n.get(e)||{q:0,c};a.q+=q;n.set(e,a)});
+    porObra.set(k,[...n.values()].sort((a,b)=>b.q-a.q)[0].c);
+  });
+  if(!CT||!CT.dados)return {porCod,porNome,porObra};
   const F=CT.dados.fields||CT_FIELDS, iCod=F.indexOf('codEmp'), iNome=F.indexOf('empresa');
   for(const r of CT.dados.rows){
     const nome=r[iNome];if(!nome)continue;
     const cod=iCod>=0?parseInt(r[iCod],10):NaN;if(!isNaN(cod)&&!porCod.has(String(cod)))porCod.set(String(cod),nome);
     if(!porNome.has(normKey(nome)))porNome.set(normKey(nome),nome);
   }
-  return {porCod,porNome};
+  return {porCod,porNome,porObra};
 }
 const empresaDoContrato=(E,c)=>!c?'':(c.empresaCod!=null&&E.porCod.get(String(+c.empresaCod)))||E.porNome.get(normKey(c.empresa))||c.empresa||'';
 function complDe(CI,tipo,credor,doc){
@@ -17602,6 +17614,8 @@ function titulos(){
       ctr:g0==='pct'?{c:o&&(o.c||(o.cands&&o.cands.length===1?o.cands[0]:null)),via:o?o.via||'':'',n:o&&o.cands?o.cands.length:0}:null,ped:g0==='ppc'&&!!o,comp:g0==='ppc'&&o?o.comp||'':''};
     // PCT fora do relatório de títulos: a empresa vem do contrato ligado
     if(!x.emp&&x.ctr&&x.ctr.c){x.emp=empresaDoContrato(E,x.ctr.c);x.empCtr=!!x.emp}
+    // demais títulos fora desse relatório (PPC, documentos, PCT sem contrato certo): a empresa da obra
+    if(!x.emp&&x.key!==SEM_OBRA&&E.porObra.has(x.key)){x.emp=empresaDoContrato(E,E.porObra.get(x.key));x.empObra=!!x.emp}
     lista.push(x);
     if(g==='pct'&&o&&o.c){let a=porCtr.get(o.c.id);if(!a){a={c:o.c,obra:o.label,tits:[]};porCtr.set(o.c.id,a)}a.tits.push(x)}
   }
@@ -17812,7 +17826,7 @@ const ctrXL=t=>{if(!t.ctr)return {};const c=t.ctr.c;return {'Contrato':c?c.contr
 function titulosHTML(l,val){
   const vtxt=t=>val(t)<t.v-0.5?`${brl(val(t))} <span class="pxr-est" title="PCT acima do saldo do contrato">de ${brl(t.v)}</span>`:brl(val(t));
   return tabela('<th>Vencimento</th><th>Credor</th><th>Documento</th><th>Obra</th><th class="num">Valor</th>',
-    l.slice(0,LIM).map(t=>`<tr><td class="mono${t.vencido?' pxr-neg':''}">${brData(t.venc)}</td><td>${txt(t.credor)}${detTitulo(t)}</td><td class="mono">${esc(t.doc)}${ctrTitulo(t)}</td><td>${txt(t.label)}</td><td class="num">${vtxt(t)}</td></tr>`))+cortado(l.length);
+    l.slice(0,LIM).map(t=>`<tr><td class="mono${t.vencido?' pxr-neg':''}">${brData(t.venc)}</td><td>${txt(t.credor)}${detTitulo(t)}${t.empObra?`<div class="cpg-det">${esc(t.emp)} <span class="pxr-est">(empresa da obra)</span></div>`:''}</td><td class="mono">${esc(t.doc)}${ctrTitulo(t)}</td><td>${txt(t.label)}</td><td class="num">${vtxt(t)}</td></tr>`))+cortado(l.length);
 }
 function abrirPainel(titulo,sub,total,n,partes,op){
   painel=op||{redesenhar:null,exportar:null};
