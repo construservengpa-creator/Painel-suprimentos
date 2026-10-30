@@ -10544,7 +10544,10 @@ function vinculoValorEfetivo(v){
 // Faturado do vínculo com o valor integral das notas que estão na base
 // agora, sem esperar a reconciliação regravar valor_realizado (ela só roda
 // para admin/supervisor). Mesma regra da reconciliação: "previsto" segue o
-// valor atual das notas; "realizado" só sobe, nunca desce.
+// valor atual das notas; "realizado" só sobe, nunca desce — exceto quando o
+// pedido está encerrado no Sienge: aí vale a soma das notas, e a diferença
+// para o total do pedido (saldo cancelado) volta para o crédito, mesmo que
+// um valor maior tenha sido digitado no vínculo.
 let _pedidosAtuaisCache = { rows:null, extras:null, map:null };
 function pedidoAtualDoVinculo(numPedido){
   const c = _pedidosAtuaisCache;
@@ -10559,6 +10562,7 @@ function vinculoFaturado(v){
   const gravado = v.valorRealizado||0;
   const ped = pedidoAtualDoVinculo(v.numPedido);
   if(!ped || !(ped.valorTotal > 0)) return gravado;
+  if(pedidoEncerradoNoSienge(ped)) return ped.valorTotal;
   return v.status === 'realizado' ? Math.max(gravado, ped.valorTotal) : ped.valorTotal;
 }
 // Pedido encerrado no Sienge (totalmente entregue, saldo cancelado ou
@@ -11204,7 +11208,8 @@ async function reconciliarVinculosComNotasFiscais(){
       if(!pedido || !(pedido.valorTotal > 0)) continue;
       let novo = null;
       if(v.status==='realizado'){
-        if(pedido.valorTotal - (v.valorRealizado||0) > 0.005) novo = { valorRealizado: pedido.valorTotal };
+        const encerrado = pedidoEncerradoNoSienge(pedido);
+        if(encerrado ? Math.abs((v.valorRealizado||0) - pedido.valorTotal) > 0.005 : pedido.valorTotal - (v.valorRealizado||0) > 0.005) novo = { valorRealizado: pedido.valorTotal };
       } else if(pedidoEncerradoNoSienge(pedido)) novo = { valorRealizado: pedido.valorTotal, status: 'realizado' };
       else if(Math.abs((v.valorRealizado||0) - pedido.valorTotal) > 0.005) novo = { valorRealizado: pedido.valorTotal };
       if(!novo) continue;
@@ -11379,8 +11384,10 @@ function renderPedidoSearchResults(){
 }
 
 // Valor a abater sugerido ao escolher o pedido: o total do pedido (relatório
-// "Acompanhamento de Pedidos"); sem ele, a soma das notas já emitidas.
+// "Acompanhamento de Pedidos"); sem ele, ou com o pedido já encerrado no
+// Sienge, a soma das notas já emitidas.
 function valorSugeridoPedido(p){
+  if(p && p.valorTotal > 0 && pedidoEncerradoNoSienge(p)) return p.valorTotal;
   return p ? (p.totalPedido > 0 ? p.totalPedido : (p.valorTotal || 0)) : 0;
 }
 // Pedido digitado em vez de escolhido na lista: ao sair do campo, preenche o
@@ -12049,6 +12056,14 @@ async function addVinculoCredito(){
   // reimportado). Se é um vínculo novo, nasce "realizado" quando o pedido
   // já tem nota fiscal na base atual, ou "previsto" (reservado) quando
   // ainda não tem.
+  // Pedido encerrado no Sienge com nota: o abatimento é a soma das notas
+  // (o saldo cancelado volta para o crédito), não o valor digitado.
+  if(pedido.valorTotal > 0 && pedidoEncerradoNoSienge(pedido) && Math.abs(valor - pedido.valorTotal) > 0.005){
+    msg.textContent = `O pedido ${numPedido} está encerrado no Sienge: o abatimento é o valor das notas fiscais (R$ ${fmtMoney(pedido.valorTotal)}). O saldo cancelado do pedido volta para o crédito.`;
+    document.getElementById('vinculo-fValor').value = pedido.valorTotal.toFixed(2);
+    return;
+  }
+
   let status, valorPrevisto, valorRealizado;
   const vinculoAtual = editingVinculoId ? vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId)) : null;
   if(vinculoAtual){
