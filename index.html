@@ -4415,6 +4415,10 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
             <span title="Se o Sienge não exportar tudo num arquivo só, selecione os 2 arquivos juntos (Ctrl+clique)">📂 Importar novo relatório (.xlsx — 1 ou 2 arquivos)</span>
             <input type="file" id="fileInput" accept=".xlsx,.xls" multiple>
           </label>
+          <label class="file-drop">
+            <span title="PDF &quot;Acompanhamento de Solicitações&quot; do Sienge: traz, por insumo, o que o estoque já atendeu (reserva/transferência). Itens atendidos por inteiro saem das solicitações pendentes.">📦 Atendimento pelo estoque (PDF)</span>
+            <input type="file" id="fileAtendEstoque" accept=".pdf,application/pdf" multiple>
+          </label>
           <button class="btn ghost" id="btnReloadBase">🔄 Recarregar do servidor</button>
           <button class="btn ghost" id="btnDemo">Carregar dados de exemplo</button>
         </div>
@@ -4440,8 +4444,12 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <div class="mapping-warning" id="dedupeWarning" title="Linhas com a mesma solicitação/insumo/pedido foram encontradas no relatório importado. Duplicidades exatas foram removidas automaticamente; divergências foram mantidas e marcadas para revisão.">
           🧹 <span id="dedupeWarningText"></span>
         </div>
+        <div class="mapping-warning" id="atendEstoqueMsg" title="Resultado da importação do PDF Acompanhamento de Solicitações do Sienge.">
+          📦 <span id="atendEstoqueMsgText"></span>
+        </div>
         <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;"><b>Relatório em 2 arquivos:</b> selecione os dois de uma vez (Ctrl+clique). Se tiverem as mesmas colunas (ex.: divididos por período ou obra), as linhas são somadas, sem repetir as que estiverem nos dois. Se tiverem colunas diferentes (ex.: solicitação num, pedido/NF no outro), são cruzados pelo nº da solicitação/pedido, insumo, obra e detalhe — por isso mantenha essas colunas nos dois arquivos.</p>
         <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;">Ao importar um arquivo .xlsx, ele é lido aqui no navegador e publicado direto na tabela do servidor (Supabase) — qualquer pessoa que abrir o painel depois disso já vê a versão nova. "Carregar dados de exemplo" só afeta a sua tela e não publica nada.</p>
+        <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;line-height:1.5;"><b>Atendimento pelo estoque:</b> o relatório .xlsx não mostra o que o almoxarifado atendeu por reserva/transferência — uma solicitação "Parcialmente atendida" sem pedido aparece com todos os itens pendentes. Importe o PDF "Acompanhamento de Solicitações" do Sienge (um ou vários): os itens que o estoque atendeu por inteiro saem das pendências e os atendidos em parte mostram quanto falta. Fica gravado no servidor e vale também para os próximos relatórios; importe de novo quando o atendimento mudar.</p>
       </div>
     </div>
 
@@ -6160,6 +6168,7 @@ function loadRows(rawRows, sourceName){
   state.rows = previsaoPelaChegadaDosLotes(rawRows).map(classify);
   applyPedidoAtendidoOverride(state.rows);
   applyEntregaOutroCentro(state.rows);
+  applyAtendimentoEstoque(state.rows);
   state.sourceName = sourceName;
   document.getElementById('statusDot').classList.add('ok');
   document.getElementById('statusText').textContent =
@@ -6263,6 +6272,218 @@ function flagEntregaOutroCentro(origem, obs){
   if(!origem) return '';
   return ` <span class="saldo-flag" title="Entrega em outro centro de custo. Origem no Sienge: ${esc(origem)}${obs?' · '+esc(obs):''}">↪ origem: ${esc(origem)}</span>`;
 }
+
+// ---- Atendimento de solicitações pelo estoque ----
+// O relatório do Sienge (.xlsx) não traz o que o almoxarifado já atendeu por
+// reserva/transferência: numa solicitação "Parcialmente atendida" sem pedido,
+// todas as linhas vêm iguais (sem quantidade entregue nem saldo) e todas
+// contavam como pendentes — ex.: a 34938 aparecia com 30 itens pendentes
+// quando só faltavam 8. O PDF "Acompanhamento de Solicitações" do Sienge traz
+// a quantidade atendida por insumo; o painel lê esse PDF, guarda na tabela
+// "solicitacoes_atendimento_estoque" e, ao carregar o relatório, tira das
+// pendências a linha sem pedido cujo insumo o estoque já atendeu por inteiro
+// (as atendidas em parte continuam pendentes, mostrando quanto falta).
+let atendEstoque = new Map();   // nº da solicitação -> [registros do Supabase]
+// "12638 - FILTRO AR MOTOR" -> { codigo:'12638', resto:'FILTRO AR MOTOR' }
+function partesInsumo(desc){
+  const m = String(desc||'').match(/^\s*(\d+)\s*-\s*(.*)$/);
+  return m ? { codigo:m[1], resto:m[2] } : { codigo:'', resto:String(desc||'') };
+}
+// No PDF o insumo vem como "código - descrição / detalhe / marca"; no .xlsx
+// são três colunas. Sem acento, espaço e pontuação os dois ficam iguais.
+function chaveAtendEstoque(numSolicitacao, codigo, texto){
+  return normKey(numSolicitacao) + '§' + normKey(codigo) + '§' + normKey(texto);
+}
+function chaveAtendEstoqueLinha(r){
+  const p = partesInsumo(r.descricaoInsumo);
+  return chaveAtendEstoque(r.numSolicitacao, p.codigo, [p.resto, r.detalhe, r.marca].join(' '));
+}
+async function loadAtendimentoEstoque(){
+  try{
+    const todos = [];
+    for(let de = 0; ; de += 1000){
+      const { data, error } = await window.SB.from('solicitacoes_atendimento_estoque').select('*').range(de, de + 999);
+      if(error) throw error;
+      todos.push(...(data||[]));
+      if(!data || data.length < 1000) break;
+    }
+    atendEstoque = new Map();
+    todos.forEach(reg=>{
+      const k = normKey(reg.num_solicitacao);
+      if(!atendEstoque.has(k)) atendEstoque.set(k, []);
+      atendEstoque.get(k).push(reg);
+    });
+  }catch(e){
+    console.error('Falha ao carregar o atendimento pelo estoque:', e);
+  }
+}
+function applyAtendimentoEstoque(rows){
+  rows.forEach(r=>{
+    if(r._atendEstoqueOrig){
+      Object.assign(r, r._atendEstoqueOrig);
+      delete r._atendEstoqueOrig;
+    }
+    delete r.atendEstoque;
+  });
+  if(!atendEstoque.size) return;
+  // agrupa as linhas sem pedido da mesma solicitação + insumo (mesma chave)
+  const grupos = new Map();
+  rows.forEach(r=>{
+    if(r.temPedido) return;
+    const regs = atendEstoque.get(normKey(r.numSolicitacao));
+    if(!regs) return;
+    const k = chaveAtendEstoqueLinha(r);
+    if(!grupos.has(k)) grupos.set(k, { regs, linhas:[] });
+    grupos.get(k).linhas.push(r);
+  });
+  grupos.forEach((g, k)=>{
+    let regs = g.regs.filter(x=>x.chave === k);
+    if(!regs.length){
+      // reserva: mesmo código de insumo e um texto contido no outro (detalhe
+      // cortado ou acrescido de um lado só), desde que só um registro sirva
+      const r0 = g.linhas[0], p = partesInsumo(r0.descricaoInsumo);
+      const txt = k.split('§')[2] || '';
+      const cand = g.regs.filter(x=>normKey(x.insumo_codigo) === normKey(p.codigo) && txt && (() => {
+        const t = String(x.chave).split('§')[2] || '';
+        return t && (t.includes(txt) || txt.includes(t));
+      })());
+      if(cand.length === 1) regs = cand;
+    }
+    if(!regs.length) return;
+    const atendida = regs.reduce((s,x)=>s + (Number(x.qtd_atendida)||0), 0);
+    const reservada = regs.reduce((s,x)=>s + (Number(x.qtd_reservada)||0), 0);
+    const solicitada = g.linhas.reduce((s,r)=>s + (r.qtdSolicitadaNum||0), 0);
+    const falta = Math.max(0, solicitada - atendida);
+    const em = regs.map(x=>x.atualizado_em).sort().pop();
+    g.linhas.forEach(r=>{
+      r.atendEstoque = { atendida, reservada, solicitada, falta, em, total: falta <= SALDO_EPSILON };
+      if(r.atendEstoque.total && r.solicPendente){
+        r._atendEstoqueOrig = { solicPendente:r.solicPendente, solicPrazoStatus:r.solicPrazoStatus, solicAtendidaSemPedido:r.solicAtendidaSemPedido };
+        r.solicPendente = false;
+        r.solicPrazoStatus = null;
+        r.solicAtendidaSemPedido = false;
+      }
+    });
+  });
+}
+function fmtQtdEstoque(n){ return (Number(n)||0).toLocaleString('pt-BR', { maximumFractionDigits:4 }); }
+// Indicação, na situação da solicitação, do que o estoque já atendeu.
+function flagAtendEstoque(r){
+  const a = r.atendEstoque;
+  if(!a || a.total) return '';
+  const quando = a.em ? ' (PDF importado em ' + fmtDate(new Date(a.em)) + ')' : '';
+  if(a.atendida > 0) return ` <span class="badge parcial" title="Acompanhamento de Solicitações do Sienge${esc(quando)}: atendido ${fmtQtdEstoque(a.atendida)} de ${fmtQtdEstoque(a.solicitada)} pelo estoque">Estoque: ${fmtQtdEstoque(a.atendida)} de ${fmtQtdEstoque(a.solicitada)} · falta ${fmtQtdEstoque(a.falta)}</span>`;
+  return ` <span class="saldo-flag" title="Acompanhamento de Solicitações do Sienge${esc(quando)}: nada deste insumo foi atendido pelo estoque">estoque: 0 atendido</span>`;
+}
+
+// Lê o PDF "Acompanhamento de Solicitações" do Sienge. Cada solicitação tem
+// um cabeçalho (Obra, Solicitação, Acompanhamento) e uma tabela de insumos:
+//   "12573 - FILTRO COMBUSTIVEL / AT365870 27/10/2026 4,0000 un 0,0000 3,0000 3,0000"
+//   "- SEPARADOR"                        <- continuação da descrição
+// (insumo, data da última autorização, quantidade, unidade, cotada,
+// reservada, atendida). A tabela termina em "Reservas", "Movimentos",
+// "Resumo" etc. Cabeçalho/rodapé de página são ignorados.
+const RX_AE_ITEM = /^(\d+)\s+-\s+(.*?)\s+(?:(\d{2}\/\d{2}\/\d{4})\s+)?(-?[\d.]+,\d+)\s+(?:([^\s\d][^\s]*)\s+)?(-?[\d.]+,\d+)\s+(-?[\d.]+,\d+)\s+(-?[\d.]+,\d+)$/;
+function parseAcompanhamentoSolicitacoes(linhas){
+  const sols = [];
+  let obra = '', atual = null, emItens = false, item = null;
+  const fechaItem = ()=>{ if(item && atual){ atual.itens.push(item); } item = null; };
+  linhas.forEach(l=>{
+    let m;
+    if(/^Acompanhamento de Solicita/i.test(l) || /^Per[ií]odo\s/i.test(l)) return;
+    if(/^\d{2}\/\d{2}\/\d{4}\s+-\s+\d{2}:\d{2}.*\d+\s+de\s+\d+$/.test(l)) return;   // rodapé
+    if((m = l.match(/^Obra\s+(.+)$/))){ fechaItem(); emItens = false; obra = m[1].trim(); return; }
+    if((m = l.match(/^Solicita[çc][ãa]o\s+(\d+)/i))){
+      fechaItem(); emItens = false;
+      atual = { num:m[1], obra, situacao:'', itens:[] };
+      sols.push(atual);
+      return;
+    }
+    if(!atual) return;
+    if((m = l.match(/^Acompanhamento\s+-\s+(.*?)(?:\s+Data da solicita.*)?$/i))){ atual.situacao = m[1].trim(); return; }
+    if(/^Insumo\s+Data da/i.test(l)){ emItens = true; return; }
+    if(!emItens) return;
+    if(/^autoriza[çc][ãa]o\s+cotada/i.test(l)) return;
+    if(/^[A-ZÀ-Ú][a-zà-ú]+$/.test(l)){ fechaItem(); emItens = false; return; }   // "Reservas", "Movimentos", "Resumo"...
+    if((m = l.match(RX_AE_ITEM))){
+      fechaItem();
+      item = { codigo:m[1], texto:m[2], unidade:m[5]||'', qtdSolicitada:parseNumBR(m[4]), qtdCotada:parseNumBR(m[6]), qtdReservada:parseNumBR(m[7]), qtdAtendida:parseNumBR(m[8]) };
+      return;
+    }
+    if(item) item.texto += ' ' + l;
+  });
+  fechaItem();
+  return sols;
+}
+
+async function importarAtendimentoEstoque(files){
+  const box = document.getElementById('atendEstoqueMsg'), txt = document.getElementById('atendEstoqueMsgText');
+  const mostra = (s)=>{ txt.textContent = s; box.classList.add('show'); };
+  mostra('Lendo o PDF…');
+  let sols = [];
+  try{
+    for(const f of files){
+      const lidas = parseAcompanhamentoSolicitacoes(await linhasTextoPdf(f));
+      lidas.forEach(s=>{ s.arquivo = f.name; });
+      sols.push(...lidas);
+    }
+  }catch(err){ mostra('Não foi possível ler o PDF: ' + (err.message||err)); return; }
+  sols = sols.filter(s=>s.itens.length);
+  if(!sols.length){ mostra('Nenhuma solicitação com insumos encontrada. Use o PDF "Acompanhamento de Solicitações" do Sienge.'); return; }
+  // a mesma solicitação em mais de um PDF: vale a última lida
+  const porNum = new Map(); sols.forEach(s=>porNum.set(s.num, s));
+  const registros = new Map();
+  porNum.forEach(s=>{
+    s.itens.forEach(it=>{
+      const chave = chaveAtendEstoque(s.num, it.codigo, it.texto);
+      const ja = registros.get(chave);
+      if(ja){   // insumo repetido na mesma solicitação: soma
+        ja.qtd_solicitada += it.qtdSolicitada; ja.qtd_reservada += it.qtdReservada; ja.qtd_atendida += it.qtdAtendida;
+        return;
+      }
+      registros.set(chave, { chave, num_solicitacao:s.num, insumo_codigo:it.codigo, insumo:it.codigo + ' - ' + it.texto.replace(/\s+/g,' ').trim(),
+        unidade:it.unidade, qtd_solicitada:it.qtdSolicitada, qtd_reservada:it.qtdReservada, qtd_atendida:it.qtdAtendida,
+        obra:s.obra, situacao:s.situacao, arquivo:s.arquivo });
+    });
+  });
+  const nums = Array.from(porNum.keys());
+  mostra('Gravando no servidor…');
+  try{
+    const del = await window.SB.from('solicitacoes_atendimento_estoque').delete().in('num_solicitacao', nums);
+    if(del.error) throw del.error;
+    const lista = Array.from(registros.values());
+    for(let i = 0; i < lista.length; i += 500){
+      const { error } = await window.SB.from('solicitacoes_atendimento_estoque').insert(lista.slice(i, i + 500));
+      if(error) throw error;
+    }
+  }catch(error){
+    mostra(/solicitacoes_atendimento_estoque/.test(error.message||'') && /exist|schema cache/i.test(error.message||'')
+      ? 'A tabela solicitacoes_atendimento_estoque ainda não existe. Rode o script supabase/atendimento_estoque.sql no Supabase.'
+      : 'Não foi possível gravar o atendimento pelo estoque: ' + (error.message||error));
+    return;
+  }
+  await loadAtendimentoEstoque();
+  applyAtendimentoEstoque(state.rows || []);
+  renderAll();
+  // resumo por solicitação, contando as linhas do relatório carregado
+  const partes = nums.map(n=>{
+    const linhas = (state.rows||[]).filter(r=>normKey(r.numSolicitacao) === normKey(n) && !r.temPedido);
+    if(!linhas.length) return `${n}: ${porNum.get(n).itens.length} insumo(s) no PDF, mas a solicitação não está no relatório carregado`;
+    const tot = linhas.filter(r=>r.atendEstoque && r.atendEstoque.total).length;
+    const parc = linhas.filter(r=>r.atendEstoque && !r.atendEstoque.total && r.atendEstoque.atendida > 0).length;
+    const semCasar = linhas.filter(r=>!r.atendEstoque).length;
+    const pend = linhas.filter(r=>r.solicPendente).length;
+    return `${n}: ${tot} atendido(s) pelo estoque saíram das pendências, ${parc} parcial(is), ${pend} pendente(s)`
+      + (semCasar ? `, ${semCasar} linha(s) sem correspondência no PDF` : '');
+  });
+  mostra(`Atendimento pelo estoque importado (${nums.length} solicitação(ões)). ` + partes.join(' · '));
+}
+document.getElementById('fileAtendEstoque').addEventListener('change', async function(e){
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if(!files.length) return;
+  await importarAtendimentoEstoque(files);
+});
 
 /* ============================================================
    6. FILTER OPTIONS
@@ -7072,7 +7293,7 @@ function renderCompradores(){
         <td>${esc(r.qtdSolicitada)} ${esc(r.unidadeMovimento)}</td>
         <td>${fmtDate(r.dSolicitacao)}</td>
         <td>${fmtDate(r.dChegada)}</td>
-        <td>${esc(r.situacaoSolicitacao)}${r.solicAtendidaSemPedido?` <span class="saldo-flag" title="Situação 'Parcialmente atendida' sem pedido de compra vinculado — provavelmente atendida via estoque. Confirme se está correto.">ⓘ</span>`:''}</td>
+        <td>${esc(r.situacaoSolicitacao)}${r.atendEstoque ? flagAtendEstoque(r) : (r.solicAtendidaSemPedido?` <span class="saldo-flag" title="Situação 'Parcialmente atendida' sem pedido de compra vinculado — provavelmente atendida via estoque. Importe o PDF &quot;Acompanhamento de Solicitações&quot; do Sienge para conferir o que já foi atendido.">ⓘ</span>`:'')}</td>
         <td>${badge(r.solicPrazoStatus, prazoLabel(r.solicPrazoStatus, r.dChegada))}</td>
         <td>${r.materialCritico?`<span class="badge critico">${esc(r.materialCritico)}</span>`:'—'}</td>
         <td>${r.temPedido ? `<span class="badge critico" title="Esta linha já tem pedido de compra vinculado — se ela aparece aqui como pendente, há uma inconsistência a investigar">⚠ Pedido nº ${esc(r.numPedido)} já gerado</span>` : '<span class="muted">Sem pedido</span>'}</td>
@@ -8859,7 +9080,7 @@ function downloadCSV(filename, csv){
 }
 document.getElementById('btnExportSolic').addEventListener('click', ()=>{
   if(!lastSolicRows.length){ alert('Não há dados para exportar.'); return; }
-  const headers = ['Solicitação','Obra','Comprador distribuído','Insumo','Detalhe','Qtd','Unidade','Data solicitação','Data p/ chegada à obra','Situação','Status do prazo','Material crítico','Pedido de compra','Atendida sem pedido (possível estoque)','Duplicidade divergente (revisar)'];
+  const headers = ['Solicitação','Obra','Comprador distribuído','Insumo','Detalhe','Qtd','Unidade','Data solicitação','Data p/ chegada à obra','Situação','Status do prazo','Material crítico','Pedido de compra','Atendida sem pedido (possível estoque)','Atendido pelo estoque (PDF)','Falta (após estoque)','Duplicidade divergente (revisar)'];
   const rows = lastSolicRows.map(r=>[
     r.numSolicitacao, r.obraLabel, r.compradorDistribuidoLabel, r.descricaoInsumo, r.detalhe,
     r.qtdSolicitada, r.unidadeMovimento, fmtDate(r.dSolicitacao), fmtDate(r.dChegada),
@@ -8867,6 +9088,8 @@ document.getElementById('btnExportSolic').addEventListener('click', ()=>{
     r.materialCritico || '',
     r.temPedido ? `Pedido nº ${r.numPedido} já gerado` : 'Sem pedido',
     r.solicAtendidaSemPedido ? 'Sim' : 'Não',
+    r.atendEstoque ? fmtQtdEstoque(r.atendEstoque.atendida) : '',
+    r.atendEstoque ? fmtQtdEstoque(r.atendEstoque.falta) : '',
     r.duplicidadeDivergente ? 'Sim' : 'Não'
   ]);
   downloadCSV('solicitacoes_pendentes_por_comprador.csv', toCSV(headers, rows));
@@ -9226,7 +9449,7 @@ document.getElementById('btnCollapsePed').addEventListener('click', ()=>setAllGr
    ============================================================ */
 document.getElementById('footToday').textContent = 'Referência de datas: hoje = ' + fmtDate(new Date());
 renderAll();
-Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro()]).then(autoLoadBaseDados);
+Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendimentoEstoque()]).then(autoLoadBaseDados);
 </script>
 <script>
 (function(){
