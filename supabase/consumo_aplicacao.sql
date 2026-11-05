@@ -1,59 +1,62 @@
--- Consumo por Aplicação: observações das solicitações e lista de aplicações.
+-- Consumo por Aplicação: relatório "Apropriações de Insumos" do Sienge.
 --
--- O relatório principal do Sienge (solicitação × pedido × NF) não traz a
--- observação da solicitação, onde fica o prefixo do equipamento/veículo
--- (MN 10, CB-4H12...). Ela vem do relatório de solicitações do Sienge
--- (.xlsx com "Nº da solicitação" e "Observação da solicitação"), importado
--- na aba "Consumo por Aplicação". O painel guarda só as solicitações que
--- citam algum prefixo da lista e as cruza com os pedidos e notas fiscais do
--- relatório principal pelo nº da solicitação.
+-- Um arquivo por obra (ex.: 5 - Equipamentos, 63 - Frotas RAF - Geral). Cada
+-- subetapa do relatório é uma aplicação (equipamento ou veículo, pelo prefixo
+-- no início da subetapa: MN-05, CB-4H12...), com os insumos apropriados e
+-- consumidos (quantidade e valor). Importar de novo o arquivo de uma obra
+-- substitui só aquela obra.
 --
--- Uma linha por tipo (a última importação vale):
---   tipo = 'observacoes' → dados = { fields:['n','dt','sol','obs'], rows:[[...]], lidas, periodo:[de,ate] }
---   tipo = 'aplicacoes'  → dados = { fields:['p','d','t'], rows:[[prefixo, descrição, tipo]] }
---                           (sem esta linha, vale a lista padrão embutida no painel)
+-- Uma linha por obra (a última importação vale):
+--   dados = { z: '<gzip+base64 de {fields, dim:{u,c,e,s}, rows, totalObra, soma}>' }
+--   (o painel compacta para a nuvem; sem compactação no navegador grava o JSON direto)
 --
 -- Leitura: qualquer usuário logado. Gravação: admin, supervisor ou operador
 -- avançado (private.pode_lancar_cap). Sem a tabela ou sem permissão, o painel
 -- guarda a importação só no navegador. Pode rodar de novo: recria as políticas.
 
-create table if not exists public.consumo_aplicacao (
-  tipo          text primary key check (tipo in ('observacoes','aplicacoes')),
+-- base anterior (observações das solicitações), substituída por esta
+drop table if exists public.consumo_aplicacao;
+drop function if exists public.consumo_aplicacao_toca();
+
+create table if not exists public.consumo_apropriacoes (
+  obra          text primary key,
+  obra_nome     text,
+  periodo       text,
   nome_arquivo  text,
-  total         integer,
+  total_linhas  integer,
   dados         jsonb not null,
   importado_por uuid default auth.uid(),
   importado_em  timestamptz not null default now()
 );
 
 -- cada nova importação atualiza a data (o navegador compara para saber se baixa de novo)
-create or replace function public.consumo_aplicacao_toca()
+create or replace function public.consumo_apropriacoes_toca()
 returns trigger language plpgsql as $$
 begin
   new.importado_em := now();
   new.importado_por := auth.uid();
   return new;
 end $$;
-drop trigger if exists consumo_aplicacao_toca on public.consumo_aplicacao;
-create trigger consumo_aplicacao_toca before insert or update on public.consumo_aplicacao
-  for each row execute function public.consumo_aplicacao_toca();
+drop trigger if exists consumo_apropriacoes_toca on public.consumo_apropriacoes;
+create trigger consumo_apropriacoes_toca before insert or update on public.consumo_apropriacoes
+  for each row execute function public.consumo_apropriacoes_toca();
 
-alter table public.consumo_aplicacao enable row level security;
-grant select, insert, update, delete on public.consumo_aplicacao to authenticated;
+alter table public.consumo_apropriacoes enable row level security;
+grant select, insert, update, delete on public.consumo_apropriacoes to authenticated;
 
-drop policy if exists "leitura consumo aplicacao" on public.consumo_aplicacao;
-create policy "leitura consumo aplicacao" on public.consumo_aplicacao
+drop policy if exists "leitura consumo apropriacoes" on public.consumo_apropriacoes;
+create policy "leitura consumo apropriacoes" on public.consumo_apropriacoes
   for select using (auth.uid() is not null);
 
-drop policy if exists "grava consumo aplicacao" on public.consumo_aplicacao;
-create policy "grava consumo aplicacao" on public.consumo_aplicacao
+drop policy if exists "grava consumo apropriacoes" on public.consumo_apropriacoes;
+create policy "grava consumo apropriacoes" on public.consumo_apropriacoes
   for insert with check (private.pode_lancar_cap(auth.uid()));
 
-drop policy if exists "edita consumo aplicacao" on public.consumo_aplicacao;
-create policy "edita consumo aplicacao" on public.consumo_aplicacao
+drop policy if exists "edita consumo apropriacoes" on public.consumo_apropriacoes;
+create policy "edita consumo apropriacoes" on public.consumo_apropriacoes
   for update using (private.pode_lancar_cap(auth.uid()))
   with check (private.pode_lancar_cap(auth.uid()));
 
-drop policy if exists "exclui consumo aplicacao" on public.consumo_aplicacao;
-create policy "exclui consumo aplicacao" on public.consumo_aplicacao
+drop policy if exists "exclui consumo apropriacoes" on public.consumo_apropriacoes;
+create policy "exclui consumo apropriacoes" on public.consumo_apropriacoes
   for delete using (private.pode_lancar_cap(auth.uid()));
