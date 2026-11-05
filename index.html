@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<!-- versão: 2026-11-05 (anexos de crédito) -->
+<!-- versão: 2026-11-05 (consumo por aplicação) -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2638,6 +2638,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     </div>
     <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
     <button class="tab-btn" data-tab="cotacoes"><span class="tab-icon">💲</span><span class="tab-label">Cotação de Insumos Críticos</span></button>
+    <button class="tab-btn" data-tab="consumo"><span class="tab-icon">🚜</span><span class="tab-label">Consumo por Aplicação</span></button>
     <button class="tab-btn cap-standalone-only" data-tab="creditos-cap"><span class="tab-icon">🛢️</span><span class="tab-label">Controle de CAP</span></button>
     <div class="nav-group gestor-credito-only" data-group="creditos">
       <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-icon">💳</span><span class="tab-label">Controle de Crédito</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
@@ -4278,6 +4279,57 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <p><b>Encerrar ou aditar</b>: vencido há mais tempo que o limite e ainda com saldo; em geral é contrato que ficou aberto no Sienge.</p>
         <p><b>Aditivo de quantidade/valor</b>: medido acima do limite com prazo correndo, saldo esgotado antes do término, ou ritmo que esgota o saldo antes do término.</p>
         <p>Contratos em mais de uma obra no relatório (rateio) são somados numa linha por empresa + número. Ativos = Pendente, Parcialmente medido e Totalmente medido, exceto reprovados.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CONSUMO POR APLICAÇÃO ===================== -->
+  <section class="tab-panel" id="tab-consumo">
+    <div class="ctr-head"><h2>Consumo por Aplicação<span class="ctr-sub">Prefixo do equipamento ou veículo localizado na observação da solicitação e cruzado com os pedidos de compra e as notas fiscais do painel</span></h2>
+      <div class="pxr-filtros">
+        <label class="btn small pxr-arq" title="Relatório de solicitações do Sienge (.xlsx) com as colunas &quot;Nº da solicitação&quot; e &quot;Observação da solicitação&quot;">Importar observações das solicitações<input type="file" id="cpaArqObs" accept=".xlsx,.xls"></label>
+        <div class="cpa-menu" id="cpaAppMenu">
+          <button class="btn small" type="button" id="cpaAppBtn" aria-haspopup="true" aria-expanded="false">Lista de aplicações ▾</button>
+          <div class="cpa-menu-pop" id="cpaAppPop" role="menu">
+            <label class="cpa-menu-item" role="menuitem" title="Planilha (.xlsx ou .csv) com as colunas Prefixo, Descrição e Tipo">Importar lista (.xlsx / .csv)<input type="file" id="cpaArqApps" accept=".xlsx,.xls,.csv"></label>
+            <button type="button" class="cpa-menu-item" role="menuitem" id="cpaAppsExp">Exportar lista atual</button>
+            <button type="button" class="cpa-menu-item" role="menuitem" id="cpaAppsPadrao">Voltar para a lista padrão</button>
+          </div>
+        </div>
+        <button class="btn small" type="button" id="cpaExp">Exportar Excel</button>
+      </div>
+    </div>
+    <p class="pxr-fontes" id="cpaFontes"></p>
+    <div class="ctr-msg" id="cpaMsg" style="margin:0 0 12px"></div>
+    <div id="cpaCorpo">
+      <div class="filters-bar">
+        <div class="field cpa-grow"><label for="cpaQ">Buscar</label><input type="text" id="cpaQ" placeholder="prefixo, descrição, nº SC, insumo, pedido, fornecedor, NF…"></div>
+        <div class="field cpa-curto"><label for="cpaD1">Solicitação de</label><input type="date" id="cpaD1" class="cpa-date"></div>
+        <div class="field cpa-curto"><label for="cpaD2">até</label><input type="date" id="cpaD2" class="cpa-date"></div>
+        <div class="field"><label>Período</label>
+          <div class="cpa-seg" id="cpaPer"><button type="button" data-p="all" aria-pressed="true">Tudo</button><button type="button" data-p="90" aria-pressed="false">90 dias</button><button type="button" data-p="ano" aria-pressed="false">Ano atual</button></div></div>
+        <div class="field"><label for="cpaTp">Tipo</label><select id="cpaTp"><option value="">Todos</option></select></div>
+        <div class="field"><label for="cpaObra">Centro de custo</label><select id="cpaObra"><option value="">Todos</option></select></div>
+        <div class="field"><label for="cpaSort">Ordenar</label><select id="cpaSort">
+          <option value="v">Maior valor de NF</option><option value="s">Mais solicitações</option><option value="i">Mais itens</option><option value="ped">Mais pedidos</option><option value="p">Prefixo A–Z</option></select></div>
+        <label class="cpa-chk"><input type="checkbox" id="cpaHide" checked> Ocultar sem solicitação</label>
+      </div>
+      <div class="kpi-grid" id="cpaKpis"></div>
+      <div class="cpa-main">
+        <section class="ctr-card cpa-lista-card" aria-label="Aplicações">
+          <header><h3 id="cpaLh">Aplicações</h3><p>clique para ver o detalhe</p></header>
+          <div class="cpa-lista" id="cpaLista"></div>
+        </section>
+        <section class="ctr-card cpa-det" id="cpaDet" aria-live="polite"></section>
+      </div>
+      <div class="ctr-card" style="margin-top:16px">
+        <header><h3>Como é calculado</h3></header>
+        <div class="ctr-body ctr-note">
+          <p><b>Aplicação.</b> Cada prefixo da lista de aplicações (equipamentos como <b>MN 10</b> e veículos como <b>CB-4H12</b>) é procurado no texto da <b>observação da solicitação</b>, aceitando variações de escrita (MN10, MN-10, MN 010, CB 4H12). Uma solicitação que cita mais de um prefixo aparece em todos eles e é marcada como <b>compartilhada</b>.</p>
+          <p><b>Pedidos e notas.</b> Os itens, pedidos de compra, entregas e notas fiscais vêm do relatório do Sienge já carregado no painel, ligados pela solicitação. A observação vem do relatório de solicitações importado aqui (o relatório principal não traz essa coluna).</p>
+          <p><b>Valor.</b> É o valor de cada nota fiscal, contado uma vez por aplicação. O relatório não traz o preço de cada item e uma nota pode ter itens de outras solicitações: use como indicador do consumo, não como custo exato.</p>
+          <p><b>Lista nova.</b> Só ficam guardadas as observações que citam algum prefixo da lista. Depois de trocar a lista de aplicações, importe de novo as observações para localizar os prefixos novos.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -8752,7 +8804,7 @@ document.getElementById('btnExportFluxo').addEventListener('click', ()=>{
   downloadCSV(`conformidade_fluxo_${fluxoView}.csv`, toCSV(cols.map(c=>c.label), rows));
 });
 
-function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderSemNF(); renderFluxo(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); if(window.PXR) window.PXR.refresh(); }
+function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); renderSemNF(); renderFluxo(); renderPrazoInsumos(); if(typeof renderCreditos==='function') renderCreditos(); if(window.PXR) window.PXR.refresh(); if(window.CPA) window.CPA.refresh(); }
 
 /* ============================================================
    10. TABS + FILTER BINDINGS
@@ -8810,6 +8862,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(targetTab.indexOf('contratos-') === 0 && window.CTR) window.CTR.show(targetTab);
     if(targetTab === 'pxr' && window.PXR) window.PXR.show();
     if(targetTab === 'cpg' && window.PXR) window.PXR.showCpg();
+    if(targetTab === 'consumo' && window.CPA) window.CPA.show();
 
     var groupName = navTabGroupMap[targetTab];
     document.querySelectorAll('.nav-group').forEach(function(g){
@@ -19434,5 +19487,503 @@ window.PXR={show,showCpg,refresh,recarregarFinanceiro:()=>{cpCarregado=false;CP=
 })();
 </script>
 
+<style>
+/* ===================== CONSUMO POR APLICAÇÃO ===================== */
+#tab-consumo .cpa-grow{flex:1 1 240px;}
+#tab-consumo .cpa-grow input{width:100%;}
+#tab-consumo .cpa-curto{min-width:0;}
+.cpa-date{background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);padding:7px 9px;border-radius:5px;font:500 13px var(--font-body);color-scheme:dark;}
+html[data-tema="estoque"] .cpa-date{color-scheme:light;}
+.cpa-seg{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;}
+.cpa-seg button{background:var(--asphalt-3);color:var(--text-dim);border:0;border-right:1px solid var(--line);padding:8px 11px;font:500 12.5px var(--font-body);cursor:pointer;}
+.cpa-seg button:last-child{border-right:0;}
+.cpa-seg button[aria-pressed="true"]{background:var(--yellow);color:#1A1E24;font-weight:600;}
+.cpa-chk{display:flex !important;align-items:center;gap:6px;font:500 12.5px var(--font-body) !important;text-transform:none !important;letter-spacing:0 !important;color:var(--text-dim) !important;margin:16px 0 0 !important;cursor:pointer;}
+.cpa-menu{position:relative;}
+.cpa-menu-pop{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:230px;background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 12px 28px rgba(0,0,0,.45);}
+.cpa-menu.aberto .cpa-menu-pop{display:block;}
+.cpa-menu-item{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);font:500 12.5px var(--font-body);padding:8px 10px;border-radius:5px;cursor:pointer;}
+.cpa-menu-item:hover{background:var(--asphalt-3);}
+.cpa-menu-item input{display:none;}
+.cpa-main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start;}
+@media (max-width:1100px){.cpa-main{grid-template-columns:minmax(0,1fr);}}
+.cpa-lista-card>header{padding-bottom:10px;border-bottom:1px solid var(--line);}
+.cpa-lista{max-height:calc(100vh - 230px);min-height:300px;overflow:auto;}
+@media (max-width:1100px){.cpa-lista{max-height:440px;}}
+.cpa-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:3px 12px;align-items:center;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;}
+.cpa-row:hover{background:var(--asphalt-3);}
+.cpa-row.on{background:var(--asphalt-3);box-shadow:inset 3px 0 0 var(--yellow);}
+.cpa-row.vazio{opacity:.55;}
+.cpa-row:focus-visible{outline:2px solid var(--yellow);outline-offset:-2px;}
+.cpa-row .d{font-size:12.8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cpa-row .m{font:500 11px var(--font-mono);color:var(--text-dim);grid-column:2;}
+.cpa-row .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:12.8px;grid-row:1 / span 2;grid-column:3;}
+.cpa-row .b{height:3px;background:var(--asphalt-3);border-radius:2px;grid-column:2 / span 2;overflow:hidden;}
+.cpa-row .b i{display:block;height:100%;background:var(--yellow);}
+.cpa-plate{font:600 12px var(--font-mono);background:var(--yellow);color:#1A1E24;border-radius:3px;padding:3px 7px;white-space:nowrap;letter-spacing:.03em;grid-row:1 / span 2;min-width:78px;text-align:center;}
+.cpa-det{padding:16px;display:flex;flex-direction:column;gap:14px;}
+.cpa-det-top{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+.cpa-det-top .cpa-plate{font-size:15px;padding:6px 10px;}
+.cpa-det-top h3{margin:0;font:600 19px var(--font-display);line-height:1.2;}
+.cpa-tp{font:600 10.5px var(--font-mono);color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;}
+.cpa-sub{color:var(--text-dim);font-size:12px;}
+.cpa-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));border:1px solid var(--line);border-radius:6px;overflow:hidden;}
+.cpa-stats div{padding:9px 12px;box-shadow:0 0 0 .5px var(--line);}
+.cpa-stats div.largo{grid-column:span 2;}
+#cpaKpis .kpi-value.cpa-valor{font-size:clamp(18px,2vw,26px);white-space:nowrap;}
+.cpa-stats span{display:block;font:600 10px var(--font-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);}
+.cpa-stats b{font:600 17px var(--font-display);font-variant-numeric:tabular-nums;}
+.cpa-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.cpa-tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--text-dim);font:600 12.5px var(--font-body);padding:8px 12px;cursor:pointer;}
+.cpa-tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--yellow);}
+.cpa-sc{border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:var(--asphalt-2);}
+.cpa-sc>summary{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:9px 12px;cursor:pointer;font-size:12.8px;}
+.cpa-sc>summary .n{font:600 12.5px var(--font-mono);color:var(--yellow);}
+.cpa-sc[open]>summary{border-bottom:1px solid var(--line);}
+.cpa-sc-body{padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
+.cpa-obs{white-space:pre-wrap;font:12px/1.5 var(--font-mono);color:var(--text-dim);background:var(--asphalt-3);border-radius:6px;padding:10px 12px;margin:0;max-height:240px;overflow:auto;}
+.cpa-obs mark{background:var(--yellow);color:#1A1E24;border-radius:2px;padding:0 2px;}
+.cpa-det table.data td{white-space:normal;}
+.cpa-det table.data td.n,.cpa-det table.data th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.cpa-det table.data td.nw{white-space:nowrap;}
+.cpa-det .table-scroll.alto{max-height:560px;overflow:auto;}
+.cpa-pill{display:inline-block;padding:2px 8px;border-radius:20px;font:600 10.5px var(--font-mono);background:rgba(140,150,160,.15);color:var(--text-dim);}
+.cpa-pill.ok{background:rgba(12,163,12,.15);color:var(--teal);}
+.cpa-pill.warn{background:rgba(250,178,25,.18);color:var(--amber);}
+.cpa-pill.bad{background:rgba(208,59,59,.18);color:var(--red);}
+.cpa-pill.share{background:rgba(76,141,255,.16);color:var(--blue);}
+.cpa-vazio{padding:28px 16px;text-align:center;color:var(--text-dim);font-size:13px;}
+.cpa-mais{display:block;margin:6px auto 0;}
+</style>
+<script>
+/* ============================================================
+   CONSUMO POR APLICAÇÃO — para cada equipamento/veículo (prefixo),
+   as solicitações que o citam na observação, com os itens, pedidos
+   de compra e notas fiscais do relatório do Sienge do painel
+   (state.rows), ligados pelo nº da solicitação.
+   A observação da solicitação não vem no relatório principal: vem do
+   relatório de solicitações do Sienge, importado nesta aba. Só ficam
+   guardadas as solicitações que citam algum prefixo da lista.
+   Gravado em consumo_aplicacao (supabase/consumo_aplicacao.sql); sem
+   a tabela ou sem login, fica guardado só neste navegador (IndexedDB).
+   ============================================================ */
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+if(!$('tab-consumo'))return;
+
+// lista padrão (relatório de consumo por aplicação): [prefixo, descrição, tipo]
+const APPS_PADRAO=[["MN 10","MOTONIVELADORA CATERPILLAR 12K (RAF)","EQUIPAMENTO"],["CB-4H12","CAMINHÃO BASCULANTE MB L1620 6X2 (RAF)","VEÍCULO"],["PM 06","PA MECANICA CATERPILLAR 930K (RAF)","EQUIPAMENTO"],["CB-2E53","CAMINHÃO BASCULANTE VOLVO VM 270 6X4R (AMETA)","VEÍCULO"],["MN 03","MOTONIVELADORA CATERPILLAR 12H (RAF)","EQUIPAMENTO"],["UA 02","USINA DE ASFALTO CIBER UACF17P2 ADVANCED 120 TON (RAF)","EQUIPAMENTO"],["CP-1G92","CAMINHÃO PIPA VOLVO VM 270 6X4R (AMETA)","VEÍCULO"],["VA 02","VIBROACABADORA DE ASFALTO VOGELE SUPER 1110-2 (RAF)","EQUIPAMENTO"],["RH 03","RETROESCAVADEIRA HIDRÁULICA CAT 416F2 (RAF)","EQUIPAMENTO"],["CB-4I50","CAMINHÃO BASCULANTE VOLVO VM 360 6X4R (AMETA)","VEÍCULO"],["MC 02","MINI CARREGADEIRA NEW HOLLAND L225 (RAF)","EQUIPAMENTO"],["CB-4G62","CAMINHÃO BASCULANTE MB L1620 6X2 (RAF)","VEÍCULO"],["GG 13","GRUPO GERADOR DIESEL 60HZ, 400KW- 500KVA (RAF)","EQUIPAMENTO"],["CP-5C60","CAMINHÃO PIPA VW 31-320 CNC 6X4 (RAF)","VEÍCULO"],["CB-2A07","CAMINHÃO BASCULANTE MB L1620 6X2 (RAF)","VEÍCULO"],["CB-4F67","CAMINHÃO BASCULANTE MB 2423K 6X4 (RAF)","VEÍCULO"],["RCC 08","ROLO COMPACT. CATERPILLAR CC34B (AMETA)","EQUIPAMENTO"],["CA-0A83","CAMINHÃO CARROCERIA IVECO 70C17 (RAF)","VEÍCULO"],["RH 10","RETROESCAVADEIRA HIDRÁULICA CAT 416F2 (AMETA)","EQUIPAMENTO"],["CB-3F32","CAMINHÃO BASCULANTE VOLVO VM 270 6X4R (AMETA)","VEÍCULO"],["EH 09","ESCAVADEIRA HIDRÁULICA CATERPILLAR 320 (AMETA)","EQUIPAMENTO"],["CB-5D35","CAMINHÃO BASCULANTE MB 2729 ATRON 6X4 (RAF)","VEÍCULO"],["CB-1F12","CAMINHÃO BASCULANTE MB 2729 ATRON 6X4 (RAF)","VEÍCULO"],["EH 08","ESCAVADEIRA HIDRÁULICA CATERPILLAR 320 (AMETA)","EQUIPAMENTO"],["RH 08","RETROESCAVADEIRA HIDRÁULICA CAT 416F2 (AMETA)","EQUIPAMENTO"],["EH 17","ESCAVADEIRA HIDRÁULICA CAT 320 (RAF)","EQUIPAMENTO"],["EH 05","ESCAVADEIRA HIDRÁULICA CATERPILLAR 336DL (RAF)","EQUIPAMENTO"],["RC 19","ROLO COMPACTADOR DE SOLOS CATERPILLAR CP533E (RAF)","EQUIPAMENTO"],["CB-9H28","CAMINHÃO BASCULANTE MB 2423K 6X4 (RAF)","VEÍCULO"],["RC 47","ROLO COMPACTADOR DE SOLOS CATERPILLAR CS11 (RAF)","EQUIPAMENTO"],["MN 08","MOTONIVELADORA CATERPILLAR 140K (RAF)","EQUIPAMENTO"],["TPR 01","TRATOR DE PNEU VALTRA BM 100 C/ ROÇADEIRA RMA 150 (RAF)","EQUIPAMENTO"],["CP-3C57","CAMINHÃO PIPA MB 2423K 6X4 (RAF)","VEÍCULO"],["MN 21","MOTONIVELADORA CATERPILLAR 140 (RAF)","EQUIPAMENTO"],["CB-3F82","CAMINHÃO BASCULANTE VOLVO VM 270 6X4R (AMETA)","VEÍCULO"],["CB-4G98","CAMINHÃO BASCULANTE MB 2423K 6X4 (RAF)","VEÍCULO"],["CP-6D58","CAMINHÃO PIPA MB AXOR 2831 6X4 (RAF)","VEÍCULO"],["TE 06","TRATOR DE ESTEIRA CATERPILLAR D6N XL (RAF)","EQUIPAMENTO"],["MC 01","MINI CARREGADEIRA CAT 246C (RAF)","EQUIPAMENTO"],["VA 05","VIBROACABADORA DE ASFALTO BOMAG VDA 700MAX (AMETA)","EQUIPAMENTO"],["CC-7B06","CAMINHÃO COMBOIO VW 15.190 CRM 4X2 4P (RAF)","VEÍCULO"],["RC 15","ROLO COMPACTADOR DE SOLOS CATERPILLAR CP533E (RAF)","EQUIPAMENTO"],["EH 07","ESCAVADEIRA HIDRÁULICA JOHN DEERE 210G LC (RAF)","EQUIPAMENTO"],["CB-1G72","CAMINHÃO BASCULANTE VOLVO VM 270 6X4R (AMETA)","VEÍCULO"],["MN 05","MOTONIVELADORA CATERPILLAR 140K (RAF)","EQUIPAMENTO"],["RH 14","RETROESCAVADEIRA HIDRÁULICA CAT 416 (RAF)","EQUIPAMENTO"],["CP-1G52","CAMINHÃO PIPA VOLVO VM 270 6X4R (AUT) (AMETA)","VEÍCULO"],["CB-4H18","CAMINHÃO BASCULANTE MB 2423K 6X4 (RAF)","VEÍCULO"],["CB-3D52","CAMINHÃO BASCULANTE VOLVO VM 360 6X4R (RAF)","VEÍCULO"],["CA-6C63","CAMINHÃO CARROCERIA IVECO 45-170 (AMETA)","VEÍCULO"],["CB-1H32","CAMINHÃO BASCULANTE MB 2831 AXOR 6X4 (RAF)","VEÍCULO"],["CB-9H08","CAMINHÃO BASCULANTE MB 2423K 6X4 (RAF)","VEÍCULO"],["TQ-F 09","TANQUE DE COMBUSTIVEL","EQUIPAMENTO"],["EH 13","ESCAVADEIRA HIDRÁULICA CATERPILLAR 320 (AMETA)","EQUIPAMENTO"],["EH 06","ESCAVADEIRA HIDRÁULICA CATERPILLAR 336DL (RAF)","EQUIPAMENTO"],["CPR-9A19","CAMINHÃO PRANCHA VM 270 6X2R (RAF)","VEÍCULO"],["CA-1I36","CAMINHÃO CARROCERIA FORD CARGO 1319 (RAF)","EQUIPAMENTO"],["RC 46","ROLO COMPACTADOR DE SOLOS CATERPILLAR CS11 (RAF)","EQUIPAMENTO"],["RCC 07","ROLO COMPACT. COMBINADO HAMM HD90K (AMETA)","EQUIPAMENTO"],["EH 15","ESCAVADEIRA HIDRÁULICA CAT 320 (RAF)","EQUIPAMENTO"],["RCC 02","ROLO COMPACT. HAMM HD 14VT (RAF)","EQUIPAMENTO"],["VUG-5J00","VW GOL 1.0 MPI (AMETA)","VEÍCULO"],["ME-01","MINI ESCAVADEIRA/ SY55C/ SANY (RAF)","EQUIPAMENTO"],["RH 07","RETROESCAVADEIRA HIDRÁULICA CAT 416F2 (AMETA)","EQUIPAMENTO"],["MO-8B45","MICRO-ÔNIBUS VW 8.120 COMIL BELLO (RAF)","VEÍCULO"],["RH 06","RETROESCAVADEIRA HIDRÁULICA CAT 416F2 (AMETA)","EQUIPAMENTO"],["CE-8D12","CAMINHÃO ESPARGIDOR VW 15.190 4X2 (RAF)","VEÍCULO"],["PM 14","PA MECANICA CATERPILLAR 938K (RAF)","EQUIPAMENTO"],["CB-7E08","CAMINHÃO BASCULANTE MB 2729 ATRON 6X4 (RAF)","VEÍCULO"],["VUG-8J41","VW GOL 1.0 MPI (AMETA)","VEÍCULO"],["CA-0H57","CAMINHÃO CARROCERIA MB ACCELO 815 (AMETA)","VEÍCULO"],["CB-9H93","CAMINHÃO BASCULANTE VOLVO VM 290 4X2R (RAF)","VEÍCULO"],["CB-4I42","CAMINHÃO BASCULANTE MB L1620 6X2 (RAF)","VEÍCULO"],["CPM-2B97","CAMINHÃO PLATAFORMA ATEGO 2430 8X2 (RAF)","VEÍCULO"],["CBC-9J53","CAMINHÃO BOMBA CONCRETO VOLVO/VM 290 (RAF)","VEÍCULO"],["VUG-6C05","VW/GOL 1.0L MC4 (RAF)","VEÍCULO"],["OU-5E94","ÔNIBUS URBANO BUSSCAR MB 1722 (38 P) (RAF)","VEÍCULO"],["CA-0A81","CAMINHÃO CARROCERIA MB ATRON 1719 (RAF)","VEÍCULO"],["CM-3H10","CAVALO MECÂNICO VOLVO FH 540 6X4T (A) (AMETA)","VEÍCULO"],["CC-7I07","CAMINHÃO COMBOIO MB 1318 (RAF)","VEÍCULO"],["CC-3D38","CAMINHÃO COMBOIO MB L1218 R 4X2 (RAF)","VEÍCULO"],["CB-5J30","CAMINHÃO BASCULANTE VOLVO VM 360 6X4R (AMETA)","VEÍCULO"],["VUG-3F31","FIAT STRADA ENDURANCE CS (AMETA)","VEÍCULO"],["OU-8B41","ÔNIBUS URBANO BUSSCAR MB 1722 (38 P) (RAF)","VEÍCULO"],["RH 09","RETROESCAVADEIRA HIDRÁULICA CAT 416F2 (AMETA)","EQUIPAMENTO"],["MO-7G02","MICRO-ÔNIBUS MPOLO/VOLARE V8L 4X4 EO (RAF)","VEÍCULO"],["VUD-1C42","TOYOTA HILUX CD DSL POWER PACK (AMETA)","VEÍCULO"],["TQ-F 08","TANQUE DE COMBUSTIVEL 15.000LTS (RAF)","EQUIPAMENTO"],["PM 16","PA MECANICA JOHN DEERE 524 P-TIER (RAF)","EQUIPAMENTO"],["CE-5F30","CAMINHÃO ESPARGIDOR MB L1214 4X2 (RAF)","VEÍCULO"],["CA-0H92","CAMINHÃO CARROCERIA MB 710 4X2 (RAF)","VEÍCULO"],["CM-7A77","CAVALO MECÂNICO VOLVO FH 540 6X4T (A) (AMETA)","VEÍCULO"],["RCC 03","ROLO COMPACT. HAMM HD 14VT (RAF)","EQUIPAMENTO"],["CA-7G68","CAMINHÃO CARROCERIA MB ACCELO 1017/46 (AMETA)","VEÍCULO"],["CB-1H62","CAMINHÃO BASCULANTE MB 2831 AXOR 6X4 (RAF)","VEÍCULO"],["MN 14","MOTONIVELADORA CATERPILLAR 140K (AMETA)","EQUIPAMENTO"],["OTW-0I60","ESTOQUE COMBOIO CC-0I60 ( AC MARAJO LAGO)","EQUIPAMENTO"],["CM-5E54","CAVALO MECÂNICO VM 330 4X2 (A) (AMETA)","VEÍCULO"],["CB-1E32","CAMINHÃO BASCULANTE MB 2729 ATRON 6X4 (RAF)","VEÍCULO"],["CB-3D82","CAMINHÃO BASCULANTE VOLVO VM 360 6X4R (RAF)","VEÍCULO"],["RC 21","ROLO COMPACTADOR DE SOLOS CATERPILLAR CP54B (AMETA)","EQUIPAMENTO"],["CB-2B48","CAMINHÃO BASCULANTE MB L1620 6X2 (RAF)","VEÍCULO"],["CB-8I25","CAMINHÃO BASCULANTE VOLVO VM 360 6X4R (RAF)","VEÍCULO"],["MN 13","MOTONIVELADORA CATERPILLAR 140K (AMETA)","EQUIPAMENTO"],["CB-6D78","CAMINHÃO BASCULANTE MB 2324 ATRON 6X2 (RAF)","VEÍCULO"],["CB-3E02","CAMINHÃO BASCULANTE VOLVO VM 360 6X4R (RAF)","VEÍCULO"],["CP-0G35","CAMINHÃO PIPA VOLVO VM 360 6X4R (AMETA)","VEÍCULO"],["CB-1E82","CAMINHÃO BASCULANTE MB 2729 ATRON 6X4 (RAF)","VEÍCULO"],["CAR-6D25","CARRETA REBOQUE R/MILTONBSB BRASILIA (AMETA)","VEÍCULO"],["CB-8G23","CAMINHÃO BASCULANTE VOLVO VM 290 4X2R (RAF)","VEÍCULO"],["RCC 04","ROLO COMPACT. COMBINADO HAMM HD90K (AMETA)","EQUIPAMENTO"],["CB-6H53","CAMINHÃO BASCULANTE MB 2324 ATRON 6X2 (RAF)","VEÍCULO"],["RC 26","ROLO COMPACTADOR DE SOLOS CATERPILLAR CP54B (AMETA)","EQUIPAMENTO"],["CB-1G03","CAMINHÃO BASCULANTE VOLVO VM 270 6X4R (RAF)","VEÍCULO"],["CB-1F15","CAMINHÃO BASCULANTE VOLVO VM 330 6X4R (AMETA)","VEÍCULO"],["CB-6G43","CAMINHÃO BASCULANTE MB 2324 ATRON 6X2 (RAF)","VEÍCULO"],["CB-3C67","CAMINHÃO BASCULANTE MB 2423K 6X4 (RAF)","VEÍCULO"],["CB-6I47","CAMINHÃO BASCULANTE MB 2729 ATRON 6X4 (RAF)","VEÍCULO"],["CB-2A58","CAMINHÃO BASCULANTE MB L1620 6X2 (RAF)","VEÍCULO"],["MN 20","MOTONIVELADORA CATERPILLAR 140 (RAF)","EQUIPAMENTO"],["TPR 02","TRATOR DE PNEU YANMAR SOLIS 90 C/ ROÇADEIRA (AMETA)","EQUIPAMENTO"],["CB-1I04","CAMINHÃO BASCULANTE MB L2638 6X4 (RAF)","VEÍCULO"]];
+
+const brl=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const int=n=>(n||0).toLocaleString('pt-BR');
+const brl0=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const nf=v=>v==null||v===''?'':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:3});
+const pad=n=>String(n).padStart(2,'0');
+const isoOf=d=>d?d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()):'';
+const brDe=iso=>iso?iso.split('-').reverse().join('/'):'';
+const up=s=>String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+const scKey=v=>{const k=normKey(v);return /^\d+$/.test(k)?k.replace(/^0+(?=\d)/,''):k};
+const logado=()=>document.body.classList.contains('is-logged')&&window.SB;
+
+/* ---------- localizar o prefixo no texto ---------- */
+const SEP='[\\s\\-._/]*';
+function padraoPrefixo(p){
+  const s=up(p).trim();
+  let m=s.match(/^([A-Z]+(?:-[A-Z])?)[\s-]*(\d+)$/);            // MN 10, TQ-F 09, ME-01
+  if(m){
+    const L=m[1].replace(/[^A-Z]/g,'').split('').join(SEP);
+    return '(?<![A-Z0-9])'+L+SEP+'0*'+Number(m[2])+'(?![0-9])';
+  }
+  m=s.match(/^([A-Z]+)-(\d)([A-Z])(\d\d)$/);                       // CB-4H12 (tipo + final da placa)
+  if(m)return '(?<![A-Z0-9])'+m[1]+SEP+m[2]+'[\\s\\-]*'+m[3]+m[4]+'(?![0-9A-Z])';
+  const t=s.match(/[A-Z0-9]+/g);                                    // outro formato: as partes na ordem
+  if(!t)return null;
+  return '(?<![A-Z0-9])'+t.join(SEP)+'(?![A-Z0-9])';
+}
+function compilarApps(lista){
+  const apps=[];const fontes=[];
+  lista.forEach((a,i)=>{
+    const src=padraoPrefixo(a[0]);
+    if(!src)return;
+    apps.push({i,p:a[0],d:a[1]||'',t:a[2]||'',re:new RegExp(src),reG:new RegExp(src,'g'),_txt:up(a[0]+' '+(a[1]||'')),_flat:up(a[0]).replace(/[^A-Z0-9]/g,'')});
+    fontes.push('(?:'+src+')');
+  });
+  return {apps,todos:fontes.length?new RegExp(fontes.join('|')):null};
+}
+function prefixosDe(texto,C){
+  const t=up(texto);
+  if(!C.todos||!C.todos.test(t))return [];
+  return C.apps.filter(a=>a.re.test(t));
+}
+
+/* ---------- guarda: nuvem (consumo_aplicacao) + cópia no navegador ---------- */
+const IDB='PainelConsumoAplicacao';
+function idb(){return new Promise((res,rej)=>{if(!('indexedDB' in window))return rej(new Error('sem IndexedDB'));const q=indexedDB.open(IDB,1);q.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains('dados'))db.createObjectStore('dados')};q.onsuccess=e=>res(e.target.result);q.onerror=()=>rej(q.error)})}
+async function idbLer(k){try{const db=await idb();return await new Promise(r=>{const q=db.transaction('dados','readonly').objectStore('dados').get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}catch(e){return null}}
+async function idbGravar(k,v){try{const db=await idb();await new Promise((r,j)=>{const tx=db.transaction('dados','readwrite');tx.objectStore('dados').put(v,k);tx.oncomplete=r;tx.onerror=()=>j(tx.error)});return true}catch(e){return false}}
+async function idbApagar(k){try{const db=await idb();db.transaction('dados','readwrite').objectStore('dados').delete(k)}catch(e){}}
+
+const D={obs:null,apps:null};   // {nome_arquivo,total,dados,importado_em,fonte}
+let carregado=false,carregando=null,versao=0,geracao=0;
+async function carregar(){
+  const g=geracao;
+  const loc={obs:await idbLer('observacoes'),apps:await idbLer('aplicacoes')};
+  let nuvem=null;
+  if(logado()){
+    const r=await window.SB.from('consumo_aplicacao').select('tipo,nome_arquivo,total,importado_em');
+    if(!r.error)nuvem=new Map((r.data||[]).map(x=>[x.tipo,x]));
+  }
+  for(const [k,tipo] of [['obs','observacoes'],['apps','aplicacoes']]){
+    let x=loc[k];
+    if(nuvem){
+      const m=nuvem.get(tipo);
+      if(m){
+        const igual=x&&x.fonte==='nuvem'&&x.importado_em===m.importado_em;
+        const localMaisNovo=x&&x.fonte==='local'&&x.importado_em>m.importado_em;
+        if(!igual&&!localMaisNovo){
+          const r=await window.SB.from('consumo_aplicacao').select('tipo,nome_arquivo,total,dados,importado_em').eq('tipo',tipo).maybeSingle();
+          if(!r.error&&r.data){x=Object.assign(r.data,{fonte:'nuvem'});idbGravar(tipo,x)}
+        }
+      }else if(x&&x.fonte==='nuvem'){x=null;idbApagar(tipo)}   // apagado na nuvem (ex.: voltou à lista padrão)
+    }
+    if(g!==geracao)return;   // trocou de usuário no meio: a próxima carga vale
+    D[k]=x;
+  }
+  carregado=true;versao++;
+}
+async function gravar(tipo,x){
+  let aviso='',fonte='local';
+  if(logado()){
+    const {data,error}=await window.SB.from('consumo_aplicacao').upsert({tipo,nome_arquivo:x.nome_arquivo,total:x.total,dados:x.dados,importado_em:new Date().toISOString()},{onConflict:'tipo'}).select('importado_em').maybeSingle();
+    if(error)aviso=' Não foi possível gravar para todos ('+esc(error.message)+'); ficou guardado só neste navegador.';
+    else{fonte='nuvem';if(data&&data.importado_em)x.importado_em=data.importado_em}
+  }else aviso=' Sem login, ficou guardado só neste navegador.';
+  if(!x.importado_em)x.importado_em=new Date().toISOString();
+  x.fonte=fonte;
+  if(!(await idbGravar(tipo,x))&&fonte!=='nuvem')aviso+=' O navegador não deixou guardar: vale só até recarregar a página.';
+  return aviso;
+}
+function msg(html,ok){const m=$('cpaMsg');m.innerHTML=html;m.className='ctr-msg on '+(ok?'ok':'err');if(ok===null)m.className='ctr-msg on'}
+
+/* ---------- lista de aplicações em uso ---------- */
+function listaApps(){const r=D.apps&&D.apps.dados&&D.apps.dados.rows;return Array.isArray(r)&&r.length?r:APPS_PADRAO}
+let compCache={ref:null,v:null};
+function comp(){const l=listaApps();if(compCache.ref!==l){compCache={ref:l,v:compilarApps(l)}}return compCache.v}
+
+/* ---------- importar ---------- */
+function abrirPlanilha(buf,nome){
+  if(/\.csv$/i.test(nome||'')){
+    let txt;try{txt=new TextDecoder('utf-8',{fatal:true}).decode(buf)}catch(e){txt=new TextDecoder('windows-1252').decode(buf)}
+    const sep=(txt.split(/\r?\n/)[0].match(/;/g)||[]).length>=(txt.split(/\r?\n/)[0].match(/,/g)||[]).length?';':',';
+    return [txt.split(/\r?\n/).filter(l=>l.trim()).map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()))];
+  }
+  const wb=XLSX.read(buf,{type:'array',dense:true});
+  return wb.SheetNames.map(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''}));
+}
+const isoDeCel=v=>{
+  if(v==null||v==='')return '';
+  if(typeof v==='number'&&XLSX.SSF){const d=XLSX.SSF.parse_date_code(v);return d?d.y+'-'+pad(d.m)+'-'+pad(d.d):''}
+  return isoOf(parseDateBR(v));
+};
+function lerObservacoes(buf,nome){
+  const C=comp();
+  for(const aoa of abrirPlanilha(buf,nome)){
+    const h=aoa.slice(0,40).findIndex(r=>r.some(c=>normKey(c).startsWith('OBSERVACAO'))&&r.some(c=>/^(N|NUMERO)?(DA)?SOLICITACAO$/.test(normKey(c))));
+    if(h<0)continue;
+    const H=aoa[h].map(normKey);
+    const col=(...ks)=>{for(const k of ks){const i=H.indexOf(k);if(i>=0)return i}return -1};
+    const cN=H.findIndex(k=>/^(N|NUMERO)?(DA)?SOLICITACAO$/.test(k));
+    const cO=H.findIndex(k=>k.startsWith('OBSERVACAO'));
+    const cD=col('DATASOLICITACAO','DATADASOLICITACAO');
+    const cS=col('SOLICITANTE');
+    const vistas=new Map();let lidas=0,dmin='',dmax='';
+    for(let i=h+1;i<aoa.length;i++){
+      const r=aoa[i];const n=scKey(r[cN]);if(!n)continue;
+      const o=String(r[cO]==null?'':r[cO]);
+      let x=vistas.get(n);
+      if(!x){x={n,dt:cD>=0?isoDeCel(r[cD]):'',sol:cS>=0?String(r[cS]||'').trim():'',obs:''};vistas.set(n,x);lidas++;
+        if(x.dt){if(!dmin||x.dt<dmin)dmin=x.dt;if(!dmax||x.dt>dmax)dmax=x.dt}}
+      if(!x.obs&&o.trim())x.obs=o;
+    }
+    const rows=[];
+    vistas.forEach(x=>{
+      if(!x.obs||!prefixosDe(x.obs,C).length)return;
+      const obs=x.obs.replace(/\r/g,'').replace(/[ \t ]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim().slice(0,3000);
+      rows.push([x.n,x.dt,x.sol,obs]);
+    });
+    return {nome_arquivo:nome,total:rows.length,dados:{fields:['n','dt','sol','obs'],rows,lidas,periodo:[dmin,dmax]}};
+  }
+  throw new Error('o arquivo não parece o relatório de solicitações do Sienge (faltam as colunas "Nº da solicitação" e "Observação da solicitação").');
+}
+async function importarObservacoes(f){
+  msg('Lendo '+esc(f.name)+'… (arquivos grandes levam alguns segundos)',null);
+  try{
+    await garantirXLSX();
+    const x=lerObservacoes(await f.arrayBuffer(),f.name);
+    const aviso=await gravar('observacoes',x);
+    D.obs=x;versao++;
+    const b=base();
+    msg(`Importado <b>${esc(f.name)}</b>: ${int(x.dados.lidas)} solicitações lidas, <b>${int(x.total)}</b> citam algum prefixo da lista${b.semRelatorio?` (${int(b.semRelatorio)} delas não estão no relatório do Sienge carregado no painel)`:''}.${aviso}`,!aviso);
+    render();
+  }catch(e){console.error(e);msg('Não foi possível importar as observações: '+esc(e.message||String(e)),false)}
+}
+function lerApps(buf,nome){
+  for(const aoa of abrirPlanilha(buf,nome)){
+    let h=aoa.slice(0,20).findIndex(r=>r.some(c=>/^PREFIXO/.test(normKey(c))));
+    let cP=0,cD=1,cT=2;
+    if(h>=0){const H=aoa[h].map(normKey);cP=H.findIndex(k=>/^PREFIXO/.test(k));cD=H.findIndex(k=>/^DESCRICAO|^EQUIPAMENTO|^VEICULO|^APLICACAO/.test(k));cT=H.findIndex(k=>/^TIPO|^CATEGORIA|^CLASSE/.test(k))}
+    const rows=[],vistos=new Set();
+    for(const r of aoa.slice(h+1)){
+      const p=String(r[cP]==null?'':r[cP]).replace(/\s+/g,' ').trim().toUpperCase();
+      if(!p||!/[A-Z0-9]/.test(p)||!padraoPrefixo(p))continue;
+      const k=normKey(p);if(vistos.has(k))continue;vistos.add(k);
+      rows.push([p,cD>=0?String(r[cD]||'').replace(/\s+/g,' ').trim():'',cT>=0?String(r[cT]||'').replace(/\s+/g,' ').trim().toUpperCase():'']);
+    }
+    if(rows.length)return {nome_arquivo:nome,total:rows.length,dados:{fields:['p','d','t'],rows}};
+  }
+  throw new Error('nenhum prefixo encontrado. Use uma planilha com as colunas Prefixo, Descrição e Tipo.');
+}
+async function importarApps(f){
+  msg('Lendo '+esc(f.name)+'…',null);
+  try{
+    if(!/\.csv$/i.test(f.name))await garantirXLSX();
+    const x=lerApps(await f.arrayBuffer(),f.name);
+    const aviso=await gravar('aplicacoes',x);
+    D.apps=x;versao++;
+    msg(`Lista de aplicações trocada por <b>${esc(f.name)}</b>: ${int(x.total)} prefixos. Importe de novo as observações das solicitações para localizar os prefixos novos.${aviso}`,!aviso);
+    render();
+  }catch(e){console.error(e);msg('Não foi possível importar a lista: '+esc(e.message||String(e)),false)}
+}
+async function voltarPadrao(){
+  if(!D.apps){msg('A lista em uso já é a padrão ('+APPS_PADRAO.length+' aplicações).',true);return}
+  if(!confirm('Voltar para a lista padrão de '+APPS_PADRAO.length+' aplicações? A lista importada deixa de valer para todos.'))return;
+  let aviso='';
+  if(logado()&&D.apps.fonte==='nuvem'){const {error}=await window.SB.from('consumo_aplicacao').delete().eq('tipo','aplicacoes');if(error)aviso=' Não foi possível apagar a lista na nuvem ('+esc(error.message)+').'}
+  await idbApagar('aplicacoes');D.apps=null;versao++;
+  msg('Lista padrão restaurada ('+APPS_PADRAO.length+' aplicações).'+aviso,!aviso);render();
+}
+async function exportarApps(){
+  try{await garantirXLSX()}catch(e){msg(esc(e.message),false);return}
+  const ws=XLSX.utils.aoa_to_sheet([['Prefixo','Descrição','Tipo']].concat(listaApps()));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Aplicações');
+  XLSX.writeFile(wb,'lista_aplicacoes.xlsx');
+}
+
+/* ---------- cruzamento com o relatório do painel ---------- */
+let baseCache={rows:null,v:-1,c:null,val:null};
+function itemDe(r){
+  const nfs=(Array.isArray(r.nfsAgrupadas)&&r.nfsAgrupadas.length?r.nfsAgrupadas:[{n:r.numNotaFiscal,d:r.dataNotaFiscal,v:r.valorNota}])
+    .map(n=>({n:normLabel(n.n),d:isoOf(parseDateBR(n.d)),v:parseNumBR(n.v)})).filter(n=>n.n);
+  return {ins:normLabel(r.descricaoInsumo),det:normLabel(r.detalhe),qtd:r.qtdSolicitadaNum,un:normLabel(r.unidadeMovimento),ent:r.qtdEntregueNum||0,
+    ped:r.temPedido?r.numPedido:'',dPed:isoOf(r.dPedido),sitPed:normLabel(r.situacaoPedido),cancel:!!r.pedidoCancelado,pend:!!r.pedidoPendente,
+    forn:normLabel(r.fornecedor),comp:normLabel(r.comprador)||normLabel(r.compradorDistribuido),nfs,pg:normLabel(r.situacaoPagamento),obra:r.obraLabel||normLabel(r.obra)};
+}
+function base(){
+  const rows=(typeof state!=='undefined'&&state.rows)||[], C=comp();
+  if(baseCache.rows===rows&&baseCache.v===versao&&baseCache.c===C)return baseCache.val;
+  const porSc=new Map();
+  rows.forEach(r=>{const k=scKey(r.numSolicitacao);if(!k)return;let a=porSc.get(k);if(!a){a=[];porSc.set(k,a)}a.push(r)});
+  const sols=[],byApp=new Map();let semRelatorio=0,citam=0;
+  const L=(D.obs&&D.obs.dados&&D.obs.dados.rows)||[];
+  L.forEach(([n,dt,sol,obs])=>{
+    const pre=prefixosDe(obs,C);if(!pre.length)return;citam++;
+    const rs=porSc.get(String(n));
+    if(!rs){semRelatorio++;return}
+    const r0=rs[0];
+    const s={n:String(n),dt:isoOf(r0.dSolicitacao)||dt||'',sol:normLabel(r0.solicitante)||sol||'',st:normLabel(r0.situacaoSolicitacao),
+      obras:[...new Set(rs.map(r=>r.obraLabel||normLabel(r.obra)).filter(Boolean))],pre,obs,it:rs.map(itemDe)};
+    s._txt=up([s.n,s.sol,s.obs,s.obras.join(' '),...s.it.map(i=>[i.ins,i.det,i.ped,i.forn,i.nfs.map(x=>x.n).join(' ')].join(' '))].join(' '));
+    sols.push(s);
+    pre.forEach(a=>{let l=byApp.get(a.i);if(!l){l=[];byApp.set(a.i,l)}l.push(s)});
+  });
+  const val={sols,byApp,semRelatorio,citam,temRelatorio:rows.length>0};
+  baseCache={rows,v:versao,c:C,val};
+  return val;
+}
+
+/* ---------- filtros e agregação ---------- */
+const st={q:'',d1:'',d2:'',per:'all',tp:'',obra:'',hide:true,sort:'v',sel:null,tab:'sc',limite:60};
+try{const s=JSON.parse(localStorage.getItem('cpa-ui')||'{}');if(s.sort)st.sort=s.sort;if(s.hide!=null)st.hide=s.hide}catch(e){}
+const salvarUi=()=>{try{localStorage.setItem('cpa-ui',JSON.stringify({sort:st.sort,hide:st.hide}))}catch(e){}};
+const noPeriodo=s=>(!st.d1||s.dt>=st.d1)&&(!st.d2||(s.dt&&s.dt<=st.d2));
+const naObra=s=>!st.obra||s.obras.includes(st.obra);
+function agg(a,B){
+  const todas=(B.byApp.get(a.i)||[]).filter(s=>noPeriodo(s)&&naObra(s));
+  const q=up(st.q.trim()),qf=q.replace(/[^A-Z0-9]/g,'');
+  const appHit=!q||a._txt.includes(q)||(qf.length>=2&&a._flat.includes(qf));
+  const sols=appHit?todas:todas.filter(s=>s._txt.includes(q));
+  let itens=0,ent=0;const peds=new Map(),nfs=new Map();
+  sols.forEach(s=>s.it.forEach(i=>{
+    itens++;if(i.ent>0)ent++;
+    if(i.ped){let p=peds.get(i.ped);if(!p){p={ped:i.ped,dt:i.dPed,forn:i.forn,sit:i.sitPed,cancel:i.cancel,pend:false,itens:0,scs:new Set(),nfs:new Set(),obra:i.obra,comp:i.comp};peds.set(i.ped,p)}
+      p.itens++;p.scs.add(s.n);if(i.pend)p.pend=true;i.nfs.forEach(x=>p.nfs.add(x.n));}
+    i.nfs.forEach(x=>{const k=normKey(i.forn)+'|'+normKey(x.n);if(!nfs.has(k))nfs.set(k,{f:i.forn,nf:x.n,dt:x.d,v:x.v,pg:i.pg,peds:new Set()});if(i.ped)nfs.get(k).peds.add(i.ped)});
+  }));
+  const v=[...nfs.values()].reduce((t,x)=>t+(x.v||0),0);
+  return {a,sols,itens,ent,peds,nfs,v,shared:sols.filter(s=>s.pre.length>1).length,match:appHit||sols.length>0};
+}
+let linhas=[];
+function calcular(){
+  const B=base(),C=comp();
+  linhas=C.apps.filter(a=>!st.tp||a.t===st.tp).map(a=>agg(a,B)).filter(r=>r.match&&(!st.hide||r.sols.length));
+  const ord={v:(x,y)=>y.v-x.v,s:(x,y)=>y.sols.length-x.sols.length,i:(x,y)=>y.itens-x.itens,ped:(x,y)=>y.peds.size-x.peds.size,p:(x,y)=>x.a.p.localeCompare(y.a.p,'pt-BR',{numeric:true})}[st.sort]||((x,y)=>y.v-x.v);
+  linhas.sort((x,y)=>ord(x,y)||x.a.p.localeCompare(y.a.p,'pt-BR',{numeric:true}));
+  return B;
+}
+
+/* ---------- desenho ---------- */
+function sitClasse(s){s=up(s);if(s.includes('CANCEL')||s.includes('REPROV'))return 'bad';if(s.includes('TOTAL')||s.includes('INTEGRAL')||s==='ENTREGUE'||s.includes('FINALIZ'))return 'ok';if(s.includes('PARCIAL')||s.includes('PENDENTE')||s.includes('ABERT'))return 'warn';return ''}
+function fontes(B){
+  const o=D.obs, partes=[];
+  if(o){
+    const per=o.dados&&o.dados.periodo||[];
+    partes.push(`Observações: <b>${esc(o.nome_arquivo||'arquivo')}</b>${per[0]?` (solicitações de ${brDe(per[0])} a ${brDe(per[1])})`:''}, importado em ${o.importado_em?new Date(o.importado_em).toLocaleDateString('pt-BR'):'—'} · ${o.fonte==='nuvem'?'gravado para todos':'só neste navegador'} · ${int(B.citam)} solicitações citam prefixos, ${int(B.citam-B.semRelatorio)} estão no relatório do painel`);
+  }
+  partes.push(`Lista de aplicações: ${D.apps?`<b>${esc(D.apps.nome_arquivo||'importada')}</b> (${int(listaApps().length)} prefixos${D.apps.fonte==='nuvem'?'':', só neste navegador'})`:`padrão do relatório de consumo (${int(APPS_PADRAO.length)} prefixos)`}`);
+  if(B.temRelatorio&&state.sourceName)partes.push(`Pedidos e notas: relatório do Sienge <b>${esc(state.sourceName)}</b>`);
+  $('cpaFontes').innerHTML=partes.join('<br>');
+}
+function opcoes(B){
+  const tipos=[...new Set(comp().apps.map(a=>a.t).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const obras=[...new Set(B.sols.flatMap(s=>s.obras))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  const enche=(id,lista,todos,atual)=>{const el=$(id);el.innerHTML=`<option value="">${todos}</option>`+lista.map(v=>`<option${v===atual?' selected':''}>${esc(v)}</option>`).join('');if(atual&&!lista.includes(atual))el.value=''};
+  enche('cpaTp',tipos,'Todos',st.tp);if(!tipos.includes(st.tp))st.tp='';
+  enche('cpaObra',obras,'Todos',st.obra);if(!obras.includes(st.obra))st.obra='';
+}
+function vazio(html){$('cpaCorpo').style.display='none';let e=$('cpaVazio');if(!e){e=document.createElement('div');e.id='cpaVazio';e.className='empty-state';$('cpaCorpo').before(e)}e.style.display='';e.innerHTML=html}
+function render(){
+  if(!$('tab-consumo').classList.contains('active'))return;
+  if(!carregado){if(!carregando)carregando=carregar().catch(e=>{console.error(e);carregado=true}).then(()=>{carregando=null;render()});
+    vazio('<div class="es-icon">⏳</div><h3>Carregando…</h3><p>Buscando as observações das solicitações.</p>');return}
+  const B=base();fontes(B);
+  if(!B.temRelatorio){vazio('<div class="es-icon">📄</div><h3>Sem relatório do Sienge</h3><p>Carregue o relatório de solicitações × pedidos × notas fiscais do Sienge no painel: é dele que vêm os itens, pedidos de compra e notas de cada aplicação.</p>');return}
+  if(!D.obs){vazio('<div class="es-icon">🚜</div><h3>Importe as observações das solicitações</h3><p>O relatório principal não traz a observação da solicitação, onde fica o prefixo do equipamento ou veículo. Exporte do Sienge o relatório de solicitações com a coluna <b>Observação da solicitação</b> (.xlsx) e use <b>Importar observações das solicitações</b> acima.</p>');return}
+  const e=$('cpaVazio');if(e)e.style.display='none';$('cpaCorpo').style.display='';
+  opcoes(B);
+  calcular();
+  // indicadores (cada solicitação e cada nota uma vez, mesmo citada por mais de uma aplicação)
+  const scs=new Set(),peds=new Set(),nfs=new Map();let it=0;
+  linhas.forEach(r=>r.sols.forEach(s=>{if(scs.has(s.n))return;scs.add(s.n);s.it.forEach(i=>{it++;if(i.ped)peds.add(i.ped);i.nfs.forEach(x=>nfs.set(normKey(i.forn)+'|'+normKey(x.n),x.v||0))})}));
+  const vt=[...nfs.values()].reduce((a,b)=>a+b,0);
+  const card=(cls,l,v,f,valor)=>`<div class="kpi-card ${cls}"><p class="kpi-label">${l}</p><div class="kpi-value${valor?' cpa-valor':''}" title="${valor?brl(vt):''}">${v}</div><p class="kpi-foot">${f}</p></div>`;
+  $('cpaKpis').innerHTML=card('c-solic','Aplicações',int(linhas.filter(r=>r.sols.length).length),`com solicitação, de ${int(linhas.length)} na lista`)+
+    card('c-total','Solicitações',int(scs.size),'citam algum prefixo')+card('c-ped','Itens',int(it),'das solicitações')+
+    card('c-ped','Pedidos de compra',int(peds.size),'distintos')+card('c-crit','Notas fiscais',int(nfs.size),'distintas')+card('c-solic','Valor das NFs',brl0(vt),'cada nota uma vez',true);
+  $('cpaLh').textContent=`Aplicações (${linhas.length})`;
+  const max=Math.max(1,...linhas.map(r=>r.v));
+  $('cpaLista').innerHTML=linhas.length?linhas.map(r=>`<div class="cpa-row${r.sols.length?'':' vazio'}" tabindex="0" role="button" data-i="${r.a.i}">
+    <span class="cpa-plate">${esc(r.a.p)}</span><span class="d" title="${esc(r.a.d)}">${esc(r.a.d||r.a.t)}</span><span class="v">${brl(r.v)}</span>
+    <span class="m">${r.sols.length} SC · ${r.peds.size} pedido${r.peds.size===1?'':'s'} · ${r.nfs.size} NF${r.shared?` · ${r.shared} compartilhada${r.shared>1?'s':''}`:''}</span>
+    <span class="b"><i style="width:${(r.v/max*100).toFixed(1)}%"></i></span></div>`).join('')
+    :'<div class="cpa-vazio">Nenhuma aplicação com esses filtros. Limpe a busca ou amplie o período.</div>';
+  if(st.sel==null||!linhas.some(r=>r.a.i===st.sel)){const p=linhas.find(r=>r.sols.length);st.sel=p?p.a.i:null;st.limite=60}
+  $('cpaLista').querySelectorAll('.cpa-row').forEach(el=>el.classList.toggle('on',+el.dataset.i===st.sel));
+  detalhe();
+}
+function marcar(obs,a){
+  // destaca o prefixo da aplicação na observação (o texto é comparado sem acento; posições iguais às do original)
+  const t=up(obs);if(t.length!==obs.length)return esc(obs);
+  const out=[];let k=0;a.reG.lastIndex=0;let m;
+  while((m=a.reG.exec(t))){if(!m[0].length){a.reG.lastIndex++;continue}out.push(esc(obs.slice(k,m.index)),'<mark>',esc(obs.slice(m.index,m.index+m[0].length)),'</mark>');k=m.index+m[0].length}
+  out.push(esc(obs.slice(k)));return out.join('');
+}
+function detalhe(){
+  const r=linhas.find(x=>x.a.i===st.sel), box=$('cpaDet');
+  if(!r){box.innerHTML='<div class="cpa-vazio">Selecione uma aplicação na lista.</div>';return}
+  const a=r.a;let corpo='';
+  if(!r.sols.length){
+    corpo='<div class="cpa-vazio">Nenhuma solicitação cita este prefixo no período e filtros escolhidos.</div>';
+  }else if(st.tab==='sc'){
+    const L=[...r.sols].sort((x,y)=>(y.dt||'').localeCompare(x.dt||'')||(+y.n)-(+x.n));
+    corpo=L.slice(0,st.limite).map(s=>`<details class="cpa-sc"><summary>
+      <span class="n">SC ${esc(s.n)}</span><span>${brDe(s.dt)}</span>${s.st?`<span class="cpa-pill ${sitClasse(s.st)}">${esc(s.st)}</span>`:''}
+      <span class="cpa-sub">${s.it.length} ite${s.it.length>1?'ns':'m'} · ${esc(s.sol)}${s.obras.length?' · '+esc(s.obras.join(', ')):''}</span>
+      ${s.pre.length>1?`<span class="cpa-pill share" title="${esc(s.pre.map(p=>p.p).join(', '))}">compartilhada · ${s.pre.length} aplicações</span>`:''}</summary>
+      <div class="cpa-sc-body"><div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th>Detalhe</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">Valor NF</th></tr></thead><tbody>
+      ${s.it.map(i=>`<tr><td>${esc(i.ins)}</td><td>${esc(i.det)}</td><td class="n">${nf(i.qtd)} ${esc(i.un)}</td><td class="n">${nf(i.ent)}</td>
+        <td class="nw">${esc(i.ped)||'<span class="cpa-sub">sem pedido</span>'}${i.sitPed?`<br><span class="cpa-sub">${esc(i.sitPed)}</span>`:''}</td><td>${esc(i.forn)}</td>
+        <td class="nw">${i.nfs.map(x=>esc(x.n)+(x.d?` <span class="cpa-sub">${brDe(x.d)}</span>`:'')).join('<br>')}</td><td class="n">${i.nfs.map(x=>brl(x.v)).join('<br>')}</td></tr>`).join('')}
+      </tbody></table></div>
+      ${s.pre.length>1?`<div class="cpa-sub">Prefixos citados nesta SC: ${s.pre.map(p=>esc(p.p)).join(', ')}</div>`:''}
+      <pre class="cpa-obs">${marcar(s.obs,a)}</pre></div></details>`).join('')+
+      (L.length>st.limite?`<button class="btn small cpa-mais" type="button" data-mais="1">Mostrar mais ${int(Math.min(60,L.length-st.limite))} de ${int(L.length-st.limite)} restantes</button>`:'');
+  }else if(st.tab==='ped'){
+    const L=[...r.peds.values()].sort((x,y)=>(y.dt||'').localeCompare(x.dt||'')||String(y.ped).localeCompare(String(x.ped),'pt-BR',{numeric:true}));
+    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>Pedido</th><th>Data</th><th>Fornecedor</th><th>Centro de custo</th><th>Situação</th><th class="n">Itens</th><th>SCs</th><th>Notas fiscais</th></tr></thead><tbody>
+      ${L.map(p=>`<tr><td class="nw"><b>${esc(p.ped)}</b></td><td class="nw">${brDe(p.dt)}</td><td>${esc(p.forn)}</td><td>${esc(p.obra)}</td>
+        <td><span class="cpa-pill ${p.cancel?'bad':p.pend?'warn':'ok'}">${p.cancel?'cancelado':p.pend?'entrega pendente':'entregue'}</span>${p.sit?`<br><span class="cpa-sub">${esc(p.sit)}</span>`:''}</td>
+        <td class="n">${p.itens}</td><td>${[...p.scs].map(esc).join(', ')}</td><td>${[...p.nfs].map(esc).join(', ')||'<span class="cpa-sub">sem NF</span>'}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  }else if(st.tab==='nf'){
+    const L=[...r.nfs.values()].sort((x,y)=>(y.dt||'').localeCompare(x.dt||''));
+    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>NF</th><th>Data</th><th>Fornecedor</th><th>Pedido</th><th>Pagamento</th><th class="n">Valor da nota</th></tr></thead><tbody>
+      ${L.map(x=>`<tr><td class="nw">${esc(x.nf)}</td><td class="nw">${brDe(x.dt)}</td><td>${esc(x.f)}</td><td>${[...x.peds].map(esc).join(', ')}</td><td>${esc(x.pg)}</td><td class="n">${brl(x.v)}</td></tr>`).join('')}
+      <tr><td colspan="5"><b>Total (${L.length} nota${L.length===1?'':'s'})</b></td><td class="n"><b>${brl(r.v)}</b></td></tr></tbody></table></div>`;
+  }else{
+    const L=[];r.sols.forEach(s=>s.it.forEach(i=>L.push([s,i])));
+    L.sort((x,y)=>(y[0].dt||'').localeCompare(x[0].dt||''));
+    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>SC</th><th>Data</th><th>Insumo</th><th>Detalhe</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Pedido</th><th>Fornecedor</th><th>NF</th></tr></thead><tbody>
+      ${L.map(([s,i])=>`<tr><td class="nw">${esc(s.n)}</td><td class="nw">${brDe(s.dt)}</td><td>${esc(i.ins)}</td><td>${esc(i.det)}</td><td class="n">${nf(i.qtd)} ${esc(i.un)}</td><td class="n">${nf(i.ent)}</td><td class="nw">${esc(i.ped)}</td><td>${esc(i.forn)}</td><td class="nw">${i.nfs.map(x=>esc(x.n)).join('<br>')}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  const ds=r.sols.map(s=>s.dt).filter(Boolean).sort();
+  const pend=[...r.peds.values()].filter(p=>p.pend&&!p.cancel).length;
+  box.innerHTML=`<div class="cpa-det-top"><span class="cpa-plate">${esc(a.p)}</span><div><div class="cpa-tp">${esc(a.t)}</div><h3>${esc(a.d||a.p)}</h3>${ds.length?`<div class="cpa-sub">Solicitações de ${brDe(ds[0])} a ${brDe(ds[ds.length-1])}</div>`:''}</div></div>
+    <div class="cpa-stats"><div><span>Solicitações</span><b>${int(r.sols.length)}</b></div><div><span>Itens</span><b>${int(r.itens)}</b></div><div><span>Itens entregues</span><b>${int(r.ent)}</b></div><div><span>Pedidos</span><b>${int(r.peds.size)}</b></div><div><span>Entrega pendente</span><b>${int(pend)}</b></div><div><span>Notas fiscais</span><b>${int(r.nfs.size)}</b></div><div class="largo"><span>Valor das NFs</span><b>${brl(r.v)}</b></div></div>
+    ${r.sols.length?`<div class="cpa-tabs" role="tablist">${[['sc','Solicitações'],['ped','Pedidos de compra'],['nf','Notas fiscais'],['it','Todos os itens']].map(([k,l])=>`<button type="button" role="tab" data-t="${k}" aria-selected="${st.tab===k}">${l}</button>`).join('')}</div>`:''}
+    <div>${corpo}</div>`;
+}
+
+/* ---------- exportar ---------- */
+async function exportar(){
+  try{await garantirXLSX()}catch(e){msg(esc(e.message),false);return}
+  if(!D.obs){msg('Importe as observações das solicitações antes de exportar.',false);return}
+  calcular();
+  const resumo=linhas.map(r=>({'Prefixo':r.a.p,'Descrição':r.a.d,'Tipo':r.a.t,'Solicitações':r.sols.length,'Itens':r.itens,'Itens entregues':r.ent,'Pedidos':r.peds.size,'Notas fiscais':r.nfs.size,'Valor das NFs':Math.round(r.v*100)/100,'SCs compartilhadas':r.shared}));
+  const itens=[];
+  linhas.forEach(r=>r.sols.forEach(s=>s.it.forEach(i=>{
+    const base={'Prefixo':r.a.p,'Aplicação':r.a.d,'SC':+s.n||s.n,'Data SC':brDe(s.dt),'Solicitante':s.sol,'Situação SC':s.st,'Centro de custo':i.obra,'Insumo':i.ins,'Detalhe':i.det,'Qtd':i.qtd,'Unidade':i.un,'Entregue':i.ent,'Pedido':i.ped,'Data pedido':brDe(i.dPed),'Situação pedido':i.sitPed,'Fornecedor':i.forn,'Comprador':i.comp,'Prefixos na SC':s.pre.map(p=>p.p).join(', ')};
+    if(!i.nfs.length)itens.push(Object.assign({},base,{'NF':'','Data NF':'','Valor NF':'','Pagamento':i.pg}));
+    else i.nfs.forEach(x=>itens.push(Object.assign({},base,{'NF':x.n,'Data NF':brDe(x.d),'Valor NF':x.v,'Pagamento':i.pg})));
+  })));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(resumo),'Aplicações');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(itens.length?itens:[{'Prefixo':''}]),'Itens');
+  XLSX.writeFile(wb,'consumo_por_aplicacao_'+isoOf(new Date())+'.xlsx');
+}
+
+/* ---------- eventos ---------- */
+let tm;
+$('cpaQ').addEventListener('input',e=>{clearTimeout(tm);tm=setTimeout(()=>{st.q=e.target.value;st.limite=60;render()},200)});
+const setPer=p=>{st.per=p;document.querySelectorAll('#cpaPer button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.p===p)))};
+$('cpaD1').addEventListener('change',e=>{st.d1=e.target.value;setPer('');render()});
+$('cpaD2').addEventListener('change',e=>{st.d2=e.target.value;setPer('');render()});
+$('cpaPer').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const p=b.dataset.p,h=new Date();
+  if(p==='90'){const d=new Date(h);d.setDate(d.getDate()-90);st.d1=isoOf(d);st.d2=''}else if(p==='ano'){st.d1=h.getFullYear()+'-01-01';st.d2=h.getFullYear()+'-12-31'}else{st.d1=st.d2=''}
+  $('cpaD1').value=st.d1;$('cpaD2').value=st.d2;setPer(p);render()});
+$('cpaTp').addEventListener('change',e=>{st.tp=e.target.value;render()});
+$('cpaObra').addEventListener('change',e=>{st.obra=e.target.value;render()});
+$('cpaSort').value=st.sort;$('cpaHide').checked=st.hide;
+$('cpaSort').addEventListener('change',e=>{st.sort=e.target.value;salvarUi();render()});
+$('cpaHide').addEventListener('change',e=>{st.hide=e.target.checked;salvarUi();render()});
+const escolher=el=>{st.sel=+el.dataset.i;st.limite=60;$('cpaLista').querySelectorAll('.cpa-row').forEach(x=>x.classList.toggle('on',x===el));detalhe();if(innerWidth<1100)$('cpaDet').scrollIntoView({behavior:'smooth',block:'start'})};
+$('cpaLista').addEventListener('click',e=>{const el=e.target.closest('.cpa-row');if(el)escolher(el)});
+$('cpaLista').addEventListener('keydown',e=>{const el=e.target.closest('.cpa-row');if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();escolher(el)}});
+$('cpaDet').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){st.tab=b.dataset.t;detalhe();return}if(e.target.closest('[data-mais]')){st.limite+=60;detalhe()}});
+$('cpaArqObs').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarObservacoes(f)};
+const menu=$('cpaAppMenu'),fecharMenu=()=>{menu.classList.remove('aberto');$('cpaAppBtn').setAttribute('aria-expanded','false')};
+$('cpaAppBtn').onclick=e=>{e.stopPropagation();const ab=!menu.classList.contains('aberto');menu.classList.toggle('aberto',ab);$('cpaAppBtn').setAttribute('aria-expanded',String(ab))};
+document.addEventListener('click',e=>{if(!menu.contains(e.target))fecharMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&menu.classList.contains('aberto')){fecharMenu();$('cpaAppBtn').focus()}});
+$('cpaArqApps').onchange=e=>{const f=e.target.files[0];e.target.value='';fecharMenu();if(f)importarApps(f)};
+$('cpaAppsExp').onclick=()=>{fecharMenu();exportarApps()};
+$('cpaAppsPadrao').onclick=()=>{fecharMenu();voltarPadrao()};
+$('cpaExp').onclick=exportar;
+// login/troca de usuário: busca de novo na nuvem
+document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;D.obs=D.apps=null;versao++;render()});
+
+window.CPA={show:render,refresh:render,_padrao:padraoPrefixo};
+})();
+</script>
 </body>
 </html>
