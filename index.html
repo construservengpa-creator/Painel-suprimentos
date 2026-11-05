@@ -4322,6 +4322,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
           <p><b>Base.</b> Relatório <b>Apropriações de Insumos</b> do Sienge, um arquivo por obra (ex.: 5 - Equipamentos, 63 - Frotas RAF). Importar de novo o arquivo de uma obra substitui só aquela obra; as outras continuam.</p>
           <p><b>Aplicação.</b> Cada subetapa do relatório é uma aplicação; o prefixo é o código no início da subetapa (<b>MN-05</b>, <b>CB-4H12</b>, <b>TQ-F-08</b>). O mesmo prefixo lançado em mais de uma unidade construtiva ou obra é somado numa aplicação só, com o detalhe por unidade. Subetapas sem prefixo (estoque, almoxarifado, ferramentas, despesas) ficam em <b>subetapas gerais</b>.</p>
           <p><b>Cruzamento com solicitações, pedidos e notas.</b> Cada lançamento com prefixo é ligado à <b>solicitação</b> da mesma obra e do mesmo código de insumo cuja observação cita o prefixo (MN-05, MN 05, MN05…), pelo relatório de solicitações do Sienge importado aqui. Havendo mais de uma, vale a de detalhe igual, depois a de mesma quantidade atendida, depois a mais recente; quando são várias e o detalhe não confere, a ligação aparece como <b>provável</b>. Pelo nº da SC, o relatório principal do painel traz o <b>pedido de compra</b>, o fornecedor, a <b>nota fiscal</b> e a situação da entrega. Entram as SCs a partir de 6 meses antes do início do período das apropriações.</p>
+          <p><b>Apropriado em lançamento agrupado.</b> A apropriação costuma somar vários itens de SC do mesmo insumo numa linha. Um item sem lançamento próprio aparece como <b>apropriado</b> quando a quantidade apropriada do insumo na aplicação ainda cobre a quantidade atendida dele (validado pela quantidade, na ordem das SCs); o valor fica somado no lançamento do insumo.</p>
+          <p><b>Pedido cancelado.</b> Quando o pedido está "Cancelado" mas o item tem quantidade entregue ou nota fiscal, só o saldo restante foi cancelado: o item conta como <b>entregue</b>.</p>
           <p><b>A apropriar.</b> Nos cartões das solicitações, itens marcados <b>a apropriar</b> são de SCs a partir do início do período que citam o prefixo e não foram encontrados nas apropriações daquela aplicação: compras em andamento, entregas pendentes ou itens apropriados em outra subetapa ou obra. Não têm valor: o relatório de solicitações não traz preço.</p>
           <p><b>Tipo de despesa.</b> Pelo nome e pelo detalhe do insumo: <b>Licenciamento</b> (emplacamento, licenciamento, IPVA, DPVAT, AET, vistoria, despachante de documentação), <b>Seguro</b> (despesas de seguro e apólices), <b>Plano de manutenção</b> (prestação de serviços de plano de manutenção), <b>Serviços</b> (prestações de serviço, mão de obra, frete, monitoramento, recondicionamento), <b>Peças</b> (peças, pneus, filtros, lubrificantes e demais materiais) e <b>Outros</b> (aquisição de veículo ou máquina e combustível).</p>
           <p><b>Valores.</b> <b>Apropriado</b> é o valor dos insumos apropriados à subetapa; <b>consumido</b>, o valor que já saiu como consumo. O tipo e o grupo vêm da etapa (ex.: EQUIPAMENTOS PESADOS - MOTONIVELADORA). Os totais conferem com o total da obra no próprio relatório.</p>
@@ -19927,7 +19929,7 @@ function base(){
     });
   });
   apps.forEach(a=>{a.tipo=[...a.tipos][0]||'';a.grupo=[...a.grupos][0]||'';a._txt=up([a.p,a.d,a.extra,...a.tipos].join(' '));a._flat=up(a.p).replace(/[^A-Z0-9]/g,'')});
-  apps.forEach(a=>{a.aApropriar=[]});
+  apps.forEach(a=>{a.aApropriar=[];a.agrupados=[]});
   const val={apps:[...apps.values()],lancs,cruzado:false};
   if(SCX&&SCX.dados)cruzar(val,apps,rowsPainel);
   baseCache={v:versao,rows:rowsPainel,val};
@@ -19957,6 +19959,10 @@ function cruzar(val,apps,rowsPainel){
     const k=s.obra+'§'+cod;let l=porIns.get(k);if(!l){l=[];porIns.set(k,l)}l.push(it)});
   const porSc=new Map();
   rowsPainel.forEach(r=>{const k=String(normKey(r.numSolicitacao)).replace(/^0+(?=\d)/,'');if(!k)return;let l=porSc.get(k);if(!l){l=[];porSc.set(k,l)}l.push(r)});
+  // quantidade apropriada por aplicação + obra + insumo: a apropriação costuma somar
+  // vários itens de SC numa linha só
+  const grupos=new Map(),gk=(k,obra,cod)=>k+'§'+obra+'§'+cod;
+  val.lancs.forEach(l=>{if(l.a.geral)return;const k=gk(l.a.k,l.obra,l.cod);let g=grupos.get(k);if(!g){g={q:0,v:0,vc:0,usado:0,lancs:[],un:l.un};grupos.set(k,g)}g.q+=l.qA;g.v+=l.vA;g.vc+=l.vC;g.lancs.push(l)});
   val.lancs.forEach(l=>{
     if(l.a.geral)return;
     const cand=(porIns.get(l.obra+'§'+l.cod)||[]).filter(it=>it.s.pre.has(l.a.k));
@@ -19965,6 +19971,7 @@ function cruzar(val,apps,rowsPainel){
     const nota=it=>((it.kd&&(fd.startsWith(it.kd)||it.kd.startsWith(fd)))||it.kd===fd?4:0)+(Math.abs((it.qa||0)-l.qA)<1e-6?2:0);
     let best=null,bn=-1;
     cand.forEach(it=>{const n=nota(it)-(it.usado?1:0);if(!best||n>bn||(n===bn&&it.s.dt>best.s.dt)){best=it;bn=n}});
+    if(!best.usado){const g=grupos.get(gk(l.a.k,l.obra,l.cod));if(g)g.usado+=best.qa||0}
     best.usado=true;
     const nScs=new Set(cand.map(it=>it.s.n)).size;
     l.sc=best.s;l.scItem=best;l.scProv=nScs>1&&bn<4;l.scDetOk=bn>=4;l.nCand=nScs;
@@ -19975,9 +19982,14 @@ function cruzar(val,apps,rowsPainel){
   // (só SCs a partir do início do período: as anteriores podem ter sido apropriadas antes dele)
   let ini='';OBRAS.forEach(o=>{const m=String(o.periodo||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);if(m){const d=m[3]+'-'+m[2]+'-'+m[1];if(!ini||d<ini)ini=d}});
   val.iniPeriodo=ini;
-  itens.forEach(it=>{if(it.usado||(ini&&it.s.dt&&it.s.dt<ini))return;
+  // item sem lançamento próprio: se a quantidade apropriada do mesmo insumo na aplicação
+  // ainda cobre a quantidade atendida dele, já foi apropriado (lançamento agrupado)
+  itens.filter(it=>!it.usado&&!(ini&&it.s.dt&&it.s.dt<ini)).sort((x,y)=>(x.s.dt||'').localeCompare(y.s.dt||'')).forEach(it=>{
     const p=itemPainel(porSc.get(it.s.n),it.cod,it.ins,it.det);
-    it.s.pre.forEach(k=>{const a=apps.get(k);if(a)a.aApropriar.push({it,p,compartilhada:it.s.pre.size>1})})});
+    it.s.pre.forEach(k=>{const a=apps.get(k);if(!a)return;
+      const g=grupos.get(gk(k,it.s.obra,it.cod));
+      if(g&&it.qa>0&&it.qa<=g.q-g.usado+1e-6){g.usado+=it.qa;a.agrupados.push({it,p,g,compartilhada:it.s.pre.size>1});return}
+      a.aApropriar.push({it,p,compartilhada:it.s.pre.size>1})})});
   val.cruzado=true;val.temPainel=rowsPainel.length>0;
 }
 // percentuais do valor apropriado (com prefixo) ligados a SC e a pedido
@@ -20008,11 +20020,13 @@ function agg(a){
   const scs=new Map(),semSc=[];
   const grp=s=>{let g=scs.get(s.n);if(!g){g={s,itens:new Map()};scs.set(s.n,g)}return g};
   L.forEach(l=>{if(!l.sc){semSc.push(l);return}const g=grp(l.sc);let e=g.itens.get(l.scItem);if(!e){e={it:l.scItem,p:l.ped,lancs:[]};g.itens.set(l.scItem,e)}e.lancs.push(l)});
+  const agr=st.uni?[]:(a.agrupados||[]).filter(x=>(!st.td||tipoDespesa(x.it.ins,x.it.det)[0]===st.td)&&(!st.obra||x.it.s.obra===st.obra)&&(appHit||up(x.it.s.n+' '+x.it.cod+' '+x.it.ins+' '+x.it.det).includes(q)));
+  agr.forEach(({it,p,g:ga})=>{const g=grp(it.s);if(!g.itens.has(it))g.itens.set(it,{it,p,lancs:[],agrup:ga})});
   apr.forEach(({it,p})=>{const g=grp(it.s);if(!g.itens.has(it))g.itens.set(it,{it,p,lancs:[],apr:true})});
   let nItens=semSc.length,nEnt=semSc.length;const peds=new Set(),nfs=new Map();
   scs.forEach(g=>g.itens.forEach(e=>{nItens++;e.ent=entregaItem(e);if(e.ent.ok)nEnt++;const p=e.p;if(!p)return;if(p.ped)peds.add(p.ped);
     p.nfs.forEach(n=>{const k=normKey(p.forn)+'|'+normKey(n.n);let x=nfs.get(k);if(!x){x={nf:n.n,d:n.d,forn:p.forn,peds:new Set(),scs:new Set(),vA:0,vC:0};nfs.set(k,x)}
-      if(p.ped)x.peds.add(p.ped);x.scs.add(e.it.s.n);const q=p.nfs.length;if(e.lancs.length)x.lanc=true;e.lancs.forEach(l=>{x.vA+=l.vA/q;x.vC+=l.vC/q})})}));
+      if(p.ped)x.peds.add(p.ped);x.scs.add(e.it.s.n);const q=p.nfs.length;if(e.lancs.length)x.lanc=true;if(e.agrup)x.agr=true;e.lancs.forEach(l=>{x.vA+=l.vA/q;x.vC+=l.vC/q})})}));
   const shared=[...scs.values()].filter(g=>g.s.pre.size>1).length;
   return {a,L,vA,vC,vO,vSc,vPed,v:st.met==='c'?vC:vA,unis,ins,apr,scs,semSc,nItens,nEnt,peds,nfs,shared,pt};
 }
@@ -20093,10 +20107,12 @@ function sitClasse(s){s=up(s);if(s.includes('CANCEL')||s.includes('REPROV'))retu
 function sitSc(g){const L=[...g.itens.values()].map(e=>e.it.sit).filter(Boolean);if(!L.length)return '';const nt=L.find(x=>!/total/i.test(x));return nt||L[0]}
 // situação de entrega de um item da SC: apropriado = já chegou (a apropriação é feita na entrada da nota)
 function entregaItem(e){
-  const p=e.p,ap=e.lancs&&e.lancs.length;
+  const p=e.p,ap=(e.lancs&&e.lancs.length)||!!e.agrup;
   if(p&&p.ped){
     if(p.ent==='entrega pendente')return {ok:false,k:'warn',t:'entrega pendente',d:'Pedido '+p.ped+' com saldo a entregar'};
-    if(p.ent==='cancelado')return ap?{ok:true,k:'ok',t:'apropriado'}:{ok:false,k:'bad',t:'pedido cancelado',d:'Pedido '+p.ped+' cancelado e item não apropriado'};
+    // pedido "Cancelado" com entrega ou nota: só o saldo restante foi cancelado
+    if(p.ent==='cancelado'&&(p.qe>0||p.nfs.length))return {ok:true,k:'ok',t:'entregue',d:'Entregue'+(p.nfs.length?' (NF '+p.nfs.map(n=>n.n).join(', ')+')':'')+'; o saldo restante do pedido '+p.ped+' foi cancelado',saldoCanc:true};
+    if(p.ent==='cancelado')return ap?{ok:true,k:'ok',t:'apropriado'}:{ok:false,k:'bad',t:'pedido cancelado',d:'Pedido '+p.ped+' cancelado, sem entrega e item não apropriado'};
     return {ok:true,k:'ok',t:'entregue'};
   }
   if(ap)return {ok:true,k:'ok',t:'apropriado',d:'Apropriado (sem pedido no relatório do painel)'};
@@ -20104,7 +20120,9 @@ function entregaItem(e){
   if(p)return {ok:false,k:'warn',t:'sem pedido',d:'Item da SC ainda sem pedido de compra'};
   return {ok:false,k:'bad',t:'não atendido',d:'Sem quantidade atendida na SC e fora do relatório do painel'};
 }
-const entPill=x=>pill(x.k,x.t,x.d||'');
+const entPill=x=>pill(x.k,x.t,x.d||'')+(x.saldoCanc?'<br><span class="cpa-sub">saldo cancelado</span>':'');
+// valor do item: o dos lançamentos ligados a ele, ou a marca de apropriado em lançamento agrupado
+const valCel=e=>e.lancs.length?brl(valE(e)):e.agrup?pill('ok','apropriado',`Incluído na apropriação agrupada do insumo nesta aplicação: ${nf(e.agrup.q)} ${e.agrup.un||''} · ${brl(st.met==='c'?e.agrup.vc:e.agrup.v)} (o valor já está somado nos lançamentos do insumo)`):pill('warn','a apropriar','Ainda não aparece nas apropriações desta aplicação');
 const pedCel=p=>p&&p.ped?`<b>${esc(p.ped)}</b>${p.sit?`<br><span class="cpa-sub">${esc(p.sit)}</span>`:''}`:'<span class="cpa-sub">sem pedido</span>';
 const nfCel=p=>p&&p.nfs.length?p.nfs.map(n=>esc(n.n)+(n.d?`<br><span class="cpa-sub">${n.d}</span>`:'')).join('<br>'):'';
 const valE=e=>e.lancs.reduce((t,l)=>t+V(l),0);
@@ -20128,7 +20146,7 @@ function detalhe(){
       <div class="cpa-sc-body"><div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th>Detalhe</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Entrega</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
       ${E.map(e=>`<tr${e.ent.ok?'':' class="cpa-ne"'}><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}<br>${(t=>tdTag(t[0],t[1]))(e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det))}</td><td>${esc(e.it.det)}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td><td>${entPill(e.ent)}</td>
         <td class="nw">${pedCel(e.p)}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${nfCel(e.p)}</td>
-        <td class="n">${e.lancs.length?brl(valE(e)):pill('warn','a apropriar','Ainda não aparece nas apropriações desta aplicação')}</td></tr>`).join('')}
+        <td class="n">${valCel(e)}</td></tr>`).join('')}
       </tbody></table></div>
       ${pre.length>1?`<div class="cpa-sub">Prefixos citados nesta SC: ${pre.map(esc).join(', ')}</div>`:''}
       ${s.obs?`<pre class="cpa-obs">${esc(s.obs.replace(/\n[ \t\u00a0]*(?=\n)/g,'\n').replace(/\n{2,}/g,'\n'))}</pre>`:''}</div></details>`}).join('')+
@@ -20142,14 +20160,14 @@ function detalhe(){
     else{const L=[...r.nfs.values()].sort((x,y)=>{const d=s=>s?s.split('/').reverse().join(''):'';return d(y.d).localeCompare(d(x.d))});
       const t=L.reduce((s,x)=>s+(st.met==='c'?x.vC:x.vA),0);
       corpo=L.length?`<div class="table-scroll alto"><table class="data"><thead><tr><th>NF</th><th>Data</th><th>Fornecedor</th><th>Pedido</th><th>SC</th><th class="n">${rot} dos itens</th></tr></thead><tbody>
-      ${L.map(x=>`<tr><td class="nw">${esc(x.nf)}</td><td class="nw">${esc(x.d)}</td><td>${esc(x.forn)}</td><td>${[...x.peds].map(esc).join(', ')}</td><td>${[...x.scs].map(esc).join(', ')}</td><td class="n">${x.lanc?brl(st.met==='c'?x.vC:x.vA):pill('warn','a apropriar','Itens desta nota ainda não aparecem nas apropriações desta aplicação')}</td></tr>`).join('')}
+      ${L.map(x=>`<tr><td class="nw">${esc(x.nf)}</td><td class="nw">${esc(x.d)}</td><td>${esc(x.forn)}</td><td>${[...x.peds].map(esc).join(', ')}</td><td>${[...x.scs].map(esc).join(', ')}</td><td class="n">${x.lanc?brl(st.met==='c'?x.vC:x.vA):x.agr?pill('ok','apropriado','Itens desta nota estão numa apropriação agrupada do insumo (valor somado nos lançamentos)'):pill('warn','a apropriar','Itens desta nota ainda não aparecem nas apropriações desta aplicação')}</td></tr>`).join('')}
       <tr class="cpa-tot"><td colspan="5"><b>Total (${L.length} nota${L.length===1?'':'s'})</b></td><td class="n"><b>${brl(t)}</b></td></tr></tbody></table></div>
       <p class="cpa-sub" style="margin:8px 0 0">Valor dos itens desta aplicação ligados a cada nota (pelo relatório de apropriações), não o valor total da nota.</p>`:'<div class="cpa-vazio">Nenhuma nota fiscal ligada a esta aplicação.</div>'}
   }else{
     const L=[];r.scs.forEach(g=>g.itens.forEach(e=>{if(!st.naoEnt||!e.ent.ok)L.push(e)}));
     L.sort((x,y)=>(y.it.s.dt||'').localeCompare(x.it.s.dt||''));
     corpo=(st.naoEnt?`<p class="cpa-filtro">Mostrando só os itens não entregues (${int(L.length)}). <button type="button" class="btn small" data-naoent="0">Mostrar todos</button></p>`:'')+`<div class="table-scroll alto"><table class="data"><thead><tr><th>SC</th><th>Data</th><th>Insumo</th><th>Detalhe</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Entrega</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
-      ${L.map(e=>`<tr${e.ent.ok?'':' class="cpa-ne"'}><td class="nw">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td><td>${(t=>tdTag(t[0],t[1]))(e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det))}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td><td>${entPill(e.ent)}</td><td class="nw">${esc(e.p?e.p.ped:'')}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${e.p?e.p.nfs.map(n=>esc(n.n)).join('<br>'):''}</td><td class="n">${e.lancs.length?brl(valE(e)):pill('warn','a apropriar')}</td></tr>`).join('')}
+      ${L.map(e=>`<tr${e.ent.ok?'':' class="cpa-ne"'}><td class="nw">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td><td>${(t=>tdTag(t[0],t[1]))(e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det))}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td><td>${entPill(e.ent)}</td><td class="nw">${esc(e.p?e.p.ped:'')}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${e.p?e.p.nfs.map(n=>esc(n.n)).join('<br>'):''}</td><td class="n">${valCel(e)}</td></tr>`).join('')}
       ${st.naoEnt?'':r.semSc.map(l=>`<tr><td class="cpa-sub">—</td><td></td><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td><td>${tdTag(l.td,l.tdSub)}</td><td class="n">${nf(l.qA)} ${esc(l.un)}</td><td></td><td>${pill('ok','apropriado','Apropriado sem solicitação ligada')}</td><td></td><td></td><td></td><td class="n">${brl(V(l))}</td></tr>`).join('')}
       </tbody></table></div>`;
   }
