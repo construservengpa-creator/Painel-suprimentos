@@ -1491,6 +1491,17 @@ footer.appfoot{
 #tab-creditos .credito-tab-panel{display:none;}
 #tab-creditos .credito-tab-panel.active{display:block;}
 #tab-creditos .empty-mini{font-size:12px;color:var(--text-faint);padding:6px 8px;}
+#tab-creditos .cr-anexos{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);}
+#tab-creditos .cr-anexos-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-mut);}
+#tab-creditos .cr-anexos-head .cr-anexo-up{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;cursor:pointer;}
+#tab-creditos .cr-anexos-head .cr-anexo-up input{display:none;}
+#tab-creditos .cr-anexo{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:12.5px;border-top:1px dashed var(--line);}
+#tab-creditos .cr-anexo:first-of-type{border-top:none;}
+#tab-creditos .cr-anexo a{color:var(--text);text-decoration:underline;cursor:pointer;word-break:break-all;}
+#tab-creditos .cr-anexo a:hover{color:var(--gold);}
+#tab-creditos .cr-anexo .meta{color:var(--text-faint);font-size:11.5px;white-space:nowrap;}
+#tab-creditos .cr-anexo .acoes{margin-left:auto;white-space:nowrap;}
+#tab-creditos .cr-anexos-msg{font-size:11.5px;color:var(--text-faint);}
 #tab-creditos .pedido-search-wrap{position:relative;}
 #tab-creditos .pedido-search-results{
   display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;
@@ -10885,6 +10896,125 @@ async function loadNotasExtrasCredito(){
   }
   await loadTotaisPedidoCredito();
 }
+// Anexos do crédito (relatório de origem): arquivos no bucket privado
+// "creditos-anexos" do Storage, com os dados em creditos_anexos. Sem a
+// tabela (supabase/creditos_anexos.sql), o painel segue sem anexos.
+const CREDITO_ANEXOS_BUCKET = 'creditos-anexos';
+const CREDITO_ANEXO_MAX = 20 * 1024 * 1024;
+let anexosCredito = new Map();   // credito_id -> [{id, nome, caminho, tamanho, tipo, enviadoEm}]
+let anexosCreditoDisponivel = true;
+const creditoAnexoEnviando = new Set();
+async function loadAnexosCredito(){
+  try{
+    const { data, error } = await window.SB.from('creditos_anexos').select('id,credito_id,nome,caminho,tamanho,tipo,enviado_em').order('enviado_em', { ascending:true });
+    if(error) throw error;
+    const m = new Map();
+    (data||[]).forEach(r=>{
+      const k = String(r.credito_id);
+      if(!m.has(k)) m.set(k, []);
+      m.get(k).push({ id:r.id, nome:r.nome, caminho:r.caminho, tamanho:r.tamanho==null?null:Number(r.tamanho), tipo:r.tipo||'', enviadoEm:r.enviado_em });
+    });
+    anexosCredito = m;
+    anexosCreditoDisponivel = true;
+  }catch(e){
+    console.warn('Anexos de crédito indisponíveis (rode supabase/creditos_anexos.sql):', e.message || e);
+    anexosCredito = new Map();
+    anexosCreditoDisponivel = false;
+  }
+}
+const anexosDoCredito = (id)=> anexosCredito.get(String(id)) || [];
+function fmtTamanhoArquivo(b){
+  if(b==null || !isFinite(b)) return '';
+  if(b < 1024) return `${b} B`;
+  if(b < 1024*1024) return `${(b/1024).toLocaleString('pt-BR',{maximumFractionDigits:0})} KB`;
+  return `${(b/1024/1024).toLocaleString('pt-BR',{maximumFractionDigits:1})} MB`;
+}
+// Nome seguro para a chave do Storage (sem acento, espaço ou símbolo);
+// o nome original fica na tabela e é o que aparece na tela.
+function nomeArquivoStorage(nome){
+  const n = String(nome||'arquivo').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w.\-]+/g,'_').replace(/_+/g,'_').slice(-120);
+  return n || 'arquivo';
+}
+async function enviarAnexosCredito(creditoId, files){
+  files = Array.from(files||[]);
+  if(!files.length) return;
+  const grandes = files.filter(f=>f.size > CREDITO_ANEXO_MAX);
+  if(grandes.length){
+    alert(`Arquivo(s) acima de 20 MB não foram enviados:\n${grandes.map(f=>f.name).join('\n')}`);
+    files = files.filter(f=>f.size <= CREDITO_ANEXO_MAX);
+    if(!files.length) return;
+  }
+  const id = String(creditoId);
+  creditoAnexoEnviando.add(id);
+  renderCreditos();
+  const falhas = [];
+  for(const f of files){
+    const caminho = `${id}/${Date.now()}-${Math.random().toString(36).slice(2,8)}-${nomeArquivoStorage(f.name)}`;
+    try{
+      const up = await window.SB.storage.from(CREDITO_ANEXOS_BUCKET).upload(caminho, f, { contentType: f.type || 'application/octet-stream', upsert:false });
+      if(up.error) throw up.error;
+      const { error } = await window.SB.from('creditos_anexos').insert({ credito_id: creditoId, nome: f.name, caminho, tamanho: f.size, tipo: f.type || null });
+      if(error){
+        await window.SB.storage.from(CREDITO_ANEXOS_BUCKET).remove([caminho]);
+        throw error;
+      }
+    }catch(e){
+      console.error('Falha ao anexar arquivo ao crédito:', e);
+      falhas.push(`${f.name}: ${e.message || e}`);
+    }
+  }
+  creditoAnexoEnviando.delete(id);
+  await loadAnexosCredito();
+  renderCreditos();
+  if(falhas.length) alert(`Não foi possível anexar:\n${falhas.join('\n')}\n\nVerifique se você está logado como administrador ou supervisor e se supabase/creditos_anexos.sql já foi rodado.`);
+}
+async function abrirAnexoCredito(anexoId){
+  const a = [...anexosCredito.values()].flat().find(x=>String(x.id)===String(anexoId));
+  if(!a) return;
+  // abre a janela já no clique (senão o bloqueador de pop-up barra) e só
+  // depois aponta para o link assinado, que vale 5 minutos
+  const w = window.open('', '_blank');
+  try{
+    const { data, error } = await window.SB.storage.from(CREDITO_ANEXOS_BUCKET).createSignedUrl(a.caminho, 300);
+    if(error) throw error;
+    if(w) w.location.href = data.signedUrl; else window.location.href = data.signedUrl;
+  }catch(e){
+    if(w) w.close();
+    console.error('Falha ao abrir anexo:', e);
+    alert('Não foi possível abrir o anexo.');
+  }
+}
+async function baixarAnexoCredito(anexoId){
+  const a = [...anexosCredito.values()].flat().find(x=>String(x.id)===String(anexoId));
+  if(!a) return;
+  try{
+    const { data, error } = await window.SB.storage.from(CREDITO_ANEXOS_BUCKET).download(a.caminho);
+    if(error) throw error;
+    const url = URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = url; link.download = a.nome;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 10000);
+  }catch(e){
+    console.error('Falha ao baixar anexo:', e);
+    alert('Não foi possível baixar o anexo.');
+  }
+}
+async function excluirAnexoCredito(anexoId){
+  const a = [...anexosCredito.values()].flat().find(x=>String(x.id)===String(anexoId));
+  if(!a || !confirm(`Excluir o anexo "${a.nome}"?`)) return;
+  try{
+    const { error } = await window.SB.from('creditos_anexos').delete().eq('id', a.id);
+    if(error) throw error;
+    const rm = await window.SB.storage.from(CREDITO_ANEXOS_BUCKET).remove([a.caminho]);
+    if(rm.error) console.warn('Registro do anexo excluído, mas o arquivo ficou no Storage:', rm.error);
+  }catch(e){
+    console.error('Falha ao excluir anexo:', e);
+    alert('Não foi possível excluir o anexo. Verifique se você está logado como administrador ou supervisor.');
+  }
+  await loadAnexosCredito();
+  renderCreditos();
+}
 async function loadVinculosCredito(){
   try{
     const { data, error } = await window.SB.from('creditos_vinculos').select('*').order('data_vinculo', { ascending:false });
@@ -10922,10 +11052,15 @@ async function updateCredito(id, c){
   }
 }
 async function deleteCredito(id){
-  if(!confirm('Excluir este crédito e todos os vínculos de pedidos associados a ele?')) return false;
+  const anexos = anexosDoCredito(id);
+  if(!confirm(`Excluir este crédito e todos os vínculos de pedidos associados a ele?${anexos.length ? `\n\nOs ${anexos.length} anexo(s) do crédito também serão excluídos.` : ''}`)) return false;
   try{
     const { error } = await window.SB.from('creditos_obra').delete().eq('id', id);
     if(error) throw error;
+    if(anexos.length){
+      const rm = await window.SB.storage.from(CREDITO_ANEXOS_BUCKET).remove(anexos.map(a=>a.caminho));
+      if(rm.error) console.warn('Crédito excluído, mas os arquivos anexos ficaram no Storage:', rm.error);
+    }
     return true;
   }catch(e){
     console.error('Falha ao excluir crédito:', e);
@@ -11774,13 +11909,15 @@ function renderCreditos(){
     const saldo = c.valorTotal - reservado - faturado;
     const isOpen = creditoDetailOpen.has(String(c.id));
     const vinculos = vinculosDoCredito(c.id);
+    const anexos = anexosDoCredito(c.id);
+    const enviando = creditoAnexoEnviando.has(String(c.id));
     const pf = Math.min(100, pct(faturado, c.valorTotal)), pr = Math.min(100-pf, pct(reservado, c.valorTotal));
     html += `<tr>
       <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}" title="Ver pedidos vinculados">${isOpen?'▾':'▸'}</button></td>
       <td class="txt">
         <span class="cr-who">${esc(c.empresaBeneficiaria)||'—'}<span class="arrow">←</span>${esc(c.empresaDevedora)||'—'}</span>
         <span class="cr-sub">Obra ${esc(c.obra)}${c.descricao?` · ${esc(c.descricao)}`:''}</span>
-        <span class="cr-sub">${vinculos.length ? `${vinculos.length} pedido(s) vinculado(s)` : 'Nenhum pedido vinculado'}</span>
+        <span class="cr-sub">${vinculos.length ? `${vinculos.length} pedido(s) vinculado(s)` : 'Nenhum pedido vinculado'}${anexos.length ? ` · <span title="${esc(anexos.map(a=>a.nome).join('\n'))}">📎 ${anexos.length} anexo(s)</span>` : ''}</span>
       </td>
       <td><span class="cr-big">R$ ${fmtMoney(c.valorTotal)}</span></td>
       <td>
@@ -11829,6 +11966,18 @@ function renderCreditos(){
         <span><span class="cr-dot res"></span>reservado <b>R$ ${fmtMoney(reservado)}</b></span><span class="eq">+</span>
         <span><span class="cr-dot liv"></span>saldo livre <b>R$ ${fmtMoney(saldo)}</b></span>
       </div>
+      <div class="cr-anexos">
+        <div class="cr-anexos-head">
+          <span>📎 Relatório de origem do crédito</span>
+          ${anexosCreditoDisponivel ? `<label class="btn small cr-anexo-up gestor-credito-only no-print" title="Anexar o relatório/documento que deu origem ao crédito (PDF, planilha, imagem... até 20 MB)">${enviando ? 'Enviando…' : '⬆ Anexar arquivo'}<input type="file" multiple data-anexo-credito="${c.id}" ${enviando?'disabled':''}></label>` : ''}
+        </div>
+        ${anexos.length ? anexos.map(a=>`<div class="cr-anexo">
+            <a data-abrir-anexo="${a.id}" title="Abrir em nova aba">${esc(a.nome)}</a>
+            <span class="meta">${[fmtTamanhoArquivo(a.tamanho), a.enviadoEm ? `enviado em ${fmtBRDate(String(a.enviadoEm).slice(0,10))}` : ''].filter(Boolean).join(' · ')}</span>
+            <span class="acoes no-print"><button class="credito-toggle no-print" data-baixar-anexo="${a.id}" title="Baixar">⬇</button><button class="credito-toggle gestor-credito-only no-print" data-del-anexo="${a.id}" title="Excluir anexo">✕</button></span>
+          </div>`).join('')
+          : `<div class="cr-anexos-msg">${anexosCreditoDisponivel ? 'Nenhum arquivo anexado. Anexe o relatório que deu origem a este crédito para deixá-lo arquivado junto do lançamento.' : 'Anexos indisponíveis: é preciso rodar supabase/creditos_anexos.sql no Supabase.'}</div>`}
+      </div>
       ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
           <th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="num">Previsto no pedido</th><th class="num">Faturado (notas)</th><th class="num">Ainda reservado</th><th class="num">Conta no crédito</th><th class="no-print"></th>
         </tr></thead><tbody>${linhas}</tbody>
@@ -11853,6 +12002,22 @@ function renderCreditos(){
   });
   tbody.querySelectorAll('[data-edit-vinculo]').forEach(btn=>{
     btn.addEventListener('click', ()=> startEditVinculo(btn.getAttribute('data-edit-vinculo')));
+  });
+  tbody.querySelectorAll('[data-anexo-credito]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const files = Array.from(inp.files||[]);
+      inp.value = '';
+      enviarAnexosCredito(inp.getAttribute('data-anexo-credito'), files);
+    });
+  });
+  tbody.querySelectorAll('[data-abrir-anexo]').forEach(a=>{
+    a.addEventListener('click', ()=> abrirAnexoCredito(a.getAttribute('data-abrir-anexo')));
+  });
+  tbody.querySelectorAll('[data-baixar-anexo]').forEach(btn=>{
+    btn.addEventListener('click', ()=> baixarAnexoCredito(btn.getAttribute('data-baixar-anexo')));
+  });
+  tbody.querySelectorAll('[data-del-anexo]').forEach(btn=>{
+    btn.addEventListener('click', ()=> excluirAnexoCredito(btn.getAttribute('data-del-anexo')));
   });
   tbody.querySelectorAll('[data-del-vinculo]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -12028,6 +12193,7 @@ window.refreshCreditosAposLogin = async function(){
   await loadCreditos();
   await loadVinculosCredito();
   await loadNotasExtrasCredito();
+  await loadAnexosCredito();
   renderCreditos();
   // o relatório do Sienge pode ter carregado antes do login/dos vínculos:
   // nesse caso a reconciliação do loadRows saiu sem fazer nada — roda de novo
@@ -12471,6 +12637,7 @@ async function init(){
   await loadCreditos();
   await loadVinculosCredito();
   await loadNotasExtrasCredito();
+  await loadAnexosCredito();
   renderAll();
   renderCreditos();
   applyTiposColapso();
