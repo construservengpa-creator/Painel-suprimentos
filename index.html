@@ -6423,7 +6423,7 @@ async function importarAtendimentoEstoque(files){
   let sols = [];
   try{
     for(const f of files){
-      const lidas = parseAcompanhamentoSolicitacoes(await linhasTextoPdf(f));
+      const lidas = parseAcompanhamentoSolicitacoes(await window.linhasTextoPdf(f));
       lidas.forEach(s=>{ s.arquivo = f.name; });
       sols.push(...lidas);
     }
@@ -11148,6 +11148,7 @@ async function linhasTextoPdf(file){
   }
   return linhas;
 }
+window.linhasTextoPdf = linhasTextoPdf;   // usado também pelo importador de atendimento pelo estoque (outro <script>)
 
 function linhasExcel(wb){
   const out = { porCabecalho: [], texto: [], totais: [] };
