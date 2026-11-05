@@ -4313,6 +4313,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <div class="field"><label for="cpaSort">Ordenar</label><select id="cpaSort">
           <option value="v">Maior valor de NF</option><option value="s">Mais solicitações</option><option value="i">Mais itens</option><option value="ped">Mais pedidos</option><option value="p">Prefixo A–Z</option></select></div>
         <label class="cpa-chk"><input type="checkbox" id="cpaHide" checked> Ocultar sem solicitação</label>
+        <label class="cpa-chk" title="Prefixos que não estão na lista de aplicações, mas aparecem nas observações com um código de tipo da lista (ex.: VUG 8089, CC-0I60)"><input type="checkbox" id="cpaNovos" checked> Incluir prefixos fora da lista</label>
       </div>
       <div class="kpi-grid" id="cpaKpis"></div>
       <div class="cpa-main">
@@ -4328,6 +4329,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
           <p><b>Aplicação.</b> Cada prefixo da lista de aplicações (equipamentos como <b>MN 10</b> e veículos como <b>CB-4H12</b>) é procurado no texto da <b>observação da solicitação</b>, aceitando variações de escrita (MN10, MN-10, MN 010, CB 4H12). Uma solicitação que cita mais de um prefixo aparece em todos eles e é marcada como <b>compartilhada</b>.</p>
           <p><b>Pedidos e notas.</b> Os itens, pedidos de compra, entregas e notas fiscais vêm do relatório do Sienge já carregado no painel, ligados pela solicitação. A observação vem do relatório de solicitações importado aqui (o relatório principal não traz essa coluna).</p>
           <p><b>Valor.</b> É o valor de cada nota fiscal, contado uma vez por aplicação. O relatório não traz o preço de cada item e uma nota pode ter itens de outras solicitações: use como indicador do consumo, não como custo exato.</p>
+          <p><b>Prefixos fora da lista.</b> A lista do relatório de consumo só traz o que teve consumo no período dele. Quando a observação cita um prefixo com o mesmo código de tipo da lista (CB, CP, VUG, CC... para veículos; MN, EH, RH... para equipamentos), como <b>VUG 8089</b>, ele entra como aplicação nova, marcada <b>fora da lista</b>. Desmarque "Incluir prefixos fora da lista" para ver só a lista.</p>
           <p><b>Lista nova.</b> Só ficam guardadas as observações que citam algum prefixo da lista. Depois de trocar a lista de aplicações, importe de novo as observações para localizar os prefixos novos.</p>
         </div>
       </div>
@@ -19554,6 +19556,7 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-pill.share{background:rgba(76,141,255,.16);color:var(--blue);}
 .cpa-vazio{padding:28px 16px;text-align:center;color:var(--text-dim);font-size:13px;}
 .cpa-mais{display:block;margin:6px auto 0;}
+.cpa-novo{display:inline-block;font:600 10px var(--font-mono);color:var(--blue);border:1px solid rgba(76,141,255,.45);border-radius:3px;padding:0 4px;margin-right:2px;}
 </style>
 <script>
 /* ============================================================
@@ -19606,7 +19609,7 @@ function compilarApps(lista){
   lista.forEach((a,i)=>{
     const src=padraoPrefixo(a[0]);
     if(!src)return;
-    apps.push({i,p:a[0],d:a[1]||'',t:a[2]||'',re:new RegExp(src),reG:new RegExp(src,'g'),_txt:up(a[0]+' '+(a[1]||'')),_flat:up(a[0]).replace(/[^A-Z0-9]/g,'')});
+    apps.push({i,p:a[0],d:a[1]||'',t:a[2]||'',novo:!!a[3],re:new RegExp(src),reG:new RegExp(src,'g'),_txt:up(a[0]+' '+(a[1]||'')),_flat:up(a[0]).replace(/[^A-Z0-9]/g,'')});
     fontes.push('(?:'+src+')');
   });
   return {apps,todos:fontes.length?new RegExp(fontes.join('|')):null};
@@ -19617,6 +19620,41 @@ function prefixosDe(texto,C){
   return C.apps.filter(a=>a.re.test(t));
 }
 
+/* ---------- prefixos que não estão na lista, encontrados nas observações ----------
+   A lista do relatório de consumo só traz o que teve consumo no período dele.
+   Os códigos de tipo da lista (CB, CP, VUG... para veículos; MN, EH, RH... para
+   equipamentos) servem de molde: "VUG 8089" ou "CC-0I60" na observação viram
+   uma aplicação nova, mesmo fora da lista. As letras do código precisam vir
+   juntas (não aceita "M E 2"), para não confundir com texto comum. */
+function moldes(lista){
+  const veic=new Map(), equip=new Map();
+  lista.forEach(a=>{
+    const p=up(a[0]).trim();let m=p.match(/^([A-Z]+)-\d[A-Z]\d\d$/);
+    if(m){const c=m[1];if(!veic.has(c))veic.set(c,[]);veic.get(c).push(a);return}
+    m=p.match(/^([A-Z]+(?:-[A-Z])?)[\s-]*\d+$/);
+    if(m){const k=m[1].replace(/[^A-Z]/g,'');if(!equip.has(k))equip.set(k,{cod:m[1],l:[]});equip.get(k).l.push(a)}
+  });
+  // descrição: as palavras iniciais em comum nas descrições do mesmo código (ex.: CB → CAMINHÃO BASCULANTE)
+  const comum=l=>{const ws=l.map(a=>String(a[1]||'').split(/\s+/));let n=0;while(ws.every(w=>w[n]&&w[n]===ws[0][n]))n++;return n?ws[0].slice(0,n).join(' '):''};
+  const tipoDe=l=>{const c=new Map();l.forEach(a=>c.set(a[2]||'',(c.get(a[2]||'')||0)+1));return [...c].sort((x,y)=>y[1]-x[1])[0][0]};
+  const V=[...veic].map(([c,l])=>({c,desc:comum(l),tipo:tipoDe(l)})), E=[...equip].map(([k,o])=>({k,c:o.cod,desc:comum(o.l),tipo:tipoDe(o.l)}));
+  const ord=(a,b)=>b.length-a.length;
+  const rv=V.length?new RegExp('(?<![A-Z0-9])('+V.map(x=>x.c).sort(ord).join('|')+')'+SEP+'(\\d)[\\s\\-]*([A-Z0-9]\\d\\d)(?![A-Z0-9])','g'):null;
+  const re=E.length?new RegExp('(?<![A-Z0-9])('+E.map(x=>x.c.replace('-','-?')).sort(ord).join('|')+')'+SEP+'(\\d{1,2})(?![0-9])','g'):null;
+  return {rv,re,V:new Map(V.map(x=>[x.c,x])),E:new Map(E.map(x=>[x.k,x]))};
+}
+function citaMolde(texto,M){const t=up(texto);for(const r of [M.rv,M.re]){if(!r)continue;r.lastIndex=0;if(r.test(t)){r.lastIndex=0;return true}}return false}
+function descobertos(lista,obsRows){
+  const M=moldes(lista), conhecidos=new Set(lista.map(a=>normKey(a[0]))), novos=new Map();
+  const add=(p,mol,desc)=>{const k=normKey(p);if(conhecidos.has(k))return;let x=novos.get(k);if(!x){x={p,n:0,mol};novos.set(k,x)}x.n++};
+  obsRows.forEach(r=>{
+    const t=up(r[3]);let m;
+    if(M.rv){M.rv.lastIndex=0;while((m=M.rv.exec(t)))add(m[1]+'-'+m[2]+m[3],M.V.get(m[1]))}
+    if(M.re){M.re.lastIndex=0;while((m=M.re.exec(t))){const o=M.E.get(m[1].replace(/[^A-Z]/g,''));if(o)add(o.c+' '+m[2].padStart(2,'0'),o)}}
+  });
+  return [...novos.values()].map(x=>[x.p,(x.mol.desc?x.mol.desc+' ':'')+'— encontrado nas observações',x.mol.tipo,1]);
+}
+
 /* ---------- guarda: nuvem (consumo_aplicacao) + cópia no navegador ---------- */
 const IDB='PainelConsumoAplicacao';
 function idb(){return new Promise((res,rej)=>{if(!('indexedDB' in window))return rej(new Error('sem IndexedDB'));const q=indexedDB.open(IDB,1);q.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains('dados'))db.createObjectStore('dados')};q.onsuccess=e=>res(e.target.result);q.onerror=()=>rej(q.error)})}
@@ -19624,6 +19662,22 @@ async function idbLer(k){try{const db=await idb();return await new Promise(r=>{c
 async function idbGravar(k,v){try{const db=await idb();await new Promise((r,j)=>{const tx=db.transaction('dados','readwrite');tx.objectStore('dados').put(v,k);tx.oncomplete=r;tx.onerror=()=>j(tx.error)});return true}catch(e){return false}}
 async function idbApagar(k){try{const db=await idb();db.transaction('dados','readwrite').objectStore('dados').delete(k)}catch(e){}}
 
+// as observações vão compactadas (gzip + base64) para a nuvem: o texto encolhe ~6x
+const b64=u8=>{let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)};
+async function compactar(obj){
+  if(typeof CompressionStream==='undefined')return null;
+  const st=new Blob([JSON.stringify(obj)]).stream().pipeThrough(new CompressionStream('gzip'));
+  return b64(new Uint8Array(await new Response(st).arrayBuffer()));
+}
+async function descompactar(z){
+  const u8=Uint8Array.from(atob(z),c=>c.charCodeAt(0));
+  const st=new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(st).text());
+}
+async function abrirDados(x){
+  if(x&&x.dados&&x.dados.z&&!x.dados.rows){const d=Object.assign({},x.dados);d.rows=await descompactar(d.z);delete d.z;x=Object.assign({},x,{dados:d})}
+  return x;
+}
 const D={obs:null,apps:null};   // {nome_arquivo,total,dados,importado_em,fonte}
 let carregado=false,carregando=null,versao=0,geracao=0;
 async function carregar(){
@@ -19643,7 +19697,7 @@ async function carregar(){
         const localMaisNovo=x&&x.fonte==='local'&&x.importado_em>m.importado_em;
         if(!igual&&!localMaisNovo){
           const r=await window.SB.from('consumo_aplicacao').select('tipo,nome_arquivo,total,dados,importado_em').eq('tipo',tipo).maybeSingle();
-          if(!r.error&&r.data){x=Object.assign(r.data,{fonte:'nuvem'});idbGravar(tipo,x)}
+          if(!r.error&&r.data){try{x=await abrirDados(Object.assign(r.data,{fonte:'nuvem'}));idbGravar(tipo,x)}catch(e){console.error(e)}}
         }
       }else if(x&&x.fonte==='nuvem'){x=null;idbApagar(tipo)}   // apagado na nuvem (ex.: voltou à lista padrão)
     }
@@ -19655,7 +19709,9 @@ async function carregar(){
 async function gravar(tipo,x){
   let aviso='',fonte='local';
   if(logado()){
-    const {data,error}=await window.SB.from('consumo_aplicacao').upsert({tipo,nome_arquivo:x.nome_arquivo,total:x.total,dados:x.dados,importado_em:new Date().toISOString()},{onConflict:'tipo'}).select('importado_em').maybeSingle();
+    let dados=x.dados;
+    if(tipo==='observacoes'){const z=await compactar(x.dados.rows).catch(()=>null);if(z){dados=Object.assign({},x.dados,{z});delete dados.rows}}
+    const {data,error}=await window.SB.from('consumo_aplicacao').upsert({tipo,nome_arquivo:x.nome_arquivo,total:x.total,dados,importado_em:new Date().toISOString()},{onConflict:'tipo'}).select('importado_em').maybeSingle();
     if(error)aviso=' Não foi possível gravar para todos ('+esc(error.message)+'); ficou guardado só neste navegador.';
     else{fonte='nuvem';if(data&&data.importado_em)x.importado_em=data.importado_em}
   }else aviso=' Sem login, ficou guardado só neste navegador.';
@@ -19668,8 +19724,14 @@ function msg(html,ok){const m=$('cpaMsg');m.innerHTML=html;m.className='ctr-msg 
 
 /* ---------- lista de aplicações em uso ---------- */
 function listaApps(){const r=D.apps&&D.apps.dados&&D.apps.dados.rows;return Array.isArray(r)&&r.length?r:APPS_PADRAO}
-let compCache={ref:null,v:null};
-function comp(){const l=listaApps();if(compCache.ref!==l){compCache={ref:l,v:compilarApps(l)}}return compCache.v}
+// compLista: só a lista; comp: a lista + os prefixos encontrados nas observações
+let compCache={ref:null,v:null},compTudo={ref:null,obs:null,v:null};
+function compLista(){const l=listaApps();if(compCache.ref!==l){compCache={ref:l,v:compilarApps(l),M:moldes(l)}}return compCache.v}
+function comp(){
+  const l=listaApps(),o=D.obs;
+  if(compTudo.ref!==l||compTudo.obs!==o){const rows=(o&&o.dados&&o.dados.rows)||[];compTudo={ref:l,obs:o,v:compilarApps(l.concat(descobertos(l,rows)))}}
+  return compTudo.v;
+}
 
 /* ---------- importar ---------- */
 function abrirPlanilha(buf,nome){
@@ -19687,7 +19749,7 @@ const isoDeCel=v=>{
   return isoOf(parseDateBR(v));
 };
 function lerObservacoes(buf,nome){
-  const C=comp();
+  const C=compLista(),M=compCache.M;
   for(const aoa of abrirPlanilha(buf,nome)){
     const h=aoa.slice(0,40).findIndex(r=>r.some(c=>normKey(c).startsWith('OBSERVACAO'))&&r.some(c=>/^(N|NUMERO)?(DA)?SOLICITACAO$/.test(normKey(c))));
     if(h<0)continue;
@@ -19708,7 +19770,7 @@ function lerObservacoes(buf,nome){
     }
     const rows=[];
     vistas.forEach(x=>{
-      if(!x.obs||!prefixosDe(x.obs,C).length)return;
+      if(!x.obs||(!prefixosDe(x.obs,C).length&&!citaMolde(x.obs,M)))return;
       const obs=x.obs.replace(/\r/g,'').replace(/[ \t ]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim().slice(0,3000);
       rows.push([x.n,x.dt,x.sol,obs]);
     });
@@ -19724,7 +19786,7 @@ async function importarObservacoes(f){
     const aviso=await gravar('observacoes',x);
     D.obs=x;versao++;
     const b=base();
-    msg(`Importado <b>${esc(f.name)}</b>: ${int(x.dados.lidas)} solicitações lidas, <b>${int(x.total)}</b> citam algum prefixo da lista${b.semRelatorio?` (${int(b.semRelatorio)} delas não estão no relatório do Sienge carregado no painel)`:''}.${aviso}`,!aviso);
+    msg(`Importado <b>${esc(f.name)}</b>: ${int(x.dados.lidas)} solicitações lidas, <b>${int(x.total)}</b> citam algum prefixo (da lista ou fora dela)${b.semRelatorio?` (${int(b.semRelatorio)} delas não estão no relatório do Sienge carregado no painel)`:''}.${aviso}`,!aviso);
     render();
   }catch(e){console.error(e);msg('Não foi possível importar as observações: '+esc(e.message||String(e)),false)}
 }
@@ -19803,9 +19865,9 @@ function base(){
 }
 
 /* ---------- filtros e agregação ---------- */
-const st={q:'',d1:'',d2:'',per:'all',tp:'',obra:'',hide:true,sort:'v',sel:null,tab:'sc',limite:60};
-try{const s=JSON.parse(localStorage.getItem('cpa-ui')||'{}');if(s.sort)st.sort=s.sort;if(s.hide!=null)st.hide=s.hide}catch(e){}
-const salvarUi=()=>{try{localStorage.setItem('cpa-ui',JSON.stringify({sort:st.sort,hide:st.hide}))}catch(e){}};
+const st={q:'',d1:'',d2:'',per:'all',tp:'',obra:'',hide:true,novos:true,sort:'v',sel:null,tab:'sc',limite:60};
+try{const s=JSON.parse(localStorage.getItem('cpa-ui')||'{}');if(s.sort)st.sort=s.sort;if(s.hide!=null)st.hide=s.hide;if(s.novos!=null)st.novos=s.novos}catch(e){}
+const salvarUi=()=>{try{localStorage.setItem('cpa-ui',JSON.stringify({sort:st.sort,hide:st.hide,novos:st.novos}))}catch(e){}};
 const noPeriodo=s=>(!st.d1||s.dt>=st.d1)&&(!st.d2||(s.dt&&s.dt<=st.d2));
 const naObra=s=>!st.obra||s.obras.includes(st.obra);
 function agg(a,B){
@@ -19826,7 +19888,7 @@ function agg(a,B){
 let linhas=[];
 function calcular(){
   const B=base(),C=comp();
-  linhas=C.apps.filter(a=>!st.tp||a.t===st.tp).map(a=>agg(a,B)).filter(r=>r.match&&(!st.hide||r.sols.length));
+  linhas=C.apps.filter(a=>(!st.tp||a.t===st.tp)&&(st.novos||!a.novo)).map(a=>agg(a,B)).filter(r=>r.match&&(!st.hide||r.sols.length));
   const ord={v:(x,y)=>y.v-x.v,s:(x,y)=>y.sols.length-x.sols.length,i:(x,y)=>y.itens-x.itens,ped:(x,y)=>y.peds.size-x.peds.size,p:(x,y)=>x.a.p.localeCompare(y.a.p,'pt-BR',{numeric:true})}[st.sort]||((x,y)=>y.v-x.v);
   linhas.sort((x,y)=>ord(x,y)||x.a.p.localeCompare(y.a.p,'pt-BR',{numeric:true}));
   return B;
@@ -19840,7 +19902,8 @@ function fontes(B){
     const per=o.dados&&o.dados.periodo||[];
     partes.push(`Observações: <b>${esc(o.nome_arquivo||'arquivo')}</b>${per[0]?` (solicitações de ${brDe(per[0])} a ${brDe(per[1])})`:''}, importado em ${o.importado_em?new Date(o.importado_em).toLocaleDateString('pt-BR'):'—'} · ${o.fonte==='nuvem'?'gravado para todos':'só neste navegador'} · ${int(B.citam)} solicitações citam prefixos, ${int(B.citam-B.semRelatorio)} estão no relatório do painel`);
   }
-  partes.push(`Lista de aplicações: ${D.apps?`<b>${esc(D.apps.nome_arquivo||'importada')}</b> (${int(listaApps().length)} prefixos${D.apps.fonte==='nuvem'?'':', só neste navegador'})`:`padrão do relatório de consumo (${int(APPS_PADRAO.length)} prefixos)`}`);
+  const nNovos=comp().apps.filter(a=>a.novo).length;
+  partes.push(`Lista de aplicações: ${D.apps?`<b>${esc(D.apps.nome_arquivo||'importada')}</b> (${int(listaApps().length)} prefixos${D.apps.fonte==='nuvem'?'':', só neste navegador'})`:`padrão do relatório de consumo (${int(APPS_PADRAO.length)} prefixos)`}${nNovos?` + ${int(nNovos)} prefixos fora da lista encontrados nas observações`:''}`);
   if(B.temRelatorio&&state.sourceName)partes.push(`Pedidos e notas: relatório do Sienge <b>${esc(state.sourceName)}</b>`);
   $('cpaFontes').innerHTML=partes.join('<br>');
 }
@@ -19874,7 +19937,7 @@ function render(){
   const max=Math.max(1,...linhas.map(r=>r.v));
   $('cpaLista').innerHTML=linhas.length?linhas.map(r=>`<div class="cpa-row${r.sols.length?'':' vazio'}" tabindex="0" role="button" data-i="${r.a.i}">
     <span class="cpa-plate">${esc(r.a.p)}</span><span class="d" title="${esc(r.a.d)}">${esc(r.a.d||r.a.t)}</span><span class="v">${brl(r.v)}</span>
-    <span class="m">${r.sols.length} SC · ${r.peds.size} pedido${r.peds.size===1?'':'s'} · ${r.nfs.size} NF${r.shared?` · ${r.shared} compartilhada${r.shared>1?'s':''}`:''}</span>
+    <span class="m">${r.a.novo?'<span class="cpa-novo" title="Não está na lista de aplicações: encontrado nas observações">fora da lista</span> ':''}${r.sols.length} SC · ${r.peds.size} pedido${r.peds.size===1?'':'s'} · ${r.nfs.size} NF${r.shared?` · ${r.shared} compartilhada${r.shared>1?'s':''}`:''}</span>
     <span class="b"><i style="width:${(r.v/max*100).toFixed(1)}%"></i></span></div>`).join('')
     :'<div class="cpa-vazio">Nenhuma aplicação com esses filtros. Limpe a busca ou amplie o período.</div>';
   if(st.sel==null||!linhas.some(r=>r.a.i===st.sel)){const p=linhas.find(r=>r.sols.length);st.sel=p?p.a.i:null;st.limite=60}
@@ -19939,7 +20002,7 @@ async function exportar(){
   try{await garantirXLSX()}catch(e){msg(esc(e.message),false);return}
   if(!D.obs){msg('Importe as observações das solicitações antes de exportar.',false);return}
   calcular();
-  const resumo=linhas.map(r=>({'Prefixo':r.a.p,'Descrição':r.a.d,'Tipo':r.a.t,'Solicitações':r.sols.length,'Itens':r.itens,'Itens entregues':r.ent,'Pedidos':r.peds.size,'Notas fiscais':r.nfs.size,'Valor das NFs':Math.round(r.v*100)/100,'SCs compartilhadas':r.shared}));
+  const resumo=linhas.map(r=>({'Prefixo':r.a.p,'Descrição':r.a.d,'Tipo':r.a.t,'Na lista':r.a.novo?'Não (encontrado nas observações)':'Sim','Solicitações':r.sols.length,'Itens':r.itens,'Itens entregues':r.ent,'Pedidos':r.peds.size,'Notas fiscais':r.nfs.size,'Valor das NFs':Math.round(r.v*100)/100,'SCs compartilhadas':r.shared}));
   const itens=[];
   linhas.forEach(r=>r.sols.forEach(s=>s.it.forEach(i=>{
     const base={'Prefixo':r.a.p,'Aplicação':r.a.d,'SC':+s.n||s.n,'Data SC':brDe(s.dt),'Solicitante':s.sol,'Situação SC':s.st,'Centro de custo':i.obra,'Insumo':i.ins,'Detalhe':i.det,'Qtd':i.qtd,'Unidade':i.un,'Entregue':i.ent,'Pedido':i.ped,'Data pedido':brDe(i.dPed),'Situação pedido':i.sitPed,'Fornecedor':i.forn,'Comprador':i.comp,'Prefixos na SC':s.pre.map(p=>p.p).join(', ')};
@@ -19966,6 +20029,8 @@ $('cpaObra').addEventListener('change',e=>{st.obra=e.target.value;render()});
 $('cpaSort').value=st.sort;$('cpaHide').checked=st.hide;
 $('cpaSort').addEventListener('change',e=>{st.sort=e.target.value;salvarUi();render()});
 $('cpaHide').addEventListener('change',e=>{st.hide=e.target.checked;salvarUi();render()});
+$('cpaNovos').checked=st.novos;
+$('cpaNovos').addEventListener('change',e=>{st.novos=e.target.checked;salvarUi();render()});
 const escolher=el=>{st.sel=+el.dataset.i;st.limite=60;$('cpaLista').querySelectorAll('.cpa-row').forEach(x=>x.classList.toggle('on',x===el));detalhe();if(innerWidth<1100)$('cpaDet').scrollIntoView({behavior:'smooth',block:'start'})};
 $('cpaLista').addEventListener('click',e=>{const el=e.target.closest('.cpa-row');if(el)escolher(el)});
 $('cpaLista').addEventListener('keydown',e=>{const el=e.target.closest('.cpa-row');if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();escolher(el)}});
