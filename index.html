@@ -437,6 +437,10 @@ body.is-logged:not(.is-admin):not(.is-supervisor):not(.is-operador):not(.is-oper
    acesso ao CAP. Admin/supervisor continuam vendo o CAP dentro do menu
    "Controle de Crédito" (.gestor-credito-only), então não precisam
    também deste botão avulso. */
+/* Frotas (Apropriação e Aplicação): mesma regra do Controle de CAP —
+   admin, supervisor ou operador avançado (temaLiberado('cap')). No
+   servidor, a tabela consumo_apropriacoes usa private.tema_liberado(…,'cap'). */
+body:not(.is-admin):not(.is-supervisor):not(.is-operador-avancado) .frotas-acesso{ display:none !important; }
 .cap-standalone-only{ display:none !important; }
 body.is-operador-avancado:not(.is-admin):not(.is-supervisor) .cap-standalone-only{ display:inline-block !important; }
 .pode-lancar-cap-only{ display:none !important; }
@@ -2638,7 +2642,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     </div>
     <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
     <button class="tab-btn" data-tab="cotacoes"><span class="tab-icon">💲</span><span class="tab-label">Cotação de Insumos Críticos</span></button>
-    <div class="nav-group" data-group="frotas">
+    <div class="nav-group frotas-acesso" data-group="frotas">
       <button class="tab-btn nav-group-btn" data-tab="frotas"><span class="tab-icon">🚜</span><span class="tab-label">Frotas</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="nav-submenu">
         <button class="tab-btn" data-tab="consumo"><span class="tab-label">Aplicação</span></button>
@@ -19836,6 +19840,7 @@ let carregado=false,carregando=null,versao=0,geracao=0;
 let subiu=[];
 async function carregar(){
   const g=geracao;subiu=[];
+  if(!temAcesso()){OBRAS.clear();SCX=null;carregado=false;return}
   const loc=new Map((await idbTodas()).map(x=>[x.obra,x]));
   if(logado()){
     const r=await window.SB.from('consumo_apropriacoes').select('obra,obra_nome,periodo,nome_arquivo,total_linhas,importado_em');
@@ -19881,6 +19886,7 @@ async function gravar(x){
 function msg(html,ok){const m=$('cpaMsg');m.innerHTML=html;m.className='ctr-msg on'+(ok===true?' ok':ok===false?' err':'')}
 
 async function importar(files){
+  if(!temAcesso()){msg('Sem acesso a Frotas.',false);return}
   msg('Lendo '+files.length+' arquivo(s)…');
   try{await garantirXLSX()}catch(e){msg(esc(e.message),false);return}
   const ok=[],erros=[];let avisos='';
@@ -19897,6 +19903,7 @@ async function importar(files){
   st.sel=null;render();
 }
 async function importarSolicitacoes(f){
+  if(!temAcesso()){msg('Sem acesso a Frotas.',false);return}
   msg('Lendo '+esc(f.name)+'… (arquivos grandes levam alguns segundos)');
   try{
     await garantirXLSX();
@@ -20106,8 +20113,12 @@ function opcoes(B){
   enche('cpaTp',[...new Set(L.filter(l=>!st.grupo||l.grupo===st.grupo).map(l=>l.tipo))].map(u=>[u,u]).sort(ord),'Todos','tp');
 }
 function vazio(html){$('cpaCorpo').style.display='none';let e=$('cpaVazio');if(!e){e=document.createElement('div');e.id='cpaVazio';e.className='empty-state';$('cpaCorpo').before(e)}e.style.display='';e.innerHTML=html}
+// Frotas segue a regra do Controle de CAP: admin, supervisor ou operador avançado
+const temAcesso=()=>typeof window.temaLiberado==='function'&&window.temaLiberado('cap');
+const SEM_ACESSO='<div class="es-icon">🔒</div><h3>Acesso restrito</h3><p>Frotas (Apropriação e Aplicação) é liberado para administradores, supervisores e operadores avançados — a mesma regra do Controle de CAP. Entre com um usuário com esse perfil.</p>';
 function render(){
   if(!$('tab-consumo').classList.contains('active'))return;
+  if(!temAcesso()){vazio(SEM_ACESSO);$('cpaBases').innerHTML='';$('cpaMsg').className='ctr-msg';return}
   if(!carregado){if(!carregando)carregando=carregar().catch(e=>{console.error(e);carregado=true}).then(()=>{carregando=null;render()});
     vazio('<div class="es-icon">⏳</div><h3>Carregando…</h3><p>Buscando as apropriações importadas.</p>');return}
   bases();
@@ -20268,7 +20279,9 @@ $('cpaBases').addEventListener('click',e=>{const b=e.target.closest('[data-rm]')
 $('cpaArq').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importar(f)};
 $('cpaArqSc').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarSolicitacoes(f)};
 $('cpaExp').onclick=exportar;
-document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();SCX=null;versao++;render();renderDash()});
+document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();SCX=null;versao++;
+  if(!temAcesso()&&['tab-frotas','tab-consumo'].some(id=>$(id).classList.contains('active'))){const ini=document.querySelector('.tab-btn[data-tab="overview"]');if(ini)ini.click();return}
+  render();renderDash()});
 
 
 /* ---------- dashboard de apropriação (abertura do menu Frotas) ---------- */
@@ -20310,6 +20323,7 @@ function graficoBarras(key,canvasId,labels,datasets,o){
 }
 function renderDash(){
   if(!$('tab-frotas').classList.contains('active'))return;
+  if(!temAcesso()){$('fdCorpo').style.display='none';$('fdFontes').innerHTML='';$('fdVazio').style.display='';$('fdVazio').innerHTML=SEM_ACESSO;return}
   if(typeof Chart==='undefined'){setTimeout(renderDash,800);return}
   prepararGraficos();
   if(!carregado){if(!carregando)carregando=carregar().catch(e=>{console.error(e);carregado=true}).then(()=>{carregando=null;renderDash();render()});
