@@ -4285,9 +4285,10 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
 
   <!-- ===================== CONSUMO POR APLICAÇÃO ===================== -->
   <section class="tab-panel" id="tab-consumo">
-    <div class="ctr-head"><h2>Consumo por Aplicação<span class="ctr-sub">Insumos apropriados e consumidos em cada equipamento e veículo, pelo relatório "Apropriações de Insumos" do Sienge</span></h2>
+    <div class="ctr-head"><h2>Consumo por Aplicação<span class="ctr-sub">Insumos apropriados em cada equipamento e veículo (Apropriações de Insumos), ligados à solicitação, ao pedido de compra e à nota fiscal</span></h2>
       <div class="pxr-filtros">
         <label class="btn small primary pxr-arq" title="Relatório &quot;Apropriações de Insumos&quot; do Sienge (.xlsx), um arquivo por obra. Pode escolher vários de uma vez.">Importar apropriações (.xlsx)<input type="file" id="cpaArq" accept=".xlsx,.xls" multiple></label>
+        <label class="btn small pxr-arq" title="Relatório de solicitações do Sienge (.xlsx) com &quot;Observação da solicitação&quot; e &quot;Cód. insumo&quot;: liga cada insumo apropriado à SC e, pelo nº da SC, ao pedido de compra e à nota fiscal do painel">Importar solicitações (.xlsx)<input type="file" id="cpaArqSc" accept=".xlsx,.xls"></label>
         <button class="btn small" type="button" id="cpaExp">Exportar Excel</button>
       </div>
     </div>
@@ -4319,6 +4320,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <div class="ctr-body ctr-note">
           <p><b>Base.</b> Relatório <b>Apropriações de Insumos</b> do Sienge, um arquivo por obra (ex.: 5 - Equipamentos, 63 - Frotas RAF). Importar de novo o arquivo de uma obra substitui só aquela obra; as outras continuam.</p>
           <p><b>Aplicação.</b> Cada subetapa do relatório é uma aplicação; o prefixo é o código no início da subetapa (<b>MN-05</b>, <b>CB-4H12</b>, <b>TQ-F-08</b>). O mesmo prefixo lançado em mais de uma unidade construtiva ou obra é somado numa aplicação só, com o detalhe por unidade. Subetapas sem prefixo (estoque, almoxarifado, ferramentas, despesas) ficam em <b>subetapas gerais</b>.</p>
+          <p><b>Cruzamento com solicitações, pedidos e notas.</b> Cada lançamento com prefixo é ligado à <b>solicitação</b> da mesma obra e do mesmo código de insumo cuja observação cita o prefixo (MN-05, MN 05, MN05…), pelo relatório de solicitações do Sienge importado aqui. Havendo mais de uma, vale a de detalhe igual, depois a de mesma quantidade atendida, depois a mais recente; quando são várias e o detalhe não confere, a ligação aparece como <b>provável</b>. Pelo nº da SC, o relatório principal do painel traz o <b>pedido de compra</b>, o fornecedor, a <b>nota fiscal</b> e a situação da entrega. Entram as SCs a partir de 6 meses antes do início do período das apropriações.</p>
+          <p><b>A apropriar.</b> Itens de solicitações que citam o prefixo e não foram encontrados nas apropriações daquela aplicação: compras em andamento, entregas pendentes ou itens apropriados em outra subetapa ou obra. Não têm valor: o relatório de solicitações não traz preço.</p>
           <p><b>Valores.</b> <b>Apropriado</b> é o valor dos insumos apropriados à subetapa; <b>consumido</b>, o valor que já saiu como consumo. O tipo e o grupo vêm da etapa (ex.: EQUIPAMENTOS PESADOS - MOTONIVELADORA). Os totais conferem com o total da obra no próprio relatório.</p>
         </div>
       </div>
@@ -19564,6 +19567,10 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
    Unidade construtiva → Célula construtiva → Etapa (tipo de
    equipamento) → Subetapa (a aplicação: "01.001.002 MN-05 MOTONIVELADORA…")
    → insumos (qtd. e valor orçado / apropriado / consumido).
+   Cruzamento: cada lançamento com prefixo é ligado à solicitação (SC) da
+   mesma obra e do mesmo insumo cuja observação cita o prefixo (relatório de
+   solicitações do Sienge, importado aqui) e, pelo nº da SC, ao pedido de
+   compra e às notas fiscais do relatório principal do painel (state.rows).
    Gravado em consumo_apropriacoes (supabase/consumo_aplicacao.sql), uma
    linha por obra, com os dados compactados; sem a tabela ou sem login,
    fica guardado só neste navegador (IndexedDB).
@@ -19602,6 +19609,20 @@ async function descompactar(z){
   const st=new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
   return JSON.parse(await new Response(st).text());
 }
+
+/* ---------- prefixo no texto da observação (MN-05 ~ MN 05, MN05, MN-5; CB-4H12 ~ CB 4H12) ---------- */
+const SEP='[\\s\\-._/]*';
+function padraoPrefixo(p){
+  const s=up(p).trim();
+  let m=s.match(/^([A-Z]+(?:-[A-Z])?)-(\d+)$/);
+  if(m)return '(?<![A-Z0-9])'+m[1].replace(/[^A-Z]/g,'').split('').join(SEP)+SEP+'0*'+Number(m[2])+'(?![0-9])';
+  m=s.match(/^([A-Z]+)-(\d)([A-Z0-9]\d\d)$/);
+  if(m)return '(?<![A-Z0-9])'+m[1]+SEP+m[2]+'[\\s\\-]*'+m[3]+'(?![0-9A-Z])';
+  const t=s.match(/[A-Z0-9]+/g);
+  return t?'(?<![A-Z0-9])'+t.join(SEP)+'(?![A-Z0-9])':null;
+}
+const isoBR=v=>{if(v==null||v==='')return '';if(typeof v==='number'&&XLSX.SSF){const d=XLSX.SSF.parse_date_code(v);return d?d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0'):''}
+  const d=parseDateBR(v);return d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'):''};
 
 /* ---------- leitura do relatório ---------- */
 const RE_PREFIXO=/^([A-Z]{1,4}(?:-[A-Z])?-[0-9][0-9A-Z]{1,3}(?:-\d)?)(?=\s|$)\s*(.*)$/;
@@ -19647,6 +19668,56 @@ function lerApropriacoes(buf,nome){
   throw new Error('o arquivo não parece o relatório "Apropriações de Insumos" do Sienge.');
 }
 
+// Relatório de solicitações do Sienge (uma linha por item, com a observação da SC).
+// Guarda só as SCs das obras já importadas, a partir de 6 meses antes do início do
+// período das apropriações, cuja observação cita algum prefixo das apropriações.
+const SC_KEY='_sc';
+function lerSolicitacoes(buf,nome){
+  const obras=new Set(OBRAS.keys()), apps=base().apps.filter(a=>!a.geral);
+  if(!obras.size||!apps.length)throw new Error('importe primeiro as apropriações: é delas que vêm as obras e os prefixos procurados nas observações.');
+  let ini='';
+  OBRAS.forEach(o=>{const m=String(o.periodo||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);if(m){const d=new Date(+m[3],+m[2]-1,+m[1]);if(!ini||d<ini)ini=d}});
+  const desde=ini?(d=>{d.setMonth(d.getMonth()-6);return d.toISOString().slice(0,10)})(new Date(ini)):'';
+  // uma expressão com um grupo por prefixo: uma passada no texto diz quais foram citados
+  const pats=apps.map(a=>padraoPrefixo(a.p));
+  const todos=new RegExp(pats.map(p=>'('+p+')').join('|'),'g');
+  const wb=XLSX.read(buf,{type:'array',dense:true});
+  for(const sn of wb.SheetNames){
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''});
+    const h=aoa.slice(0,40).findIndex(r=>r.some(c=>normKey(c).startsWith('OBSERVACAO'))&&r.some(c=>normKey(c)==='CODINSUMO'));
+    if(h<0)continue;
+    const H=aoa[h].map(normKey),col=k=>H.indexOf(k);
+    const C={n:H.findIndex(k=>/^(N|NUMERO)?(DA)?SOLICITACAO$/.test(k)),obs:H.findIndex(k=>k.startsWith('OBSERVACAO')),cod:col('CODINSUMO'),ins:col('DESCRICAOINSUMO'),
+      det:col('DESCRICAODETALHE'),obra:col('CODOBRA'),dt:H.findIndex(k=>k==='DATASOLICITACAO'||k==='DATADASOLICITACAO'),sol:col('SOLICITANTE'),sit:col('SITUACAO'),
+      qa:col('QUANTATENDIDA'),un:col('SIMBOLOUNIDADEMEDIDA')};
+    const faltam=['n','obs','cod','obra'].filter(k=>C[k]<0);
+    if(faltam.length)throw new Error('faltam colunas no relatório de solicitações (Nº da solicitação, Observação, Cód. insumo, Cód. obra).');
+    const scs=new Map(),itens=[];let lidas=0;const todasSc=new Set();
+    for(let i=h+1;i<aoa.length;i++){
+      const r=aoa[i],n=String(r[C.n]==null?'':r[C.n]).replace(/\D/g,'').replace(/^0+(?=\d)/,'');if(!n)continue;
+      todasSc.add(n);
+      const ob=String(r[C.obra]==null?'':r[C.obra]).trim();if(!obras.has(ob))continue;
+      const dt=C.dt>=0?isoBR(r[C.dt]):'';if(desde&&dt&&dt<desde)continue;
+      let s=scs.get(n);
+      if(!s){
+        const obs=String(r[C.obs]==null?'':r[C.obs]),t=up(obs),pre=new Set();let m;todos.lastIndex=0;
+        while((m=todos.exec(t))){if(!m[0].length){todos.lastIndex++;continue}for(let g=1;g<m.length;g++)if(m[g]!==undefined){pre.add(apps[g-1].k);break}}
+        s={n,dt,sol:C.sol>=0?limpa(r[C.sol]):'',obra:ob,obs:obs.replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim().slice(0,1500),pre:[...pre]};
+        scs.set(n,s);
+      }
+      if(!s.pre.length)continue;
+      const sit=C.sit>=0?limpa(r[C.sit]):'';if(/cancel/i.test(sit))continue;
+      itens.push([n,+r[C.cod]||0,C.ins>=0?limpa(r[C.ins]):'',C.det>=0?limpa(r[C.det]):'',num(r[C.qa]),C.un>=0?limpa(r[C.un]):'',sit]);
+    }
+    lidas=todasSc.size;
+    const lista=[...scs.values()].filter(s=>s.pre.length);
+    if(!lista.length)throw new Error('nenhuma solicitação das obras importadas cita os prefixos das apropriações.');
+    return {obra:SC_KEY,obra_nome:'Solicitações (observações)',periodo:desde?'desde '+desde.split('-').reverse().join('/'):'',nome_arquivo:nome,total_linhas:itens.length,
+      dados:{scs:lista.map(s=>[s.n,s.dt,s.sol,s.obra,s.obs,s.pre]),itens,lidas,desde}};
+  }
+  throw new Error('o arquivo não parece o relatório de solicitações do Sienge (faltam as colunas "Observação da solicitação" e "Cód. insumo").');
+}
+
 /* ---------- guarda: nuvem (consumo_apropriacoes) + cópia no navegador ---------- */
 const IDB='PainelConsumoApropriacoes';
 function idb(){return new Promise((res,rej)=>{if(!('indexedDB' in window))return rej(new Error('sem IndexedDB'));const q=indexedDB.open(IDB,1);q.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains('obras'))db.createObjectStore('obras')};q.onsuccess=e=>res(e.target.result);q.onerror=()=>rej(q.error)})}
@@ -19657,6 +19728,7 @@ async function idbApagar(k){try{const db=await idb();db.transaction('obras','rea
 try{indexedDB.deleteDatabase('PainelConsumoAplicacao')}catch(e){}
 
 const OBRAS=new Map();   // obra -> {obra,obra_nome,periodo,nome_arquivo,total_linhas,dados,importado_em,fonte}
+let SCX=null;           // relatório de solicitações (chave SC_KEY), mesmo formato
 let carregado=false,carregando=null,versao=0,geracao=0;
 async function carregar(){
   const g=geracao;
@@ -19680,7 +19752,7 @@ async function carregar(){
     }
   }
   if(g!==geracao)return;
-  OBRAS.clear();loc.forEach((x,k)=>OBRAS.set(k,x));
+  OBRAS.clear();SCX=null;loc.forEach((x,k)=>{if(k===SC_KEY)SCX=x;else OBRAS.set(k,x)});
   carregado=true;versao++;
 }
 async function gravar(x){
@@ -19714,13 +19786,26 @@ async function importar(files){
   msg((ok.length?'Importado: '+ok.join('<br>'):'')+(erros.length?(ok.length?'<br>':'')+'Não foi possível importar '+erros.join('<br>'):'')+(avisos?'<br>'+avisos.trim():''),erros.length||avisos?(ok.length?null:false):true);
   st.sel=null;render();
 }
+async function importarSolicitacoes(f){
+  msg('Lendo '+esc(f.name)+'… (arquivos grandes levam alguns segundos)');
+  try{
+    await garantirXLSX();
+    if(!carregado)await (carregando||carregar());
+    const x=lerSolicitacoes(await f.arrayBuffer(),f.name);
+    const aviso=await gravar(x);
+    SCX=x;versao++;
+    const c=cobertura();
+    msg(`Importado <b>${esc(f.name)}</b>: ${int(x.dados.lidas)} solicitações lidas, <b>${int(x.dados.scs.length)}</b> das obras importadas citam prefixos (${int(x.total_linhas)} itens). ${c?`Ligado a solicitação: <b>${c.pSc}%</b> do valor apropriado com prefixo; com pedido de compra no painel: <b>${c.pPed}%</b>.`:''}${aviso?'<br>'+aviso.trim():''}`,!aviso);
+    render();
+  }catch(e){console.error(e);msg('Não foi possível importar as solicitações: '+esc(e.message||String(e)),false)}
+}
 async function remover(k){
-  const x=OBRAS.get(k);if(!x)return;
-  if(!confirm('Remover a base da obra '+x.obra_nome+'?'+(x.fonte==='nuvem'?' Ela deixa de aparecer para todos.':'')))return;
+  const x=k===SC_KEY?SCX:OBRAS.get(k);if(!x)return;
+  if(!confirm('Remover a base '+(k===SC_KEY?'das solicitações':'da obra '+x.obra_nome)+'?'+(x.fonte==='nuvem'?' Ela deixa de aparecer para todos.':'')))return;
   let aviso='';
   if(x.fonte==='nuvem'&&logado()){const {error}=await window.SB.from('consumo_apropriacoes').delete().eq('obra',k);if(error)aviso=' Não foi possível apagar na nuvem ('+esc(error.message)+').'}
-  await idbApagar(k);OBRAS.delete(k);versao++;
-  msg('Base da obra '+esc(x.obra_nome)+' removida.'+aviso,!aviso);render();
+  await idbApagar(k);if(k===SC_KEY)SCX=null;else OBRAS.delete(k);versao++;
+  msg('Base '+(k===SC_KEY?'das solicitações':'da obra '+esc(x.obra_nome))+' removida.'+aviso,!aviso);render();
 }
 
 /* ---------- aplicações ---------- */
@@ -19736,9 +19821,10 @@ function lerSubetapa(s){
 // "01.001 EQUIPAMENTOS PESADOS - MOTONIVELADORA:" -> tipo e grupo
 function lerEtapa(e){const t=limpa(e).replace(/^[\d.]+\s+/,'').replace(/:\s*$/,'');const i=t.indexOf(' - ');return {tipo:t||'(sem etapa)',grupo:i>0?t.slice(0,i):t||'(sem etapa)'}}
 
-let baseCache={v:-1,val:null};
+let baseCache={v:-1,rows:null,val:null};
 function base(){
-  if(baseCache.v===versao)return baseCache.val;
+  const rowsPainel=(typeof state!=='undefined'&&state.rows)||[];
+  if(baseCache.v===versao&&baseCache.rows===rowsPainel)return baseCache.val;
   const apps=new Map(),lancs=[];
   [...OBRAS.values()].sort((a,b)=>String(a.obra).localeCompare(String(b.obra),'pt-BR',{numeric:true})).forEach(o=>{
     const d=o.dados,D=d.dim;
@@ -19756,9 +19842,61 @@ function base(){
     });
   });
   apps.forEach(a=>{a.tipo=[...a.tipos][0]||'';a.grupo=[...a.grupos][0]||'';a._txt=up([a.p,a.d,a.extra,...a.tipos].join(' '));a._flat=up(a.p).replace(/[^A-Z0-9]/g,'')});
-  const val={apps:[...apps.values()],lancs};
-  baseCache={v:versao,val};
+  apps.forEach(a=>{a.aApropriar=[]});
+  const val={apps:[...apps.values()],lancs,cruzado:false};
+  if(SCX&&SCX.dados)cruzar(val,apps,rowsPainel);
+  baseCache={v:versao,rows:rowsPainel,val};
   return val;
+}
+// pedido/NF do item da SC no relatório principal do painel
+function itemPainel(rs,ins,det){
+  if(!rs||!rs.length)return null;
+  const ki=normKey(ins),kd=normKey(det);let best=null,bn=-1;
+  rs.forEach(r=>{const ri=normKey(r.descricaoInsumo),rd=normKey(r.detalhe);
+    const n=(ri===ki?2:0)+(rd&&kd&&(rd===kd||rd.startsWith(kd)||kd.startsWith(rd))?1:0)+(r.temPedido?0.5:0);
+    if(n>bn){bn=n;best=r}});
+  if(bn<2&&rs.length>1)return null;
+  const r=best;
+  const nfs=(Array.isArray(r.nfsAgrupadas)&&r.nfsAgrupadas.length?r.nfsAgrupadas:[{n:r.numNotaFiscal,d:r.dataNotaFiscal}]).map(n=>({n:normLabel(n.n),d:n.d?fmtDate(parseDateBR(n.d)):''})).filter(n=>n.n);
+  return {ped:r.temPedido?r.numPedido:'',forn:normLabel(r.fornecedor),sit:normLabel(r.situacaoPedido),
+    ent:!r.temPedido?'sem pedido':r.pedidoCancelado?'cancelado':r.pedidoPendente?'entrega pendente':'entregue',nfs};
+}
+function cruzar(val,apps,rowsPainel){
+  const X=SCX.dados,scs=new Map(),porIns=new Map();
+  X.scs.forEach(([n,dt,sol,obra,obs,pre])=>scs.set(String(n),{n:String(n),dt,sol,obra:String(obra),obs,pre:new Set(pre)}));
+  const itens=[];
+  X.itens.forEach(([n,cod,ins,det,qa,un,sit])=>{const s=scs.get(String(n));if(!s)return;
+    const it={s,cod,ins,det,kd:normKey(det),qa,un,sit,usado:false};itens.push(it);
+    const k=s.obra+'§'+cod;let l=porIns.get(k);if(!l){l=[];porIns.set(k,l)}l.push(it)});
+  const porSc=new Map();
+  rowsPainel.forEach(r=>{const k=String(normKey(r.numSolicitacao)).replace(/^0+(?=\d)/,'');if(!k)return;let l=porSc.get(k);if(!l){l=[];porSc.set(k,l)}l.push(r)});
+  val.lancs.forEach(l=>{
+    if(l.a.geral)return;
+    const cand=(porIns.get(l.obra+'§'+l.cod)||[]).filter(it=>it.s.pre.has(l.a.k));
+    if(!cand.length)return;
+    const fd=normKey(l.det);
+    const nota=it=>((it.kd&&(fd.startsWith(it.kd)||it.kd.startsWith(fd)))||it.kd===fd?4:0)+(Math.abs((it.qa||0)-l.qA)<1e-6?2:0);
+    let best=null,bn=-1;
+    cand.forEach(it=>{const n=nota(it)-(it.usado?1:0);if(!best||n>bn||(n===bn&&it.s.dt>best.s.dt)){best=it;bn=n}});
+    best.usado=true;
+    const nScs=new Set(cand.map(it=>it.s.n)).size;
+    l.sc=best.s;l.scItem=best;l.scProv=nScs>1&&bn<4;l.scDetOk=bn>=4;l.nCand=nScs;
+    l.ped=itemPainel(porSc.get(best.s.n),best.ins||l.ins,best.det);
+  });
+  // itens das SCs que citam o prefixo e ainda não foram encontrados nas apropriações
+  // (só SCs a partir do início do período: as anteriores podem ter sido apropriadas antes dele)
+  let ini='';OBRAS.forEach(o=>{const m=String(o.periodo||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);if(m){const d=m[3]+'-'+m[2]+'-'+m[1];if(!ini||d<ini)ini=d}});
+  val.iniPeriodo=ini;
+  itens.forEach(it=>{if(it.usado||(ini&&it.s.dt&&it.s.dt<ini))return;
+    const p=itemPainel(porSc.get(it.s.n),it.ins,it.det);
+    it.s.pre.forEach(k=>{const a=apps.get(k);if(a)a.aApropriar.push({it,p,compartilhada:it.s.pre.size>1})})});
+  val.cruzado=true;val.temPainel=rowsPainel.length>0;
+}
+// percentuais do valor apropriado (com prefixo) ligados a SC e a pedido
+function cobertura(){
+  const B=base();if(!B.cruzado)return null;
+  let v=0,vs=0,vp=0;B.lancs.forEach(l=>{if(l.a.geral)return;v+=l.vA;if(l.sc){vs+=l.vA;if(l.ped&&l.ped.ped)vp+=l.vA}});
+  return {pSc:v?Math.round(vs/v*100):0,pPed:v?Math.round(vp/v*100):0};
 }
 
 /* ---------- filtros e agregação ---------- */
@@ -19772,9 +19910,10 @@ function agg(a){
   const appHit=!q||a._txt.includes(q)||(qf.length>=2&&a._flat&&a._flat.includes(qf));
   let L=a.lancs.filter(noFiltro);
   if(!appHit)L=L.filter(l=>l._txt.includes(q));
-  let vA=0,vC=0,vO=0;const unis=new Set(),ins=new Set();
-  L.forEach(l=>{vA+=l.vA;vC+=l.vC;vO+=l.vO;unis.add(l.obra+'§'+l.uni);ins.add(l.cod)});
-  return {a,L,vA,vC,vO,v:st.met==='c'?vC:vA,unis,ins};
+  let vA=0,vC=0,vO=0,vSc=0,vPed=0;const unis=new Set(),ins=new Set();
+  L.forEach(l=>{vA+=l.vA;vC+=l.vC;vO+=l.vO;unis.add(l.obra+'§'+l.uni);ins.add(l.cod);if(l.sc){vSc+=l.vA;if(l.ped&&l.ped.ped)vPed+=l.vA}});
+  const apr=(a.aApropriar||[]).filter(x=>!st.obra||x.it.s.obra===st.obra);
+  return {a,L,vA,vC,vO,vSc,vPed,v:st.met==='c'?vC:vA,unis,ins,apr};
 }
 let linhas=[];
 function calcular(){
@@ -19788,7 +19927,8 @@ function calcular(){
 /* ---------- desenho ---------- */
 function bases(){
   const L=[...OBRAS.values()].sort((a,b)=>String(a.obra).localeCompare(String(b.obra),'pt-BR',{numeric:true}));
-  $('cpaBases').innerHTML=L.length?L.map(x=>`<span class="cpa-base" title="${esc(x.nome_arquivo||'')}"><b>${esc(x.obra_nome)}</b> · ${esc(x.periodo||'')} · ${int(x.total_linhas)} lançamentos · importado em ${x.importado_em?new Date(x.importado_em).toLocaleDateString('pt-BR'):'—'} · ${x.fonte==='nuvem'?'gravado para todos':'só neste navegador'}<button type="button" class="cpa-base-x" data-rm="${esc(x.obra)}" title="Remover a base desta obra" aria-label="Remover a base da obra ${esc(x.obra_nome)}">×</button></span>`).join(''):'';
+  if(SCX)L.push(Object.assign({},SCX,{periodo:SCX.periodo,total_linhas:SCX.total_linhas}));
+  $('cpaBases').innerHTML=L.length?L.map(x=>`<span class="cpa-base" title="${esc(x.nome_arquivo||'')}"><b>${esc(x.obra_nome)}</b> · ${esc(x.periodo||'')} · ${int(x.total_linhas)} ${x.obra===SC_KEY?'itens de SC':'lançamentos'} · importado em ${x.importado_em?new Date(x.importado_em).toLocaleDateString('pt-BR'):'—'} · ${x.fonte==='nuvem'?'gravado para todos':'só neste navegador'}<button type="button" class="cpa-base-x" data-rm="${esc(x.obra)}" title="Remover a base desta obra" aria-label="Remover a base da obra ${esc(x.obra_nome)}">×</button></span>`).join(''):'';
 }
 function enche(id,lista,todos,chave){
   const el=$(id),atual=st[chave];
@@ -19817,23 +19957,33 @@ function render(){
   const card=(cls,l,v,f,valor)=>`<div class="kpi-card ${cls}"><p class="kpi-label">${l}</p><div class="kpi-value${valor?' cpa-valor':''}"${valor?` title="${brl(valor)}"`:''}>${v}</div><p class="kpi-foot">${f}</p></div>`;
   $('cpaKpis').innerHTML=card('c-solic','Aplicações',int(linhas.filter(r=>!r.a.geral).length),linhas.some(r=>r.a.geral)?`+ ${int(linhas.filter(r=>r.a.geral).length)} subetapas gerais`:'equipamentos e veículos')+
     card('c-total','Valor apropriado',brl0(vA),'insumos apropriados',vA||1)+card('c-crit','Valor consumido',brl0(vC),vA?Math.round(vC/vA*100)+'% do apropriado':'—',vC||1)+
-    (vO?card('c-ped','Valor orçado',brl0(vO),'',vO):'')+card('c-ped','Lançamentos',int(n),int(ins.size)+' insumos distintos')+card('c-ped','Unidades construtivas',int(unis.size),'onde houve apropriação');
+    (vO?card('c-ped','Valor orçado',brl0(vO),'',vO):'')+(()=>{const B=base();if(!B.cruzado)return card('c-late','Ligado a solicitação','—','importe as solicitações para cruzar');
+      let v=0,vs=0,vp=0;linhas.forEach(r=>{if(r.a.geral)return;v+=r.vA;vs+=r.vSc;vp+=r.vPed});
+      return card('c-late','Ligado a solicitação',(v?Math.round(vs/v*100):0)+'%',brl0(vs)+' do valor com prefixo')+card('c-late','Com pedido de compra',(v?Math.round(vp/v*100):0)+'%',B.temPainel?brl0(vp)+' com pedido e NF no painel':'relatório do Sienge não carregado no painel')})()
+    +card('c-ped','Lançamentos',int(n),int(ins.size)+' insumos distintos')+card('c-ped','Unidades construtivas',int(unis.size),'onde houve apropriação');
   $('cpaLh').textContent=`Aplicações (${linhas.length})`;
   const max=Math.max(1,...linhas.map(r=>Math.abs(r.v)));
   $('cpaLista').innerHTML=linhas.length?linhas.map(r=>`<div class="cpa-row" tabindex="0" role="button" data-k="${esc(r.a.k)}">
     <span class="cpa-plate${r.a.geral?' geral':''}">${r.a.geral?'geral':esc(r.a.p)}</span><span class="d" title="${esc(r.a.d)}">${esc(r.a.d)}</span><span class="v">${brl(r.v)}</span>
-    <span class="m">${esc(r.a.tipo.replace(/^.*? - /,''))} · ${int(r.L.length)} lanç. · ${r.unis.size} unidade${r.unis.size===1?'':'s'}</span>
+    <span class="m">${esc(r.a.tipo.replace(/^.*? - /,''))} · ${int(r.L.length)} lanç. · ${r.unis.size} unidade${r.unis.size===1?'':'s'}${base().cruzado&&!r.a.geral&&r.vA?` · ${Math.round(r.vSc/r.vA*100)}% c/ SC`:''}${r.apr.length?` · ${r.apr.length} a apropriar`:''}</span>
     <span class="b"><i style="width:${(Math.max(0,r.v)/max*100).toFixed(1)}%"></i></span></div>`).join('')
     :'<div class="cpa-vazio">Nenhuma aplicação com esses filtros.</div>';
   if(st.sel==null||!linhas.some(r=>r.a.k===st.sel))st.sel=linhas.length?linhas[0].a.k:null;
   $('cpaLista').querySelectorAll('.cpa-row').forEach(el=>el.classList.toggle('on',el.dataset.k===st.sel));
   detalhe();
 }
-const TABS=[['ins','Por insumo'],['uni','Por unidade construtiva'],['lan','Todos os lançamentos']];
+const TABS=[['ins','Por insumo'],['ori','Origem: SC → pedido → NF'],['apr','A apropriar'],['uni','Por unidade construtiva'],['lan','Todos os lançamentos']];
+const pill=(c,t,title)=>`<span class="cpa-pill ${c}"${title?` title="${esc(title)}"`:''}>${esc(t)}</span>`;
+const entPill=p=>!p?'':pill(p.ent==='entregue'?'ok':p.ent==='entrega pendente'?'warn':p.ent==='cancelado'?'bad':'',p.ent);
+const pedCel=p=>p&&p.ped?`<b>${esc(p.ped)}</b>${p.forn?`<br><span class="cpa-sub">${esc(p.forn)}</span>`:''}`:'<span class="cpa-sub">—</span>';
+const nfCel=p=>p&&p.nfs.length?p.nfs.map(n=>esc(n.n)+(n.d?` <span class="cpa-sub">${n.d}</span>`:'')).join('<br>'):'<span class="cpa-sub">—</span>';
+const scCel=s=>`<b>${esc(s.n)}</b> <span class="cpa-sub">${esc(brDt(s.dt))}</span>`;
+const brDt=iso=>iso?iso.split('-').reverse().join('/'):'';
 function detalhe(){
   const r=linhas.find(x=>x.a.k===st.sel),box=$('cpaDet');
   if(!r){box.innerHTML='<div class="cpa-vazio">Selecione uma aplicação na lista.</div>';return}
   const a=r.a;let corpo='';
+  if(a.geral&&(st.tab==='ori'||st.tab==='apr'))st.tab='ins';
   const th=`<th class="n">Qtd. apropriada</th><th class="n">Qtd. consumida</th><th class="n">Valor apropriado</th><th class="n">Valor consumido</th>`;
   const tds=x=>`<td class="n">${nf(x.qA)}</td><td class="n">${nf(x.qC)}</td><td class="n">${brl(x.vA)}</td><td class="n">${brl(x.vC)}</td>`;
   const tot=(cols,x)=>`<tr class="cpa-tot"><td colspan="${cols}"><b>Total</b></td><td></td><td></td><td class="n"><b>${brl(x.vA)}</b></td><td class="n"><b>${brl(x.vC)}</b></td></tr>`;
@@ -19844,6 +19994,26 @@ function detalhe(){
     corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>Insumo</th><th>Un.</th>${th}</tr></thead><tbody>
       ${L.map(x=>`<tr><td><span class="cpa-cod">${x.cod}</span> ${esc(x.ins)}${x.dets.size?`<br><span class="cpa-sub">${[...x.dets].slice(0,4).map(esc).join(' · ')}${x.dets.size>4?` · +${x.dets.size-4}`:''}</span>`:''}</td><td>${esc(x.un)}</td>${tds(x)}</tr>`).join('')}
       ${tot(2,r)}</tbody></table></div>`;
+  }else if(st.tab==='ori'||st.tab==='apr'){
+    if(!base().cruzado){corpo='<div class="cpa-vazio">Importe o relatório de solicitações do Sienge (com a observação da solicitação) em <b>Importar solicitações</b> para ligar cada insumo à SC, ao pedido de compra e à nota fiscal.</div>'}
+    else if(st.tab==='ori'){
+      const L=[...r.L].sort((x,y)=>(!!y.sc-!!x.sc)||(st.met==='c'?y.vC-x.vC:y.vA-x.vA));
+      const sem=L.filter(l=>!l.sc);
+      corpo=`<p class="cpa-sub" style="margin:0 0 8px">${int(L.length-sem.length)} de ${int(L.length)} lançamentos ligados a uma solicitação (${r.vA?Math.round(r.vSc/r.vA*100):0}% do valor); ${int(L.filter(l=>l.ped&&l.ped.ped).length)} com pedido de compra no painel. <b>provável</b> = mais de uma SC possível e o detalhe não confere.</p>
+      <div class="table-scroll alto"><table class="data"><thead><tr><th>Insumo</th><th class="n">Valor apropriado</th><th>Solicitação</th><th>Pedido / fornecedor</th><th>Nota fiscal</th><th>Entrega</th></tr></thead><tbody>
+      ${L.map(l=>`<tr><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}${l.det?`<br><span class="cpa-sub">${esc(l.det)}</span>`:''}<br><span class="cpa-sub">${esc(l.uni)}</span></td><td class="n">${brl(l.vA)}</td>
+        <td class="nw">${l.sc?scCel(l.sc)+(l.scProv?' '+pill('warn','provável',l.nCand+' solicitações possíveis'):'')+`<br><span class="cpa-sub">${esc(l.sc.sol)}</span>`:'<span class="cpa-sub">não encontrada</span>'}</td>
+        <td>${l.sc?pedCel(l.ped):''}</td><td class="nw">${l.sc?nfCel(l.ped):''}</td><td>${l.sc?entPill(l.ped):''}</td></tr>`).join('')}
+      </tbody></table></div>`;
+    }else{
+      const L=[...r.apr].sort((x,y)=>(y.it.s.dt||'').localeCompare(x.it.s.dt||''));
+      corpo=`<p class="cpa-sub" style="margin:0 0 8px">Itens de solicitações que citam <b>${esc(a.p)}</b> e ainda não foram encontrados nas apropriações desta aplicação (SCs a partir de ${esc(brDt(base().iniPeriodo))}): compras em andamento, entregas pendentes ou apropriadas em outra subetapa/obra.</p>`+
+      (L.length?`<div class="table-scroll alto"><table class="data"><thead><tr><th>Solicitação</th><th>Insumo</th><th class="n">Qtd. atendida</th><th>Pedido / fornecedor</th><th>Nota fiscal</th><th>Entrega</th></tr></thead><tbody>
+      ${L.map(({it,p,compartilhada})=>`<tr><td class="nw">${scCel(it.s)}${compartilhada?' '+pill('share','compartilhada','A SC cita mais de uma aplicação'):''}<br><span class="cpa-sub">${esc(it.s.sol)}</span></td>
+        <td><span class="cpa-cod">${it.cod}</span> ${esc(it.ins)}${it.det?`<br><span class="cpa-sub">${esc(it.det)}</span>`:''}</td><td class="n">${nf(it.qa)} ${esc(it.un)}</td>
+        <td>${pedCel(p)}</td><td class="nw">${nfCel(p)}</td><td>${entPill(p)||'<span class="cpa-sub">não está no relatório do painel</span>'}</td></tr>`).join('')}
+      </tbody></table></div>`:'<div class="cpa-vazio">Nenhum item pendente de apropriação.</div>');
+    }
   }else if(st.tab==='uni'){
     const m=new Map();
     r.L.forEach(l=>{const k=l.obra+'§'+l.uni;let x=m.get(k);if(!x){x={obra:l.obraNome,uni:l.uni,cel:l.cel,n:0,vA:0,vC:0,qA:'',qC:''};m.set(k,x)}x.n++;x.vA+=l.vA;x.vC+=l.vC});
@@ -19859,8 +20029,8 @@ function detalhe(){
   }
   const pc=r.vA?Math.round(r.vC/r.vA*100):null;
   box.innerHTML=`<div class="cpa-det-top"><span class="cpa-plate${a.geral?' geral':''}">${a.geral?'geral':esc(a.p)}</span><div><div class="cpa-tp">${[...a.tipos].map(esc).join(' · ')}</div><h3>${esc(a.d)}</h3>${a.extra?`<div class="cpa-sub">${esc(a.extra)}</div>`:''}</div></div>
-    <div class="cpa-stats"><div class="largo"><span>Valor apropriado</span><b>${brl(r.vA)}</b></div><div class="largo"><span>Valor consumido</span><b>${brl(r.vC)}</b></div><div><span>% consumido</span><b>${pc==null?'—':pc+'%'}</b></div><div><span>Lançamentos</span><b>${int(r.L.length)}</b></div><div><span>Insumos</span><b>${int(r.ins.size)}</b></div><div><span>Unidades</span><b>${int(r.unis.size)}</b></div></div>
-    <div class="cpa-tabs" role="tablist">${TABS.map(([k,l])=>`<button type="button" role="tab" data-t="${k}" aria-selected="${st.tab===k}">${l}</button>`).join('')}</div>
+    <div class="cpa-stats"><div class="largo"><span>Valor apropriado</span><b>${brl(r.vA)}</b></div><div class="largo"><span>Valor consumido</span><b>${brl(r.vC)}</b></div><div><span>% consumido</span><b>${pc==null?'—':pc+'%'}</b></div>${base().cruzado&&!a.geral?`<div><span>Com SC</span><b>${r.vA?Math.round(r.vSc/r.vA*100):0}%</b></div><div><span>Com pedido</span><b>${r.vA?Math.round(r.vPed/r.vA*100):0}%</b></div>`:''}<div><span>Lançamentos</span><b>${int(r.L.length)}</b></div><div><span>Insumos</span><b>${int(r.ins.size)}</b></div><div><span>Unidades</span><b>${int(r.unis.size)}</b></div></div>
+    <div class="cpa-tabs" role="tablist">${TABS.filter(([k])=>!(a.geral&&(k==='ori'||k==='apr'))).map(([k,l])=>`<button type="button" role="tab" data-t="${k}" aria-selected="${st.tab===k}">${l}${k==='apr'&&r.apr.length?` (${r.apr.length})`:''}</button>`).join('')}</div>
     <div>${corpo}</div>`;
 }
 
@@ -19870,10 +20040,13 @@ async function exportar(){
   if(!OBRAS.size){msg('Importe o relatório de apropriações antes de exportar.',false);return}
   calcular();
   const resumo=linhas.map(r=>({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'Identificação':r.a.extra,'Tipo':r.a.tipo,'Grupo':r.a.grupo,'Lançamentos':r.L.length,'Insumos':r.ins.size,'Unidades construtivas':r.unis.size,'Valor apropriado':r2(r.vA),'Valor consumido':r2(r.vC),'Valor orçado':r2(r.vO)}));
-  const lanc=[];linhas.forEach(r=>r.L.forEach(l=>lanc.push({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'Obra':l.obraNome,'Unidade construtiva':l.uni,'Célula construtiva':l.cel,'Etapa':l.tipo,'Subetapa':l.sub,'Cód. insumo':l.cod,'Insumo':l.ins,'Detalhe':l.det,'Un.':l.un,'Qtd. orçada':l.qO,'Qtd. apropriada':l.qA,'Qtd. consumida':l.qC,'Valor orçado':l.vO,'Valor apropriado':l.vA,'Valor consumido':l.vC})));
+  const lanc=[];linhas.forEach(r=>r.L.forEach(l=>lanc.push({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'Obra':l.obraNome,'Unidade construtiva':l.uni,'Célula construtiva':l.cel,'Etapa':l.tipo,'Subetapa':l.sub,'Cód. insumo':l.cod,'Insumo':l.ins,'Detalhe':l.det,'Un.':l.un,'Qtd. orçada':l.qO,'Qtd. apropriada':l.qA,'Qtd. consumida':l.qC,'Valor orçado':l.vO,'Valor apropriado':l.vA,'Valor consumido':l.vC,
+    'SC':l.sc?+l.sc.n:'','Data SC':l.sc?brDt(l.sc.dt):'','Solicitante':l.sc?l.sc.sol:'','Ligação':l.sc?(l.scProv?'Provável':'Confere'):'','Pedido':l.ped?l.ped.ped:'','Fornecedor':l.ped?l.ped.forn:'','NF':l.ped?l.ped.nfs.map(n=>n.n).join(', '):'','Entrega':l.ped?l.ped.ent:''})));
+  const apr=[];linhas.forEach(r=>r.apr.forEach(({it,p})=>apr.push({'Prefixo':r.a.p,'Aplicação':r.a.d,'SC':+it.s.n,'Data SC':brDt(it.s.dt),'Solicitante':it.s.sol,'Cód. insumo':it.cod,'Insumo':it.ins,'Detalhe':it.det,'Qtd. atendida':it.qa,'Un.':it.un,'Pedido':p?p.ped:'','Fornecedor':p?p.forn:'','NF':p?p.nfs.map(n=>n.n).join(', '):'','Entrega':p?p.ent:''})));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(resumo),'Aplicações');
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(lanc.length?lanc:[{'Prefixo':''}]),'Lançamentos');
+  if(apr.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(apr),'A apropriar');
   XLSX.writeFile(wb,'consumo_por_aplicacao_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
@@ -19896,10 +20069,11 @@ $('cpaLista').addEventListener('keydown',e=>{const el=e.target.closest('.cpa-row
 $('cpaDet').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){st.tab=b.dataset.t;detalhe()}});
 $('cpaBases').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b)remover(b.dataset.rm)});
 $('cpaArq').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importar(f)};
+$('cpaArqSc').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarSolicitacoes(f)};
 $('cpaExp').onclick=exportar;
-document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();versao++;render()});
+document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();SCX=null;versao++;render()});
 
-window.CPA={show:render,refresh:()=>{}};
+window.CPA={show:render,refresh:render};   // refresh: o relatório do painel mudou (render só desenha com a aba aberta)
 })();
 </script>
 </body>
