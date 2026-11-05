@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script>
   /* tema escolhido pelo usuário (fica salvo neste navegador); aplicado antes de
      desenhar a página para não piscar o tema padrão */
@@ -4303,14 +4303,13 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <div class="field"><label for="cpaTp">Tipo</label><select id="cpaTp"><option value="">Todos</option></select></div>
         <div class="field"><label>Valor</label>
           <div class="cpa-seg" id="cpaMet"><button type="button" data-m="a" aria-pressed="true">Apropriado</button><button type="button" data-m="c" aria-pressed="false">Consumido</button></div></div>
-        <div class="field"><label for="cpaSort">Ordenar</label><select id="cpaSort">
-          <option value="v">Maior valor</option><option value="n">Mais insumos</option><option value="p">Prefixo A–Z</option></select></div>
         <label class="cpa-chk" title="Subetapas sem prefixo de equipamento: estoque, almoxarifado, ferramentas, despesas…"><input type="checkbox" id="cpaGerais"> Incluir subetapas gerais</label>
       </div>
       <div class="kpi-grid" id="cpaKpis"></div>
       <div class="cpa-main">
         <section class="ctr-card cpa-lista-card" aria-label="Aplicações">
-          <header><h3 id="cpaLh">Aplicações</h3><p>clique para ver o detalhe</p></header>
+          <header><h3 id="cpaLh">Aplicações</h3><select id="cpaSort" aria-label="Ordenar">
+            <option value="v">Maior valor</option><option value="s">Mais solicitações</option><option value="i">Mais itens</option><option value="p">Prefixo A–Z</option></select></header>
           <div class="cpa-lista" id="cpaLista"></div>
         </section>
         <section class="ctr-card cpa-det" id="cpaDet" aria-live="polite"></section>
@@ -4321,7 +4320,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
           <p><b>Base.</b> Relatório <b>Apropriações de Insumos</b> do Sienge, um arquivo por obra (ex.: 5 - Equipamentos, 63 - Frotas RAF). Importar de novo o arquivo de uma obra substitui só aquela obra; as outras continuam.</p>
           <p><b>Aplicação.</b> Cada subetapa do relatório é uma aplicação; o prefixo é o código no início da subetapa (<b>MN-05</b>, <b>CB-4H12</b>, <b>TQ-F-08</b>). O mesmo prefixo lançado em mais de uma unidade construtiva ou obra é somado numa aplicação só, com o detalhe por unidade. Subetapas sem prefixo (estoque, almoxarifado, ferramentas, despesas) ficam em <b>subetapas gerais</b>.</p>
           <p><b>Cruzamento com solicitações, pedidos e notas.</b> Cada lançamento com prefixo é ligado à <b>solicitação</b> da mesma obra e do mesmo código de insumo cuja observação cita o prefixo (MN-05, MN 05, MN05…), pelo relatório de solicitações do Sienge importado aqui. Havendo mais de uma, vale a de detalhe igual, depois a de mesma quantidade atendida, depois a mais recente; quando são várias e o detalhe não confere, a ligação aparece como <b>provável</b>. Pelo nº da SC, o relatório principal do painel traz o <b>pedido de compra</b>, o fornecedor, a <b>nota fiscal</b> e a situação da entrega. Entram as SCs a partir de 6 meses antes do início do período das apropriações.</p>
-          <p><b>A apropriar.</b> Itens de solicitações que citam o prefixo e não foram encontrados nas apropriações daquela aplicação: compras em andamento, entregas pendentes ou itens apropriados em outra subetapa ou obra. Não têm valor: o relatório de solicitações não traz preço.</p>
+          <p><b>A apropriar.</b> Nos cartões das solicitações, itens marcados <b>a apropriar</b> são de SCs a partir do início do período que citam o prefixo e não foram encontrados nas apropriações daquela aplicação: compras em andamento, entregas pendentes ou itens apropriados em outra subetapa ou obra. Não têm valor: o relatório de solicitações não traz preço.</p>
           <p><b>Valores.</b> <b>Apropriado</b> é o valor dos insumos apropriados à subetapa; <b>consumido</b>, o valor que já saiu como consumo. O tipo e o grupo vêm da etapa (ex.: EQUIPAMENTOS PESADOS - MOTONIVELADORA). Os totais conferem com o total da obra no próprio relatório.</p>
         </div>
       </div>
@@ -19557,6 +19556,33 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-plate.geral{background:var(--asphalt-3);color:var(--text-dim);font-weight:500;}
 .cpa-cod{font:500 11px var(--font-mono);color:var(--text-faint);}
 .cpa-det table.data tr.cpa-tot td{border-top:1px solid var(--line);}
+.cpa-mais{display:block;margin:6px auto 0;}
+/* lista e detalhe no formato do app original */
+.cpa-lista-card>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;}
+.cpa-lista-card>header h3,.cpa-det-top h3{font-family:'Barlow Condensed',var(--font-display);text-transform:uppercase;letter-spacing:.02em;}
+.cpa-lista-card>header h3{font-size:19px;font-weight:700;}
+.cpa-lista-card>header select{max-width:200px;}
+.cpa-row{padding:12px 16px;}
+.cpa-row .d{font-size:13.5px;text-transform:uppercase;}
+.cpa-row .m{font:400 12.5px var(--font-body);}
+.cpa-row .v{font-size:14px;font-weight:700;}
+.cpa-plate{font-size:13px;padding:4px 8px;}
+.cpa-det-top h3{font-size:26px;font-weight:700;line-height:1.1;}
+.cpa-det-top .cpa-plate{font-size:17px;padding:8px 12px;}
+.cpa-tp{font:600 11px var(--font-body);letter-spacing:.08em;}
+.cpa-stats div{padding:10px 12px;}
+.cpa-stats span{font:600 10.5px var(--font-body);letter-spacing:.06em;}
+.cpa-stats b{font:600 19px var(--font-body);}
+.cpa-tabs button{font-size:14px;padding:9px 14px;}
+.cpa-sc>summary{list-style:none;padding:12px 16px;font-size:14px;gap:8px 14px;}
+.cpa-sc>summary::-webkit-details-marker{display:none;}
+.cpa-sc>summary::before{content:'▸';color:var(--text-dim);font-size:11px;transition:transform .15s;}
+.cpa-sc[open]>summary::before{transform:rotate(90deg);}
+.cpa-sc>summary .n{font:700 14px var(--font-body);color:var(--text);}
+.cpa-pill{font:500 11.5px var(--font-body);padding:2px 10px;}
+.cpa-pill.ok{background:transparent;border:1px solid currentColor;}
+.cpa-pill.share{background:rgba(245,196,51,.18);color:var(--text);}
+.cpa-sem>summary .n{color:var(--text-dim);}
 .cpa-novo{display:inline-block;font:600 10px var(--font-mono);color:var(--blue);border:1px solid rgba(76,141,255,.45);border-radius:3px;padding:0 4px;margin-right:2px;}
 </style>
 <script>
@@ -19867,7 +19893,7 @@ function itemPainel(rs,cod,ins,det){
   if(bn<2&&rs.length>1)return null;
   const r=best;
   const nfs=(Array.isArray(r.nfsAgrupadas)&&r.nfsAgrupadas.length?r.nfsAgrupadas:[{n:r.numNotaFiscal,d:r.dataNotaFiscal}]).map(n=>({n:normLabel(n.n),d:n.d?fmtDate(parseDateBR(n.d)):''})).filter(n=>n.n);
-  return {ped:r.temPedido?r.numPedido:'',forn:normLabel(r.fornecedor),sit:normLabel(r.situacaoPedido),
+  return {ped:r.temPedido?r.numPedido:'',forn:normLabel(r.fornecedor),sit:normLabel(r.situacaoPedido),qe:r.qtdEntregueNum||0,
     ent:!r.temPedido?'sem pedido':r.pedidoCancelado?'cancelado':r.pedidoPendente?'entrega pendente':'entregue',nfs};
 }
 function cruzar(val,apps,rowsPainel){
@@ -19911,7 +19937,7 @@ function cobertura(){
 }
 
 /* ---------- filtros e agregação ---------- */
-const st={q:'',obra:'',uni:'',grupo:'',tp:'',met:'a',sort:'v',gerais:false,sel:null,tab:'ins'};
+const st={q:'',obra:'',uni:'',grupo:'',tp:'',met:'a',sort:'v',gerais:false,sel:null,tab:'sc',limite:60,limiteSel:null};
 try{const s=JSON.parse(localStorage.getItem('cpa-ui2')||'{}');if(s.sort)st.sort=s.sort;if(s.met)st.met=s.met;if(s.gerais!=null)st.gerais=s.gerais}catch(e){}
 const salvarUi=()=>{try{localStorage.setItem('cpa-ui2',JSON.stringify({sort:st.sort,met:st.met,gerais:st.gerais}))}catch(e){}};
 const V=l=>st.met==='c'?l.vC:l.vA;
@@ -19923,14 +19949,24 @@ function agg(a){
   if(!appHit)L=L.filter(l=>l._txt.includes(q));
   let vA=0,vC=0,vO=0,vSc=0,vPed=0;const unis=new Set(),ins=new Set();
   L.forEach(l=>{vA+=l.vA;vC+=l.vC;vO+=l.vO;unis.add(l.obra+'§'+l.uni);ins.add(l.cod);if(l.sc){vSc+=l.vA;if(l.ped&&l.ped.ped)vPed+=l.vA}});
-  const apr=(a.aApropriar||[]).filter(x=>!st.obra||x.it.s.obra===st.obra);
-  return {a,L,vA,vC,vO,vSc,vPed,v:st.met==='c'?vC:vA,unis,ins,apr};
+  const apr=st.uni?[]:(a.aApropriar||[]).filter(x=>(!st.obra||x.it.s.obra===st.obra)&&(appHit||up(x.it.s.n+' '+x.it.cod+' '+x.it.ins+' '+x.it.det).includes(q)));
+  // solicitações da aplicação: as ligadas a lançamentos + as que têm itens a apropriar
+  const scs=new Map(),semSc=[];
+  const grp=s=>{let g=scs.get(s.n);if(!g){g={s,itens:new Map()};scs.set(s.n,g)}return g};
+  L.forEach(l=>{if(!l.sc){semSc.push(l);return}const g=grp(l.sc);let e=g.itens.get(l.scItem);if(!e){e={it:l.scItem,p:l.ped,lancs:[]};g.itens.set(l.scItem,e)}e.lancs.push(l)});
+  apr.forEach(({it,p})=>{const g=grp(it.s);if(!g.itens.has(it))g.itens.set(it,{it,p,lancs:[],apr:true})});
+  let nItens=semSc.length,nEnt=0;const peds=new Set(),nfs=new Map();
+  scs.forEach(g=>g.itens.forEach(e=>{nItens++;const p=e.p;if(!p)return;if(p.ent==='entregue')nEnt++;if(p.ped)peds.add(p.ped);
+    p.nfs.forEach(n=>{const k=normKey(p.forn)+'|'+normKey(n.n);let x=nfs.get(k);if(!x){x={nf:n.n,d:n.d,forn:p.forn,peds:new Set(),scs:new Set(),vA:0,vC:0};nfs.set(k,x)}
+      if(p.ped)x.peds.add(p.ped);x.scs.add(e.it.s.n);const q=p.nfs.length;if(e.lancs.length)x.lanc=true;e.lancs.forEach(l=>{x.vA+=l.vA/q;x.vC+=l.vC/q})})}));
+  const shared=[...scs.values()].filter(g=>g.s.pre.size>1).length;
+  return {a,L,vA,vC,vO,vSc,vPed,v:st.met==='c'?vC:vA,unis,ins,apr,scs,semSc,nItens,nEnt,peds,nfs,shared};
 }
 let linhas=[];
 function calcular(){
   const B=base();
   linhas=B.apps.filter(a=>st.gerais||!a.geral).map(agg).filter(r=>r.L.length);
-  const ord={v:(x,y)=>y.v-x.v,n:(x,y)=>y.L.length-x.L.length,p:(x,y)=>(x.a.p||'~'+x.a.d).localeCompare(y.a.p||'~'+y.a.d,'pt-BR',{numeric:true})}[st.sort]||((x,y)=>y.v-x.v);
+  const ord={v:(x,y)=>y.v-x.v,s:(x,y)=>y.scs.size-x.scs.size,i:(x,y)=>y.nItens-x.nItens,n:(x,y)=>y.nItens-x.nItens,p:(x,y)=>(x.a.p||'~'+x.a.d).localeCompare(y.a.p||'~'+y.a.d,'pt-BR',{numeric:true})}[st.sort]||((x,y)=>y.v-x.v);
   linhas.sort((x,y)=>ord(x,y)||(x.a.p||x.a.d).localeCompare(y.a.p||y.a.d,'pt-BR',{numeric:true}));
   return B;
 }
@@ -19973,75 +20009,73 @@ function render(){
       return card('c-late','Ligado a solicitação',(v?Math.round(vs/v*100):0)+'%',brl0(vs)+' do valor com prefixo')+card('c-late','Com pedido de compra',(v?Math.round(vp/v*100):0)+'%',B.temPainel?brl0(vp)+' com pedido e NF no painel':'relatório do Sienge não carregado no painel')})()
     +card('c-ped','Lançamentos',int(n),int(ins.size)+' insumos distintos')+card('c-ped','Unidades construtivas',int(unis.size),'onde houve apropriação');
   $('cpaLh').textContent=`Aplicações (${linhas.length})`;
+  if(st.limiteSel!==st.sel){st.limite=60;st.limiteSel=st.sel}
   const max=Math.max(1,...linhas.map(r=>Math.abs(r.v)));
   $('cpaLista').innerHTML=linhas.length?linhas.map(r=>`<div class="cpa-row" tabindex="0" role="button" data-k="${esc(r.a.k)}">
     <span class="cpa-plate${r.a.geral?' geral':''}">${r.a.geral?'geral':esc(r.a.p)}</span><span class="d" title="${esc(r.a.d)}">${esc(r.a.d)}</span><span class="v">${brl(r.v)}</span>
-    <span class="m">${esc(r.a.tipo.replace(/^.*? - /,''))} · ${int(r.L.length)} lanç. · ${r.unis.size} unidade${r.unis.size===1?'':'s'}${base().cruzado&&!r.a.geral&&r.vA?` · ${Math.round(r.vSc/r.vA*100)}% c/ SC`:''}${r.apr.length?` · ${r.apr.length} a apropriar`:''}</span>
+    <span class="m">${base().cruzado?`${int(r.scs.size)} SC · ${int(r.nItens)} itens · ${int(r.nfs.size)} NF${r.shared?` · ${r.shared} compartilhada${r.shared>1?'s':''}`:''}`:`${int(r.L.length)} lançamentos · ${r.unis.size} unidade${r.unis.size===1?'':'s'}`}</span>
     <span class="b"><i style="width:${(Math.max(0,r.v)/max*100).toFixed(1)}%"></i></span></div>`).join('')
     :'<div class="cpa-vazio">Nenhuma aplicação com esses filtros.</div>';
   if(st.sel==null||!linhas.some(r=>r.a.k===st.sel))st.sel=linhas.length?linhas[0].a.k:null;
   $('cpaLista').querySelectorAll('.cpa-row').forEach(el=>el.classList.toggle('on',el.dataset.k===st.sel));
   detalhe();
 }
-const TABS=[['ins','Por insumo'],['ori','Origem: SC → pedido → NF'],['apr','A apropriar'],['uni','Por unidade construtiva'],['lan','Todos os lançamentos']];
+const TABS=[['sc','Solicitações'],['nf','Notas fiscais'],['it','Todos os itens']];
 const pill=(c,t,title)=>`<span class="cpa-pill ${c}"${title?` title="${esc(title)}"`:''}>${esc(t)}</span>`;
-const entPill=p=>!p?'':pill(p.ent==='entregue'?'ok':p.ent==='entrega pendente'?'warn':p.ent==='cancelado'?'bad':'',p.ent);
-const pedCel=p=>p&&p.ped?`<b>${esc(p.ped)}</b>${p.forn?`<br><span class="cpa-sub">${esc(p.forn)}</span>`:''}`:'<span class="cpa-sub">—</span>';
-const nfCel=p=>p&&p.nfs.length?p.nfs.map(n=>esc(n.n)+(n.d?` <span class="cpa-sub">${n.d}</span>`:'')).join('<br>'):'<span class="cpa-sub">—</span>';
-const scCel=s=>`<b>${esc(s.n)}</b> <span class="cpa-sub">${esc(brDt(s.dt))}</span>`;
 const brDt=iso=>iso?iso.split('-').reverse().join('/'):'';
+function sitClasse(s){s=up(s);if(s.includes('CANCEL')||s.includes('REPROV'))return 'bad';if(s.includes('TOTAL')||s.includes('INTEGRAL'))return 'ok';if(s.includes('PARCIAL')||s.includes('PENDENTE')||s.includes('ABERT'))return 'warn';return ''}
+function sitSc(g){const L=[...g.itens.values()].map(e=>e.it.sit).filter(Boolean);if(!L.length)return '';const nt=L.find(x=>!/total/i.test(x));return nt||L[0]}
+const pedCel=p=>p&&p.ped?`<b>${esc(p.ped)}</b>${p.sit?`<br><span class="cpa-sub">${esc(p.sit)}</span>`:''}`:'<span class="cpa-sub">sem pedido</span>';
+const nfCel=p=>p&&p.nfs.length?p.nfs.map(n=>esc(n.n)+(n.d?`<br><span class="cpa-sub">${n.d}</span>`:'')).join('<br>'):'';
+const valE=e=>e.lancs.reduce((t,l)=>t+V(l),0);
+function nomesPre(s){const B=base();const m=new Map(B.apps.map(a=>[a.k,a.p]));return [...s.pre].map(k=>m.get(k)||k)}
 function detalhe(){
   const r=linhas.find(x=>x.a.k===st.sel),box=$('cpaDet');
   if(!r){box.innerHTML='<div class="cpa-vazio">Selecione uma aplicação na lista.</div>';return}
-  const a=r.a;let corpo='';
-  if(a.geral&&(st.tab==='ori'||st.tab==='apr'))st.tab='ins';
-  const th=`<th class="n">Qtd. apropriada</th><th class="n">Qtd. consumida</th><th class="n">Valor apropriado</th><th class="n">Valor consumido</th>`;
-  const tds=x=>`<td class="n">${nf(x.qA)}</td><td class="n">${nf(x.qC)}</td><td class="n">${brl(x.vA)}</td><td class="n">${brl(x.vC)}</td>`;
-  const tot=(cols,x)=>`<tr class="cpa-tot"><td colspan="${cols}"><b>Total</b></td><td></td><td></td><td class="n"><b>${brl(x.vA)}</b></td><td class="n"><b>${brl(x.vC)}</b></td></tr>`;
-  if(st.tab==='ins'){
-    const m=new Map();
-    r.L.forEach(l=>{const k=l.cod+'§'+l.un;let x=m.get(k);if(!x){x={cod:l.cod,ins:l.ins,un:l.un,dets:new Set(),qA:0,qC:0,vA:0,vC:0,n:0};m.set(k,x)}if(l.det)x.dets.add(l.det);x.qA+=l.qA;x.qC+=l.qC;x.vA+=l.vA;x.vC+=l.vC;x.n++});
-    const L=[...m.values()].sort((x,y)=>(st.met==='c'?y.vC-x.vC:y.vA-x.vA));
-    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>Insumo</th><th>Un.</th>${th}</tr></thead><tbody>
-      ${L.map(x=>`<tr><td><span class="cpa-cod">${x.cod}</span> ${esc(x.ins)}${x.dets.size?`<br><span class="cpa-sub">${[...x.dets].slice(0,4).map(esc).join(' · ')}${x.dets.size>4?` · +${x.dets.size-4}`:''}</span>`:''}</td><td>${esc(x.un)}</td>${tds(x)}</tr>`).join('')}
-      ${tot(2,r)}</tbody></table></div>`;
-  }else if(st.tab==='ori'||st.tab==='apr'){
-    if(!base().cruzado){corpo='<div class="cpa-vazio">Importe o relatório de solicitações do Sienge (com a observação da solicitação) em <b>Importar solicitações</b> para ligar cada insumo à SC, ao pedido de compra e à nota fiscal.</div>'}
-    else if(st.tab==='ori'){
-      const L=[...r.L].sort((x,y)=>(!!y.sc-!!x.sc)||(st.met==='c'?y.vC-x.vC:y.vA-x.vA));
-      const sem=L.filter(l=>!l.sc);
-      corpo=`<p class="cpa-sub" style="margin:0 0 8px">${int(L.length-sem.length)} de ${int(L.length)} lançamentos ligados a uma solicitação (${r.vA?Math.round(r.vSc/r.vA*100):0}% do valor); ${int(L.filter(l=>l.ped&&l.ped.ped).length)} com pedido de compra no painel. <b>provável</b> = mais de uma SC possível e o detalhe não confere.</p>
-      <div class="table-scroll alto"><table class="data"><thead><tr><th>Insumo</th><th class="n">Valor apropriado</th><th>Solicitação</th><th>Pedido / fornecedor</th><th>Nota fiscal</th><th>Entrega</th></tr></thead><tbody>
-      ${L.map(l=>`<tr><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}${l.det?`<br><span class="cpa-sub">${esc(l.det)}</span>`:''}<br><span class="cpa-sub">${esc(l.uni)}</span></td><td class="n">${brl(l.vA)}</td>
-        <td class="nw">${l.sc?scCel(l.sc)+(l.scProv?' '+pill('warn','provável',l.nCand+' solicitações possíveis'):'')+`<br><span class="cpa-sub">${esc(l.sc.sol)}</span>`:'<span class="cpa-sub">não encontrada</span>'}</td>
-        <td>${l.sc?pedCel(l.ped):''}</td><td class="nw">${l.sc?nfCel(l.ped):''}</td><td>${l.sc?entPill(l.ped):''}</td></tr>`).join('')}
-      </tbody></table></div>`;
-    }else{
-      const L=[...r.apr].sort((x,y)=>(y.it.s.dt||'').localeCompare(x.it.s.dt||''));
-      corpo=`<p class="cpa-sub" style="margin:0 0 8px">Itens de solicitações que citam <b>${esc(a.p)}</b> e ainda não foram encontrados nas apropriações desta aplicação (SCs a partir de ${esc(brDt(base().iniPeriodo))}): compras em andamento, entregas pendentes ou apropriadas em outra subetapa/obra.</p>`+
-      (L.length?`<div class="table-scroll alto"><table class="data"><thead><tr><th>Solicitação</th><th>Insumo</th><th class="n">Qtd. atendida</th><th>Pedido / fornecedor</th><th>Nota fiscal</th><th>Entrega</th></tr></thead><tbody>
-      ${L.map(({it,p,compartilhada})=>`<tr><td class="nw">${scCel(it.s)}${compartilhada?' '+pill('share','compartilhada','A SC cita mais de uma aplicação'):''}<br><span class="cpa-sub">${esc(it.s.sol)}</span></td>
-        <td><span class="cpa-cod">${it.cod}</span> ${esc(it.ins)}${it.det?`<br><span class="cpa-sub">${esc(it.det)}</span>`:''}</td><td class="n">${nf(it.qa)} ${esc(it.un)}</td>
-        <td>${pedCel(p)}</td><td class="nw">${nfCel(p)}</td><td>${entPill(p)||'<span class="cpa-sub">não está no relatório do painel</span>'}</td></tr>`).join('')}
-      </tbody></table></div>`:'<div class="cpa-vazio">Nenhum item pendente de apropriação.</div>');
-    }
-  }else if(st.tab==='uni'){
-    const m=new Map();
-    r.L.forEach(l=>{const k=l.obra+'§'+l.uni;let x=m.get(k);if(!x){x={obra:l.obraNome,uni:l.uni,cel:l.cel,n:0,vA:0,vC:0,qA:'',qC:''};m.set(k,x)}x.n++;x.vA+=l.vA;x.vC+=l.vC});
-    const L=[...m.values()].sort((x,y)=>(st.met==='c'?y.vC-x.vC:y.vA-x.vA));
-    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>Obra</th><th>Unidade construtiva</th><th>Célula construtiva</th><th class="n">Lançamentos</th><th class="n">Valor apropriado</th><th class="n">Valor consumido</th></tr></thead><tbody>
-      ${L.map(x=>`<tr><td>${esc(x.obra)}</td><td>${esc(x.uni)}</td><td class="cpa-sub">${esc(x.cel)}</td><td class="n">${x.n}</td><td class="n">${brl(x.vA)}</td><td class="n">${brl(x.vC)}</td></tr>`).join('')}
-      <tr class="cpa-tot"><td colspan="3"><b>Total</b></td><td class="n"><b>${int(r.L.length)}</b></td><td class="n"><b>${brl(r.vA)}</b></td><td class="n"><b>${brl(r.vC)}</b></td></tr></tbody></table></div>`;
+  const a=r.a,cruz=base().cruzado,rot=st.met==='c'?'Valor consumido':'Valor apropriado';
+  let corpo='';
+  const semScTab=L=>`<div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th>Detalhe</th><th>Unidade construtiva</th><th class="n">Qtd</th><th class="n">${rot}</th></tr></thead><tbody>
+    ${L.map(l=>`<tr><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td><td class="cpa-sub">${esc(l.uni)}</td><td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td class="n">${brl(V(l))}</td></tr>`).join('')}</tbody></table></div>`;
+  if(st.tab==='sc'){
+    const G=[...r.scs.values()].sort((x,y)=>(y.s.dt||'').localeCompare(x.s.dt||'')||(+y.s.n)-(+x.s.n));
+    corpo=(cruz?'':'<div class="cpa-vazio">Importe o relatório de solicitações do Sienge em <b>Importar solicitações</b> para ver as solicitações, pedidos e notas de cada aplicação.</div>')+
+    G.slice(0,st.limite).map(g=>{const E=[...g.itens.values()],s=g.s,sit=sitSc(g),prov=E.some(e=>e.lancs.some(l=>l.scProv)),pre=nomesPre(s);
+      return `<details class="cpa-sc"><summary>
+      <span class="n">SC ${esc(s.n)}</span><span>${brDt(s.dt)}</span>${sit?pill(sitClasse(sit),sit):''}
+      <span class="cpa-sub">${E.length} ite${E.length>1?'ns':'m'} · ${esc(s.sol)}</span>
+      ${pre.length>1?pill('share',`compartilhada · ${pre.length} aplicações`,pre.join(', ')):''}${prov?pill('warn','provável','Mais de uma solicitação possível e o detalhe não confere'):''}</summary>
+      <div class="cpa-sc-body"><div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th>Detalhe</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
+      ${E.map(e=>`<tr><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td>
+        <td class="nw">${pedCel(e.p)}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${nfCel(e.p)}</td>
+        <td class="n">${e.lancs.length?brl(valE(e)):pill('warn','a apropriar','Ainda não aparece nas apropriações desta aplicação')}</td></tr>`).join('')}
+      </tbody></table></div>
+      ${pre.length>1?`<div class="cpa-sub">Prefixos citados nesta SC: ${pre.map(esc).join(', ')}</div>`:''}
+      ${s.obs?`<pre class="cpa-obs">${esc(s.obs.replace(/\n[ \t\u00a0]*(?=\n)/g,'\n').replace(/\n{2,}/g,'\n'))}</pre>`:''}</div></details>`}).join('')+
+    (G.length>st.limite?`<button class="btn small cpa-mais" type="button" data-mais="1">Mostrar mais ${int(Math.min(60,G.length-st.limite))} de ${int(G.length-st.limite)} restantes</button>`:'')+
+    (r.semSc.length?`<details class="cpa-sc cpa-sem"${cruz?'':' open'}><summary><span class="n">Sem solicitação ligada</span><span class="cpa-sub">${int(r.semSc.length)} lançamento${r.semSc.length>1?'s':''} apropriado${r.semSc.length>1?'s':''} · ${brl(r.semSc.reduce((t,l)=>t+V(l),0))}</span></summary>
+      <div class="cpa-sc-body">${semScTab(r.semSc)}</div></details>`:'');
+    if(!G.length&&!r.semSc.length)corpo='<div class="cpa-vazio">Nada com esses filtros.</div>';
+  }else if(st.tab==='nf'){
+    if(!cruz)corpo='<div class="cpa-vazio">As notas fiscais vêm do cruzamento com as solicitações: importe o relatório de solicitações em <b>Importar solicitações</b>.</div>';
+    else{const L=[...r.nfs.values()].sort((x,y)=>{const d=s=>s?s.split('/').reverse().join(''):'';return d(y.d).localeCompare(d(x.d))});
+      const t=L.reduce((s,x)=>s+(st.met==='c'?x.vC:x.vA),0);
+      corpo=L.length?`<div class="table-scroll alto"><table class="data"><thead><tr><th>NF</th><th>Data</th><th>Fornecedor</th><th>Pedido</th><th>SC</th><th class="n">${rot} dos itens</th></tr></thead><tbody>
+      ${L.map(x=>`<tr><td class="nw">${esc(x.nf)}</td><td class="nw">${esc(x.d)}</td><td>${esc(x.forn)}</td><td>${[...x.peds].map(esc).join(', ')}</td><td>${[...x.scs].map(esc).join(', ')}</td><td class="n">${x.lanc?brl(st.met==='c'?x.vC:x.vA):pill('warn','a apropriar','Itens desta nota ainda não aparecem nas apropriações desta aplicação')}</td></tr>`).join('')}
+      <tr class="cpa-tot"><td colspan="5"><b>Total (${L.length} nota${L.length===1?'':'s'})</b></td><td class="n"><b>${brl(t)}</b></td></tr></tbody></table></div>
+      <p class="cpa-sub" style="margin:8px 0 0">Valor dos itens desta aplicação ligados a cada nota (pelo relatório de apropriações), não o valor total da nota.</p>`:'<div class="cpa-vazio">Nenhuma nota fiscal ligada a esta aplicação.</div>'}
   }else{
-    const L=[...r.L].sort((x,y)=>x.uni.localeCompare(y.uni,'pt-BR',{numeric:true})||(st.met==='c'?y.vC-x.vC:y.vA-x.vA));
-    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>Unidade construtiva</th><th>Insumo</th><th>Detalhe</th><th>Un.</th>${th}</tr></thead><tbody>
-      ${L.map(l=>`<tr><td class="cpa-sub">${esc(l.uni)}</td><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td><td>${esc(l.un)}</td>${tds(l)}</tr>`).join('')}
-      ${tot(4,r)}</tbody></table></div>`;
+    const L=[];r.scs.forEach(g=>g.itens.forEach(e=>L.push(e)));
+    L.sort((x,y)=>(y.it.s.dt||'').localeCompare(x.it.s.dt||''));
+    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>SC</th><th>Data</th><th>Insumo</th><th>Detalhe</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
+      ${L.map(e=>`<tr><td class="nw">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td><td class="nw">${esc(e.p?e.p.ped:'')}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${e.p?e.p.nfs.map(n=>esc(n.n)).join('<br>'):''}</td><td class="n">${e.lancs.length?brl(valE(e)):pill('warn','a apropriar')}</td></tr>`).join('')}
+      ${r.semSc.map(l=>`<tr><td class="cpa-sub">—</td><td></td><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td><td class="n">${nf(l.qA)} ${esc(l.un)}</td><td></td><td></td><td></td><td></td><td class="n">${brl(V(l))}</td></tr>`).join('')}
+      </tbody></table></div>`;
   }
-  const pc=r.vA?Math.round(r.vC/r.vA*100):null;
-  box.innerHTML=`<div class="cpa-det-top"><span class="cpa-plate${a.geral?' geral':''}">${a.geral?'geral':esc(a.p)}</span><div><div class="cpa-tp">${[...a.tipos].map(esc).join(' · ')}</div><h3>${esc(a.d)}</h3>${a.extra?`<div class="cpa-sub">${esc(a.extra)}</div>`:''}</div></div>
-    <div class="cpa-stats"><div class="largo"><span>Valor apropriado</span><b>${brl(r.vA)}</b></div><div class="largo"><span>Valor consumido</span><b>${brl(r.vC)}</b></div><div><span>% consumido</span><b>${pc==null?'—':pc+'%'}</b></div>${base().cruzado&&!a.geral?`<div><span>Com SC</span><b>${r.vA?Math.round(r.vSc/r.vA*100):0}%</b></div><div><span>Com pedido</span><b>${r.vA?Math.round(r.vPed/r.vA*100):0}%</b></div>`:''}<div><span>Lançamentos</span><b>${int(r.L.length)}</b></div><div><span>Insumos</span><b>${int(r.ins.size)}</b></div><div><span>Unidades</span><b>${int(r.unis.size)}</b></div></div>
-    <div class="cpa-tabs" role="tablist">${TABS.filter(([k])=>!(a.geral&&(k==='ori'||k==='apr'))).map(([k,l])=>`<button type="button" role="tab" data-t="${k}" aria-selected="${st.tab===k}">${l}${k==='apr'&&r.apr.length?` (${r.apr.length})`:''}</button>`).join('')}</div>
+  const ds=[...r.scs.values()].map(g=>g.s.dt).filter(Boolean).sort();
+  box.innerHTML=`<div class="cpa-det-top"><span class="cpa-plate${a.geral?' geral':''}">${a.geral?'geral':esc(a.p)}</span><div><div class="cpa-tp">${esc(a.grupo.replace(/^EQUIPAMENTOS.*/,'EQUIPAMENTO').replace(/^VEICULOS.*/,'VEÍCULO'))} · ${esc(a.tipo.replace(/^.*? - /,''))}</div><h3>${esc(a.d)}</h3>
+      <div class="cpa-sub">${ds.length?`SCs de ${brDt(ds[0])} a ${brDt(ds[ds.length-1])}`:esc(a.extra||'')}</div></div></div>
+    <div class="cpa-stats"><div><span>Solicitações</span><b>${int(r.scs.size)}</b></div><div><span>Itens</span><b>${int(r.nItens)}</b></div><div><span>Itens entregues</span><b>${int(r.nEnt)}</b></div><div><span>Pedidos</span><b>${int(r.peds.size)}</b></div><div><span>Notas fiscais</span><b>${int(r.nfs.size)}</b></div><div><span>${st.met==='c'?'Valor consumido':'Valor apropriado'}</span><b>${brl(r.v)}</b></div></div>
+    <div class="cpa-tabs" role="tablist">${TABS.map(([k,l])=>`<button type="button" role="tab" data-t="${k}" aria-selected="${st.tab===k}">${l}</button>`).join('')}</div>
     <div>${corpo}</div>`;
 }
 
@@ -20074,10 +20108,10 @@ $('cpaMet').addEventListener('click',e=>{const b=e.target.closest('button');if(!
 $('cpaSort').value=st.sort;$('cpaGerais').checked=st.gerais;
 $('cpaSort').addEventListener('change',e=>{st.sort=e.target.value;salvarUi();render()});
 $('cpaGerais').addEventListener('change',e=>{st.gerais=e.target.checked;salvarUi();render()});
-const escolher=el=>{st.sel=el.dataset.k;$('cpaLista').querySelectorAll('.cpa-row').forEach(x=>x.classList.toggle('on',x===el));detalhe();if(innerWidth<1100)$('cpaDet').scrollIntoView({behavior:'smooth',block:'start'})};
+const escolher=el=>{st.sel=el.dataset.k;st.limite=60;st.limiteSel=st.sel;$('cpaLista').querySelectorAll('.cpa-row').forEach(x=>x.classList.toggle('on',x===el));detalhe();if(innerWidth<1100)$('cpaDet').scrollIntoView({behavior:'smooth',block:'start'})};
 $('cpaLista').addEventListener('click',e=>{const el=e.target.closest('.cpa-row');if(el)escolher(el)});
 $('cpaLista').addEventListener('keydown',e=>{const el=e.target.closest('.cpa-row');if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();escolher(el)}});
-$('cpaDet').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){st.tab=b.dataset.t;detalhe()}});
+$('cpaDet').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){st.tab=b.dataset.t;detalhe();return}if(e.target.closest('[data-mais]')){st.limite+=60;detalhe()}});
 $('cpaBases').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b)remover(b.dataset.rm)});
 $('cpaArq').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importar(f)};
 $('cpaArqSc').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarSolicitacoes(f)};
