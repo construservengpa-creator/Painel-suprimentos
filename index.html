@@ -19730,8 +19730,9 @@ try{indexedDB.deleteDatabase('PainelConsumoAplicacao')}catch(e){}
 const OBRAS=new Map();   // obra -> {obra,obra_nome,periodo,nome_arquivo,total_linhas,dados,importado_em,fonte}
 let SCX=null;           // relatório de solicitações (chave SC_KEY), mesmo formato
 let carregado=false,carregando=null,versao=0,geracao=0;
+let subiu=[];
 async function carregar(){
-  const g=geracao;
+  const g=geracao;subiu=[];
   const loc=new Map((await idbTodas()).map(x=>[x.obra,x]));
   if(logado()){
     const r=await window.SB.from('consumo_apropriacoes').select('obra,obra_nome,periodo,nome_arquivo,total_linhas,importado_em');
@@ -19749,11 +19750,17 @@ async function carregar(){
         }catch(e){console.error(e)}
       }
       for(const [k,x] of loc)if(x.fonte==='nuvem'&&!nuvem.has(k)){loc.delete(k);idbApagar(k)}   // removida na nuvem
+      // importada sem login ou antes de a tabela existir: grava para todos agora (sem permissão, continua local)
+      for(const [k,x] of loc)if(x.fonte==='local'&&(!nuvem.has(k)||x.importado_em>nuvem.get(k).importado_em)){
+        if(g!==geracao)return;
+        const aviso=await gravar(x);if(!aviso)subiu.push(x.obra_nome);
+      }
     }
   }
   if(g!==geracao)return;
   OBRAS.clear();SCX=null;loc.forEach((x,k)=>{if(k===SC_KEY)SCX=x;else OBRAS.set(k,x)});
   carregado=true;versao++;
+  if(subiu.length)setTimeout(()=>msg('Gravado para todos: '+subiu.map(esc).join(', ')+' (estava só neste navegador).',true),0);
 }
 async function gravar(x){
   let aviso='',fonte='local';
@@ -19795,7 +19802,7 @@ async function importarSolicitacoes(f){
     const aviso=await gravar(x);
     SCX=x;versao++;
     const c=cobertura();
-    msg(`Importado <b>${esc(f.name)}</b>: ${int(x.dados.lidas)} solicitações lidas, <b>${int(x.dados.scs.length)}</b> das obras importadas citam prefixos (${int(x.total_linhas)} itens). ${c?`Ligado a solicitação: <b>${c.pSc}%</b> do valor apropriado com prefixo; com pedido de compra no painel: <b>${c.pPed}%</b>.`:''}${aviso?'<br>'+aviso.trim():''}`,!aviso);
+    msg(`Importado <b>${esc(f.name)}</b>: ${int(x.dados.lidas)} solicitações lidas, <b>${int(x.dados.scs.length)}</b> das obras importadas citam prefixos (${int(x.total_linhas)} itens). ${c?`Ligado a solicitação: <b>${c.pSc}%</b> do valor apropriado com prefixo; com pedido de compra no painel: <b>${c.pPed}%</b>${c.temPainel?` (${int(c.noPainel)} de ${int(c.scs)} SCs ligadas estão no relatório do Sienge do painel)`:' — o relatório do Sienge ainda não está carregado no painel'}.`:''}${aviso?'<br>'+aviso.trim():''}`,!aviso);
     render();
   }catch(e){console.error(e);msg('Não foi possível importar as solicitações: '+esc(e.message||String(e)),false)}
 }
@@ -19849,11 +19856,13 @@ function base(){
   return val;
 }
 // pedido/NF do item da SC no relatório principal do painel
-function itemPainel(rs,ins,det){
+// (no relatório principal o insumo vem como "12638 - FILTRO AR MOTOR": compara pelo código)
+function itemPainel(rs,cod,ins,det){
   if(!rs||!rs.length)return null;
-  const ki=normKey(ins),kd=normKey(det);let best=null,bn=-1;
-  rs.forEach(r=>{const ri=normKey(r.descricaoInsumo),rd=normKey(r.detalhe);
-    const n=(ri===ki?2:0)+(rd&&kd&&(rd===kd||rd.startsWith(kd)||kd.startsWith(rd))?1:0)+(r.temPedido?0.5:0);
+  const kc=String(cod||''),ki=normKey(ins),kd=normKey(det);let best=null,bn=-1;
+  rs.forEach(r=>{const pi=partesInsumo(r.descricaoInsumo),rd=normKey(r.detalhe);
+    const mesmo=(kc&&pi.codigo===kc)||(!pi.codigo&&normKey(pi.resto)===ki);
+    const n=(mesmo?2:0)+(rd&&kd&&(rd===kd||rd.startsWith(kd)||kd.startsWith(rd))?1:0)+(r.temPedido?0.5:0);
     if(n>bn){bn=n;best=r}});
   if(bn<2&&rs.length>1)return null;
   const r=best;
@@ -19881,22 +19890,24 @@ function cruzar(val,apps,rowsPainel){
     best.usado=true;
     const nScs=new Set(cand.map(it=>it.s.n)).size;
     l.sc=best.s;l.scItem=best;l.scProv=nScs>1&&bn<4;l.scDetOk=bn>=4;l.nCand=nScs;
-    l.ped=itemPainel(porSc.get(best.s.n),best.ins||l.ins,best.det);
+    l.ped=itemPainel(porSc.get(best.s.n),best.cod||l.cod,best.ins||l.ins,best.det);
+    if(porSc.has(best.s.n))l.scNoPainel=true;
   });
   // itens das SCs que citam o prefixo e ainda não foram encontrados nas apropriações
   // (só SCs a partir do início do período: as anteriores podem ter sido apropriadas antes dele)
   let ini='';OBRAS.forEach(o=>{const m=String(o.periodo||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);if(m){const d=m[3]+'-'+m[2]+'-'+m[1];if(!ini||d<ini)ini=d}});
   val.iniPeriodo=ini;
   itens.forEach(it=>{if(it.usado||(ini&&it.s.dt&&it.s.dt<ini))return;
-    const p=itemPainel(porSc.get(it.s.n),it.ins,it.det);
+    const p=itemPainel(porSc.get(it.s.n),it.cod,it.ins,it.det);
     it.s.pre.forEach(k=>{const a=apps.get(k);if(a)a.aApropriar.push({it,p,compartilhada:it.s.pre.size>1})})});
   val.cruzado=true;val.temPainel=rowsPainel.length>0;
 }
 // percentuais do valor apropriado (com prefixo) ligados a SC e a pedido
 function cobertura(){
   const B=base();if(!B.cruzado)return null;
-  let v=0,vs=0,vp=0;B.lancs.forEach(l=>{if(l.a.geral)return;v+=l.vA;if(l.sc){vs+=l.vA;if(l.ped&&l.ped.ped)vp+=l.vA}});
-  return {pSc:v?Math.round(vs/v*100):0,pPed:v?Math.round(vp/v*100):0};
+  let v=0,vs=0,vp=0;const scs=new Set(),noPainel=new Set();
+  B.lancs.forEach(l=>{if(l.a.geral)return;v+=l.vA;if(l.sc){vs+=l.vA;scs.add(l.sc.n);if(l.scNoPainel)noPainel.add(l.sc.n);if(l.ped&&l.ped.ped)vp+=l.vA}});
+  return {pSc:v?Math.round(vs/v*100):0,pPed:v?Math.round(vp/v*100):0,scs:scs.size,noPainel:noPainel.size,temPainel:B.temPainel};
 }
 
 /* ---------- filtros e agregação ---------- */
