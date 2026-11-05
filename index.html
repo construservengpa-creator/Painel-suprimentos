@@ -2638,7 +2638,12 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     </div>
     <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
     <button class="tab-btn" data-tab="cotacoes"><span class="tab-icon">💲</span><span class="tab-label">Cotação de Insumos Críticos</span></button>
-    <button class="tab-btn" data-tab="consumo"><span class="tab-icon">🚜</span><span class="tab-label">Consumo por Aplicação</span></button>
+    <div class="nav-group" data-group="frotas">
+      <button class="tab-btn nav-group-btn" data-tab="frotas"><span class="tab-icon">🚜</span><span class="tab-label">Frotas</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <div class="nav-submenu">
+        <button class="tab-btn" data-tab="consumo"><span class="tab-label">Aplicação</span></button>
+      </div>
+    </div>
     <button class="tab-btn cap-standalone-only" data-tab="creditos-cap"><span class="tab-icon">🛢️</span><span class="tab-label">Controle de CAP</span></button>
     <div class="nav-group gestor-credito-only" data-group="creditos">
       <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-icon">💳</span><span class="tab-label">Controle de Crédito</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
@@ -4283,9 +4288,33 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     </div>
   </section>
 
+  <!-- ===================== FROTAS: DASHBOARD DE APROPRIAÇÃO ===================== -->
+  <section class="tab-panel" id="tab-frotas">
+    <div class="ctr-head"><h2>Apropriação<span class="ctr-sub">Quanto foi apropriado nos equipamentos e veículos, por tipo de despesa, aplicação, grupo e unidade construtiva</span></h2>
+      <div class="pxr-filtros">
+        <select id="fdObra" aria-label="Obra"><option value="">Todas as obras</option></select>
+        <div class="cpa-seg" id="fdMet" role="group" aria-label="Valor"><button type="button" data-m="a" aria-pressed="true">Apropriado</button><button type="button" data-m="c" aria-pressed="false">Consumido</button></div>
+        <label class="cpa-chk" style="margin:0 !important" title="Subetapas sem prefixo de equipamento: estoque, almoxarifado, aquisição de máquinas, despesas…"><input type="checkbox" id="fdGerais"> Incluir subetapas gerais</label>
+        <button class="btn small" type="button" id="fdIrApl">Abrir Aplicação</button>
+      </div>
+    </div>
+    <p class="pxr-fontes" id="fdFontes"></p>
+    <div class="empty-state" id="fdVazio" style="display:none"></div>
+    <div id="fdCorpo">
+      <div class="kpi-grid" id="fdKpis"></div>
+      <div class="fd-grid">
+        <div class="chart-card"><p class="chart-title">Por tipo de despesa</p><p class="chart-sub">Clique num tipo para ver as aplicações</p><div class="fd-ch"><canvas id="fdChTipo" role="img" aria-label="Valor por tipo de despesa"></canvas></div></div>
+        <div class="chart-card"><p class="chart-title">Por grupo de equipamento</p><p class="chart-sub">Pela etapa do relatório · clique para filtrar</p><div class="fd-ch"><canvas id="fdChGrupo" role="img" aria-label="Valor por grupo de equipamento"></canvas></div></div>
+        <div class="chart-card fd-span2"><p class="chart-title">Maiores aplicações</p><p class="chart-sub" id="fdAppsSub"></p><div class="fd-ch"><canvas id="fdChApps" role="img" aria-label="Aplicações de maior valor por tipo de despesa"></canvas></div></div>
+        <div class="chart-card"><p class="chart-title">Por unidade construtiva</p><p class="chart-sub">As 10 de maior valor · clique para filtrar</p><div class="fd-ch"><canvas id="fdChUni" role="img" aria-label="Valor por unidade construtiva"></canvas></div></div>
+        <div class="chart-card"><p class="chart-title">Maiores insumos</p><p class="chart-sub">Os 15 de maior valor · clique para ver as aplicações</p><div class="table-scroll fd-tab"><table class="data ctr-tbl" id="fdInsumos"></table></div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== CONSUMO POR APLICAÇÃO ===================== -->
   <section class="tab-panel" id="tab-consumo">
-    <div class="ctr-head"><h2>Consumo por Aplicação<span class="ctr-sub">Insumos apropriados em cada equipamento e veículo (Apropriações de Insumos), ligados à solicitação, ao pedido de compra e à nota fiscal</span></h2>
+    <div class="ctr-head"><h2>Aplicação<span class="ctr-sub">Insumos apropriados em cada equipamento e veículo (Apropriações de Insumos), ligados à solicitação, ao pedido de compra e à nota fiscal</span></h2>
       <div class="pxr-filtros">
         <label class="btn small primary pxr-arq" title="Relatório &quot;Apropriações de Insumos&quot; do Sienge (.xlsx), um arquivo por obra. Pode escolher vários de uma vez.">Importar apropriações (.xlsx)<input type="file" id="cpaArq" accept=".xlsx,.xls" multiple></label>
         <label class="btn small pxr-arq" title="Relatório de solicitações do Sienge (.xlsx) com &quot;Observação da solicitação&quot; e &quot;Cód. insumo&quot;: liga cada insumo apropriado à SC e, pelo nº da SC, ao pedido de compra e à nota fiscal do painel">Importar solicitações (.xlsx)<input type="file" id="cpaArqSc" accept=".xlsx,.xls"></label>
@@ -4311,7 +4340,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <div class="cpa-main">
         <section class="ctr-card cpa-lista-card" aria-label="Aplicações">
           <header><h3 id="cpaLh">Aplicações</h3><select id="cpaSort" aria-label="Ordenar">
-            <option value="v">Maior valor</option><option value="s">Mais solicitações</option><option value="i">Mais itens</option><option value="p">Prefixo A–Z</option></select></header>
+            <option value="v">Maior valor</option><option value="s">Mais solicitações</option><option value="i">Mais itens</option><option value="ne">Mais itens não entregues</option><option value="p">Prefixo A–Z</option></select></header>
           <div class="cpa-lista" id="cpaLista"></div>
         </section>
         <section class="ctr-card cpa-det" id="cpaDet" aria-live="polite"></section>
@@ -8811,7 +8840,8 @@ var navTabGroupMap = {
   overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', fluxo:'suprimentos',
   'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos',
   'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos',
-  pxr:'financeiro', cpg:'financeiro'
+  pxr:'financeiro', cpg:'financeiro',
+  frotas:'frotas', consumo:'frotas'
 };
 
 /* ---- segredo: clicar na capivara do cabeçalho abre o jogo (jogo.html), sem pista visual ---- */
@@ -8861,6 +8891,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(targetTab === 'pxr' && window.PXR) window.PXR.show();
     if(targetTab === 'cpg' && window.PXR) window.PXR.showCpg();
     if(targetTab === 'consumo' && window.CPA) window.CPA.show();
+    if(targetTab === 'frotas' && window.CPA) window.CPA.dash();
 
     var groupName = navTabGroupMap[targetTab];
     document.querySelectorAll('.nav-group').forEach(function(g){
@@ -19487,6 +19518,19 @@ window.PXR={show,showCpg,refresh,recarregarFinanceiro:()=>{cpCarregado=false;CP=
 
 <style>
 /* ===================== CONSUMO POR APLICAÇÃO ===================== */
+/* paleta dos tipos de despesa (categórica validada nos dois temas) e da série única */
+#tab-frotas,#tab-consumo{--td-lic:#3987e5;--td-seg:#d95926;--td-plano:#199e70;--td-pecas:#c98500;--td-serv:#d55181;--td-outros:#7c8794;--cpa-viz:#9085e9;--cpa-ink:#C9CFD6;--cpa-grid:rgba(255,255,255,.06);--cpa-surface:#20252C;}
+html[data-tema="estoque"] #tab-frotas,html[data-tema="estoque"] #tab-consumo{--td-lic:#2a78d6;--td-seg:#eb6834;--td-plano:#1baf7a;--td-pecas:#eda100;--td-serv:#e87ba4;--td-outros:#9aa3ad;--cpa-viz:#6250d6;--cpa-ink:#3B434E;--cpa-grid:rgba(27,33,41,.08);--cpa-surface:#FFFFFF;}
+.fd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+.fd-grid .fd-span2{grid-column:1 / -1;}
+@media (max-width:1000px){.fd-grid{grid-template-columns:minmax(0,1fr);}}
+.fd-ch{position:relative;height:220px;}
+.fd-tab{max-height:420px;overflow:auto;border:0;}
+#fdInsumos tbody tr{cursor:pointer;}
+#fdInsumos td{white-space:normal;}
+#fdInsumos td.num{white-space:nowrap;}
+.fd-clk{cursor:pointer;}
+.fd-clk:hover{background:var(--asphalt-3);}
 #tab-consumo .cpa-grow{flex:1 1 240px;}
 #tab-consumo .cpa-grow input{width:100%;}
 #tab-consumo .filters-bar select{max-width:240px;}
@@ -19888,7 +19932,7 @@ function lerSubetapa(s){
 // tipo de despesa pelo insumo (descrição + detalhe): Licenciamento, Seguro, Plano de
 // manutenção, Serviços, Peças (inclui lubrificantes, pneus e filtros) e Outros (aquisição
 // de veículo ou máquina, combustível)
-const TDESP=[['lic','Licenciamento','#9B7BFF'],['seg','Seguro','#E0679A'],['plano','Plano de manutenção','var(--teal)'],['pecas','Peças','var(--yellow)'],['serv','Serviços','var(--blue)'],['outros','Outros','var(--text-dim)']];
+const TDESP=[['lic','Licenciamento','var(--td-lic)'],['seg','Seguro','var(--td-seg)'],['plano','Plano de manutenção','var(--td-plano)'],['pecas','Peças','var(--td-pecas)'],['serv','Serviços','var(--td-serv)'],['outros','Outros','var(--td-outros)']];
 const TD_NOME=Object.fromEntries(TDESP.map(([k,n])=>[k,n])),TD_COR=Object.fromEntries(TDESP.map(([k,,c])=>[k,c]));
 const RE_LIC=/EMPLACAMENTO|LICENCIAMENTO|IPVA|DPVAT|DETRAN|VISTORIA|\bAET\b|AUTORIZACAO ESPECIAL DE TRANSITO|CRLV|TRANSFERENCIA DE PROPRIEDADE/;
 const RE_PLANO=/PLANO\s*(DE\s*)?MANUTEN/;
@@ -19905,7 +19949,10 @@ function tipoDespesa(ins,det){
   return ['pecas',''];
 }
 const tdTag=(k,sub)=>`<span class="cpa-td" style="--c:${TD_COR[k]}">${esc(TD_NOME[k])}${sub?' · '+esc(sub):''}</span>`;
-function lerEtapa(e){const t=limpa(e).replace(/^[\d.]+\s+/,'').replace(/:\s*$/,'');const i=t.indexOf(' - ');return {tipo:t||'(sem etapa)',grupo:i>0?t.slice(0,i):t||'(sem etapa)'}}
+function lerEtapa(e){const t=limpa(e).replace(/^[\d.]+\s+/,'').replace(/:\s*$/,'');
+  // etapa com o nome do próprio veículo ("OU-0A96 ONIBUS URBANO … CHASSI …"): sem grupo
+  if(RE_PREFIXO.test(up(t)))return {tipo:'(sem grupo) '+t.replace(/\s+(CHASSI|SERIE|SÉRIE|RENAVAM)\s*:.*$/i,''),grupo:'(sem grupo)'};
+  const i=t.indexOf(' - ');return {tipo:t||'(sem etapa)',grupo:i>0?t.slice(0,i):t||'(sem etapa)'}}
 
 let baseCache={v:-1,rows:null,val:null};
 function base(){
@@ -20034,7 +20081,7 @@ let linhas=[];
 function calcular(){
   const B=base();
   linhas=B.apps.filter(a=>st.gerais||!a.geral).map(agg).filter(r=>r.L.length);
-  const ord={v:(x,y)=>y.v-x.v,s:(x,y)=>y.scs.size-x.scs.size,i:(x,y)=>y.nItens-x.nItens,n:(x,y)=>y.nItens-x.nItens,p:(x,y)=>(x.a.p||'~'+x.a.d).localeCompare(y.a.p||'~'+y.a.d,'pt-BR',{numeric:true})}[st.sort]||((x,y)=>y.v-x.v);
+  const ord={v:(x,y)=>y.v-x.v,ne:(x,y)=>(y.nItens-y.nEnt)-(x.nItens-x.nEnt),s:(x,y)=>y.scs.size-x.scs.size,i:(x,y)=>y.nItens-x.nItens,n:(x,y)=>y.nItens-x.nItens,p:(x,y)=>(x.a.p||'~'+x.a.d).localeCompare(y.a.p||'~'+y.a.d,'pt-BR',{numeric:true})}[st.sort]||((x,y)=>y.v-x.v);
   linhas.sort((x,y)=>ord(x,y)||(x.a.p||x.a.d).localeCompare(y.a.p||y.a.d,'pt-BR',{numeric:true}));
   return B;
 }
@@ -20221,9 +20268,106 @@ $('cpaBases').addEventListener('click',e=>{const b=e.target.closest('[data-rm]')
 $('cpaArq').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importar(f)};
 $('cpaArqSc').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarSolicitacoes(f)};
 $('cpaExp').onclick=exportar;
-document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();SCX=null;versao++;render()});
+document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();SCX=null;versao++;render();renderDash()});
 
-window.CPA={show:render,refresh:render};   // refresh: o relatório do painel mudou (render só desenha com a aba aberta)
+
+/* ---------- dashboard de apropriação (abertura do menu Frotas) ---------- */
+const DS={obra:'',met:'a',gerais:false};
+try{const s=JSON.parse(localStorage.getItem('cpa-dash')||'{}');if(s.met)DS.met=s.met;if(s.gerais!=null)DS.gerais=s.gerais}catch(e){}
+const salvarDash=()=>{try{localStorage.setItem('cpa-dash',JSON.stringify({met:DS.met,gerais:DS.gerais}))}catch(e){}};
+const dCharts={};
+const corVar=n=>getComputedStyle($('tab-frotas')).getPropertyValue(n).trim()||'#888';
+const brlK=v=>{const a=Math.abs(v||0);if(a>=1e6)return 'R$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi';if(a>=1e3)return 'R$ '+(v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil';return brl0(v)};
+function irAplicacao(o){
+  Object.assign(st,{q:'',uni:'',grupo:'',tp:'',td:'',naoEnt:false,obra:DS.obra,met:DS.met,gerais:DS.gerais},o||{});
+  if(o&&o.sel)st.tab='sc';
+  $('cpaQ').value=st.q;setMet(st.met);$('cpaGerais').checked=st.gerais;$('cpaSort').value=st.sort;
+  const b=document.querySelector('.tab-btn[data-tab="consumo"]');if(b)b.click();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+// agrega com os filtros do dashboard (sem mexer nos filtros da aba Aplicação)
+function linhasDash(){
+  const guarda=Object.assign({},st);
+  Object.assign(st,{q:'',obra:DS.obra,uni:'',grupo:'',tp:'',td:'',met:DS.met});
+  const B=base(),L=B.apps.filter(a=>DS.gerais||!a.geral).map(agg).filter(r=>r.L.length);
+  Object.keys(st).forEach(k=>delete st[k]);Object.assign(st,guarda);
+  return {B,L};
+}
+function graficoBarras(key,canvasId,labels,datasets,o){
+  if(dCharts[key]){dCharts[key].destroy();delete dCharts[key]}
+  const el=$(canvasId);if(!el)return;
+  el.parentElement.style.height=Math.max(160,labels.length*(o.alt||30)+40)+'px';
+  const empilhado=datasets.length>1;
+  dCharts[key]=new Chart(el,{type:'bar',data:{labels,datasets:datasets.map(d=>Object.assign({borderRadius:4,borderSkipped:false,maxBarThickness:22,borderColor:corVar('--cpa-surface'),borderWidth:empilhado?{right:2}:0},d))},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:empilhado?8:70}},
+      onClick:(e,els)=>{if(els.length&&o.clique)o.clique(els[0].index,els[0].datasetIndex)},
+      onHover:(e,els)=>{e.native.target.style.cursor=els.length&&o.clique?'pointer':'default'},
+      plugins:{legend:{display:empilhado,position:'bottom'},
+        tooltip:{callbacks:{label:c=>` ${c.dataset.label?c.dataset.label+': ':''}${brl(c.parsed.x)}`,footer:o.rodape||undefined}},
+        datalabels:empilhado?{display:false}:{display:true,anchor:'end',align:'end',offset:4,clamp:true,clip:false,color:corVar('--cpa-ink'),font:{weight:'600',size:11},formatter:v=>brlK(v)}},
+      scales:{x:{stacked:empilhado,grid:{color:corVar('--cpa-grid')},border:{display:false},ticks:{callback:v=>brlK(v),maxTicksLimit:6}},
+        y:{stacked:empilhado,grid:{display:false},border:{display:false},ticks:{color:corVar('--cpa-ink'),font:{size:11.5},autoSkip:false}}}}});
+}
+function renderDash(){
+  if(!$('tab-frotas').classList.contains('active'))return;
+  if(typeof Chart==='undefined'){setTimeout(renderDash,800);return}
+  prepararGraficos();
+  if(!carregado){if(!carregando)carregando=carregar().catch(e=>{console.error(e);carregado=true}).then(()=>{carregando=null;renderDash();render()});
+    $('fdCorpo').style.display='none';$('fdVazio').style.display='';$('fdVazio').innerHTML='<div class="es-icon">⏳</div><h3>Carregando…</h3><p>Buscando as apropriações importadas.</p>';return}
+  if(!OBRAS.size){$('fdCorpo').style.display='none';$('fdVazio').style.display='';
+    $('fdVazio').innerHTML='<div class="es-icon">🚜</div><h3>Nenhuma apropriação importada</h3><p>Importe o relatório <b>Apropriações de Insumos</b> do Sienge na aba <b>Aplicação</b> (menu Frotas). O dashboard é montado com essas apropriações e, se houver, com as solicitações e os pedidos do painel.</p><p><button type="button" class="btn small primary" id="fdIrImp">Ir para Aplicação</button></p>';
+    $('fdIrImp').onclick=()=>irAplicacao();return}
+  $('fdVazio').style.display='none';$('fdCorpo').style.display='';
+  // filtros
+  const obras=[...OBRAS.values()].map(x=>[x.obra,x.obra_nome]).sort((a,b)=>a[1].localeCompare(b[1],'pt-BR',{numeric:true}));
+  if(DS.obra&&!OBRAS.has(DS.obra))DS.obra='';
+  $('fdObra').innerHTML='<option value="">Todas as obras</option>'+obras.map(([v,t])=>`<option value="${esc(v)}"${v===DS.obra?' selected':''}>${esc(t)}</option>`).join('');
+  document.querySelectorAll('#fdMet button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===DS.met)));
+  $('fdGerais').checked=DS.gerais;
+  $('fdFontes').innerHTML=[...OBRAS.values()].map(x=>`<b>${esc(x.obra_nome)}</b> · ${esc(x.periodo||'')}`).join(' · ')+(SCX?` · solicitações ${esc(SCX.periodo||'')}`:' · sem relatório de solicitações (importe na aba Aplicação para ligar SC, pedido e NF)');
+  const {B,L}=linhasDash(),met=DS.met,V2=x=>met==='c'?x.vC:x.vA,rot=met==='c'?'consumido':'apropriado';
+  // indicadores
+  let vA=0,vC=0,vSc=0,vPref=0,nIt=0,nEnt=0,nApr=0;const unis=new Set();
+  L.forEach(r=>{vA+=r.vA;vC+=r.vC;r.L.forEach(l=>unis.add(l.obra+'§'+l.uni));if(!r.a.geral){vPref+=r.vA;vSc+=r.vSc}nIt+=r.nItens;nEnt+=r.nEnt;nApr+=r.apr.length});
+  const card=(cls,l,v,f,attrs)=>`<div class="kpi-card ${cls}${attrs?' fd-clk':''}"${attrs||''}><p class="kpi-label">${l}</p><div class="kpi-value">${v}</div><p class="kpi-foot">${f}</p></div>`;
+  $('fdKpis').innerHTML=card('c-total','Valor apropriado',brlK(vA),brl(vA))+card('c-crit','Valor consumido',brlK(vC),vA?Math.round(vC/vA*100)+'% do apropriado':'—')+
+    card('c-solic','Aplicações',int(L.filter(r=>!r.a.geral).length),'equipamentos e veículos com apropriação')+card('c-ped','Unidades construtivas',int(unis.size),'onde houve apropriação')+
+    (B.cruzado?card('c-late','Ligado a solicitação',(vPref?Math.round(vSc/vPref*100):0)+'%','do valor com prefixo')+
+      card('c-late','Itens não entregues',int(nIt-nEnt),'de '+int(nIt)+' itens das SCs · clique para ver',' data-fd="naoent" title="Ver as aplicações com itens não entregues"')+
+      card('c-ped','A apropriar',int(nApr),'itens de SC ainda sem apropriação'):card('c-late','Solicitações','—','importe as solicitações na aba Aplicação'));
+  // por tipo de despesa
+  const TT=TDESP.map(([k,n])=>({k,n,v:L.reduce((t,r)=>t+V2(r.pt[k]),0),c:corVar('--td-'+k)})).filter(x=>x.v);
+  const totT=TT.reduce((t,x)=>t+x.v,0)||1;
+  graficoBarras('tipo','fdChTipo',TT.map(x=>x.n),[{label:'',data:TT.map(x=>x.v),backgroundColor:TT.map(x=>x.c)}],
+    {alt:34,clique:i=>irAplicacao({td:TT[i].k}),rodape:its=>((its[0].parsed.x/totT)*100).toFixed(1).replace('.',',')+'% do total · clique para ver as aplicações'});
+  // maiores aplicações, por tipo
+  const top=L.filter(r=>!r.a.geral).sort((x,y)=>y.v-x.v).slice(0,12);
+  graficoBarras('apps','fdChApps',top.map(r=>r.a.p+' · '+r.a.d.slice(0,28)+(r.a.d.length>28?'…':'')),
+    TDESP.filter(([k])=>top.some(r=>V2(r.pt[k]))).map(([k,n])=>({label:n,data:top.map(r=>V2(r.pt[k])),backgroundColor:corVar('--td-'+k)})),
+    {alt:28,clique:i=>irAplicacao({sel:top[i].a.k,q:top[i].a.p}),rodape:its=>'Total da aplicação: '+brl(top[its[0].dataIndex].v)+' · clique para abrir'});
+  $('fdAppsSub').textContent=`as ${top.length} de maior valor ${rot}, divididas por tipo de despesa`;
+  // por grupo de equipamento
+  const mg=new Map();L.forEach(r=>r.L.forEach(l=>{const k=l.a.geral?'Subetapas gerais':l.grupo;mg.set(k,(mg.get(k)||0)+(met==='c'?l.vC:l.vA))}));
+  const G=[...mg].filter(x=>x[1]).sort((a,b)=>b[1]-a[1]);
+  graficoBarras('grupo','fdChGrupo',G.map(x=>x[0].length>34?x[0].slice(0,33)+'…':x[0]),[{label:'',data:G.map(x=>x[1]),backgroundColor:corVar('--cpa-viz')}],{alt:32,clique:i=>{if(G[i][0]!=='Subetapas gerais')irAplicacao({grupo:G[i][0]})}});
+  // por unidade construtiva
+  const mu=new Map();L.forEach(r=>r.L.forEach(l=>{mu.set(l.uni,(mu.get(l.uni)||0)+(met==='c'?l.vC:l.vA))}));
+  const U2=[...mu].filter(x=>x[1]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  graficoBarras('uni','fdChUni',U2.map(x=>x[0].length>34?x[0].slice(0,33)+'…':x[0]),[{label:'',data:U2.map(x=>x[1]),backgroundColor:corVar('--cpa-viz')}],{alt:28,clique:i=>irAplicacao({uni:U2[i][0]})});
+  // maiores insumos
+  const mi=new Map();L.forEach(r=>r.L.forEach(l=>{const k=l.cod;let x=mi.get(k);if(!x){x={cod:l.cod,ins:l.ins,td:l.td,tdSub:l.tdSub,v:0,q:0,un:l.un,apps:new Set()};mi.set(k,x)}x.v+=met==='c'?l.vC:l.vA;x.q+=met==='c'?l.qC:l.qA;x.apps.add(r.a.k)}));
+  const I=[...mi.values()].filter(x=>x.v).sort((a,b)=>b.v-a.v).slice(0,15);
+  $('fdInsumos').innerHTML=`<thead><tr><th>Insumo</th><th>Tipo</th><th class="num">Aplicações</th><th class="num">Valor ${rot}</th><th class="num">%</th></tr></thead><tbody>
+    ${I.map(x=>`<tr data-ins="${esc(String(x.cod))}" title="Ver as aplicações com este insumo"><td><span class="cpa-cod">${x.cod}</span> ${esc(x.ins)}</td><td>${tdTag(x.td,x.tdSub)}</td><td class="num">${int(x.apps.size)}</td><td class="num">${brl(x.v)}</td><td class="num">${(x.v/(totT)*100).toFixed(1).replace('.',',')}%</td></tr>`).join('')}</tbody>`;
+}
+$('fdObra').addEventListener('change',e=>{DS.obra=e.target.value;renderDash()});
+$('fdMet').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;DS.met=b.dataset.m;salvarDash();renderDash()});
+$('fdGerais').addEventListener('change',e=>{DS.gerais=e.target.checked;salvarDash();renderDash()});
+$('fdKpis').addEventListener('click',e=>{if(e.target.closest('[data-fd="naoent"]'))irAplicacao({sort:'ne'})});
+$('fdInsumos').addEventListener('click',e=>{const tr=e.target.closest('[data-ins]');if(tr)irAplicacao({q:tr.dataset.ins})});
+$('fdIrApl').onclick=()=>irAplicacao();
+
+window.CPA={show:render,dash:renderDash,refresh:()=>{render();renderDash()}};   // refresh: o relatório do painel mudou (render só desenha com a aba aberta)
 })();
 </script>
 </body>
