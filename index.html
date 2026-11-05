@@ -4301,7 +4301,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <div class="field"><label for="cpaUni">Unidade construtiva</label><select id="cpaUni"><option value="">Todas</option></select></div>
         <div class="field"><label for="cpaGrupo">Grupo</label><select id="cpaGrupo"><option value="">Todos</option></select></div>
         <div class="field"><label for="cpaTp">Tipo</label><select id="cpaTp"><option value="">Todos</option></select></div>
-        <div class="field"><label for="cpaTd">Tipo de despesa</label><select id="cpaTd"><option value="">Todos</option><option value="lic">Licenciamento</option><option value="plano">Plano de manutenção</option><option value="pecas">Peças</option><option value="serv">Serviços</option><option value="outros">Outros</option></select></div>
+        <div class="field"><label for="cpaTd">Tipo de despesa</label><select id="cpaTd"><option value="">Todos</option><option value="lic">Licenciamento</option><option value="seg">Seguro</option><option value="plano">Plano de manutenção</option><option value="pecas">Peças</option><option value="serv">Serviços</option><option value="outros">Outros</option></select></div>
         <div class="field"><label>Valor</label>
           <div class="cpa-seg" id="cpaMet"><button type="button" data-m="a" aria-pressed="true">Apropriado</button><button type="button" data-m="c" aria-pressed="false">Consumido</button></div></div>
         <label class="cpa-chk" title="Subetapas sem prefixo de equipamento: estoque, almoxarifado, ferramentas, despesas…"><input type="checkbox" id="cpaGerais"> Incluir subetapas gerais</label>
@@ -4323,7 +4323,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
           <p><b>Aplicação.</b> Cada subetapa do relatório é uma aplicação; o prefixo é o código no início da subetapa (<b>MN-05</b>, <b>CB-4H12</b>, <b>TQ-F-08</b>). O mesmo prefixo lançado em mais de uma unidade construtiva ou obra é somado numa aplicação só, com o detalhe por unidade. Subetapas sem prefixo (estoque, almoxarifado, ferramentas, despesas) ficam em <b>subetapas gerais</b>.</p>
           <p><b>Cruzamento com solicitações, pedidos e notas.</b> Cada lançamento com prefixo é ligado à <b>solicitação</b> da mesma obra e do mesmo código de insumo cuja observação cita o prefixo (MN-05, MN 05, MN05…), pelo relatório de solicitações do Sienge importado aqui. Havendo mais de uma, vale a de detalhe igual, depois a de mesma quantidade atendida, depois a mais recente; quando são várias e o detalhe não confere, a ligação aparece como <b>provável</b>. Pelo nº da SC, o relatório principal do painel traz o <b>pedido de compra</b>, o fornecedor, a <b>nota fiscal</b> e a situação da entrega. Entram as SCs a partir de 6 meses antes do início do período das apropriações.</p>
           <p><b>A apropriar.</b> Nos cartões das solicitações, itens marcados <b>a apropriar</b> são de SCs a partir do início do período que citam o prefixo e não foram encontrados nas apropriações daquela aplicação: compras em andamento, entregas pendentes ou itens apropriados em outra subetapa ou obra. Não têm valor: o relatório de solicitações não traz preço.</p>
-          <p><b>Tipo de despesa.</b> Pelo nome e pelo detalhe do insumo: <b>Licenciamento</b> (emplacamento, licenciamento, IPVA, DPVAT, AET, vistoria, despachante de documentação), <b>Plano de manutenção</b> (prestação de serviços de plano de manutenção), <b>Serviços</b> (prestações de serviço, mão de obra, frete, monitoramento, recondicionamento), <b>Peças</b> (peças, pneus, filtros, lubrificantes e demais materiais) e <b>Outros</b> (seguro, aquisição de veículo ou máquina e combustível).</p>
+          <p><b>Tipo de despesa.</b> Pelo nome e pelo detalhe do insumo: <b>Licenciamento</b> (emplacamento, licenciamento, IPVA, DPVAT, AET, vistoria, despachante de documentação), <b>Seguro</b> (despesas de seguro e apólices), <b>Plano de manutenção</b> (prestação de serviços de plano de manutenção), <b>Serviços</b> (prestações de serviço, mão de obra, frete, monitoramento, recondicionamento), <b>Peças</b> (peças, pneus, filtros, lubrificantes e demais materiais) e <b>Outros</b> (aquisição de veículo ou máquina e combustível).</p>
           <p><b>Valores.</b> <b>Apropriado</b> é o valor dos insumos apropriados à subetapa; <b>consumido</b>, o valor que já saiu como consumo. O tipo e o grupo vêm da etapa (ex.: EQUIPAMENTOS PESADOS - MOTONIVELADORA). Os totais conferem com o total da obra no próprio relatório.</p>
         </div>
       </div>
@@ -19560,6 +19560,14 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-cod{font:500 11px var(--font-mono);color:var(--text-faint);}
 .cpa-det table.data tr.cpa-tot td{border-top:1px solid var(--line);}
 .cpa-mais{display:block;margin:6px auto 0;}
+.cpa-ne-btn{display:block;text-align:left;background:none;border:0;padding:10px 12px;box-shadow:0 0 0 .5px var(--line);color:var(--text);cursor:pointer;font:inherit;}
+.cpa-ne-btn:hover{background:var(--asphalt-3);}
+.cpa-ne-btn span{display:block;font:600 10.5px var(--font-body);text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);}
+.cpa-ne-btn b{font:600 19px var(--font-body);}
+.cpa-ne-btn.tem b{color:var(--red);}
+.cpa-ne-btn.on{background:rgba(208,59,59,.12);box-shadow:inset 0 0 0 1px var(--red);}
+.cpa-det table.data tr.cpa-ne td{background:rgba(208,59,59,.06);}
+.cpa-filtro{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;font-size:12.5px;color:var(--text-dim);}
 .cpa-tdesp{margin:0 0 16px;}
 .cpa-tdbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--asphalt-3);margin-bottom:12px;}
 .cpa-tdbar i{display:block;height:100%;}
@@ -19602,7 +19610,7 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-sc>summary::before{content:'▸';color:var(--text-dim);font-size:11px;transition:transform .15s;}
 .cpa-sc[open]>summary::before{transform:rotate(90deg);}
 .cpa-sc>summary .n{font:700 14px var(--font-body);color:var(--text);}
-.cpa-pill{font:500 11.5px var(--font-body);padding:2px 10px;}
+.cpa-pill{font:500 11.5px var(--font-body);padding:2px 10px;white-space:nowrap;}
 .cpa-pill.ok{background:transparent;border:1px solid currentColor;}
 .cpa-pill.share{background:rgba(245,196,51,.18);color:var(--text);}
 .cpa-sem>summary .n{color:var(--text-dim);}
@@ -19875,10 +19883,10 @@ function lerSubetapa(s){
   return {chave:'P:'+normKey(m[1]),p:m[1],d:limpa(k>0?resto.slice(0,k):resto),extra:limpa(k>0?resto.slice(k):''),geral:false};
 }
 // "01.001 EQUIPAMENTOS PESADOS - MOTONIVELADORA:" -> tipo e grupo
-// tipo de despesa pelo insumo (descrição + detalhe): Licenciamento, Plano de manutenção,
-// Serviços, Peças (inclui lubrificantes, pneus e filtros) e Outros (seguro, aquisição de
-// veículo ou máquina, combustível)
-const TDESP=[['lic','Licenciamento','#9B7BFF'],['plano','Plano de manutenção','var(--teal)'],['pecas','Peças','var(--yellow)'],['serv','Serviços','var(--blue)'],['outros','Outros','var(--text-dim)']];
+// tipo de despesa pelo insumo (descrição + detalhe): Licenciamento, Seguro, Plano de
+// manutenção, Serviços, Peças (inclui lubrificantes, pneus e filtros) e Outros (aquisição
+// de veículo ou máquina, combustível)
+const TDESP=[['lic','Licenciamento','#9B7BFF'],['seg','Seguro','#E0679A'],['plano','Plano de manutenção','var(--teal)'],['pecas','Peças','var(--yellow)'],['serv','Serviços','var(--blue)'],['outros','Outros','var(--text-dim)']];
 const TD_NOME=Object.fromEntries(TDESP.map(([k,n])=>[k,n])),TD_COR=Object.fromEntries(TDESP.map(([k,,c])=>[k,c]));
 const RE_LIC=/EMPLACAMENTO|LICENCIAMENTO|IPVA|DPVAT|DETRAN|VISTORIA|\bAET\b|AUTORIZACAO ESPECIAL DE TRANSITO|CRLV|TRANSFERENCIA DE PROPRIEDADE/;
 const RE_PLANO=/PLANO\s*(DE\s*)?MANUTEN/;
@@ -19888,7 +19896,7 @@ function tipoDespesa(ins,det){
   const d=up(ins).trim(),t=d+' / '+up(det);
   if(RE_LIC.test(t))return ['lic',''];
   if(RE_PLANO.test(t))return ['plano',''];
-  if(/SEGURO/.test(d))return ['outros','seguro'];
+  if(/SEGURO|APOLICE/.test(d))return ['seg',''];
   if(RE_AQ.test(d))return ['outros','aquisição'];
   if(/^(OLEO DIESEL|GASOLINA|ETANOL)/.test(d))return ['outros','combustível'];
   if(RE_SERV.test(d))return ['serv',''];
@@ -19981,7 +19989,7 @@ function cobertura(){
 }
 
 /* ---------- filtros e agregação ---------- */
-const st={q:'',obra:'',uni:'',grupo:'',tp:'',td:'',met:'a',sort:'v',gerais:false,sel:null,tab:'sc',limite:60,limiteSel:null};
+const st={q:'',obra:'',uni:'',grupo:'',tp:'',td:'',naoEnt:false,met:'a',sort:'v',gerais:false,sel:null,tab:'sc',limite:60,limiteSel:null};
 try{const s=JSON.parse(localStorage.getItem('cpa-ui2')||'{}');if(s.sort)st.sort=s.sort;if(s.met)st.met=s.met;if(s.gerais!=null)st.gerais=s.gerais}catch(e){}
 const salvarUi=()=>{try{localStorage.setItem('cpa-ui2',JSON.stringify({sort:st.sort,met:st.met,gerais:st.gerais}))}catch(e){}};
 const V=l=>st.met==='c'?l.vC:l.vA;
@@ -20001,8 +20009,8 @@ function agg(a){
   const grp=s=>{let g=scs.get(s.n);if(!g){g={s,itens:new Map()};scs.set(s.n,g)}return g};
   L.forEach(l=>{if(!l.sc){semSc.push(l);return}const g=grp(l.sc);let e=g.itens.get(l.scItem);if(!e){e={it:l.scItem,p:l.ped,lancs:[]};g.itens.set(l.scItem,e)}e.lancs.push(l)});
   apr.forEach(({it,p})=>{const g=grp(it.s);if(!g.itens.has(it))g.itens.set(it,{it,p,lancs:[],apr:true})});
-  let nItens=semSc.length,nEnt=0;const peds=new Set(),nfs=new Map();
-  scs.forEach(g=>g.itens.forEach(e=>{nItens++;const p=e.p;if(!p)return;if(p.ent==='entregue')nEnt++;if(p.ped)peds.add(p.ped);
+  let nItens=semSc.length,nEnt=semSc.length;const peds=new Set(),nfs=new Map();
+  scs.forEach(g=>g.itens.forEach(e=>{nItens++;e.ent=entregaItem(e);if(e.ent.ok)nEnt++;const p=e.p;if(!p)return;if(p.ped)peds.add(p.ped);
     p.nfs.forEach(n=>{const k=normKey(p.forn)+'|'+normKey(n.n);let x=nfs.get(k);if(!x){x={nf:n.n,d:n.d,forn:p.forn,peds:new Set(),scs:new Set(),vA:0,vC:0};nfs.set(k,x)}
       if(p.ped)x.peds.add(p.ped);x.scs.add(e.it.s.n);const q=p.nfs.length;if(e.lancs.length)x.lanc=true;e.lancs.forEach(l=>{x.vA+=l.vA/q;x.vC+=l.vC/q})})}));
   const shared=[...scs.values()].filter(g=>g.s.pre.size>1).length;
@@ -20083,6 +20091,20 @@ const pill=(c,t,title)=>`<span class="cpa-pill ${c}"${title?` title="${esc(title
 const brDt=iso=>iso?iso.split('-').reverse().join('/'):'';
 function sitClasse(s){s=up(s);if(s.includes('CANCEL')||s.includes('REPROV'))return 'bad';if(s.includes('TOTAL')||s.includes('INTEGRAL'))return 'ok';if(s.includes('PARCIAL')||s.includes('PENDENTE')||s.includes('ABERT'))return 'warn';return ''}
 function sitSc(g){const L=[...g.itens.values()].map(e=>e.it.sit).filter(Boolean);if(!L.length)return '';const nt=L.find(x=>!/total/i.test(x));return nt||L[0]}
+// situação de entrega de um item da SC: apropriado = já chegou (a apropriação é feita na entrada da nota)
+function entregaItem(e){
+  const p=e.p,ap=e.lancs&&e.lancs.length;
+  if(p&&p.ped){
+    if(p.ent==='entrega pendente')return {ok:false,k:'warn',t:'entrega pendente',d:'Pedido '+p.ped+' com saldo a entregar'};
+    if(p.ent==='cancelado')return ap?{ok:true,k:'ok',t:'apropriado'}:{ok:false,k:'bad',t:'pedido cancelado',d:'Pedido '+p.ped+' cancelado e item não apropriado'};
+    return {ok:true,k:'ok',t:'entregue'};
+  }
+  if(ap)return {ok:true,k:'ok',t:'apropriado',d:'Apropriado (sem pedido no relatório do painel)'};
+  if(e.it&&e.it.qa>0)return {ok:true,k:'ok',t:'atendido sem pedido',d:'Quantidade atendida na SC sem pedido de compra: saiu do estoque'};
+  if(p)return {ok:false,k:'warn',t:'sem pedido',d:'Item da SC ainda sem pedido de compra'};
+  return {ok:false,k:'bad',t:'não atendido',d:'Sem quantidade atendida na SC e fora do relatório do painel'};
+}
+const entPill=x=>pill(x.k,x.t,x.d||'');
 const pedCel=p=>p&&p.ped?`<b>${esc(p.ped)}</b>${p.sit?`<br><span class="cpa-sub">${esc(p.sit)}</span>`:''}`:'<span class="cpa-sub">sem pedido</span>';
 const nfCel=p=>p&&p.nfs.length?p.nfs.map(n=>esc(n.n)+(n.d?`<br><span class="cpa-sub">${n.d}</span>`:'')).join('<br>'):'';
 const valE=e=>e.lancs.reduce((t,l)=>t+V(l),0);
@@ -20095,24 +20117,26 @@ function detalhe(){
   const semScTab=L=>`<div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th>Detalhe</th><th>Unidade construtiva</th><th class="n">Qtd</th><th class="n">${rot}</th></tr></thead><tbody>
     ${L.map(l=>`<tr><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}<br>${tdTag(l.td,l.tdSub)}</td><td>${esc(l.det)}</td><td class="cpa-sub">${esc(l.uni)}</td><td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td class="n">${brl(V(l))}</td></tr>`).join('')}</tbody></table></div>`;
   if(st.tab==='sc'){
-    const G=[...r.scs.values()].sort((x,y)=>(y.s.dt||'').localeCompare(x.s.dt||'')||(+y.s.n)-(+x.s.n));
+    const G=[...r.scs.values()].filter(g=>!st.naoEnt||[...g.itens.values()].some(e=>!e.ent.ok)).sort((x,y)=>(y.s.dt||'').localeCompare(x.s.dt||'')||(+y.s.n)-(+x.s.n));
     corpo=(cruz?'':'<div class="cpa-vazio">Importe o relatório de solicitações do Sienge em <b>Importar solicitações</b> para ver as solicitações, pedidos e notas de cada aplicação.</div>')+
-    G.slice(0,st.limite).map(g=>{const E=[...g.itens.values()],s=g.s,sit=sitSc(g),prov=E.some(e=>e.lancs.some(l=>l.scProv)),pre=nomesPre(s);
+    (st.naoEnt?`<p class="cpa-filtro">Mostrando só os itens não entregues (${int(r.nItens-r.nEnt)}). <button type="button" class="btn small" data-naoent="0">Mostrar todos</button></p>`:'')+
+    G.slice(0,st.limite).map(g=>{const T=[...g.itens.values()],nNe=T.filter(e=>!e.ent.ok).length,E=st.naoEnt?T.filter(e=>!e.ent.ok):T,s=g.s,sit=sitSc(g),prov=E.some(e=>e.lancs.some(l=>l.scProv)),pre=nomesPre(s);
       return `<details class="cpa-sc"><summary>
       <span class="n">SC ${esc(s.n)}</span><span>${brDt(s.dt)}</span>${sit?pill(sitClasse(sit),sit):''}
-      <span class="cpa-sub">${E.length} ite${E.length>1?'ns':'m'} · ${esc(s.sol)}</span>
+      <span class="cpa-sub">${T.length} ite${T.length>1?'ns':'m'} · ${esc(s.sol)}</span>${nNe?pill('bad',`${nNe} não entregue${nNe>1?'s':''}`):''}
       ${pre.length>1?pill('share',`compartilhada · ${pre.length} aplicações`,pre.join(', ')):''}${prov?pill('warn','provável','Mais de uma solicitação possível e o detalhe não confere'):''}</summary>
-      <div class="cpa-sc-body"><div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th>Detalhe</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
-      ${E.map(e=>`<tr><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}<br>${(t=>tdTag(t[0],t[1]))(e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det))}</td><td>${esc(e.it.det)}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td>
+      <div class="cpa-sc-body"><div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th>Detalhe</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Entrega</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
+      ${E.map(e=>`<tr${e.ent.ok?'':' class="cpa-ne"'}><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}<br>${(t=>tdTag(t[0],t[1]))(e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det))}</td><td>${esc(e.it.det)}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td><td>${entPill(e.ent)}</td>
         <td class="nw">${pedCel(e.p)}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${nfCel(e.p)}</td>
         <td class="n">${e.lancs.length?brl(valE(e)):pill('warn','a apropriar','Ainda não aparece nas apropriações desta aplicação')}</td></tr>`).join('')}
       </tbody></table></div>
       ${pre.length>1?`<div class="cpa-sub">Prefixos citados nesta SC: ${pre.map(esc).join(', ')}</div>`:''}
       ${s.obs?`<pre class="cpa-obs">${esc(s.obs.replace(/\n[ \t\u00a0]*(?=\n)/g,'\n').replace(/\n{2,}/g,'\n'))}</pre>`:''}</div></details>`}).join('')+
     (G.length>st.limite?`<button class="btn small cpa-mais" type="button" data-mais="1">Mostrar mais ${int(Math.min(60,G.length-st.limite))} de ${int(G.length-st.limite)} restantes</button>`:'')+
-    (r.semSc.length?`<details class="cpa-sc cpa-sem"${cruz?'':' open'}><summary><span class="n">Sem solicitação ligada</span><span class="cpa-sub">${int(r.semSc.length)} lançamento${r.semSc.length>1?'s':''} apropriado${r.semSc.length>1?'s':''} · ${brl(r.semSc.reduce((t,l)=>t+V(l),0))}</span></summary>
+    (r.semSc.length&&!st.naoEnt?`<details class="cpa-sc cpa-sem"${cruz?'':' open'}><summary><span class="n">Sem solicitação ligada</span><span class="cpa-sub">${int(r.semSc.length)} lançamento${r.semSc.length>1?'s':''} apropriado${r.semSc.length>1?'s':''} · ${brl(r.semSc.reduce((t,l)=>t+V(l),0))}</span></summary>
       <div class="cpa-sc-body">${semScTab(r.semSc)}</div></details>`:'');
-    if(!G.length&&!r.semSc.length)corpo='<div class="cpa-vazio">Nada com esses filtros.</div>';
+    if(st.naoEnt&&!G.length)corpo='<div class="cpa-vazio">Todos os itens desta aplicação foram entregues. <button type="button" class="btn small" data-naoent="0">Mostrar todos</button></div>';
+    else if(!G.length&&!r.semSc.length)corpo='<div class="cpa-vazio">Nada com esses filtros.</div>';
   }else if(st.tab==='nf'){
     if(!cruz)corpo='<div class="cpa-vazio">As notas fiscais vêm do cruzamento com as solicitações: importe o relatório de solicitações em <b>Importar solicitações</b>.</div>';
     else{const L=[...r.nfs.values()].sort((x,y)=>{const d=s=>s?s.split('/').reverse().join(''):'';return d(y.d).localeCompare(d(x.d))});
@@ -20122,17 +20146,17 @@ function detalhe(){
       <tr class="cpa-tot"><td colspan="5"><b>Total (${L.length} nota${L.length===1?'':'s'})</b></td><td class="n"><b>${brl(t)}</b></td></tr></tbody></table></div>
       <p class="cpa-sub" style="margin:8px 0 0">Valor dos itens desta aplicação ligados a cada nota (pelo relatório de apropriações), não o valor total da nota.</p>`:'<div class="cpa-vazio">Nenhuma nota fiscal ligada a esta aplicação.</div>'}
   }else{
-    const L=[];r.scs.forEach(g=>g.itens.forEach(e=>L.push(e)));
+    const L=[];r.scs.forEach(g=>g.itens.forEach(e=>{if(!st.naoEnt||!e.ent.ok)L.push(e)}));
     L.sort((x,y)=>(y.it.s.dt||'').localeCompare(x.it.s.dt||''));
-    corpo=`<div class="table-scroll alto"><table class="data"><thead><tr><th>SC</th><th>Data</th><th>Insumo</th><th>Detalhe</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
-      ${L.map(e=>`<tr><td class="nw">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td><td>${(t=>tdTag(t[0],t[1]))(e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det))}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td><td class="nw">${esc(e.p?e.p.ped:'')}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${e.p?e.p.nfs.map(n=>esc(n.n)).join('<br>'):''}</td><td class="n">${e.lancs.length?brl(valE(e)):pill('warn','a apropriar')}</td></tr>`).join('')}
-      ${r.semSc.map(l=>`<tr><td class="cpa-sub">—</td><td></td><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td><td>${tdTag(l.td,l.tdSub)}</td><td class="n">${nf(l.qA)} ${esc(l.un)}</td><td></td><td></td><td></td><td></td><td class="n">${brl(V(l))}</td></tr>`).join('')}
+    corpo=(st.naoEnt?`<p class="cpa-filtro">Mostrando só os itens não entregues (${int(L.length)}). <button type="button" class="btn small" data-naoent="0">Mostrar todos</button></p>`:'')+`<div class="table-scroll alto"><table class="data"><thead><tr><th>SC</th><th>Data</th><th>Insumo</th><th>Detalhe</th><th>Tipo</th><th class="n">Qtd</th><th class="n">Entregue</th><th>Entrega</th><th>Pedido</th><th>Fornecedor</th><th>NF</th><th class="n">${rot}</th></tr></thead><tbody>
+      ${L.map(e=>`<tr${e.ent.ok?'':' class="cpa-ne"'}><td class="nw">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td><span class="cpa-cod">${e.it.cod}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td><td>${(t=>tdTag(t[0],t[1]))(e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det))}</td><td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${e.p?nf(e.p.qe):''}</td><td>${entPill(e.ent)}</td><td class="nw">${esc(e.p?e.p.ped:'')}</td><td>${esc(e.p?e.p.forn:'')}</td><td class="nw">${e.p?e.p.nfs.map(n=>esc(n.n)).join('<br>'):''}</td><td class="n">${e.lancs.length?brl(valE(e)):pill('warn','a apropriar')}</td></tr>`).join('')}
+      ${st.naoEnt?'':r.semSc.map(l=>`<tr><td class="cpa-sub">—</td><td></td><td><span class="cpa-cod">${l.cod}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td><td>${tdTag(l.td,l.tdSub)}</td><td class="n">${nf(l.qA)} ${esc(l.un)}</td><td></td><td>${pill('ok','apropriado','Apropriado sem solicitação ligada')}</td><td></td><td></td><td></td><td class="n">${brl(V(l))}</td></tr>`).join('')}
       </tbody></table></div>`;
   }
   const ds=[...r.scs.values()].map(g=>g.s.dt).filter(Boolean).sort();
   box.innerHTML=`<div class="cpa-det-top"><span class="cpa-plate${a.geral?' geral':''}">${a.geral?'geral':esc(a.p)}</span><div><div class="cpa-tp">${esc(a.grupo.replace(/^EQUIPAMENTOS.*/,'EQUIPAMENTO').replace(/^VEICULOS.*/,'VEÍCULO'))} · ${esc(a.tipo.replace(/^.*? - /,''))}</div><h3>${esc(a.d)}</h3>
       <div class="cpa-sub">${ds.length?`SCs de ${brDt(ds[0])} a ${brDt(ds[ds.length-1])}`:esc(a.extra||'')}</div></div></div>
-    <div class="cpa-stats"><div><span>Solicitações</span><b>${int(r.scs.size)}</b></div><div><span>Itens</span><b>${int(r.nItens)}</b></div><div><span>Itens entregues</span><b>${int(r.nEnt)}</b></div><div><span>Pedidos</span><b>${int(r.peds.size)}</b></div><div><span>Notas fiscais</span><b>${int(r.nfs.size)}</b></div><div><span>${st.met==='c'?'Valor consumido':'Valor apropriado'}</span><b>${brl(r.v)}</b></div></div>
+    <div class="cpa-stats"><div><span>Solicitações</span><b>${int(r.scs.size)}</b></div><div><span>Itens</span><b>${int(r.nItens)}</b></div><div><span>Itens entregues</span><b>${int(r.nEnt)}</b></div><button type="button" class="cpa-ne-btn${st.naoEnt?' on':''}${r.nItens-r.nEnt?' tem':''}" data-naoent="${st.naoEnt?0:1}" title="${st.naoEnt?'Mostrar todos os itens':'Mostrar só os itens não entregues'}"><span>Não entregues</span><b>${int(r.nItens-r.nEnt)}</b></button><div><span>Pedidos</span><b>${int(r.peds.size)}</b></div><div><span>Notas fiscais</span><b>${int(r.nfs.size)}</b></div><div><span>${st.met==='c'?'Valor consumido':'Valor apropriado'}</span><b>${brl(r.v)}</b></div></div>
     <div class="cpa-tdlin">${TDESP.map(([k,n,c])=>{const v=st.met==='c'?r.pt[k].vC:r.pt[k].vA;return v?`<span style="--c:${c}"><i></i>${esc(n)} <b>${brl(v)}</b> <em>${(x=>x>0&&x<1?'<1':Math.round(x))(r.v?v/r.v*100:0)}%</em></span>`:''}).join('')}</div>
     <div class="cpa-tabs" role="tablist">${TABS.map(([k,l])=>`<button type="button" role="tab" data-t="${k}" aria-selected="${st.tab===k}">${l}</button>`).join('')}</div>
     <div>${corpo}</div>`;
@@ -20173,7 +20197,8 @@ $('cpaGerais').addEventListener('change',e=>{st.gerais=e.target.checked;salvarUi
 const escolher=el=>{st.sel=el.dataset.k;st.limite=60;st.limiteSel=st.sel;$('cpaLista').querySelectorAll('.cpa-row').forEach(x=>x.classList.toggle('on',x===el));detalhe();if(innerWidth<1100)$('cpaDet').scrollIntoView({behavior:'smooth',block:'start'})};
 $('cpaLista').addEventListener('click',e=>{const el=e.target.closest('.cpa-row');if(el)escolher(el)});
 $('cpaLista').addEventListener('keydown',e=>{const el=e.target.closest('.cpa-row');if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();escolher(el)}});
-$('cpaDet').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){st.tab=b.dataset.t;detalhe();return}if(e.target.closest('[data-mais]')){st.limite+=60;detalhe()}});
+$('cpaDet').addEventListener('click',e=>{const n=e.target.closest('[data-naoent]');if(n){st.naoEnt=n.dataset.naoent==='1';if(st.naoEnt&&st.tab==='nf')st.tab='sc';detalhe();return}
+  const b=e.target.closest('[data-t]');if(b){st.tab=b.dataset.t;detalhe();return}if(e.target.closest('[data-mais]')){st.limite+=60;detalhe()}});
 $('cpaBases').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b)remover(b.dataset.rm)});
 $('cpaArq').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importar(f)};
 $('cpaArqSc').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarSolicitacoes(f)};
