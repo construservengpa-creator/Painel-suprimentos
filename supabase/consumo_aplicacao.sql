@@ -10,8 +10,10 @@
 --   dados = { z: '<gzip+base64 de {fields, dim:{u,c,e,s}, rows, totalObra, soma}>' }
 --   (o painel compacta para a nuvem; sem compactação no navegador grava o JSON direto)
 --
--- Leitura: qualquer usuário logado. Gravação: admin, supervisor ou operador
--- avançado (private.pode_lancar_cap). Sem a tabela ou sem permissão, o painel
+-- Acesso: o mesmo do Controle de CAP — admin, supervisor ou operador avançado.
+-- Leitura por private.tema_liberado(usuário, 'cap'); gravação por
+-- private.pode_lancar_cap (mesmo grupo). No painel, o menu Frotas (Apropriação e
+-- Aplicação) só aparece para esse grupo. Sem a tabela ou sem permissão, o painel
 -- guarda a importação só no navegador. Pode rodar de novo: recria as políticas.
 
 -- base anterior (observações das solicitações), substituída por esta
@@ -46,7 +48,7 @@ grant select, insert, update, delete on public.consumo_apropriacoes to authentic
 
 drop policy if exists "leitura consumo apropriacoes" on public.consumo_apropriacoes;
 create policy "leitura consumo apropriacoes" on public.consumo_apropriacoes
-  for select using (auth.uid() is not null);
+  for select using (private.tema_liberado((select auth.uid()), 'cap'));
 
 drop policy if exists "grava consumo apropriacoes" on public.consumo_apropriacoes;
 create policy "grava consumo apropriacoes" on public.consumo_apropriacoes
