@@ -1491,17 +1491,14 @@ footer.appfoot{
 #tab-creditos .credito-tab-panel{display:none;}
 #tab-creditos .credito-tab-panel.active{display:block;}
 #tab-creditos .empty-mini{font-size:12px;color:var(--text-faint);padding:6px 8px;}
-#tab-creditos .cr-anexos{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);}
-#tab-creditos .cr-anexos-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-mut);}
-#tab-creditos .cr-anexos-head .cr-anexo-up{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;cursor:pointer;}
-#tab-creditos .cr-anexos-head .cr-anexo-up input{display:none;}
-#tab-creditos .cr-anexo{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:12.5px;border-top:1px dashed var(--line);}
-#tab-creditos .cr-anexo:first-of-type{border-top:none;}
-#tab-creditos .cr-anexo a{color:var(--text);text-decoration:underline;cursor:pointer;word-break:break-all;}
-#tab-creditos .cr-anexo a:hover{color:var(--gold);}
-#tab-creditos .cr-anexo .meta{color:var(--text-faint);font-size:11.5px;white-space:nowrap;}
-#tab-creditos .cr-anexo .acoes{margin-left:auto;white-space:nowrap;}
-#tab-creditos .cr-anexos-msg{font-size:11.5px;color:var(--text-faint);}
+#tab-creditos .cr-anexos-linha{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px;}
+#tab-creditos .cr-anexo-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:2px 4px 2px 8px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);font-size:11.5px;line-height:1.4;}
+#tab-creditos .cr-anexo-chip a{color:var(--text);text-decoration:none;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px;}
+#tab-creditos .cr-anexo-chip a:hover{color:var(--gold);text-decoration:underline;}
+#tab-creditos .cr-anexo-chip .credito-toggle{padding:0 4px;font-size:11px;}
+#tab-creditos .cr-anexos-form{margin:2px 0 14px;}
+#tab-creditos .cr-anexos-form .cr-anexos-msg{font-size:11.5px;color:var(--text-faint);margin-top:4px;}
+#tab-creditos td.cr-acoes{white-space:nowrap;}
 #tab-creditos .pedido-search-wrap{position:relative;}
 #tab-creditos .pedido-search-results{
   display:none;position:absolute;top:100%;left:0;right:0;margin-top:2px;
@@ -3532,6 +3529,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
             <div class="form-field"><label>Data de disponibilidade</label><input type="date" id="credito-fData"></div>
             <div class="form-field"><label>Descrição</label><input type="text" id="credito-fDescricao" placeholder="Ex.: Crédito por devolução de material"></div>
           </div>
+          <div class="form-field cr-anexos-form" id="credito-anexosField"><label>📎 Relatório de origem do crédito (anexos)</label><input type="file" id="credito-fAnexos" multiple><div id="credito-anexosLista"></div></div>
           <datalist id="credito-dlBeneficiaria"></datalist>
           <datalist id="credito-dlEmpresa"></datalist>
           <button class="primary" id="credito-btnAdd">Lançar crédito</button>
@@ -10968,6 +10966,36 @@ async function enviarAnexosCredito(creditoId, files){
   renderCreditos();
   if(falhas.length) alert(`Não foi possível anexar:\n${falhas.join('\n')}\n\nVerifique se você está logado como administrador ou supervisor e se supabase/creditos_anexos.sql já foi rodado.`);
 }
+function anexoChipHtml(a){
+  const meta = [fmtTamanhoArquivo(a.tamanho), a.enviadoEm ? `enviado em ${fmtBRDate(String(a.enviadoEm).slice(0,10))}` : ''].filter(Boolean).join(' · ');
+  return `<span class="cr-anexo-chip">📎 <a data-abrir-anexo="${a.id}" title="${esc(a.nome)}${meta?` (${esc(meta)})`:''} — abrir em nova aba">${esc(a.nome)}</a><button class="credito-toggle no-print" data-baixar-anexo="${a.id}" title="Baixar">⬇</button><button class="credito-toggle gestor-credito-only no-print" data-del-anexo="${a.id}" title="Excluir anexo">✕</button></span>`;
+}
+function ligarAcoesAnexos(root){
+  root.querySelectorAll('[data-abrir-anexo]').forEach(a=>a.addEventListener('click', ()=> abrirAnexoCredito(a.getAttribute('data-abrir-anexo'))));
+  root.querySelectorAll('[data-baixar-anexo]').forEach(b=>b.addEventListener('click', ()=> baixarAnexoCredito(b.getAttribute('data-baixar-anexo'))));
+  root.querySelectorAll('[data-del-anexo]').forEach(b=>b.addEventListener('click', ()=> excluirAnexoCredito(b.getAttribute('data-del-anexo'))));
+}
+// Um único seletor de arquivo para o botão "📎 Anexar" de cada linha.
+function escolherAnexosCredito(creditoId){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.multiple = true;
+  inp.addEventListener('change', ()=> enviarAnexosCredito(creditoId, Array.from(inp.files||[])));
+  inp.click();
+}
+// Formulário "Lançar Crédito": arquivos já anexados (na edição) e os
+// escolhidos agora, que sobem depois de salvar o crédito.
+function renderAnexosFormCredito(){
+  const box = document.getElementById('credito-anexosLista');
+  if(!box) return;
+  const field = document.getElementById('credito-anexosField');
+  if(field) field.style.display = anexosCreditoDisponivel ? '' : 'none';
+  const atuais = editingCreditoId ? anexosDoCredito(editingCreditoId) : [];
+  const novos = Array.from(document.getElementById('credito-fAnexos')?.files || []);
+  box.innerHTML = (atuais.length ? `<div class="cr-anexos-linha">${atuais.map(a=>anexoChipHtml(a)).join('')}</div>` : '')
+    + (novos.length ? `<div class="cr-anexos-msg">Será(ão) anexado(s) ao salvar: ${novos.map(f=>esc(f.name)).join(', ')}</div>` : '')
+    + (!atuais.length && !novos.length ? `<div class="cr-anexos-msg">Nenhum arquivo anexado. Anexe o relatório que deu origem ao crédito (PDF, planilha, imagem... até 20 MB).</div>` : '');
+  ligarAcoesAnexos(box);
+}
 async function abrirAnexoCredito(anexoId){
   const a = [...anexosCredito.values()].flat().find(x=>String(x.id)===String(anexoId));
   if(!a) return;
@@ -11027,11 +11055,11 @@ async function loadVinculosCredito(){
 }
 async function insertCredito(c){
   try{
-    const { error } = await window.SB.from('creditos_obra').insert({
+    const { data, error } = await window.SB.from('creditos_obra').insert({
       empresa_beneficiaria: c.empresaBeneficiaria, empresa_devedora: c.empresaDevedora, obra: c.obra, valor_total: c.valorTotal, data_disponibilidade: c.dataDisponibilidade, descricao: c.descricao || null
-    });
+    }).select('id').single();
     if(error) throw error;
-    return true;
+    return data && data.id != null ? data.id : true;
   }catch(e){
     console.error('Falha ao lançar crédito:', e);
     alert('Não foi possível lançar o crédito. Verifique se você está logado como administrador ou supervisor.');
@@ -11885,6 +11913,7 @@ function renderCreditos(){
   populateCreditoDatalists();
 
   const lista = getCreditosFiltrados();
+  renderAnexosFormCredito();
   renderCreditoKpis(lista);
   renderCreditosDashboard();
   renderVinculosLista();
@@ -11917,7 +11946,8 @@ function renderCreditos(){
       <td class="txt">
         <span class="cr-who">${esc(c.empresaBeneficiaria)||'—'}<span class="arrow">←</span>${esc(c.empresaDevedora)||'—'}</span>
         <span class="cr-sub">Obra ${esc(c.obra)}${c.descricao?` · ${esc(c.descricao)}`:''}</span>
-        <span class="cr-sub">${vinculos.length ? `${vinculos.length} pedido(s) vinculado(s)` : 'Nenhum pedido vinculado'}${anexos.length ? ` · <span title="${esc(anexos.map(a=>a.nome).join('\n'))}">📎 ${anexos.length} anexo(s)</span>` : ''}</span>
+        <span class="cr-sub">${vinculos.length ? `${vinculos.length} pedido(s) vinculado(s)` : 'Nenhum pedido vinculado'}</span>
+        ${anexos.length ? `<span class="cr-anexos-linha">${anexos.map(a=>anexoChipHtml(a)).join('')}</span>` : ''}
       </td>
       <td><span class="cr-big">R$ ${fmtMoney(c.valorTotal)}</span></td>
       <td>
@@ -11927,7 +11957,7 @@ function renderCreditos(){
       </td>
       <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span><span class="cr-sub">${pctTxt(Math.max(0,saldo),c.valorTotal)} do crédito</span></td>
       <td>${c.dataDisponibilidade?fmtBRDate(c.dataDisponibilidade):'—'}</td>
-      <td class="no-print"><button class="ghost gestor-credito-only" data-edit-credito="${c.id}">Editar</button> <button class="danger gestor-credito-only" data-del-credito="${c.id}">Excluir</button></td>
+      <td class="no-print cr-acoes">${anexosCreditoDisponivel ? `<button class="ghost gestor-credito-only" data-anexar-credito="${c.id}" title="Anexar o relatório/documento de origem do crédito (PDF, planilha, imagem... até 20 MB)" ${enviando?'disabled':''}>${enviando?'Enviando…':'📎 Anexar'}</button> ` : ''}<button class="ghost gestor-credito-only" data-edit-credito="${c.id}">Editar</button> <button class="danger gestor-credito-only" data-del-credito="${c.id}">Excluir</button></td>
     </tr>`;
     // ---- detalhe: pedidos vinculados ----
     let tPrev=0,tFat=0,tRes=0,tEf=0;
@@ -11966,18 +11996,6 @@ function renderCreditos(){
         <span><span class="cr-dot res"></span>reservado <b>R$ ${fmtMoney(reservado)}</b></span><span class="eq">+</span>
         <span><span class="cr-dot liv"></span>saldo livre <b>R$ ${fmtMoney(saldo)}</b></span>
       </div>
-      <div class="cr-anexos">
-        <div class="cr-anexos-head">
-          <span>📎 Relatório de origem do crédito</span>
-          ${anexosCreditoDisponivel ? `<label class="btn small cr-anexo-up gestor-credito-only no-print" title="Anexar o relatório/documento que deu origem ao crédito (PDF, planilha, imagem... até 20 MB)">${enviando ? 'Enviando…' : '⬆ Anexar arquivo'}<input type="file" multiple data-anexo-credito="${c.id}" ${enviando?'disabled':''}></label>` : ''}
-        </div>
-        ${anexos.length ? anexos.map(a=>`<div class="cr-anexo">
-            <a data-abrir-anexo="${a.id}" title="Abrir em nova aba">${esc(a.nome)}</a>
-            <span class="meta">${[fmtTamanhoArquivo(a.tamanho), a.enviadoEm ? `enviado em ${fmtBRDate(String(a.enviadoEm).slice(0,10))}` : ''].filter(Boolean).join(' · ')}</span>
-            <span class="acoes no-print"><button class="credito-toggle no-print" data-baixar-anexo="${a.id}" title="Baixar">⬇</button><button class="credito-toggle gestor-credito-only no-print" data-del-anexo="${a.id}" title="Excluir anexo">✕</button></span>
-          </div>`).join('')
-          : `<div class="cr-anexos-msg">${anexosCreditoDisponivel ? 'Nenhum arquivo anexado. Anexe o relatório que deu origem a este crédito para deixá-lo arquivado junto do lançamento.' : 'Anexos indisponíveis: é preciso rodar supabase/creditos_anexos.sql no Supabase.'}</div>`}
-      </div>
       ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
           <th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="num">Previsto no pedido</th><th class="num">Faturado (notas)</th><th class="num">Ainda reservado</th><th class="num">Conta no crédito</th><th class="no-print"></th>
         </tr></thead><tbody>${linhas}</tbody>
@@ -12003,22 +12021,10 @@ function renderCreditos(){
   tbody.querySelectorAll('[data-edit-vinculo]').forEach(btn=>{
     btn.addEventListener('click', ()=> startEditVinculo(btn.getAttribute('data-edit-vinculo')));
   });
-  tbody.querySelectorAll('[data-anexo-credito]').forEach(inp=>{
-    inp.addEventListener('change', ()=>{
-      const files = Array.from(inp.files||[]);
-      inp.value = '';
-      enviarAnexosCredito(inp.getAttribute('data-anexo-credito'), files);
-    });
+  tbody.querySelectorAll('[data-anexar-credito]').forEach(btn=>{
+    btn.addEventListener('click', ()=> escolherAnexosCredito(btn.getAttribute('data-anexar-credito')));
   });
-  tbody.querySelectorAll('[data-abrir-anexo]').forEach(a=>{
-    a.addEventListener('click', ()=> abrirAnexoCredito(a.getAttribute('data-abrir-anexo')));
-  });
-  tbody.querySelectorAll('[data-baixar-anexo]').forEach(btn=>{
-    btn.addEventListener('click', ()=> baixarAnexoCredito(btn.getAttribute('data-baixar-anexo')));
-  });
-  tbody.querySelectorAll('[data-del-anexo]').forEach(btn=>{
-    btn.addEventListener('click', ()=> excluirAnexoCredito(btn.getAttribute('data-del-anexo')));
-  });
+  ligarAcoesAnexos(tbody);
   tbody.querySelectorAll('[data-del-vinculo]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const ok = await deleteVinculoCredito(btn.getAttribute('data-del-vinculo'));
@@ -12212,6 +12218,8 @@ function startEditCredito(id){
   document.getElementById('credito-fValor').value = c.valorTotal;
   document.getElementById('credito-fData').value = c.dataDisponibilidade;
   document.getElementById('credito-fDescricao').value = c.descricao;
+  document.getElementById('credito-fAnexos').value = '';
+  renderAnexosFormCredito();
   document.getElementById('credito-formTitle').textContent = '✏️ Editar crédito';
   document.getElementById('credito-btnAdd').textContent = 'Salvar alterações';
   document.getElementById('credito-btnCancelEdit').style.display = 'inline-block';
@@ -12225,6 +12233,8 @@ function cancelEditCredito(){
   document.getElementById('credito-fValor').value = '';
   document.getElementById('credito-fData').value = todayISO();
   document.getElementById('credito-fDescricao').value = '';
+  document.getElementById('credito-fAnexos').value = '';
+  renderAnexosFormCredito();
   document.getElementById('credito-formTitle').textContent = '➕ Lançar crédito';
   document.getElementById('credito-btnAdd').textContent = 'Lançar crédito';
   document.getElementById('credito-btnCancelEdit').style.display = 'none';
@@ -12347,9 +12357,12 @@ async function addCredito(){
   const payload = { empresaBeneficiaria, empresaDevedora, obra, valorTotal: valor, dataDisponibilidade: data, descricao };
   const ok = editingCreditoId ? await updateCredito(editingCreditoId, payload) : await insertCredito(payload);
   if(ok){
+    const creditoId = editingCreditoId || (ok !== true ? ok : null);
+    const arquivos = Array.from(document.getElementById('credito-fAnexos')?.files || []);
     cancelEditCredito();
     await loadCreditos();
     renderCreditos();
+    if(arquivos.length && creditoId != null) await enviarAnexosCredito(creditoId, arquivos);
   }
 }
 
@@ -12681,6 +12694,7 @@ async function init(){
     if(box && !ev.target.closest('.pedido-search-wrap')) box.classList.remove('open');
   });
   document.getElementById('credito-btnAdd').addEventListener('click', addCredito);
+  document.getElementById('credito-fAnexos').addEventListener('change', renderAnexosFormCredito);
   document.getElementById('credito-btnCancelEdit').addEventListener('click', cancelEditCredito);
   document.getElementById('vinculo-btnAdd').addEventListener('click', addVinculoCredito);
   document.getElementById('vinculo-btnCancelEdit').addEventListener('click', cancelEditVinculo);
