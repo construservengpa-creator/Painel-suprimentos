@@ -13075,8 +13075,10 @@ init();
     if(senha.length < 6){ cadMsg.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
     if(senha !== confirma){ cadMsg.textContent = 'As senhas não coincidem.'; return; }
 
+    // o link de confirmação do e-mail volta para este mesmo painel (sem isto o
+    // Supabase usa a "Site URL" do projeto, que pode não ser o endereço do painel)
     const { data, error } = await window.SB.auth.signUp({
-      email, password: senha, options: { data: { nome } }
+      email, password: senha, options: { data: { nome }, emailRedirectTo: window.location.origin + window.location.pathname }
     });
     if(error){
       cadMsg.textContent = error.message && error.message.toLowerCase().includes('already registered')
