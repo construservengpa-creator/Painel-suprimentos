@@ -705,3 +705,35 @@ end $$;
 -- 9. Limpeza de dados de TESTE (rodar manualmente, nunca em produção)
 -- ---------------------------------------------------------------------
 -- truncate public.registros, public.sobras, public.bms;
+
+-- ---------------------------------------------------------------------
+-- 10. Quem pode chamar cada função pela API (o Supabase libera tudo por padrão)
+--     visitante (anon): só as 4 da tela de entrada · usuário logado: só as do app
+-- ---------------------------------------------------------------------
+do $$ declare f record; begin
+  for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.prokind = 'f' loop
+    execute format('revoke execute on function %s from public, anon, authenticated', f.sig);
+  end loop;
+end $$;
+grant execute on function public.bootstrap_needed()        to anon, authenticated;
+grant execute on function public.email_por_login(text)     to anon, authenticated;
+grant execute on function public.login_livre(text)         to anon, authenticated;
+grant execute on function public.lgpd_publico()            to anon, authenticated;
+grant execute on function public.is_active()               to authenticated;   -- usadas nas regras de acesso
+grant execute on function public.is_admin()                to authenticated;
+grant execute on function public.has_perm(text)            to authenticated;
+grant execute on function public.has_any(text[])           to authenticated;
+grant execute on function public.sync_update(text, jsonb)  to authenticated;
+grant execute on function public.estornar_registros(text[], text, text) to authenticated;
+grant execute on function public.excluir_registro(text, text)           to authenticated;
+grant execute on function public.admin_create_user(text, text, text, text) to authenticated;
+grant execute on function public.admin_set_password(uuid, text)         to authenticated;
+grant execute on function public.admin_delete_user(uuid)                to authenticated;
+grant execute on function public.fotos_uso()               to authenticated;
+grant execute on function public.jogo_registrar(integer)   to authenticated;
+grant execute on function public.jogo_ranking()            to authenticated;
+
+alter function public.set_updated_at() set search_path = public;
+alter function public.deny_change()    set search_path = public;
+alter function public._policy(text, text, text, text, text) set search_path = public;
