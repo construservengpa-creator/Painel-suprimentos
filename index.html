@@ -2465,8 +2465,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   .brand-tag{display:none;}
 }
 
-/* ===== Marcas AMETA e RAF (comum a todas as aplicações) =====
-   As logos ficam em Painel-suprimentos/marca/ (ameta.png e raf.png) e todas as
+/* ===== Marca RAF (comum a todas as aplicações) =====
+   A logo fica em Painel-suprimentos/marca/raf.png e todas as
    aplicações usam esses mesmos arquivos: para trocar a logo basta substituí-los.
    O fundo branco garante a leitura das logos em qualquer tema. A capivara passa
    a ser só um detalhe discreto ao lado do nome do módulo. */
@@ -2502,7 +2502,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
 
 <!-- ===== Tela de abertura Capivara ===== -->
 <div id="capAbertura" role="status" aria-label="Carregando Capivara Suprimentos" title="Clique para pular">
-  <span class="emp-logos"><img src="marca/ameta.png" alt="AMETA"><span class="emp-sep" aria-hidden="true"></span><img src="marca/raf.png" alt="RAF"></span>
+  <span class="emp-logos"><img src="marca/raf.png" alt="RAF"></span>
   <div class="cap-nome">Capivara</div>
   <div class="cap-modulo">Suprimentos</div>
   <div class="cap-tag">Painel de Compras · Sienge</div>
@@ -2569,7 +2569,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   <header class="topbar">
     <div class="brand-lockup">
       <button class="sidebar-toggle no-print" id="sidebarToggle" type="button" title="Recolher menu" aria-label="Recolher/expandir menu" aria-controls="mainSidebar" aria-expanded="true">☰</button>
-      <span class="emp-logos"><img src="marca/ameta.png" alt="AMETA"><span class="emp-sep" aria-hidden="true"></span><img src="marca/raf.png" alt="RAF"></span>
+      <span class="emp-logos"><img src="marca/raf.png" alt="RAF"></span>
       <span class="cap-selo" id="logoCapivara"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#capivaraSilhueta"/></svg></span>
       <div>
         <h1 class="brand-title"><span class="cap-marca">Capivara <span class="cap-mod">Suprimentos</span></span> <span class="marca-sub">· Sienge</span></h1>
@@ -20492,7 +20492,7 @@ function relImprimir(){
   const pl=a=>a.geral?'GERAL':esc(a.p);
   const titulo=`Relatório ${anal?'analítico':'resumido'} por aplicação`;
   const emitido=`${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
-  const logo=new URL('marca/ameta.png',location.href).href;
+  const logo=new URL('marca/raf.png',location.href).href;
   const pill=(k,t)=>`<span class="pill ${k||''}">${esc(t)}</span>`;
   const meter=(v,c)=>`<span class="meter"><i style="width:${Math.max(0,Math.min(100,v)).toFixed(1)}%;background:${c}"></i></span>`;
   let sec=0;const h2=(t,extra)=>`<h2${extra||''}><b>${++sec}</b>${esc(t)}</h2>`;
@@ -20591,7 +20591,7 @@ function relImprimir(){
     table.det th{background:#fff;border-top:0;}
     .foot{margin-top:14px;padding-top:6px;border-top:1px solid var(--line);font-size:6.8pt;color:var(--mut);}
   </style></head><body>
-    <header class="top"><img src="${logo}" alt="AMETA" onerror="this.remove();document.querySelector('.sep').remove()"><span class="sep"></span>
+    <header class="top"><img src="${logo}" alt="RAF" onerror="this.remove();document.querySelector('.sep').remove()"><span class="sep"></span>
       <div class="ti"><div class="ey">Frotas · Consumo por aplicação</div><h1>${esc(titulo)}</h1></div>
       <div class="em"><b>Emitido em ${emitido}</b>${int(D.R.length)} aplicaç${D.R.length===1?'ão':'ões'} · ${int(D.nL)} lançamento${D.nL===1?'':'s'}</div></header>
     <div class="ficha">${ficha}</div>
