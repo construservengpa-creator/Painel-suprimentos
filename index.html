@@ -4322,10 +4322,32 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <div class="pxr-filtros">
         <label class="btn small primary pxr-arq" title="Relatório &quot;Apropriações de Insumos&quot; do Sienge (.xlsx), um arquivo por obra. Pode escolher vários de uma vez.">Importar apropriações (.xlsx)<input type="file" id="cpaArq" accept=".xlsx,.xls" multiple></label>
         <label class="btn small pxr-arq" title="Relatório de solicitações do Sienge (.xlsx) com &quot;Observação da solicitação&quot; e &quot;Cód. insumo&quot;: liga cada insumo apropriado à SC e, pelo nº da SC, ao pedido de compra e à nota fiscal do painel">Importar solicitações (.xlsx)<input type="file" id="cpaArqSc" accept=".xlsx,.xls"></label>
+        <button class="btn small" type="button" id="cpaRel" title="Relatório analítico por aplicação, com filtro por tipo de despesa, para imprimir ou exportar em Excel">Relatório analítico</button>
         <button class="btn small" type="button" id="cpaExp">Exportar Excel</button>
       </div>
     </div>
     <div class="cpa-bases" id="cpaBases"></div>
+    <div class="modal-backdrop" id="cpaRelModal">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cpaRelTit">
+        <h3 id="cpaRelTit">Relatório analítico</h3>
+        <p class="cpa-sub" style="margin:0 0 12px">Usa os filtros atuais da tela (obra, unidade, grupo, tipo, busca, apropriado/consumido e subetapas gerais). Escolha os tipos de despesa:</p>
+        <div class="cpa-rel-td" id="cpaRelTd"></div>
+        <div class="cpa-rel-op">
+          <label><input type="checkbox" id="cpaRelTodos"> Todos os tipos</label>
+        </div>
+        <div class="field" style="margin-top:12px"><label for="cpaRelNivel">Conteúdo</label>
+          <select id="cpaRelNivel"><option value="a">Analítico — resumo + lançamentos de cada aplicação</option><option value="r">Resumo — totais por tipo de despesa e por aplicação</option></select></div>
+        <div class="cpa-rel-op">
+          <label><input type="checkbox" id="cpaRelQuebra"> Cada aplicação em nova página (impressão)</label>
+        </div>
+        <div class="ctr-msg" id="cpaRelMsg"></div>
+        <div class="modal-actions">
+          <button class="btn small" type="button" data-relx="1">Cancelar</button>
+          <button class="btn small" type="button" id="cpaRelXls">Exportar Excel</button>
+          <button class="btn small primary" type="button" id="cpaRelImp">Imprimir</button>
+        </div>
+      </div>
+    </div>
     <div class="ctr-msg" id="cpaMsg" style="margin:0 0 12px"></div>
     <div id="cpaCorpo">
       <div class="filters-bar">
@@ -19621,6 +19643,12 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-det table.data tr.cpa-ne td{background:rgba(208,59,59,.06);}
 .cpa-filtro{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;font-size:12.5px;color:var(--text-dim);}
 .cpa-tdesp{margin:0 0 16px;}
+.cpa-rel-td{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+.cpa-rel-td label,.cpa-rel-op label{display:flex;align-items:center;gap:8px;font:500 13px var(--font-body);color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;}
+.cpa-rel-td label{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:6px;padding:7px 10px;}
+.cpa-rel-td label span{margin-left:auto;font-size:11.5px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
+.cpa-rel-op{margin-top:10px;}
+#cpaRelMsg:empty{display:none;}
 .cpa-tdbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--asphalt-3);margin-bottom:12px;}
 .cpa-tdbar i{display:block;height:100%;}
 .cpa-tdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;}
@@ -20257,6 +20285,153 @@ async function exportar(){
   XLSX.writeFile(wb,'consumo_por_aplicacao_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
+/* ---------- relatório analítico (impressão e Excel) ---------- */
+// cores fixas (tema claro) para o papel e para a legenda
+const TD_HEX={lic:'#2a78d6',seg:'#eb6834',plano:'#1baf7a',pecas:'#eda100',serv:'#e87ba4',outros:'#9aa3ad'};
+function relDados(tds){
+  const sel=new Set(tds),td=st.td;st.td='';
+  let R;try{R=base().apps.filter(a=>st.gerais||!a.geral).map(agg)}finally{st.td=td}
+  R=R.map(r=>{const L=r.L.filter(l=>sel.has(l.td));const pt={},pn={};TDESP.forEach(([k])=>{pt[k]=0;pn[k]=0});let v=0;
+      L.forEach(l=>{const x=V(l);pt[l.td]+=x;pn[l.td]++;v+=x});return {a:r.a,L,v,pt,pn}}).filter(r=>r.L.length);
+  const ap=(x,y)=>(x.a.p||'~'+x.a.d).localeCompare(y.a.p||'~'+y.a.d,'pt-BR',{numeric:true});
+  R.sort(st.sort==='p'?ap:(x,y)=>y.v-x.v||ap(x,y));
+  const ordTd=Object.fromEntries(TDESP.map(([k],i)=>[k,i]));
+  R.forEach(r=>r.L=[...r.L].sort((x,y)=>ordTd[x.td]-ordTd[y.td]||V(y)-V(x)||String(x.ins).localeCompare(String(y.ins),'pt-BR')));
+  const T={};TDESP.forEach(([k])=>T[k]={v:0,n:0,apps:0});
+  let tot=0,nL=0;const ins=new Set();
+  R.forEach(r=>{tot+=r.v;nL+=r.L.length;r.L.forEach(l=>ins.add(l.cod));TDESP.forEach(([k])=>{T[k].v+=r.pt[k];T[k].n+=r.pn[k];if(r.pn[k])T[k].apps++})});
+  return {R,T,tot,nL,ins:ins.size,tds:TDESP.filter(([k])=>sel.has(k)),cruz:base().cruzado};
+}
+function relFiltros(tds){
+  const f=[];
+  if(st.obra){const o=OBRAS.get(st.obra);f.push(['Obra',o?o.obra_nome:st.obra])}
+  if(st.uni)f.push(['Unidade construtiva',st.uni]);
+  if(st.grupo)f.push(['Grupo',st.grupo]);
+  if(st.tp)f.push(['Tipo',st.tp]);
+  if(st.q.trim())f.push(['Busca',st.q.trim()]);
+  f.push(['Tipos de despesa',tds.length===TDESP.length?'Todos':tds.map(k=>TD_NOME[k]).join(', ')]);
+  f.push(['Valor',st.met==='c'?'Consumido':'Apropriado']);
+  f.push(['Subetapas gerais',st.gerais?'Incluídas':'Não incluídas']);
+  const per=[...OBRAS.values()].map(o=>o.periodo).filter(Boolean);
+  if(per.length)f.push(['Período das apropriações',[...new Set(per)].join(' · ')]);
+  return f;
+}
+const relTds=()=>[...$('cpaRelTd').querySelectorAll('input:checked')].map(i=>i.value);
+function relAbrir(){
+  if(!temAcesso()){msg('Sem acesso a Frotas.',false);return}
+  if(!OBRAS.size){msg('Importe o relatório de apropriações antes de gerar o relatório.',false);return}
+  const D=relDados(TDESP.map(([k])=>k));
+  $('cpaRelTd').innerHTML=TDESP.map(([k,n])=>`<label style="--c:${TD_HEX[k]}"><input type="checkbox" value="${k}"${!st.td||st.td===k?' checked':''}> ${esc(n)}<span>${brl0(D.T[k].v)}</span></label>`).join('');
+  $('cpaRelTodos').checked=!st.td;$('cpaRelMsg').textContent='';$('cpaRelMsg').className='ctr-msg';
+  $('cpaRelModal').classList.add('open');
+}
+const relFechar=()=>$('cpaRelModal').classList.remove('open');
+function relValida(){
+  const tds=relTds();
+  if(!tds.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Escolha ao menos um tipo de despesa.';return null}
+  const D=relDados(tds);
+  if(!D.R.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Nenhum lançamento com esses tipos de despesa e os filtros atuais.';return null}
+  return {tds,D};
+}
+const pct=(v,t)=>t?(v/t*100).toFixed(1).replace('.',',')+'%':'—';
+function relImprimir(){
+  const x=relValida();if(!x)return;const {tds,D}=x;
+  const anal=$('cpaRelNivel').value==='a',quebra=$('cpaRelQuebra').checked,agora=new Date();
+  const rot=st.met==='c'?'Valor consumido':'Valor apropriado',qtdRot=st.met==='c'?'Qtd. consumida':'Qtd. apropriada';
+  const cols=D.tds,sw=k=>`<i class="d" style="background:${TD_HEX[k]}"></i>`;
+  const pl=a=>a.geral?'geral':esc(a.p);
+  const resTd=`<table class="t"><thead><tr><th>Tipo de despesa</th><th class="n">${rot}</th><th class="n">%</th><th class="n">Lançamentos</th><th class="n">Aplicações</th></tr></thead><tbody>
+    ${cols.map(([k,n])=>`<tr><td>${sw(k)}${esc(n)}</td><td class="n">${brl(D.T[k].v)}</td><td class="n">${pct(D.T[k].v,D.tot)}</td><td class="n">${int(D.T[k].n)}</td><td class="n">${int(D.T[k].apps)}</td></tr>`).join('')}
+    <tr class="tot"><td>Total</td><td class="n">${brl(D.tot)}</td><td class="n">100%</td><td class="n">${int(D.nL)}</td><td class="n">${int(D.R.length)}</td></tr></tbody></table>`;
+  const barra=`<div class="bar">${cols.filter(([k])=>D.T[k].v>0).map(([k])=>`<i style="width:${(D.T[k].v/(D.tot||1)*100).toFixed(2)}%;background:${TD_HEX[k]}"></i>`).join('')}</div>`;
+  const multi=cols.length>1;
+  const resApp=`<table class="t"><thead><tr><th style="width:62px">Prefixo</th><th>Aplicação</th><th class="n" style="width:42px">Lanç.</th>${multi?cols.map(([k,n])=>`<th class="n">${sw(k)}${esc(n)}</th>`).join(''):''}<th class="n">${multi?'Total':rot}</th><th class="n" style="width:46px">%</th></tr></thead><tbody>
+    ${D.R.map(r=>`<tr><td class="pf">${pl(r.a)}</td><td>${esc(r.a.d)}${r.a.extra?`<div class="mut">${esc(r.a.extra)}</div>`:''}</td><td class="n">${int(r.L.length)}</td>${multi?cols.map(([k])=>`<td class="n">${r.pt[k]?brl(r.pt[k]):'—'}</td>`).join(''):''}<td class="n"><b>${brl(r.v)}</b></td><td class="n">${pct(r.v,D.tot)}</td></tr>`).join('')}
+    <tr class="tot"><td colspan="2">Total (${int(D.R.length)} aplicaç${D.R.length===1?'ão':'ões'})</td><td class="n">${int(D.nL)}</td>${multi?cols.map(([k])=>`<td class="n">${brl(D.T[k].v)}</td>`).join(''):''}<td class="n">${brl(D.tot)}</td><td class="n">100%</td></tr></tbody></table>`;
+  const det=!anal?'':D.R.map((r,i)=>{
+    const sub=cols.filter(([k])=>r.pn[k]).map(([k,n])=>`<span>${sw(k)}${esc(n)} <b>${brl(r.pt[k])}</b> (${pct(r.pt[k],r.v)})</span>`).join('');
+    return `<section class="app${quebra&&i?' qb':''}"><div class="ah"><span class="plate">${pl(r.a)}</span><div class="an"><b>${esc(r.a.d)}</b><div class="mut">${esc(r.a.tipo)}${r.a.extra?' · '+esc(r.a.extra):''}</div></div><div class="av">${brl(r.v)}<div class="mut">${int(r.L.length)} lançamento${r.L.length===1?'':'s'}</div></div></div>
+      ${multi?`<div class="eq">${sub}</div>`:''}
+      <table class="t"><thead><tr><th style="width:${D.cruz?'21%':'27%'}">Insumo</th><th>Detalhe</th>${multi?'<th style="width:104px">Tipo de despesa</th>':''}<th style="width:${D.cruz?'11%':'15%'}">Unidade construtiva</th><th class="n" style="width:62px">${qtdRot}</th><th class="n" style="width:76px">${rot}</th>${D.cruz?'<th style="width:50px">SC</th><th style="width:54px">Pedido</th><th style="width:13%">Fornecedor</th><th style="width:56px">NF</th>':''}</tr></thead><tbody>
+      ${r.L.map(l=>`<tr><td><span class="cod">${esc(l.cod)}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td>${multi?`<td class="td">${sw(l.td)}${esc(TD_NOME[l.td])}${l.tdSub?`<div class="mut">${esc(l.tdSub)}</div>`:''}</td>`:''}<td class="mut">${esc(l.uni)}</td><td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td class="n">${brl(V(l))}</td>${D.cruz?`<td>${l.sc?esc(l.sc.n)+(l.scProv?'<div class="mut">provável</div>':''):'—'}</td><td>${l.ped&&l.ped.ped?esc(l.ped.ped):''}</td><td>${l.ped?esc(l.ped.forn||''):''}</td><td>${l.ped?l.ped.nfs.map(n=>esc(n.n)).join('<br>'):''}</td>`:''}</tr>`).join('')}
+      <tr class="tot"><td colspan="${multi?5:4}">Total da aplicação</td><td class="n">${brl(r.v)}</td>${D.cruz?'<td colspan="4"></td>':''}</tr></tbody></table></section>`}).join('');
+  const filt=relFiltros(tds).map(([k,v])=>`<span><b>${esc(k)}:</b> ${esc(v)}</span>`).join('');
+  const doc=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório analítico por aplicação</title><style>
+    @page{size:A4 ${anal&&D.cruz||cols.length>3?'landscape':'portrait'};margin:10mm 9mm 11mm;}
+    *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    body{font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:8.2pt;color:#1d2228;margin:0;}
+    h1{font-size:14pt;margin:0;font-weight:700;}
+    h2{font-size:10pt;margin:12px 0 5px;text-transform:uppercase;letter-spacing:.4px;break-after:avoid;}
+    .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d2228;padding-bottom:5px;margin-bottom:7px;}
+    .top .mut{text-align:right;}
+    .mut{color:#667080;font-size:7.3pt;line-height:1.35;}
+    .fil{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:7.4pt;color:#4b5563;margin-bottom:8px;}
+    .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px;}
+    .kp div{border:1px solid #d5d9df;border-radius:4px;padding:5px 7px;}
+    .kp b{display:block;font-size:11pt;margin-top:1px;}
+    .bar{display:flex;height:7px;background:#e6e9ed;border-radius:3px;overflow:hidden;margin:2px 0 6px;}
+    .bar i{display:block;height:100%;}
+    .d{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;vertical-align:0;}
+    table.t{width:100%;border-collapse:collapse;font-size:inherit;}
+    td.td{overflow-wrap:normal;white-space:nowrap;}
+    th{font-size:6.8pt;text-transform:uppercase;letter-spacing:.3px;color:#4b5563;text-align:left;border-bottom:1px solid #9aa3ad;padding:3px 4px;vertical-align:bottom;}
+    td{padding:3px 4px;border-bottom:1px solid #e3e6ea;vertical-align:top;overflow-wrap:anywhere;}
+    tr{break-inside:avoid;}
+    thead{display:table-header-group;}
+    .n{text-align:right;} td.n{white-space:nowrap;font-variant-numeric:tabular-nums;}
+    tr.tot td{font-weight:700;border-top:1px solid #9aa3ad;border-bottom:0;}
+    .pf,.cod{font-family:Consolas,"Courier New",monospace;font-size:7.4pt;}
+    .cod{color:#667080;}
+    .app{margin:0 0 10px;}
+    .app.qb{break-before:page;}
+    .ah{display:flex;gap:9px;align-items:center;border:1px solid #cfd4da;border-left:4px solid #f2a900;border-radius:4px;padding:5px 8px;margin-bottom:4px;break-after:avoid;}
+    .plate{font:700 8.6pt Consolas,"Courier New",monospace;background:#f2a900;color:#1d2228;border-radius:3px;padding:2px 6px;white-space:nowrap;}
+    .an{flex:1;min-width:0;} .an b{font-size:9.2pt;}
+    .av{text-align:right;font-weight:700;font-size:10pt;white-space:nowrap;}
+    .eq{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:7.4pt;margin:0 0 4px;break-after:avoid;}
+    .foot{margin-top:8px;font-size:7pt;color:#8a929c;}
+  </style></head><body>
+    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos · Frotas</div><h1>Relatório ${anal?'analítico':'resumido'} por aplicação</h1></div>
+      <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${int(D.R.length)} aplicação(ões) · ${int(D.nL)} lançamento(s)</div></div>
+    <div class="fil">${filt}</div>
+    <div class="kp"><div><span class="mut">${rot}</span><b>${brl(D.tot)}</b></div><div><span class="mut">Aplicações</span><b>${int(D.R.length)}</b></div><div><span class="mut">Lançamentos</span><b>${int(D.nL)}</b></div><div><span class="mut">Insumos distintos</span><b>${int(D.ins)}</b></div></div>
+    <h2>Por tipo de despesa</h2>${barra}${resTd}
+    <h2>Por aplicação</h2>${resApp}
+    ${anal?`<h2${quebra?' style="break-before:page"':''}>Lançamentos por aplicação</h2>${det}`:''}
+    <div class="foot">Fonte: relatório Apropriações de Insumos do Sienge${D.cruz?', cruzado com o relatório de solicitações e com pedidos e notas fiscais do painel':''}. Tipo de despesa classificado pelo nome e pelo detalhe do insumo.</div>
+  </body></html>`;
+  const fr=document.createElement('iframe');
+  fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(fr);
+  const d=fr.contentWindow.document;d.open();d.write(doc);d.close();
+  relFechar();
+  setTimeout(()=>{fr.contentWindow.focus();fr.contentWindow.print();setTimeout(()=>fr.remove(),1500)},350);
+}
+async function relExcel(){
+  const x=relValida();if(!x)return;const {tds,D}=x;
+  try{await garantirXLSX()}catch(e){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent=e.message;return}
+  const anal=$('cpaRelNivel').value==='a',rot=st.met==='c'?'Valor consumido':'Valor apropriado',multi=D.tds.length>1;
+  const filtros=[['Relatório',(anal?'Analítico':'Resumido')+' por aplicação'],['Emitido em',new Date().toLocaleString('pt-BR')],...relFiltros(tds),['Aplicações',D.R.length],['Lançamentos',D.nL],[rot,r2(D.tot)]].map(([k,v])=>({'Campo':k,'Valor':v}));
+  const porTd=D.tds.map(([k,n])=>({'Tipo de despesa':n,[rot]:r2(D.T[k].v),'%':D.tot?r2(D.T[k].v/D.tot*100):0,'Lançamentos':D.T[k].n,'Aplicações':D.T[k].apps}));
+  porTd.push({'Tipo de despesa':'Total',[rot]:r2(D.tot),'%':100,'Lançamentos':D.nL,'Aplicações':D.R.length});
+  const apps=D.R.map(r=>Object.assign({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'Identificação':r.a.extra||'','Grupo':r.a.grupo,'Tipo':r.a.tipo,'Lançamentos':r.L.length},
+    multi?Object.fromEntries(D.tds.map(([k,n])=>[n,r2(r.pt[k])])):{},{[multi?'Total':rot]:r2(r.v),'%':D.tot?r2(r.v/D.tot*100):0}));
+  const wb=XLSX.utils.book_new();
+  const ws=(rows,w)=>{const s=XLSX.utils.json_to_sheet(rows);if(w)s['!cols']=w.map(c=>({wch:c}));return s};
+  XLSX.utils.book_append_sheet(wb,ws(filtros,[26,70]),'Filtros');
+  XLSX.utils.book_append_sheet(wb,ws(porTd,[24,18,8,13,12]),'Por tipo de despesa');
+  XLSX.utils.book_append_sheet(wb,ws(apps,[11,48,28,22,40,12]),'Por aplicação');
+  if(anal){
+    const L=[];D.R.forEach(r=>r.L.forEach(l=>L.push(Object.assign({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'Obra':l.obraNome,'Unidade construtiva':l.uni,'Cód. insumo':l.cod,'Insumo':l.ins,'Detalhe':l.det,'Tipo de despesa':TD_NOME[l.td],'Subtipo':l.tdSub||'','Un.':l.un,
+      [st.met==='c'?'Qtd. consumida':'Qtd. apropriada']:st.met==='c'?l.qC:l.qA,[rot]:r2(V(l))},
+      D.cruz?{'SC':l.sc?+l.sc.n:'','Data SC':l.sc?brDt(l.sc.dt):'','Ligação':l.sc?(l.scProv?'Provável':'Confere'):'','Pedido':l.ped&&l.ped.ped?l.ped.ped:'','Fornecedor':l.ped?l.ped.forn||'':'','NF':l.ped?l.ped.nfs.map(n=>n.n).join(', '):'','Entrega':l.ped?l.ped.ent||'':''}:{}))));
+    XLSX.utils.book_append_sheet(wb,ws(L,[11,40,22,26,11,36,36,20,14,6,13,15,9,11,9,10,30,14,16]),'Lançamentos');
+  }
+  const nomeTd=tds.length===TDESP.length?'todos':tds.join('-');
+  XLSX.writeFile(wb,`relatorio_aplicacao_${nomeTd}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  relFechar();
+}
+
 /* ---------- eventos ---------- */
 let tm;
 $('cpaQ').addEventListener('input',e=>{clearTimeout(tm);tm=setTimeout(()=>{st.q=e.target.value;render()},200)});
@@ -20281,6 +20456,13 @@ $('cpaBases').addEventListener('click',e=>{const b=e.target.closest('[data-rm]')
 $('cpaArq').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importar(f)};
 $('cpaArqSc').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)importarSolicitacoes(f)};
 $('cpaExp').onclick=exportar;
+$('cpaRel').onclick=relAbrir;
+$('cpaRelImp').onclick=relImprimir;
+$('cpaRelXls').onclick=relExcel;
+$('cpaRelModal').addEventListener('click',e=>{if(e.target===e.currentTarget||e.target.closest('[data-relx]'))relFechar()});
+$('cpaRelModal').addEventListener('keydown',e=>{if(e.key==='Escape')relFechar()});
+$('cpaRelTodos').addEventListener('change',e=>$('cpaRelTd').querySelectorAll('input').forEach(i=>i.checked=e.target.checked));
+$('cpaRelTd').addEventListener('change',()=>{const I=[...$('cpaRelTd').querySelectorAll('input')];$('cpaRelTodos').checked=I.every(i=>i.checked)});
 document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();SCX=null;versao++;
   if(!temAcesso()&&['tab-frotas','tab-consumo'].some(id=>$(id).classList.contains('active'))){const ini=document.querySelector('.tab-btn[data-tab="overview"]');if(ini)ini.click();return}
   render();renderDash()});
