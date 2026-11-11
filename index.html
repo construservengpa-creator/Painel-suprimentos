@@ -4331,7 +4331,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <div class="modal cpa-rel" role="dialog" aria-modal="true" aria-labelledby="cpaRelTit">
         <header class="cpa-rel-head">
           <div><h3 id="cpaRelTit">Relatório analítico</h3>
-            <p>Parte dos filtros da tela (obra, unidade, grupo, tipo, busca, apropriado ou consumido e subetapas gerais) e permite refinar abaixo.</p></div>
+            <p>Parte dos filtros da tela (obras, unidades, grupos, tipos, busca, período, apropriado ou consumido e subetapas gerais) e permite refinar abaixo.</p></div>
           <button type="button" class="cpa-rel-x" data-relx="1" aria-label="Fechar">×</button>
         </header>
         <div class="cpa-rel-cols">
@@ -4379,14 +4379,20 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     <div id="cpaCorpo">
       <div class="filters-bar">
         <div class="field cpa-grow"><label for="cpaQ">Buscar</label><input type="text" id="cpaQ" placeholder="prefixo, equipamento, placa, insumo, código…"></div>
-        <div class="field"><label for="cpaObra">Obra</label><select id="cpaObra"><option value="">Todas</option></select></div>
-        <div class="field"><label for="cpaUni">Unidade construtiva</label><select id="cpaUni"><option value="">Todas</option></select></div>
-        <div class="field"><label for="cpaGrupo">Grupo</label><select id="cpaGrupo"><option value="">Todos</option></select></div>
-        <div class="field"><label for="cpaTp">Tipo</label><select id="cpaTp"><option value="">Todos</option></select></div>
-        <div class="field"><label for="cpaTd">Tipo de despesa</label><select id="cpaTd"><option value="">Todos</option><option value="lic">Licenciamento</option><option value="seg">Seguro</option><option value="plano">Plano de manutenção</option><option value="pecas">Peças</option><option value="serv">Serviços</option><option value="outros">Outros</option></select></div>
+        <div class="field"><label for="cpaObra">Obra</label><select id="cpaObra" multiple><option value="">Todas</option></select></div>
+        <div class="field"><label for="cpaUni">Unidade construtiva</label><select id="cpaUni" multiple><option value="">Todas</option></select></div>
+        <div class="field"><label for="cpaGrupo">Grupo</label><select id="cpaGrupo" multiple><option value="">Todos</option></select></div>
+        <div class="field"><label for="cpaTp">Tipo</label><select id="cpaTp" multiple><option value="">Todos</option></select></div>
+        <div class="field"><label for="cpaTd">Tipo de despesa</label><select id="cpaTd" multiple><option value="">Todos</option><option value="lic">Licenciamento</option><option value="seg">Seguro</option><option value="plano">Plano de manutenção</option><option value="pecas">Peças</option><option value="serv">Serviços</option><option value="outros">Outros</option></select></div>
         <div class="field"><label>Valor</label>
           <div class="cpa-seg" id="cpaMet"><button type="button" data-m="a" aria-pressed="true">Apropriado</button><button type="button" data-m="c" aria-pressed="false">Consumido</button></div></div>
+        <div class="field"><label for="cpaPerRef">Período por</label><select id="cpaPerRef"><option value="sc">Data da SC</option><option value="nf">Data da NF</option></select></div>
+        <div class="field"><label for="cpaPerAt">Período</label><select id="cpaPerAt"><option value="">Todo o período</option><option value="mes">Este mês</option><option value="mesAnt">Mês anterior</option><option value="3m">Últimos 3 meses</option><option value="6m">Últimos 6 meses</option><option value="ano">Este ano</option><option value="anoAnt">Ano anterior</option><option value="custom">Personalizado</option></select></div>
+        <div class="field cpa-per-dt"><label for="cpaDe">De</label><input type="date" class="cpa-date" id="cpaDe"></div>
+        <div class="field cpa-per-dt"><label for="cpaAte">Até</label><input type="date" class="cpa-date" id="cpaAte"></div>
         <label class="cpa-chk" title="Subetapas sem prefixo de equipamento: estoque, almoxarifado, ferramentas, despesas…"><input type="checkbox" id="cpaGerais"> Incluir subetapas gerais</label>
+        <button type="button" class="btn small cpa-limpar" id="cpaLimpar" hidden>Limpar filtros</button>
+        <p class="cpa-per-aj" id="cpaPerAj" hidden></p>
       </div>
       <div class="kpi-grid" id="cpaKpis"></div>
       <section class="ctr-card cpa-tdesp" aria-label="Valores por tipo de despesa"><header><h3>Por tipo de despesa</h3><p id="cpaTdSub">clique num tipo para filtrar</p></header><div class="ctr-body"><div class="cpa-tdbar" id="cpaTdBar"></div><div class="cpa-tdgrid" id="cpaTdGrid"></div></div></section>
@@ -4407,6 +4413,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
           <p><b>Apropriado em lançamento agrupado.</b> A apropriação costuma somar vários itens de SC do mesmo insumo numa linha. Um item sem lançamento próprio aparece como <b>apropriado</b> quando a quantidade apropriada do insumo na aplicação ainda cobre a quantidade atendida dele (validado pela quantidade, na ordem das SCs); o valor fica somado no lançamento do insumo.</p>
           <p><b>Pedido cancelado.</b> Quando o pedido está "Cancelado" mas o item tem quantidade entregue ou nota fiscal, só o saldo restante foi cancelado: o item conta como <b>entregue</b>.</p>
           <p><b>A apropriar.</b> Nos cartões das solicitações, itens marcados <b>a apropriar</b> são de SCs a partir do início do período que citam o prefixo e não foram encontrados nas apropriações daquela aplicação: compras em andamento, entregas pendentes ou itens apropriados em outra subetapa ou obra. Não têm valor: o relatório de solicitações não traz preço.</p>
+          <p><b>Filtros.</b> Obra, unidade construtiva, grupo, tipo e tipo de despesa aceitam várias escolhas ao mesmo tempo (nos cartões de tipo de despesa, cada clique marca ou desmarca um tipo). O <b>período</b> usa a data da solicitação ou a data da nota fiscal: entram só os lançamentos ligados a uma SC (ou NF) dentro do período, porque a apropriação não traz data; exige o relatório de solicitações importado.</p>
           <p><b>Tipo de despesa.</b> Pelo nome e pelo detalhe do insumo: <b>Licenciamento</b> (emplacamento, licenciamento, IPVA, DPVAT, AET, vistoria, despachante de documentação), <b>Seguro</b> (despesas de seguro e apólices), <b>Plano de manutenção</b> (prestação de serviços de plano de manutenção), <b>Serviços</b> (prestações de serviço, mão de obra, frete, monitoramento, recondicionamento), <b>Peças</b> (peças, pneus, filtros, lubrificantes e demais materiais) e <b>Outros</b> (aquisição de veículo ou máquina e combustível).</p>
           <p><b>Valores.</b> <b>Apropriado</b> é o valor dos insumos apropriados à subetapa; <b>consumido</b>, o valor que já saiu como consumo. O tipo e o grupo vêm da etapa (ex.: EQUIPAMENTOS PESADOS - MOTONIVELADORA). Os totais conferem com o total da obra no próprio relatório.</p>
         </div>
@@ -9041,9 +9048,8 @@ document.getElementById('fNfSearch').addEventListener('change', renderSemNF);
   }
   function fechar(){ pop.classList.remove('open'); atual = null; }
 
-  MULTI_FILTER_IDS.forEach(id=>{
-    const sel = document.getElementById(id);
-    if(!sel || !sel.multiple) return;
+  function montar(sel){
+    if(!sel || !sel.multiple || sel._msBtn) return;
     sel.style.display = 'none';
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'ms-btn';
@@ -9056,8 +9062,12 @@ document.getElementById('fNfSearch').addEventListener('change', renderSemNF);
       if(atual && atual.sel===sel){ fechar(); return; }
       abrir(sel, btn);
     });
+    sel._msBtn = btn;
     refreshBtn(sel, btn);
-  });
+  }
+  MULTI_FILTER_IDS.forEach(id=>montar(document.getElementById(id)));
+  // outras telas montam seus próprios filtros de múltipla seleção
+  window.msMontar = montar;
 
   busca.addEventListener('input', renderList);
   function marcarVisiveis(valor){
@@ -19596,6 +19606,10 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-seg button{background:var(--asphalt-3);color:var(--text-dim);border:0;border-right:1px solid var(--line);padding:8px 11px;font:500 12.5px var(--font-body);cursor:pointer;}
 .cpa-seg button:last-child{border-right:0;}
 .cpa-seg button[aria-pressed="true"]{background:var(--yellow);color:#1A1E24;font-weight:600;}
+.cpa-limpar{align-self:flex-end;margin-bottom:1px;}
+.cpa-per-aj{flex-basis:100%;margin:0;font-size:12px;color:var(--text-dim);}
+.cpa-per-aj b{color:var(--text);}
+#cpaCorpo .filters-bar .ms-btn{min-width:150px;}
 .cpa-chk{display:flex !important;align-items:center;gap:6px;font:500 12.5px var(--font-body) !important;text-transform:none !important;letter-spacing:0 !important;color:var(--text-dim) !important;margin:16px 0 0 !important;cursor:pointer;}
 .cpa-menu{position:relative;}
 .cpa-menu-pop{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:230px;background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;padding:4px;box-shadow:0 12px 28px rgba(0,0,0,.45);}
@@ -20151,26 +20165,35 @@ function cobertura(){
 }
 
 /* ---------- filtros e agregação ---------- */
-const st={q:'',obra:'',uni:'',grupo:'',tp:'',td:'',naoEnt:false,met:'a',sort:'v',gerais:false,sel:null,tab:'sc',limite:60,limiteSel:null};
+// obra, uni, grupo, tp e td são listas (vazia = todos); per = período pela data da SC ou da NF
+const st={q:'',obra:[],uni:[],grupo:[],tp:[],td:[],per:{ref:'sc',de:'',ate:''},naoEnt:false,met:'a',sort:'v',gerais:false,sel:null,tab:'sc',limite:60,limiteSel:null};
 try{const s=JSON.parse(localStorage.getItem('cpa-ui2')||'{}');if(s.sort)st.sort=s.sort;if(s.met)st.met=s.met;if(s.gerais!=null)st.gerais=s.gerais}catch(e){}
 const salvarUi=()=>{try{localStorage.setItem('cpa-ui2',JSON.stringify({sort:st.sort,met:st.met,gerais:st.gerais}))}catch(e){}};
 const V=l=>st.met==='c'?l.vC:l.vA;
-const noFiltro=l=>(!st.obra||l.obra===st.obra)&&(!st.uni||l.uni===st.uni)&&(!st.grupo||l.grupo===st.grupo)&&(!st.tp||l.tipo===st.tp)&&(!st.td||l.td===st.td);
+const MULTI=['obra','uni','grupo','tp','td'];
+const lista=v=>Array.isArray(v)?v.filter(x=>x!==''&&x!=null):v?[v]:[];
+const tem=(arr,v)=>!arr.length||arr.includes(v);
+const perAtivo=()=>!!(st.per&&(st.per.de||st.per.ate)&&base().cruzado);
+const naData=iso=>{const P=st.per;return !!iso&&(!P.de||iso>=P.de)&&(!P.ate||iso<=P.ate)};
+const noFiltro=l=>tem(st.obra,l.obra)&&tem(st.uni,l.uni)&&tem(st.grupo,l.grupo)&&tem(st.tp,l.tipo)&&tem(st.td,l.td);
+// período: o lançamento entra pela SC ligada (ou pela NF do pedido); itens de SC pela data da SC ou da NF
+const noPerL=l=>!perAtivo()||naData(st.per.ref==='nf'?dataNf(l.ped):l.sc?l.sc.dt:'');
+const noPerI=x=>!perAtivo()||naData(st.per.ref==='nf'?dataNf(x.p):x.it.s.dt);
 function agg(a){
   const q=up(st.q.trim()),qf=q.replace(/[^A-Z0-9]/g,'');
   const appHit=!q||a._txt.includes(q)||(qf.length>=2&&a._flat&&a._flat.includes(qf));
-  let L=a.lancs.filter(noFiltro);
+  let L=a.lancs.filter(l=>noFiltro(l)&&noPerL(l));
   if(!appHit)L=L.filter(l=>l._txt.includes(q));
   let vA=0,vC=0,vO=0,vSc=0,vPed=0;const unis=new Set(),ins=new Set();
   L.forEach(l=>{vA+=l.vA;vC+=l.vC;vO+=l.vO;unis.add(l.obra+'§'+l.uni);ins.add(l.cod);if(l.sc){vSc+=l.vA;if(l.ped&&l.ped.ped)vPed+=l.vA}});
   const pt={};TDESP.forEach(([k])=>pt[k]={vA:0,vC:0,n:0});
   L.forEach(l=>{const o=pt[l.td];o.vA+=l.vA;o.vC+=l.vC;o.n++});
-  const apr=st.uni?[]:(a.aApropriar||[]).filter(x=>(!st.td||tipoDespesa(x.it.ins,x.it.det)[0]===st.td)&&(!st.obra||x.it.s.obra===st.obra)&&(appHit||up(x.it.s.n+' '+x.it.cod+' '+x.it.ins+' '+x.it.det).includes(q)));
+  const apr=st.uni.length?[]:(a.aApropriar||[]).filter(x=>tem(st.td,tipoDespesa(x.it.ins,x.it.det)[0])&&tem(st.obra,x.it.s.obra)&&noPerI(x)&&(appHit||up(x.it.s.n+' '+x.it.cod+' '+x.it.ins+' '+x.it.det).includes(q)));
   // solicitações da aplicação: as ligadas a lançamentos + as que têm itens a apropriar
   const scs=new Map(),semSc=[];
   const grp=s=>{let g=scs.get(s.n);if(!g){g={s,itens:new Map()};scs.set(s.n,g)}return g};
   L.forEach(l=>{if(!l.sc){semSc.push(l);return}const g=grp(l.sc);let e=g.itens.get(l.scItem);if(!e){e={it:l.scItem,p:l.ped,lancs:[]};g.itens.set(l.scItem,e)}e.lancs.push(l)});
-  const agr=st.uni?[]:(a.agrupados||[]).filter(x=>(!st.td||tipoDespesa(x.it.ins,x.it.det)[0]===st.td)&&(!st.obra||x.it.s.obra===st.obra)&&(appHit||up(x.it.s.n+' '+x.it.cod+' '+x.it.ins+' '+x.it.det).includes(q)));
+  const agr=st.uni.length?[]:(a.agrupados||[]).filter(x=>tem(st.td,tipoDespesa(x.it.ins,x.it.det)[0])&&tem(st.obra,x.it.s.obra)&&noPerI(x)&&(appHit||up(x.it.s.n+' '+x.it.cod+' '+x.it.ins+' '+x.it.det).includes(q)));
   agr.forEach(({it,p,g:ga})=>{const g=grp(it.s);if(!g.itens.has(it))g.itens.set(it,{it,p,lancs:[],agrup:ga})});
   apr.forEach(({it,p})=>{const g=grp(it.s);if(!g.itens.has(it))g.itens.set(it,{it,p,lancs:[],apr:true})});
   let nItens=semSc.length,nEnt=semSc.length;const peds=new Set(),nfs=new Map();
@@ -20195,18 +20218,41 @@ function bases(){
   if(SCX)L.push(Object.assign({},SCX,{periodo:SCX.periodo,total_linhas:SCX.total_linhas}));
   $('cpaBases').innerHTML=L.length?L.map(x=>`<span class="cpa-base" title="${esc(x.nome_arquivo||'')}"><b>${esc(x.obra_nome)}</b> · ${esc(x.periodo||'')} · ${int(x.total_linhas)} ${x.obra===SC_KEY?'itens de SC':'lançamentos'} · importado em ${x.importado_em?new Date(x.importado_em).toLocaleDateString('pt-BR'):'—'} · ${x.fonte==='nuvem'?'gravado para todos':'só neste navegador'}<button type="button" class="cpa-base-x" data-rm="${esc(x.obra)}" title="Remover a base desta obra" aria-label="Remover a base da obra ${esc(x.obra_nome)}">×</button></span>`).join(''):'';
 }
-function enche(id,lista,todos,chave){
-  const el=$(id),atual=st[chave];
-  el.innerHTML=`<option value="">${todos}</option>`+lista.map(([v,t])=>`<option value="${esc(v)}"${v===atual?' selected':''}>${esc(t)}</option>`).join('');
-  if(atual&&!lista.some(([v])=>v===atual)){st[chave]='';el.value=''}
+function enche(id,ops,todos,chave){
+  const el=$(id);
+  // mantém só as escolhas que ainda existem com os demais filtros
+  st[chave]=st[chave].filter(v=>ops.some(([x])=>x===v));
+  el.innerHTML=`<option value="">${todos}</option>`+ops.map(([v,t])=>`<option value="${esc(v)}"${st[chave].includes(v)?' selected':''}>${esc(t)}</option>`).join('');
+  el.dispatchEvent(new Event('ms-sync'));
 }
 function opcoes(B){
   const ord=(a,b)=>a[1].localeCompare(b[1],'pt-BR',{numeric:true});
   enche('cpaObra',[...OBRAS.values()].map(x=>[x.obra,x.obra_nome]).sort(ord),'Todas','obra');
-  const L=B.lancs.filter(l=>!st.obra||l.obra===st.obra);
+  const L=B.lancs.filter(l=>tem(st.obra,l.obra));
   enche('cpaUni',[...new Set(L.map(l=>l.uni))].map(u=>[u,u]).sort(ord),'Todas','uni');
   enche('cpaGrupo',[...new Set(L.map(l=>l.grupo))].map(u=>[u,u]).sort(ord),'Todos','grupo');
-  enche('cpaTp',[...new Set(L.filter(l=>!st.grupo||l.grupo===st.grupo).map(l=>l.tipo))].map(u=>[u,u]).sort(ord),'Todos','tp');
+  enche('cpaTp',[...new Set(L.filter(l=>tem(st.grupo,l.grupo)).map(l=>l.tipo))].map(u=>[u,u]).sort(ord),'Todos','tp');
+  const td=$('cpaTd');[...td.options].forEach(o=>o.selected=o.value!==''&&st.td.includes(o.value));td.dispatchEvent(new Event('ms-sync'));
+  perUi(B);
+}
+// atalhos de período (datas em ISO local)
+const isoLocal=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function atalhoPer(k){
+  const h=new Date(),y=h.getFullYear(),m=h.getMonth(),D=(a,b,c)=>isoLocal(new Date(a,b,c));
+  return {mes:[D(y,m,1),D(y,m+1,0)],mesAnt:[D(y,m-1,1),D(y,m,0)],'3m':[D(y,m-2,1),isoLocal(h)],'6m':[D(y,m-5,1),isoLocal(h)],ano:[D(y,0,1),D(y,11,31)],anoAnt:[D(y-1,0,1),D(y-1,11,31)]}[k]||null;
+}
+function perUi(B){
+  const cruz=B.cruzado,P=st.per;
+  ['cpaPerRef','cpaPerAt','cpaDe','cpaAte'].forEach(id=>{$(id).disabled=!cruz;$(id).title=cruz?'':'Disponível depois de importar o relatório de solicitações: a apropriação não traz data'});
+  $('cpaPerRef').value=P.ref;$('cpaDe').value=P.de;$('cpaAte').value=P.ate;
+  const at=Object.keys({mes:1,mesAnt:1,'3m':1,'6m':1,ano:1,anoAnt:1}).find(k=>{const r=atalhoPer(k);return r[0]===P.de&&r[1]===P.ate});
+  $('cpaPerAt').value=!P.de&&!P.ate?'':at||'custom';
+  const aj=$('cpaPerAj'),inv=P.de&&P.ate&&P.de>P.ate;
+  aj.hidden=!(P.de||P.ate);
+  if(!aj.hidden)aj.innerHTML=!cruz?'O filtro de período usa a data da solicitação ou da nota fiscal: importe o relatório de solicitações em <b>Importar solicitações</b>.'
+    :inv?'<b>A data inicial é maior que a final</b> — nenhum lançamento entra no período.'
+    :`<b>${esc(perNome(P))}</b> · entram só os lançamentos ligados a uma ${P.ref==='nf'?'nota fiscal':'solicitação'} dentro do período; os sem ${P.ref==='nf'?'nota':'SC'} ligada ficam de fora.`;
+  $('cpaLimpar').hidden=!(st.q.trim()||MULTI.some(k=>st[k].length)||P.de||P.ate);
 }
 function vazio(html){$('cpaCorpo').style.display='none';let e=$('cpaVazio');if(!e){e=document.createElement('div');e.id='cpaVazio';e.className='empty-state';$('cpaCorpo').before(e)}e.style.display='';e.innerHTML=html}
 // Frotas segue a regra do Controle de CAP: admin, supervisor ou operador avançado
@@ -20231,17 +20277,17 @@ function render(){
       return card('c-late','Ligado a solicitação',(v?Math.round(vs/v*100):0)+'%',brl0(vs)+' do valor com prefixo')+card('c-late','Com pedido de compra',(v?Math.round(vp/v*100):0)+'%',B.temPainel?brl0(vp)+' com pedido e NF no painel':'relatório do Sienge não carregado no painel')})()
     +card('c-ped','Lançamentos',int(n),int(ins.size)+' insumos distintos')+card('c-ped','Unidades construtivas',int(unis.size),'onde houve apropriação');
   // por tipo de despesa (com o filtro de tipo desligado, para mostrar todos os tipos)
-  {const td=st.td;st.td='';const tl=B.apps.filter(a=>st.gerais||!a.geral).map(agg);st.td=td;
+  {const td=st.td;st.td=[];const tl=B.apps.filter(a=>st.gerais||!a.geral).map(agg);st.td=td;
    const T={};TDESP.forEach(([k])=>T[k]={v:0,n:0,apps:0,sub:new Map()});
    tl.forEach(r=>{TDESP.forEach(([k])=>{const v=st.met==='c'?r.pt[k].vC:r.pt[k].vA;T[k].v+=v;T[k].n+=r.pt[k].n;if(r.pt[k].n)T[k].apps++});
      r.L.forEach(l=>{if(l.td==='outros'){const o=T.outros.sub;o.set(l.tdSub,(o.get(l.tdSub)||0)+(st.met==='c'?l.vC:l.vA))}})});
    const tot=TDESP.reduce((t,[k])=>t+T[k].v,0)||1;
    $('cpaTdBar').innerHTML=TDESP.filter(([k])=>T[k].v>0).map(([k,n,c])=>`<i style="width:${(T[k].v/tot*100).toFixed(2)}%;background:${c}" title="${esc(n)}: ${brl(T[k].v)} (${(T[k].v/tot*100).toFixed(1).replace('.',',')}%)"></i>`).join('');
-   $('cpaTdGrid').innerHTML=TDESP.map(([k,n,c])=>`<button type="button" class="cpa-tdc${st.td===k?' on':''}${st.td&&st.td!==k?' off':''}" data-td="${k}" style="--c:${c}" aria-pressed="${st.td===k}">
+   const tdOn=k=>st.td.includes(k);
+   $('cpaTdGrid').innerHTML=TDESP.map(([k,n,c])=>`<button type="button" class="cpa-tdc${tdOn(k)?' on':''}${st.td.length&&!tdOn(k)?' off':''}" data-td="${k}" style="--c:${c}" aria-pressed="${tdOn(k)}">
      <span class="l">${esc(n)}</span><b>${brl0(T[k].v)}</b><span class="f">${(T[k].v/tot*100).toFixed(1).replace('.',',')}% · ${int(T[k].n)} lanç. · ${int(T[k].apps)} aplicaç${T[k].apps===1?'ão':'ões'}</span>
      ${k==='outros'&&T[k].sub.size?`<span class="f">${[...T[k].sub].sort((x,y)=>y[1]-x[1]).map(([s,v])=>esc(s)+' '+brl0(v)).join(' · ')}</span>`:''}</button>`).join('');
-   $('cpaTdSub').textContent=st.td?`filtrando: ${TD_NOME[st.td]} — clique de novo para ver todos`:'clique num tipo para filtrar';
-   $('cpaTd').value=st.td;}
+   $('cpaTdSub').textContent=st.td.length?`filtrando: ${st.td.map(k=>TD_NOME[k]).join(', ')} — clique para marcar ou desmarcar outros tipos`:'clique num ou mais tipos para filtrar';}
   $('cpaLh').textContent=`Aplicações (${linhas.length})`;
   if(st.limiteSel!==st.sel){st.limite=60;st.limiteSel=st.sel}
   const max=Math.max(1,...linhas.map(r=>Math.abs(r.v)));
@@ -20360,11 +20406,11 @@ const dataNf=p=>p&&p.nfs?p.nfs.map(n=>isoNf(n.d)).filter(Boolean).sort().pop()||
 function relPer(){const de=$('cpaRelDe').value,ate=$('cpaRelAte').value;return de||ate?{ref:$('cpaRelRef').value,de,ate}:null}
 const perNome=P=>(P.ref==='nf'?'Data da NF':'Data da SC')+': '+(P.de&&P.ate?`${brDt(P.de)} a ${brDt(P.ate)}`:P.de?`a partir de ${brDt(P.de)}`:`até ${brDt(P.ate)}`);
 function relDados(tds,pfs,per){
-  const sel=new Set(tds),td=st.td;st.td='';
+  const sel=new Set(tds),td=st.td,pe=st.per;st.td=[];st.per={ref:'sc',de:'',ate:''};
   const noPer=iso=>!per||(!!iso&&(!per.de||iso>=per.de)&&(!per.ate||iso<=per.ate));
   const dtL=l=>per&&per.ref==='nf'?dataNf(l.ped):l.sc?l.sc.dt:'';
   const dtE=e=>per&&per.ref==='nf'?dataNf(e.p):e.it.s.dt;
-  let R;try{R=base().apps.filter(a=>st.gerais||!a.geral).map(agg)}finally{st.td=td}
+  let R;try{R=base().apps.filter(a=>st.gerais||!a.geral).map(agg)}finally{st.td=td;st.per=pe}
   R=R.map(r=>{const L=r.L.filter(l=>sel.has(l.td)&&noPer(dtL(l))),LS=new Set(L);const pt={},pn={};TDESP.forEach(([k])=>{pt[k]=0;pn[k]=0});let v=0;
       L.forEach(l=>{const x=V(l);pt[l.td]+=x;pn[l.td]++;v+=x});
       // itens das solicitações, como na aba "Todos os itens": o tipo vem do lançamento ligado ou do próprio insumo
@@ -20384,10 +20430,10 @@ function relDados(tds,pfs,per){
 }
 function relFiltros(tds){
   const f=[];
-  if(st.obra){const o=OBRAS.get(st.obra);f.push(['Obra',o?o.obra_nome:st.obra])}
-  if(st.uni)f.push(['Unidade construtiva',st.uni]);
-  if(st.grupo)f.push(['Grupo',st.grupo]);
-  if(st.tp)f.push(['Tipo',st.tp]);
+  if(st.obra.length)f.push(['Obra',st.obra.map(k=>{const o=OBRAS.get(k);return o?o.obra_nome:k}).join(', ')]);
+  if(st.uni.length)f.push(['Unidade construtiva',st.uni.join(', ')]);
+  if(st.grupo.length)f.push(['Grupo',st.grupo.join(', ')]);
+  if(st.tp.length)f.push(['Tipo',st.tp.join(', ')]);
   if(st.q.trim())f.push(['Busca',st.q.trim()]);
   const P=relPer();if(P)f.push(['Período',perNome(P)]);
   const pf=relPfs();
@@ -20413,11 +20459,13 @@ function relAbrir(){
   if(!temAcesso()){msg('Sem acesso a Frotas.',false);return}
   if(!OBRAS.size){msg('Importe o relatório de apropriações antes de gerar o relatório.',false);return}
   const D=relDados(TDESP.map(([k])=>k));
-  $('cpaRelTd').innerHTML=TDESP.map(([k,n])=>`<label style="--c:${TD_HEX[k]}"><input type="checkbox" value="${k}"${!st.td||st.td===k?' checked':''}> ${esc(n)}<span>${brl0(D.T[k].v)}</span></label>`).join('');
+  $('cpaRelTd').innerHTML=TDESP.map(([k,n])=>`<label style="--c:${TD_HEX[k]}"><input type="checkbox" value="${k}"${tem(st.td,k)?' checked':''}> ${esc(n)}<span>${brl0(D.T[k].v)}</span></label>`).join('');
   const P=relDados(TDESP.map(([k])=>k)).R;
   $('cpaRelPf').innerHTML=P.map(r=>`<label data-q="${esc(up(r.a.p+' '+r.a.d+' '+(r.a.extra||'')))}"><input type="checkbox" value="${esc(r.a.k)}" checked><span class="cpa-plate${r.a.geral?' geral':''}">${r.a.geral?'geral':esc(r.a.p)}</span><span class="d" title="${esc(r.a.d)}">${esc(r.a.d)}</span><span class="v">${brl0(r.v)}</span></label>`).join('')||'<div class="cpa-vazio">Nenhuma aplicação com os filtros atuais.</div>';
+  // o período da tela vem preenchido no relatório
+  if(perAtivo()){$('cpaRelRef').value=st.per.ref;$('cpaRelDe').value=st.per.de;$('cpaRelAte').value=st.per.ate}
   $('cpaRelPfQ').value='';relPfConta();relPerAj();
-  $('cpaRelTodos').checked=!st.td;$('cpaRelMsg').textContent='';$('cpaRelMsg').className='ctr-msg';
+  $('cpaRelTodos').checked=!st.td.length||st.td.length===TDESP.length;$('cpaRelMsg').textContent='';$('cpaRelMsg').className='ctr-msg';
   $('cpaRelModal').classList.add('open');
 }
 const relFechar=()=>$('cpaRelModal').classList.remove('open');
@@ -20597,12 +20645,16 @@ async function relExcel(){
 /* ---------- eventos ---------- */
 let tm;
 $('cpaQ').addEventListener('input',e=>{clearTimeout(tm);tm=setTimeout(()=>{st.q=e.target.value;render()},200)});
-$('cpaObra').addEventListener('change',e=>{st.obra=e.target.value;render()});
-$('cpaUni').addEventListener('change',e=>{st.uni=e.target.value;render()});
-$('cpaGrupo').addEventListener('change',e=>{st.grupo=e.target.value;st.tp='';render()});
-$('cpaTp').addEventListener('change',e=>{st.tp=e.target.value;render()});
-$('cpaTd').addEventListener('change',e=>{st.td=e.target.value;render()});
-$('cpaTdGrid').addEventListener('click',e=>{const b=e.target.closest('[data-td]');if(!b)return;st.td=st.td===b.dataset.td?'':b.dataset.td;render()});
+[['cpaObra','obra'],['cpaUni','uni'],['cpaGrupo','grupo'],['cpaTp','tp'],['cpaTd','td']].forEach(([id,k])=>{
+  if(window.msMontar)window.msMontar($(id));
+  $(id).addEventListener('change',e=>{st[k]=[...e.target.selectedOptions].map(o=>o.value).filter(Boolean);render()})});
+$('cpaTdGrid').addEventListener('click',e=>{const b=e.target.closest('[data-td]');if(!b)return;const k=b.dataset.td;st.td=st.td.includes(k)?st.td.filter(x=>x!==k):[...st.td,k];if(st.td.length===TDESP.length)st.td=[];render()});
+const setPer=o=>{st.per=Object.assign({},st.per,o);render()};
+$('cpaPerRef').addEventListener('change',e=>setPer({ref:e.target.value}));
+$('cpaPerAt').addEventListener('change',e=>{const v=e.target.value;if(v==='custom'){$('cpaDe').focus();return}const r=atalhoPer(v);setPer(r?{de:r[0],ate:r[1]}:{de:'',ate:''})});
+$('cpaDe').addEventListener('change',e=>setPer({de:e.target.value}));
+$('cpaAte').addEventListener('change',e=>setPer({ate:e.target.value}));
+$('cpaLimpar').addEventListener('click',()=>{st.q='';$('cpaQ').value='';MULTI.forEach(k=>st[k]=[]);st.per={ref:st.per.ref,de:'',ate:''};render()});
 const setMet=m=>{st.met=m;document.querySelectorAll('#cpaMet button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m)))};
 setMet(st.met);
 $('cpaMet').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setMet(b.dataset.m);salvarUi();render()});
@@ -20643,7 +20695,8 @@ const dCharts={};
 const corVar=n=>getComputedStyle($('tab-frotas')).getPropertyValue(n).trim()||'#888';
 const brlK=v=>{const a=Math.abs(v||0);if(a>=1e6)return 'R$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+' mi';if(a>=1e3)return 'R$ '+(v/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil';return brl0(v)};
 function irAplicacao(o){
-  Object.assign(st,{q:'',uni:'',grupo:'',tp:'',td:'',naoEnt:false,obra:DS.obra,met:DS.met,gerais:DS.gerais},o||{});
+  Object.assign(st,{q:'',uni:[],grupo:[],tp:[],td:[],per:{ref:st.per.ref,de:'',ate:''},naoEnt:false,obra:lista(DS.obra),met:DS.met,gerais:DS.gerais},o||{});
+  MULTI.forEach(k=>st[k]=lista(st[k]));
   if(o&&o.sel)st.tab='sc';
   $('cpaQ').value=st.q;setMet(st.met);$('cpaGerais').checked=st.gerais;$('cpaSort').value=st.sort;
   const b=document.querySelector('.tab-btn[data-tab="consumo"]');if(b)b.click();
@@ -20652,7 +20705,7 @@ function irAplicacao(o){
 // agrega com os filtros do dashboard (sem mexer nos filtros da aba Aplicação)
 function linhasDash(){
   const guarda=Object.assign({},st);
-  Object.assign(st,{q:'',obra:DS.obra,uni:'',grupo:'',tp:'',td:'',met:DS.met});
+  Object.assign(st,{q:'',obra:lista(DS.obra),uni:[],grupo:[],tp:[],td:[],per:{ref:'sc',de:'',ate:''},met:DS.met});
   const B=base(),L=B.apps.filter(a=>DS.gerais||!a.geral).map(agg).filter(r=>r.L.length);
   Object.keys(st).forEach(k=>delete st[k]);Object.assign(st,guarda);
   return {B,L};
