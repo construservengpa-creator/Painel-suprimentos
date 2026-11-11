@@ -1819,6 +1819,29 @@ footer.appfoot{
 #tab-creditos-cap .saldo-pill.pos { background:rgba(12,163,12,.15); color:var(--teal); }
 #tab-creditos-cap .saldo-pill.low { background:rgba(208,59,59,.14); color:var(--red); }
 #tab-creditos-cap .saldo-pill.zero { background:rgba(92,101,112,.2); color:var(--text-mut); }
+/* Notas vinculadas ao pedido (expandir/recolher) */
+#tab-creditos-cap .po-notas { margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
+#tab-creditos-cap .po-notas > summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--text-mut); user-select:none; }
+#tab-creditos-cap .po-notas > summary::-webkit-details-marker { display:none; }
+#tab-creditos-cap .po-notas > summary:hover { color:var(--text); }
+#tab-creditos-cap .po-notas > summary .caret { display:inline-block; width:12px; transition:transform .15s; }
+#tab-creditos-cap .po-notas[open] > summary .caret { transform:rotate(90deg); }
+#tab-creditos-cap .po-notas > summary .acao { margin-left:auto; font-weight:400; font-size:11.5px; color:var(--text-faint); }
+#tab-creditos-cap .po-notas > summary .acao::after { content:'Expandir'; }
+#tab-creditos-cap .po-notas[open] > summary .acao::after { content:'Recolher'; }
+#tab-creditos-cap .po-notas .notas-wrap { overflow-x:auto; margin-top:8px; border:1px solid var(--line); border-radius:6px; }
+#tab-creditos-cap .po-notas table { font-size:12px; }
+#tab-creditos-cap .po-notas thead th { position:static; padding:7px 10px; }
+#tab-creditos-cap .po-notas tbody td, #tab-creditos-cap .po-notas tfoot td { padding:6px 10px; white-space:nowrap; }
+#tab-creditos-cap .po-notas tfoot td { font-weight:600; border-top:1px solid var(--line); color:var(--text); }
+#tab-creditos-cap .po-notas .n { text-align:right; font-family:var(--font-mono); }
+#tab-creditos-cap .po-notas .mut { color:var(--text-faint); font-size:11px; white-space:normal; }
+#tab-creditos-cap .po-notas tr.dev td { color:var(--amber); }
+#tab-creditos-cap .po-notas tr.dev td .mut { color:var(--text-faint); }
+#tab-creditos-cap .po-notas .vazio { font-size:12px; color:var(--text-faint); padding:8px 0 2px; }
+#tab-creditos-cap .po-notas-acoes { display:flex; gap:8px; justify-content:flex-end; margin:-6px 0 10px; }
+#tab-creditos-cap .po-notas-acoes button { border:1px solid var(--line); background:transparent; color:var(--text-mut); font-size:11.5px; padding:4px 10px; border-radius:6px; cursor:pointer; }
+#tab-creditos-cap .po-notas-acoes button:hover { color:var(--text); background:var(--surface-2); }
 @media (max-width:640px) {
 #tab-creditos-cap .cap-subtabs { padding:0; }
 #tab-creditos-cap .bar-chart .bc-row { grid-template-columns:90px 1fr 70px; }
@@ -3723,6 +3746,10 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <span><span class="cap-dot ent"></span><b>Entregue</b>: quantidade líquida já recebida (descontadas devoluções)</span>
         <span><span class="cap-dot dev"></span><b>Devolvido</b>: devoluções/estornos do pedido</span>
         <span><span class="cap-dot sal"></span><b>Saldo</b>: quantidade ainda a entregar</span>
+      </div>
+      <div class="po-notas-acoes" id="dashPoNotasAcoes">
+        <button type="button" data-notas="abrir">Expandir todas as notas</button>
+        <button type="button" data-notas="fechar">Recolher todas as notas</button>
       </div>
       <div class="po-grid" id="dashPoGrid"></div>
     </div>
@@ -13765,8 +13792,70 @@ function renderPoCard(p) {
       </div>
       ${s.soQtd ? '' : `<div style="text-align:right;"><span class="lbl">Saldo (R$)</span><b class="tabular" style="font-size:13.5px;">${fmtR(s.saldoValor)}</b></div>`}
     </div>
+    ${renderPoNotas(p, s)}
   </div>`;
 }
+
+// Pedidos com a lista de notas aberta no dashboard (mantém o estado entre re-renderizações).
+const poNotasAbertas = new Set();
+
+// Entregas e devoluções do pedido em ordem de data, com o saldo do pedido após cada uma.
+function renderPoNotas(p, s) {
+  const e = escapeHtml;
+  const movs = [
+    ...entregasDoPedido(p.id).map(x => ({ ...x, tipo: 'ent', sinal: -1 })),
+    ...devolucoesDoPedido(p.id).map(x => ({ ...x, tipo: 'dev', sinal: 1 }))
+  ].sort((a, b) => (a.data || '').localeCompare(b.data || '') || (a.tipo === 'ent' ? -1 : 1));
+  const nEnt = movs.filter(m => m.tipo === 'ent').length;
+  const nDev = movs.length - nEnt;
+  const resumo = `${nEnt} entrega${nEnt === 1 ? '' : 's'}` + (nDev ? ` · ${nDev} devoluç${nDev === 1 ? 'ão' : 'ões'}` : '');
+  const aberto = poNotasAbertas.has(String(p.id));
+  let saldo = p.qtdContratada;
+  const linhas = movs.map(m => {
+    saldo += m.sinal * Number(m.qtd || 0);
+    const entOrig = m.tipo === 'dev' && m.entregaId ? state.entregas.find(x => String(x.id) === String(m.entregaId)) : null;
+    const obs = m.tipo === 'dev'
+      ? [entOrig ? 'Estorno da NF ' + e(entOrig.nf) : '', m.motivo ? e(m.motivo) : ''].filter(Boolean).join(' · ')
+      : (m.dataEntrega ? 'Entregue na obra em ' + fmtDate(m.dataEntrega) : '');
+    return `<tr class="${m.tipo}">
+      <td>${fmtDate(m.data)}</td>
+      <td><b>${e(m.nf || '—')}</b></td>
+      <td>${m.tipo === 'ent' ? 'Entrega' : 'Devolução'}</td>
+      <td>${e(m.local || '—')}${obs ? `<div class="mut">${obs}</div>` : ''}</td>
+      <td class="n">${m.tipo === 'dev' ? '+' : ''}${fmtT(m.qtd)}</td>
+      ${s.soQtd ? '' : `<td class="n">${fmtR(valorEfetivo(m))}</td>`}
+      <td class="n">${fmtT(saldo)}</td></tr>`;
+  }).join('');
+  const corpo = movs.length
+    ? `<div class="notas-wrap"><table>
+        <thead><tr><th>Data</th><th>NF</th><th>Movimento</th><th>Local / observação</th><th class="n">Qtd.</th>${s.soQtd ? '' : '<th class="n">Valor</th>'}<th class="n">Saldo do pedido</th></tr></thead>
+        <tbody>${linhas}</tbody>
+        <tfoot><tr><td colspan="4">Entregue líquido · saldo final</td><td class="n">${fmtT(s.entregueQtd)}</td>${s.soQtd ? '' : `<td class="n">${fmtR(s.entregueValor)}</td>`}<td class="n">${fmtT(s.saldoQtd)}</td></tr></tfoot>
+      </table></div>`
+    : '<div class="vazio">Nenhuma nota vinculada a este pedido.</div>';
+  return `<details class="po-notas" data-pedido="${e(String(p.id))}"${aberto ? ' open' : ''}>
+    <summary><span class="caret">▸</span>Notas vinculadas <span style="font-weight:400;color:var(--text-faint)">(${resumo})</span><span class="acao"></span></summary>
+    ${corpo}
+  </details>`;
+}
+
+(function initPoNotas() {
+  const grid = document.getElementById('dashPoGrid');
+  if (!grid) return;
+  // "toggle" não sobe na árvore; captura no grid para lembrar quais pedidos ficaram abertos.
+  grid.addEventListener('toggle', ev => {
+    const d = ev.target;
+    if (!d.classList || !d.classList.contains('po-notas')) return;
+    if (d.open) poNotasAbertas.add(d.dataset.pedido); else poNotasAbertas.delete(d.dataset.pedido);
+  }, true);
+  const acoes = document.getElementById('dashPoNotasAcoes');
+  if (acoes) acoes.addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-notas]');
+    if (!b) return;
+    const abrir = b.dataset.notas === 'abrir';
+    grid.querySelectorAll('details.po-notas').forEach(d => { d.open = abrir; });
+  });
+})();
 
 function renderBarChart(containerId, items) {
   const el = document.getElementById(containerId);
