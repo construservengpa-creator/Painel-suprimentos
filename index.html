@@ -4328,27 +4328,51 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
     </div>
     <div class="cpa-bases" id="cpaBases"></div>
     <div class="modal-backdrop" id="cpaRelModal">
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cpaRelTit">
-        <h3 id="cpaRelTit">Relatório analítico</h3>
-        <p class="cpa-sub" style="margin:0 0 12px">Usa os filtros atuais da tela (obra, unidade, grupo, tipo, busca, apropriado/consumido e subetapas gerais). Escolha os tipos de despesa:</p>
-        <div class="cpa-rel-td" id="cpaRelTd"></div>
-        <div class="cpa-rel-op">
-          <label><input type="checkbox" id="cpaRelTodos"> Todos os tipos</label>
-        </div>
-        <div class="cpa-rel-pfh"><b>Prefixos</b><span id="cpaRelPfN"></span></div>
-        <div class="cpa-rel-pfbar"><input type="text" id="cpaRelPfQ" placeholder="buscar prefixo ou equipamento…" aria-label="Buscar prefixo"><button type="button" class="btn small" data-pf="1">Marcar todos</button><button type="button" class="btn small" data-pf="0">Desmarcar todos</button></div>
-        <div class="cpa-rel-pf" id="cpaRelPf"></div>
-        <div class="field" style="margin-top:12px"><label for="cpaRelNivel">Conteúdo</label>
-          <select id="cpaRelNivel"><option value="a">Analítico — resumo + lançamentos de cada aplicação</option><option value="r">Resumo — totais por tipo de despesa e por aplicação</option></select></div>
-        <div class="cpa-rel-op">
-          <label><input type="checkbox" id="cpaRelQuebra"> Cada aplicação em nova página (impressão)</label>
+      <div class="modal cpa-rel" role="dialog" aria-modal="true" aria-labelledby="cpaRelTit">
+        <header class="cpa-rel-head">
+          <div><h3 id="cpaRelTit">Relatório analítico</h3>
+            <p>Parte dos filtros da tela (obra, unidade, grupo, tipo, busca, apropriado ou consumido e subetapas gerais) e permite refinar abaixo.</p></div>
+          <button type="button" class="cpa-rel-x" data-relx="1" aria-label="Fechar">×</button>
+        </header>
+        <div class="cpa-rel-cols">
+          <div class="cpa-rel-col">
+            <section class="cpa-rel-sec">
+              <div class="cpa-rel-sh"><span><i>1</i>Tipos de despesa</span><label class="cpa-rel-mini"><input type="checkbox" id="cpaRelTodos"> Todos</label></div>
+              <div class="cpa-rel-td" id="cpaRelTd"></div>
+            </section>
+            <section class="cpa-rel-sec">
+              <div class="cpa-rel-sh"><span><i>2</i>Período</span><em id="cpaRelPerN"></em></div>
+              <div class="cpa-rel-per">
+                <div class="field cpa-rel-ref"><label for="cpaRelRef">Data de referência</label><select id="cpaRelRef"><option value="sc">Data da solicitação (SC)</option><option value="nf">Data da nota fiscal</option></select></div>
+                <div class="field"><label for="cpaRelDe">De</label><input type="date" class="cpa-date" id="cpaRelDe"></div>
+                <div class="field"><label for="cpaRelAte">Até</label><input type="date" class="cpa-date" id="cpaRelAte"></div>
+                <button type="button" class="cpa-rel-link" id="cpaRelPerX">Limpar período</button>
+              </div>
+              <p class="cpa-rel-aj" id="cpaRelPerAj"></p>
+            </section>
+            <section class="cpa-rel-sec">
+              <div class="cpa-rel-sh"><span><i>4</i>Conteúdo</span></div>
+              <div class="field"><label for="cpaRelNivel">Nível de detalhe</label>
+                <select id="cpaRelNivel"><option value="a">Analítico — resumos e itens de cada aplicação</option><option value="r">Resumo — totais por tipo de despesa e por aplicação</option></select></div>
+              <label class="cpa-rel-mini" style="margin-top:10px"><input type="checkbox" id="cpaRelQuebra"> Cada aplicação em nova página (impressão)</label>
+            </section>
+          </div>
+          <div class="cpa-rel-col">
+            <section class="cpa-rel-sec cpa-rel-secpf">
+              <div class="cpa-rel-sh"><span><i>3</i>Prefixos</span><em id="cpaRelPfN"></em></div>
+              <div class="cpa-rel-pfbar"><input type="text" id="cpaRelPfQ" placeholder="Buscar prefixo ou equipamento…" aria-label="Buscar prefixo"><button type="button" class="cpa-rel-link" data-pf="1">Marcar</button><button type="button" class="cpa-rel-link" data-pf="0">Desmarcar</button></div>
+              <div class="cpa-rel-pf" id="cpaRelPf"></div>
+              <p class="cpa-rel-aj">Marcar e desmarcar valem para os prefixos que a busca está mostrando.</p>
+            </section>
+          </div>
         </div>
         <div class="ctr-msg" id="cpaRelMsg"></div>
-        <div class="modal-actions">
+        <footer class="cpa-rel-foot">
           <button class="btn small" type="button" data-relx="1">Cancelar</button>
+          <span class="cpa-rel-sp"></span>
           <button class="btn small" type="button" id="cpaRelXls">Exportar Excel</button>
           <button class="btn small primary" type="button" id="cpaRelImp">Imprimir</button>
-        </div>
+        </footer>
       </div>
     </div>
     <div class="ctr-msg" id="cpaMsg" style="margin:0 0 12px"></div>
@@ -19646,23 +19670,51 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-det table.data tr.cpa-ne td{background:rgba(208,59,59,.06);}
 .cpa-filtro{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;font-size:12.5px;color:var(--text-dim);}
 .cpa-tdesp{margin:0 0 16px;}
+.modal.cpa-rel{max-width:940px;padding:0;overflow:hidden;}
+.cpa-rel-head{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--line);}
+.cpa-rel-head h3{margin:0 0 4px !important;}
+.cpa-rel-head p{margin:0;font-size:12.5px;line-height:1.45;color:var(--text-dim);max-width:640px;}
+.cpa-rel-x{background:none;border:0;color:var(--text-dim);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:5px;}
+.cpa-rel-x:hover{background:var(--asphalt-3);color:var(--text);}
+.cpa-rel-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+.cpa-rel-col+.cpa-rel-col{border-left:1px solid var(--line);}
+.cpa-rel-sec{padding:14px 22px 16px;}
+.cpa-rel-sec+.cpa-rel-sec{border-top:1px solid var(--line);}
+.cpa-rel-secpf{display:flex;flex-direction:column;height:100%;}
+.cpa-rel-sh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;}
+.cpa-rel-sh>span{display:inline-flex;align-items:center;gap:8px;font:600 11px var(--font-mono);text-transform:uppercase;letter-spacing:.07em;color:var(--text);}
+.cpa-rel-sh>span i{font-style:normal;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--yellow);color:#1A1E24;font:700 10.5px var(--font-body);letter-spacing:0;}
+.cpa-rel-sh em{font-style:normal;font-size:11.5px;color:var(--text-dim);text-align:right;}
+.cpa-rel-mini{display:inline-flex !important;align-items:center;gap:7px;font:500 12.5px var(--font-body) !important;color:var(--text-dim) !important;text-transform:none !important;letter-spacing:0 !important;cursor:pointer;margin:0 !important;}
 .cpa-rel-td{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
-.cpa-rel-td label,.cpa-rel-op label{display:flex;align-items:center;gap:8px;font:500 13px var(--font-body);color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;}
-.cpa-rel-td label{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:6px;padding:7px 10px;}
-.cpa-rel-td label span{margin-left:auto;font-size:11.5px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
-.cpa-rel-op{margin-top:10px;}
-.cpa-rel-pfh{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-size:13px;color:var(--text);}
-.cpa-rel-pfh span{font-size:11.5px;color:var(--text-dim);}
-.cpa-rel-pfbar{display:flex;gap:6px;margin-bottom:6px;}
-.cpa-rel-pfbar input{flex:1;min-width:0;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);padding:6px 9px;border-radius:5px;font:500 12.5px var(--font-body);}
-.cpa-rel-pf{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:6px;}
-.cpa-rel-pf label{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font:500 12.5px var(--font-body);color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;}
+.cpa-rel-td label{display:flex;align-items:center;gap:8px;min-height:36px;font:500 12.5px var(--font-body);color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;border:1px solid var(--line);border-left:3px solid var(--c);border-radius:6px;padding:6px 10px;margin:0;background:var(--asphalt-2);}
+.cpa-rel-td label:hover{background:var(--asphalt-3);}
+.cpa-rel-td label span{margin-left:auto;font-size:11.5px;color:var(--text-dim);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.cpa-rel-per{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 10px;align-items:end;}
+.cpa-rel-per .field{margin:0;min-width:0;}
+.cpa-rel-per .cpa-rel-ref{grid-column:1 / -1;}
+.cpa-rel-per select,.cpa-rel-per .cpa-date,#cpaRelNivel{width:100%;}
+.cpa-rel-per .cpa-rel-link{grid-column:1 / -1;justify-self:start;}
+.cpa-rel-link{background:none;border:0;padding:4px 2px;color:var(--yellow);font:600 12px var(--font-body);cursor:pointer;white-space:nowrap;}
+.cpa-rel-link:hover{text-decoration:underline;}
+.cpa-rel-link:disabled{color:var(--text-faint);cursor:default;text-decoration:none;}
+.cpa-rel-aj{margin:8px 0 0;font-size:11.5px;line-height:1.45;color:var(--text-faint);}
+.cpa-rel-pfbar{display:flex;gap:4px;align-items:center;margin-bottom:8px;}
+.cpa-rel-pfbar input{flex:1;min-width:0;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:6px;font:500 12.5px var(--font-body);}
+.cpa-rel-pf{flex:1;min-height:200px;max-height:388px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:var(--asphalt-2);}
+.cpa-rel-pf label{display:grid;grid-template-columns:auto 82px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--line);font:500 12.5px var(--font-body);color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;margin:0;}
+.cpa-rel-pf label:hover{background:var(--asphalt-3);}
 .cpa-rel-pf label:last-child{border-bottom:0;}
 .cpa-rel-pf label[hidden]{display:none;}
-.cpa-rel-pf .cpa-plate{grid-row:auto;min-width:0;font-size:11px;padding:2px 6px;}
+.cpa-rel-pf .cpa-plate{grid-row:auto;min-width:0;font-size:11px;padding:2px 6px;text-align:center;}
 .cpa-rel-pf .d{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);}
 .cpa-rel-pf .v{font-variant-numeric:tabular-nums;color:var(--text-dim);font-size:11.5px;}
+.cpa-rel-foot{display:flex;gap:8px;align-items:center;padding:12px 22px;border-top:1px solid var(--line);background:var(--asphalt-3);}
+.cpa-rel-sp{flex:1;}
+#cpaRelMsg{margin:0 22px 12px;}
+.cpa-rel .field label{display:block;font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin:0 0 5px;}
 #cpaRelMsg:empty{display:none;}
+@media (max-width:760px){.cpa-rel-cols{grid-template-columns:minmax(0,1fr);}.cpa-rel-col+.cpa-rel-col{border-left:0;border-top:1px solid var(--line);}.cpa-rel-pf{max-height:300px;}}
 .cpa-tdbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--asphalt-3);margin-bottom:12px;}
 .cpa-tdbar i{display:block;height:100%;}
 .cpa-tdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;}
@@ -20302,16 +20354,24 @@ async function exportar(){
 /* ---------- relatório analítico (impressão e Excel) ---------- */
 // cores fixas (tema claro) para o papel e para a legenda
 const TD_HEX={lic:'#2a78d6',seg:'#eb6834',plano:'#1baf7a',pecas:'#eda100',serv:'#e87ba4',outros:'#9aa3ad'};
-function relDados(tds,pfs){
+// período: {ref:'sc'|'nf',de,ate} em ISO (aaaa-mm-dd); só alcança o que tem SC ligada (ou NF, na data da nota)
+const isoNf=d=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(d||'');return m?m[3]+'-'+m[2]+'-'+m[1]:''};
+const dataNf=p=>p&&p.nfs?p.nfs.map(n=>isoNf(n.d)).filter(Boolean).sort().pop()||'':'';
+function relPer(){const de=$('cpaRelDe').value,ate=$('cpaRelAte').value;return de||ate?{ref:$('cpaRelRef').value,de,ate}:null}
+const perNome=P=>(P.ref==='nf'?'Data da NF':'Data da SC')+': '+(P.de&&P.ate?`${brDt(P.de)} a ${brDt(P.ate)}`:P.de?`a partir de ${brDt(P.de)}`:`até ${brDt(P.ate)}`);
+function relDados(tds,pfs,per){
   const sel=new Set(tds),td=st.td;st.td='';
+  const noPer=iso=>!per||(!!iso&&(!per.de||iso>=per.de)&&(!per.ate||iso<=per.ate));
+  const dtL=l=>per&&per.ref==='nf'?dataNf(l.ped):l.sc?l.sc.dt:'';
+  const dtE=e=>per&&per.ref==='nf'?dataNf(e.p):e.it.s.dt;
   let R;try{R=base().apps.filter(a=>st.gerais||!a.geral).map(agg)}finally{st.td=td}
-  R=R.map(r=>{const L=r.L.filter(l=>sel.has(l.td));const pt={},pn={};TDESP.forEach(([k])=>{pt[k]=0;pn[k]=0});let v=0;
+  R=R.map(r=>{const L=r.L.filter(l=>sel.has(l.td)&&noPer(dtL(l))),LS=new Set(L);const pt={},pn={};TDESP.forEach(([k])=>{pt[k]=0;pn[k]=0});let v=0;
       L.forEach(l=>{const x=V(l);pt[l.td]+=x;pn[l.td]++;v+=x});
       // itens das solicitações, como na aba "Todos os itens": o tipo vem do lançamento ligado ou do próprio insumo
-      const I=[];r.scs.forEach(g=>g.itens.forEach(e=>{const ls=e.lancs.filter(l=>sel.has(l.td)),t=ls.length?[ls[0].td,ls[0].tdSub]:e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det);
+      const I=[];r.scs.forEach(g=>g.itens.forEach(e=>{if(!noPer(dtE(e)))return;const ls=e.lancs.filter(l=>LS.has(l)),t=ls.length?[ls[0].td,ls[0].tdSub]:e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det);
         if(!ls.length&&!sel.has(t[0]))return;I.push({e,ls,td:t[0],tdSub:t[1],v:ls.reduce((s,l)=>s+V(l),0)})}));
       I.sort((x,y)=>(y.e.it.s.dt||'').localeCompare(x.e.it.s.dt||'')||(+y.e.it.s.n)-(+x.e.it.s.n));
-      const S=r.semSc.filter(l=>sel.has(l.td)),nEnt=I.filter(x=>x.e.ent&&x.e.ent.ok).length;
+      const S=r.semSc.filter(l=>LS.has(l)),nEnt=I.filter(x=>x.e.ent&&x.e.ent.ok).length;
       return {a:r.a,L,v,pt,pn,I,S,nEnt}}).filter(r=>r.L.length&&(!pfs||pfs.has(r.a.k)));
   const ap=(x,y)=>(x.a.p||'~'+x.a.d).localeCompare(y.a.p||'~'+y.a.d,'pt-BR',{numeric:true});
   R.sort(st.sort==='p'?ap:(x,y)=>y.v-x.v||ap(x,y));
@@ -20329,6 +20389,7 @@ function relFiltros(tds){
   if(st.grupo)f.push(['Grupo',st.grupo]);
   if(st.tp)f.push(['Tipo',st.tp]);
   if(st.q.trim())f.push(['Busca',st.q.trim()]);
+  const P=relPer();if(P)f.push(['Período',perNome(P)]);
   const pf=relPfs();
   if(pf){const B=new Map(base().apps.map(a=>[a.k,a]));f.push(['Prefixos',[...pf].map(k=>{const a=B.get(k);return a?(a.geral?a.d:a.p):k}).join(', ')])}
   f.push(['Tipos de despesa',tds.length===TDESP.length?'Todos':tds.map(k=>TD_NOME[k]).join(', ')]);
@@ -20341,6 +20402,12 @@ function relFiltros(tds){
 // prefixos marcados; null = todos (sem filtro)
 const relPfs=()=>{const I=[...$('cpaRelPf').querySelectorAll('input')],M=I.filter(i=>i.checked);return M.length===I.length?null:new Set(M.map(i=>i.value))};
 function relPfConta(){const I=[...$('cpaRelPf').querySelectorAll('input')],n=I.filter(i=>i.checked).length;$('cpaRelPfN').textContent=n===I.length?`todos (${int(n)})`:`${int(n)} de ${int(I.length)} marcados`}
+function relPerAj(){
+  const cruz=base().cruzado;['cpaRelRef','cpaRelDe','cpaRelAte','cpaRelPerX'].forEach(id=>$(id).disabled=!cruz);
+  if(!cruz){$('cpaRelPerAj').textContent='Disponível depois de importar o relatório de solicitações (a apropriação não traz data).';$('cpaRelPerN').textContent='';return}
+  const P=relPer();$('cpaRelPerN').textContent=P?perNome(P):'sem filtro';
+  $('cpaRelPerAj').textContent=P?'Entram só os lançamentos ligados a uma '+(P.ref==='nf'?'nota fiscal':'solicitação')+' dentro do período; os sem '+(P.ref==='nf'?'nota':'SC')+' ligada ficam de fora.':'Deixe em branco para todo o período importado.';
+}
 const relTds=()=>[...$('cpaRelTd').querySelectorAll('input:checked')].map(i=>i.value);
 function relAbrir(){
   if(!temAcesso()){msg('Sem acesso a Frotas.',false);return}
@@ -20349,7 +20416,7 @@ function relAbrir(){
   $('cpaRelTd').innerHTML=TDESP.map(([k,n])=>`<label style="--c:${TD_HEX[k]}"><input type="checkbox" value="${k}"${!st.td||st.td===k?' checked':''}> ${esc(n)}<span>${brl0(D.T[k].v)}</span></label>`).join('');
   const P=relDados(TDESP.map(([k])=>k)).R;
   $('cpaRelPf').innerHTML=P.map(r=>`<label data-q="${esc(up(r.a.p+' '+r.a.d+' '+(r.a.extra||'')))}"><input type="checkbox" value="${esc(r.a.k)}" checked><span class="cpa-plate${r.a.geral?' geral':''}">${r.a.geral?'geral':esc(r.a.p)}</span><span class="d" title="${esc(r.a.d)}">${esc(r.a.d)}</span><span class="v">${brl0(r.v)}</span></label>`).join('')||'<div class="cpa-vazio">Nenhuma aplicação com os filtros atuais.</div>';
-  $('cpaRelPfQ').value='';relPfConta();
+  $('cpaRelPfQ').value='';relPfConta();relPerAj();
   $('cpaRelTodos').checked=!st.td;$('cpaRelMsg').textContent='';$('cpaRelMsg').className='ctr-msg';
   $('cpaRelModal').classList.add('open');
 }
@@ -20359,8 +20426,13 @@ function relValida(){
   if(!tds.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Escolha ao menos um tipo de despesa.';return null}
   const pfs=relPfs();
   if(pfs&&!pfs.size){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Marque ao menos um prefixo.';return null}
-  const D=relDados(tds,pfs);
-  if(!D.R.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Nenhum lançamento com esses tipos de despesa, prefixos e filtros atuais.';return null}
+  const per=relPer();
+  if(per){
+    if(!base().cruzado){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='O filtro de período usa a data da solicitação ou da nota fiscal: importe o relatório de solicitações em "Importar solicitações".';return null}
+    if(per.de&&per.ate&&per.de>per.ate){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='A data inicial do período é maior que a final.';return null}
+  }
+  const D=relDados(tds,pfs,per);
+  if(!D.R.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Nenhum lançamento com esses tipos de despesa, prefixos, período e filtros atuais.';return null}
   return {tds,D};
 }
 const pct=(v,t)=>t?(v/t*100).toFixed(1).replace('.',',')+'%':'—';
@@ -20368,78 +20440,118 @@ function relImprimir(){
   const x=relValida();if(!x)return;const {tds,D}=x;
   const anal=$('cpaRelNivel').value==='a',quebra=$('cpaRelQuebra').checked,agora=new Date();
   const rot=st.met==='c'?'Valor consumido':'Valor apropriado',qtdRot=st.met==='c'?'Qtd. consumida':'Qtd. apropriada';
-  const cols=D.tds,sw=k=>`<i class="d" style="background:${TD_HEX[k]}"></i>`;
-  const pl=a=>a.geral?'geral':esc(a.p);
-  const resTd=`<table class="t"><thead><tr><th>Tipo de despesa</th><th class="n">${rot}</th><th class="n">%</th><th class="n">Lançamentos</th><th class="n">Aplicações</th></tr></thead><tbody>
-    ${cols.map(([k,n])=>`<tr><td>${sw(k)}${esc(n)}</td><td class="n">${brl(D.T[k].v)}</td><td class="n">${pct(D.T[k].v,D.tot)}</td><td class="n">${int(D.T[k].n)}</td><td class="n">${int(D.T[k].apps)}</td></tr>`).join('')}
-    <tr class="tot"><td>Total</td><td class="n">${brl(D.tot)}</td><td class="n">100%</td><td class="n">${int(D.nL)}</td><td class="n">${int(D.R.length)}</td></tr></tbody></table>`;
+  const cols=D.tds,multi=cols.length>1,sw=k=>`<i class="dot" style="background:${TD_HEX[k]}"></i>`;
+  const pl=a=>a.geral?'GERAL':esc(a.p);
+  const titulo=`Relatório ${anal?'analítico':'resumido'} por aplicação`;
+  const emitido=`${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+  const logo=new URL('marca/ameta.png',location.href).href;
+  const pill=(k,t)=>`<span class="pill ${k||''}">${esc(t)}</span>`;
+  const meter=(v,c)=>`<span class="meter"><i style="width:${Math.max(0,Math.min(100,v)).toFixed(1)}%;background:${c}"></i></span>`;
+  let sec=0;const h2=(t,extra)=>`<h2${extra||''}><b>${++sec}</b>${esc(t)}</h2>`;
+  // 1. por tipo de despesa
+  const resTd=`<table class="t"><colgroup><col><col style="width:34%"><col style="width:17%"><col style="width:12%"><col style="width:12%"></colgroup>
+    <thead><tr><th>Tipo de despesa</th><th>Participação</th><th class="n">${rot}</th><th class="n">Lançamentos</th><th class="n">Aplicações</th></tr></thead><tbody>
+    ${cols.map(([k,n])=>{const pc=D.tot?D.T[k].v/D.tot*100:0;return `<tr${D.T[k].n?'':' class="zero"'}><td>${sw(k)}${esc(n)}</td><td><div class="part">${meter(pc,TD_HEX[k])}<span>${pct(D.T[k].v,D.tot)}</span></div></td><td class="n">${brl(D.T[k].v)}</td><td class="n">${int(D.T[k].n)}</td><td class="n">${int(D.T[k].apps)}</td></tr>`}).join('')}
+    </tbody><tfoot><tr><td>Total</td><td><div class="part"><span class="meter"><i style="width:100%;background:#1b2430"></i></span><span>100%</span></div></td><td class="n">${brl(D.tot)}</td><td class="n">${int(D.nL)}</td><td class="n">${int(D.R.length)}</td></tr></tfoot></table>`;
   const barra=`<div class="bar">${cols.filter(([k])=>D.T[k].v>0).map(([k])=>`<i style="width:${(D.T[k].v/(D.tot||1)*100).toFixed(2)}%;background:${TD_HEX[k]}"></i>`).join('')}</div>`;
-  const multi=cols.length>1;
-  const resApp=`<table class="t"><thead><tr><th style="width:62px">Prefixo</th><th>Aplicação</th><th class="n" style="width:42px">Lanç.</th>${multi?cols.map(([k,n])=>`<th class="n">${sw(k)}${esc(n)}</th>`).join(''):''}<th class="n">${multi?'Total':rot}</th><th class="n" style="width:46px">%</th></tr></thead><tbody>
-    ${D.R.map(r=>`<tr><td class="pf">${pl(r.a)}</td><td>${esc(r.a.d)}${r.a.extra?`<div class="mut">${esc(r.a.extra)}</div>`:''}</td><td class="n">${int(r.L.length)}</td>${multi?cols.map(([k])=>`<td class="n">${r.pt[k]?brl(r.pt[k]):'—'}</td>`).join(''):''}<td class="n"><b>${brl(r.v)}</b></td><td class="n">${pct(r.v,D.tot)}</td></tr>`).join('')}
-    <tr class="tot"><td colspan="2">Total (${int(D.R.length)} aplicaç${D.R.length===1?'ão':'ões'})</td><td class="n">${int(D.nL)}</td>${multi?cols.map(([k])=>`<td class="n">${brl(D.T[k].v)}</td>`).join(''):''}<td class="n">${brl(D.tot)}</td><td class="n">100%</td></tr></tbody></table>`;
-  const entTxt=x=>x?esc(x.t)+(x.saldoCanc?'<div class="mut">saldo cancelado</div>':''):'';
-  const valItem=x=>x.ls.length?brl(x.v):x.e.agrup?'<span class="mut">apropriado (agrupado)</span>':'<span class="mut">a apropriar</span>';
-  const tdCel=(k,sub)=>`<td class="td">${sw(k)}${esc(TD_NOME[k])}${sub?`<div class="mut">${esc(sub)}</div>`:''}</td>`;
-  const itensTab=r=>`<table class="t"><thead><tr><th style="width:44px">SC</th><th style="width:62px">Data</th><th style="width:18%">Insumo</th><th>Detalhe</th>${multi?'<th style="width:104px">Tipo</th>':''}<th class="n" style="width:52px">Qtd</th><th class="n" style="width:50px">Entregue</th><th style="width:72px">Entrega</th><th style="width:50px">Pedido</th><th style="width:14%">Fornecedor</th><th style="width:62px">NF</th><th class="n" style="width:76px">${rot}</th></tr></thead><tbody>
-      ${r.I.map(x=>{const e=x.e,p=e.p;return `<tr${e.ent&&!e.ent.ok?' class="ne"':''}><td class="nw">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td><span class="cod">${esc(e.it.cod)}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td>${multi?tdCel(x.td,x.tdSub):''}<td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${p?nf(p.qe):''}</td><td class="ent">${entTxt(e.ent)}</td><td>${p&&p.ped?esc(p.ped):''}</td><td>${p?esc(p.forn||''):''}</td><td class="nw">${p?p.nfs.map(n=>esc(n.n)+(n.d?`<div class="mut">${esc(n.d)}</div>`:'')).join(''):''}</td><td class="n">${valItem(x)}</td></tr>`}).join('')}
-      ${r.S.map(l=>`<tr><td class="mut">—</td><td></td><td><span class="cod">${esc(l.cod)}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td>${multi?tdCel(l.td,l.tdSub):''}<td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td></td><td class="ent">apropriado<div class="mut">sem SC ligada</div></td><td></td><td></td><td></td><td class="n">${brl(V(l))}</td></tr>`).join('')}
-      <tr class="tot"><td colspan="${multi?11:10}">Total da aplicação</td><td class="n">${brl(r.v)}</td></tr></tbody></table>`;
+  // 2. por aplicação
+  const resApp=`<table class="t zebra"><thead><tr><th style="width:74px">Prefixo</th><th>Aplicação</th><th class="n" style="width:44px">Lanç.</th>${multi?cols.map(([k,n])=>`<th class="n">${sw(k)}${esc(n)}</th>`).join(''):''}<th class="n" style="width:84px">${multi?'Total':rot}</th><th class="n" style="width:44px">%</th></tr></thead><tbody>
+    ${D.R.map(r=>`<tr><td><span class="pf">${pl(r.a)}</span></td><td>${esc(r.a.d)}${r.a.extra?`<div class="mut">${esc(r.a.extra)}</div>`:''}</td><td class="n">${int(r.L.length)}</td>${multi?cols.map(([k])=>`<td class="n${r.pt[k]?'':' vz'}">${r.pt[k]?brl(r.pt[k]):'—'}</td>`).join(''):''}<td class="n strong">${brl(r.v)}</td><td class="n">${pct(r.v,D.tot)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td colspan="2">Total · ${int(D.R.length)} aplicaç${D.R.length===1?'ão':'ões'}</td><td class="n">${int(D.nL)}</td>${multi?cols.map(([k])=>`<td class="n">${brl(D.T[k].v)}</td>`).join(''):''}<td class="n">${brl(D.tot)}</td><td class="n">100%</td></tr></tfoot></table>`;
+  // 3. itens / lançamentos de cada aplicação
+  const entPl=x=>x?pill(x.k,x.t)+(x.saldoCanc?'<div class="mut">saldo cancelado</div>':''):'';
+  const valItem=x=>x.ls.length?brl(x.v):`<span class="obs">${x.e.agrup?'apropriado (agrupado)':'a apropriar'}</span>`;
+  const tdCel=(k,sub)=>`<td class="nw">${sw(k)}${esc(TD_NOME[k])}${sub?`<div class="mut">${esc(sub)}</div>`:''}</td>`;
+  const ins=(cod,n)=>`<span class="cod">${esc(cod)}</span>${esc(n)}`;
+  const itensTab=r=>`<table class="t det"><thead><tr><th style="width:46px">SC</th><th style="width:66px">Data</th><th style="width:18%">Insumo</th><th>Detalhe</th>${multi?'<th style="width:116px">Tipo</th>':''}<th class="n" style="width:50px">Qtd</th><th class="n" style="width:58px">Entregue</th><th style="width:94px">Entrega</th><th style="width:52px">Pedido</th><th style="width:13%">Fornecedor</th><th style="width:64px">NF</th><th class="n" style="width:84px">${rot}</th></tr></thead><tbody>
+      ${r.I.map(x=>{const e=x.e,p=e.p;return `<tr><td class="nw strong">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td>${ins(e.it.cod,e.it.ins)}</td><td>${esc(e.it.det)}</td>${multi?tdCel(x.td,x.tdSub):''}<td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${p?nf(p.qe):''}</td><td>${entPl(e.ent)}</td><td class="nw">${p&&p.ped?esc(p.ped):''}</td><td>${p?esc(p.forn||''):''}</td><td class="nw">${p?p.nfs.map(n=>esc(n.n)+(n.d?`<div class="mut">${esc(n.d)}</div>`:'')).join(''):''}</td><td class="n">${valItem(x)}</td></tr>`}).join('')}
+      ${r.S.map(l=>`<tr><td class="mut">—</td><td></td><td>${ins(l.cod,l.ins)}</td><td>${esc(l.det)}</td>${multi?tdCel(l.td,l.tdSub):''}<td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td></td><td>${pill('ok','apropriado')}<div class="mut">sem SC ligada</div></td><td></td><td></td><td></td><td class="n">${brl(V(l))}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="${multi?11:10}">Total da aplicação</td><td class="n">${brl(r.v)}</td></tr></tfoot></table>`;
+  const lancTab=r=>`<table class="t det"><thead><tr><th style="width:27%">Insumo</th><th>Detalhe</th>${multi?'<th style="width:104px">Tipo de despesa</th>':''}<th style="width:15%">Unidade construtiva</th><th class="n" style="width:70px">${qtdRot}</th><th class="n" style="width:84px">${rot}</th></tr></thead><tbody>
+      ${r.L.map(l=>`<tr><td>${ins(l.cod,l.ins)}</td><td>${esc(l.det)}</td>${multi?tdCel(l.td,l.tdSub):''}<td class="mut">${esc(l.uni)}</td><td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td class="n">${brl(V(l))}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td colspan="${multi?5:4}">Total da aplicação</td><td class="n">${brl(r.v)}</td></tr></tfoot></table>`;
   const det=!anal?'':D.R.map((r,i)=>{
-    const sub=cols.filter(([k])=>r.pn[k]).map(([k,n])=>`<span>${sw(k)}${esc(n)} <b>${brl(r.pt[k])}</b> (${pct(r.pt[k],r.v)})</span>`).join('');
-    return `<section class="app${quebra&&i?' qb':''}"><div class="ah"><span class="plate">${pl(r.a)}</span><div class="an"><b>${esc(r.a.d)}</b><div class="mut">${esc(r.a.tipo)}${r.a.extra?' · '+esc(r.a.extra):''}</div></div><div class="av">${brl(r.v)}<div class="mut">${D.cruz?`${int(r.I.length+r.S.length)} ite${r.I.length+r.S.length===1?'m':'ns'} · ${int(r.I.length-r.nEnt)} não entregue${r.I.length-r.nEnt===1?'':'s'}`:`${int(r.L.length)} lançamento${r.L.length===1?'':'s'}`}</div></div></div>
-      ${multi?`<div class="eq">${sub}</div>`:''}
-      ${D.cruz?itensTab(r)+'</section>':`<table class="t"><thead><tr><th style="width:${D.cruz?'21%':'27%'}">Insumo</th><th>Detalhe</th>${multi?'<th style="width:104px">Tipo de despesa</th>':''}<th style="width:${D.cruz?'11%':'15%'}">Unidade construtiva</th><th class="n" style="width:62px">${qtdRot}</th><th class="n" style="width:76px">${rot}</th>${D.cruz?'<th style="width:50px">SC</th><th style="width:54px">Pedido</th><th style="width:13%">Fornecedor</th><th style="width:56px">NF</th>':''}</tr></thead><tbody>
-      ${r.L.map(l=>`<tr><td><span class="cod">${esc(l.cod)}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td>${multi?`<td class="td">${sw(l.td)}${esc(TD_NOME[l.td])}${l.tdSub?`<div class="mut">${esc(l.tdSub)}</div>`:''}</td>`:''}<td class="mut">${esc(l.uni)}</td><td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td class="n">${brl(V(l))}</td>${D.cruz?`<td>${l.sc?esc(l.sc.n)+(l.scProv?'<div class="mut">provável</div>':''):'—'}</td><td>${l.ped&&l.ped.ped?esc(l.ped.ped):''}</td><td>${l.ped?esc(l.ped.forn||''):''}</td><td>${l.ped?l.ped.nfs.map(n=>esc(n.n)).join('<br>'):''}</td>`:''}</tr>`).join('')}
-      <tr class="tot"><td colspan="${multi?5:4}">Total da aplicação</td><td class="n">${brl(r.v)}</td>${D.cruz?'<td colspan="4"></td>':''}</tr></tbody></table></section>`}`}).join('');
-  const filt=relFiltros(tds).map(([k,v])=>`<span><b>${esc(k)}:</b> ${esc(v)}</span>`).join('');
-  const doc=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório analítico por aplicação</title><style>
-    @page{size:A4 ${anal&&D.cruz||cols.length>3?'landscape':'portrait'};margin:10mm 9mm 11mm;}
+    const nI=r.I.length+r.S.length,nNe=r.I.length-r.nEnt;
+    const meta=D.cruz?`${int(nI)} ite${nI===1?'m':'ns'}${nNe?` · <span class="ne">${int(nNe)} não entregue${nNe===1?'':'s'}</span>`:' · todos entregues'}`:`${int(r.L.length)} lançamento${r.L.length===1?'':'s'}`;
+    const sub=multi?cols.filter(([k])=>r.pn[k]).map(([k,n])=>`<span>${sw(k)}${esc(n)} <b>${brl(r.pt[k])}</b> <em>${pct(r.pt[k],r.v)}</em></span>`).join(''):'';
+    return `<section class="app${quebra&&i?' qb':''}"><div class="ah"><span class="plate">${pl(r.a)}</span><div class="an"><div class="nm">${esc(r.a.d)}</div><div class="mut">${esc(r.a.tipo)}${r.a.extra?' · '+esc(r.a.extra):''}</div></div><div class="av"><div class="vl">${brl(r.v)}</div><div class="mut">${meta}</div></div></div>
+      ${sub?`<div class="eq">${sub}</div>`:''}${D.cruz?itensTab(r):lancTab(r)}</section>`}).join('');
+  const ficha=relFiltros(tds).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+  const doc=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
+    @page{size:A4 ${anal&&D.cruz||cols.length>3?'landscape':'portrait'};margin:12mm 11mm 14mm;
+      @bottom-left{content:"AMETA · ${esc(titulo)} · emitido em ${emitido}";font:7pt Inter,"Segoe UI",Arial,sans-serif;color:#7b8594;}
+      @bottom-right{content:"Página " counter(page) " de " counter(pages);font:7pt Inter,"Segoe UI",Arial,sans-serif;color:#7b8594;}}
     *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    body{font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:8.2pt;color:#1d2228;margin:0;}
-    h1{font-size:14pt;margin:0;font-weight:700;}
-    h2{font-size:10pt;margin:12px 0 5px;text-transform:uppercase;letter-spacing:.4px;break-after:avoid;}
-    .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d2228;padding-bottom:5px;margin-bottom:7px;}
-    .top .mut{text-align:right;}
-    .mut{color:#667080;font-size:7.3pt;line-height:1.35;}
-    .fil{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:7.4pt;color:#4b5563;margin-bottom:8px;}
-    .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px;}
-    .kp div{border:1px solid #d5d9df;border-radius:4px;padding:5px 7px;}
-    .kp b{display:block;font-size:11pt;margin-top:1px;}
-    .bar{display:flex;height:7px;background:#e6e9ed;border-radius:3px;overflow:hidden;margin:2px 0 6px;}
+    :root{--ink:#1b2430;--ink2:#465162;--mut:#7b8594;--line:#e3e7ec;--line2:#c4ccd5;--band:#f4f6f8;--acc:#c58a00;}
+    body{font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif;font-size:8pt;line-height:1.38;color:var(--ink);margin:0;}
+    .top{display:flex;align-items:center;gap:14px;padding-bottom:8px;border-bottom:1.5pt solid var(--ink);}
+    .top img{height:30px;width:auto;}
+    .top .sep{width:1px;align-self:stretch;background:var(--line2);}
+    .top .ti{flex:1;min-width:0;}
+    .top .ey{font-size:6.8pt;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);}
+    .top h1{font-size:15pt;line-height:1.15;margin:1px 0 0;font-weight:700;letter-spacing:-.01em;}
+    .top .em{text-align:right;font-size:7pt;color:var(--mut);line-height:1.5;}
+    .top .em b{display:block;color:var(--ink2);font-size:7.6pt;}
+    .ficha{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 18px;padding:8px 0 9px;border-bottom:1px solid var(--line);margin-bottom:10px;}
+    .ficha span{display:block;font-size:6.3pt;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);}
+    .ficha b{display:block;font-weight:500;font-size:7.8pt;color:var(--ink);}
+    .kp{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;border:1px solid var(--line2);border-radius:5px;margin:0 0 4px;overflow:hidden;}
+    .kp div{padding:7px 12px;}
+    .kp div+div{border-left:1px solid var(--line);}
+    .kp span{display:block;font-size:6.4pt;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);}
+    .kp b{display:block;font-size:12pt;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px;}
+    .kp div:first-child{background:var(--band);} .kp div:first-child b{font-size:14pt;}
+    h2{display:flex;align-items:center;gap:8px;font-size:8.6pt;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:16px 0 7px;color:var(--ink);break-after:avoid;}
+    h2 b{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--ink);color:#fff;font-size:7.4pt;letter-spacing:0;}
+    h2::after{content:"";flex:1;height:1px;background:var(--line2);}
+    .mut{color:var(--mut);font-size:6.9pt;line-height:1.35;}
+    .dot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:.5px;}
+    .bar{display:flex;height:6px;border-radius:3px;overflow:hidden;margin:0 0 6px;background:var(--line);}
     .bar i{display:block;height:100%;}
-    .d{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;vertical-align:0;}
+    .bar i+i{border-left:1.5px solid #fff;}
+    .part{display:flex;align-items:center;gap:8px;}
+    .part span:last-child{width:38px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2);}
+    .meter{flex:1;height:5px;border-radius:3px;background:var(--line);overflow:hidden;display:block;}
+    .meter i{display:block;height:100%;border-radius:3px;}
     table.t{width:100%;border-collapse:collapse;font-size:inherit;}
-    td.td{overflow-wrap:normal;white-space:nowrap;}
-    td.nw{white-space:nowrap;overflow-wrap:normal;}
-    td.ent{font-weight:600;color:#2e7d32;}
-    tr.ne td.ent{color:#b3261e;}
-    tr.ne{background:#fdf1f0;}
-    th{font-size:6.8pt;text-transform:uppercase;letter-spacing:.3px;color:#4b5563;text-align:left;border-bottom:1px solid #9aa3ad;padding:3px 4px;vertical-align:bottom;}
-    td{padding:3px 4px;border-bottom:1px solid #e3e6ea;vertical-align:top;overflow-wrap:anywhere;}
+    th{font-size:6.3pt;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);text-align:left;background:var(--band);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:4px 5px;vertical-align:bottom;}
+    td{padding:4px 5px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere;}
+    table.zebra tbody tr:nth-child(even) td{background:#fafbfc;}
     tr{break-inside:avoid;}
-    thead{display:table-header-group;}
+    thead{display:table-header-group;} tfoot{display:table-row-group;}
+    tfoot td{font-weight:700;background:var(--band);border-top:1px solid var(--ink);border-bottom:1px solid var(--line2);}
+    tr.zero td{color:var(--mut);}
     .n{text-align:right;} td.n{white-space:nowrap;font-variant-numeric:tabular-nums;}
-    tr.tot td{font-weight:700;border-top:1px solid #9aa3ad;border-bottom:0;}
-    .pf,.cod{font-family:Consolas,"Courier New",monospace;font-size:7.4pt;}
-    .cod{color:#667080;}
-    .app{margin:0 0 10px;}
+    td.vz{color:#b6bdc6;}
+    .nw{white-space:nowrap;overflow-wrap:normal;}
+    .strong{font-weight:600;}
+    .pf{display:inline-block;font:600 7.2pt Consolas,"Courier New",monospace;border:1px solid var(--line2);border-radius:3px;padding:0 4px;color:var(--ink);white-space:nowrap;}
+    .cod{font:6.8pt Consolas,"Courier New",monospace;color:var(--mut);margin-right:4px;}
+    .obs{font-style:italic;color:var(--mut);}
+    .pill{display:inline-block;font-size:6.5pt;font-weight:600;padding:1px 6px;border-radius:8px;white-space:nowrap;background:#eef0f3;color:var(--ink2);}
+    .pill.ok{background:#e5f3ea;color:#1f7a4d;} .pill.warn{background:#fdf0d3;color:#8a5a00;} .pill.bad{background:#fbe6e3;color:#a1261b;}
+    .app{margin:0 0 14px;}
     .app.qb{break-before:page;}
-    .ah{display:flex;gap:9px;align-items:center;border:1px solid #cfd4da;border-left:4px solid #f2a900;border-radius:4px;padding:5px 8px;margin-bottom:4px;break-after:avoid;}
-    .plate{font:700 8.6pt Consolas,"Courier New",monospace;background:#f2a900;color:#1d2228;border-radius:3px;padding:2px 6px;white-space:nowrap;}
-    .an{flex:1;min-width:0;} .an b{font-size:9.2pt;}
-    .av{text-align:right;font-weight:700;font-size:10pt;white-space:nowrap;}
-    .eq{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:7.4pt;margin:0 0 4px;break-after:avoid;}
-    .foot{margin-top:8px;font-size:7pt;color:#8a929c;}
+    .ah{display:flex;gap:12px;align-items:center;background:var(--band);border:1px solid var(--line2);border-left:3px solid var(--acc);border-radius:4px;padding:7px 10px;margin-bottom:5px;break-after:avoid;}
+    .plate{font:700 8.4pt Consolas,"Courier New",monospace;letter-spacing:.04em;background:var(--ink);color:#fff;border-radius:3px;padding:3px 8px;white-space:nowrap;}
+    .an{flex:1;min-width:0;} .nm{font-size:9.4pt;font-weight:700;line-height:1.25;}
+    .av{text-align:right;white-space:nowrap;} .vl{font-size:11pt;font-weight:700;font-variant-numeric:tabular-nums;}
+    .av .ne{color:#a1261b;font-weight:600;}
+    .eq{display:flex;flex-wrap:wrap;gap:2px 16px;font-size:7.2pt;color:var(--ink2);margin:0 2px 5px;break-after:avoid;}
+    .eq em{font-style:normal;color:var(--mut);}
+    table.det{table-layout:fixed;}
+    table.det th{background:#fff;border-top:0;}
+    .foot{margin-top:14px;padding-top:6px;border-top:1px solid var(--line);font-size:6.8pt;color:var(--mut);}
   </style></head><body>
-    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos · Frotas</div><h1>Relatório ${anal?'analítico':'resumido'} por aplicação</h1></div>
-      <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${int(D.R.length)} aplicação(ões) · ${int(D.nL)} lançamento(s)</div></div>
-    <div class="fil">${filt}</div>
-    <div class="kp"><div><span class="mut">${rot}</span><b>${brl(D.tot)}</b></div><div><span class="mut">Aplicações</span><b>${int(D.R.length)}</b></div><div><span class="mut">Lançamentos</span><b>${int(D.nL)}</b></div><div><span class="mut">Insumos distintos</span><b>${int(D.ins)}</b></div></div>
-    <h2>Por tipo de despesa</h2>${barra}${resTd}
-    <h2>Por aplicação</h2>${resApp}
-    ${anal?`<h2${quebra?' style="break-before:page"':''}>${D.cruz?'Itens por aplicação (solicitação, pedido e nota fiscal)':'Lançamentos por aplicação'}</h2>${det}`:''}
-    <div class="foot">Fonte: relatório Apropriações de Insumos do Sienge${D.cruz?', cruzado com o relatório de solicitações e com pedidos e notas fiscais do painel':''}. Tipo de despesa classificado pelo nome e pelo detalhe do insumo.</div>
+    <header class="top"><img src="${logo}" alt="AMETA" onerror="this.remove();document.querySelector('.sep').remove()"><span class="sep"></span>
+      <div class="ti"><div class="ey">Frotas · Consumo por aplicação</div><h1>${esc(titulo)}</h1></div>
+      <div class="em"><b>Emitido em ${emitido}</b>${int(D.R.length)} aplicaç${D.R.length===1?'ão':'ões'} · ${int(D.nL)} lançamento${D.nL===1?'':'s'}</div></header>
+    <div class="ficha">${ficha}</div>
+    <div class="kp"><div><span>${rot}</span><b>${brl(D.tot)}</b></div><div><span>Aplicações</span><b>${int(D.R.length)}</b></div><div><span>Lançamentos</span><b>${int(D.nL)}</b></div><div><span>Insumos distintos</span><b>${int(D.ins)}</b></div></div>
+    ${h2('Resumo por tipo de despesa')}${barra}${resTd}
+    ${h2('Resumo por aplicação')}${resApp}
+    ${anal?h2(D.cruz?'Itens por aplicação — solicitação, pedido e nota fiscal':'Lançamentos por aplicação',quebra?' style="break-before:page"':'')+det:''}
+    <div class="foot">Fonte: relatório Apropriações de Insumos do Sienge${D.cruz?', cruzado com o relatório de solicitações e com os pedidos e notas fiscais do painel':''}. O tipo de despesa é classificado pelo nome e pelo detalhe do insumo.</div>
   </body></html>`;
   const fr=document.createElement('iframe');
   fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
@@ -20512,6 +20624,8 @@ $('cpaRelXls').onclick=relExcel;
 $('cpaRelModal').addEventListener('click',e=>{if(e.target===e.currentTarget||e.target.closest('[data-relx]'))relFechar()});
 $('cpaRelModal').addEventListener('keydown',e=>{if(e.key==='Escape')relFechar()});
 $('cpaRelPf').addEventListener('change',relPfConta);
+['cpaRelRef','cpaRelDe','cpaRelAte'].forEach(id=>$(id).addEventListener('change',relPerAj));
+$('cpaRelPerX').addEventListener('click',()=>{$('cpaRelDe').value='';$('cpaRelAte').value='';relPerAj()});
 $('cpaRelPfQ').addEventListener('input',e=>{const q=up(e.target.value.trim()),qf=q.replace(/[^A-Z0-9]/g,'');$('cpaRelPf').querySelectorAll('label').forEach(l=>{const t=l.dataset.q;l.hidden=!!q&&!t.includes(q)&&!(qf.length>=2&&t.replace(/[^A-Z0-9]/g,'').includes(qf))})});
 $('cpaRelModal').addEventListener('click',e=>{const b=e.target.closest('[data-pf]');if(!b)return;const on=b.dataset.pf==='1';$('cpaRelPf').querySelectorAll('label').forEach(l=>{if(!l.hidden)l.querySelector('input').checked=on});relPfConta()});
 $('cpaRelTodos').addEventListener('change',e=>$('cpaRelTd').querySelectorAll('input').forEach(i=>i.checked=e.target.checked));
