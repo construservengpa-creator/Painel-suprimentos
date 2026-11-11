@@ -13872,6 +13872,8 @@ function renderPoNotas(p, s) {
   });
   const voltar = document.getElementById('dashPoVoltar');
   if (voltar) voltar.addEventListener('click', () => {
+    // Ao voltar para todos os cards, o demonstrativo de notas volta recolhido.
+    poNotasAbertas.clear();
     document.getElementById('dashFiltroPedido').value = '';
     renderDashboard();
   });
