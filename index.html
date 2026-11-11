@@ -1844,6 +1844,9 @@ footer.appfoot{
 #tab-creditos-cap .po-notas-acoes button:hover { color:var(--text); background:var(--surface-2); }
 #tab-creditos-cap .po-notas-acoes button.voltar { margin-right:auto; color:var(--text); font-weight:600; }
 #tab-creditos-cap .po-notas-acoes button[hidden] { display:none; }
+#tab-creditos-cap .po-card .po-head { gap:10px; }
+#tab-creditos-cap .po-card .po-valor { display:flex; flex-direction:column; align-items:flex-end; text-align:right; line-height:1.25; white-space:nowrap; }
+#tab-creditos-cap .po-card .po-valor b { font-family:var(--font-mono); font-size:13.5px; font-weight:600; color:var(--text); }
 #tab-creditos-cap .po-card.clicavel { cursor:pointer; transition:border-color .15s, box-shadow .15s; }
 #tab-creditos-cap .po-card.clicavel:hover { border-color:var(--teal); box-shadow:0 0 0 1px var(--teal); }
 #tab-creditos-cap .po-card.clicavel .po-notas { cursor:auto; }
@@ -13785,7 +13788,7 @@ function renderPoCard(p, clicavel) {
   <div class="po-card${clicavel ? ' clicavel' : ''}" data-pedido="${escapeHtml(String(p.id))}"${clicavel ? ' title="Clique para ver só este pedido"' : ''}>
     <div class="po-head">
       <span class="num">Pedido ${escapeHtml(p.numero)}</span>
-      ${s.soQtd ? '<span class="badge qtd">Apenas quantidade</span>' : `<span class="price">${fmtR(p.precoTon)}/t</span>`}
+      ${s.soQtd ? '<span class="badge qtd">Apenas quantidade</span>' : `<span class="po-valor" title="Valor total do crédito: ${fmtT(contr)} × ${fmtR(p.precoTon)}/t"><b class="tabular">${fmtR(s.valorTotal)}</b><span class="price">${fmtR(p.precoTon)}/t</span></span>`}
     </div>
     <div class="po-forn">${p.fornecedor ? escapeHtml(p.fornecedor) : 'Fornecedor não informado'} · contratado <b class="tabular">${fmtT(contr)}</b></div>
     <div class="cap-bar" title="Entregue ${pctTxt(s.entregueQtd)} · Devolvido ${pctTxt(s.devolvidoQtd)} · Saldo ${pctTxt(Math.max(0, s.saldoQtd))}"><i class="ent" style="width:${pe.toFixed(1)}%"></i><i class="dev" style="width:${pd.toFixed(1)}%"></i></div>
