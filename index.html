@@ -3533,8 +3533,8 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         </div>
         <div class="form-card">
           <div class="form-grid">
-            <div class="form-field"><label>Empresa beneficiária (credora)</label><input type="text" id="credito-fBeneficiaria" placeholder="Ex.: AMETA Engenharia Ltda" list="credito-dlBeneficiaria"></div>
-            <div class="form-field"><label>Empresa devedora</label><input type="text" id="credito-fEmpresa" placeholder="Ex.: AMETA Construções Ltda" list="credito-dlEmpresa"></div>
+            <div class="form-field"><label>Empresa beneficiária (credora)</label><input type="text" id="credito-fBeneficiaria" placeholder="Ex.: RAF Engenharia Ltda" list="credito-dlBeneficiaria"></div>
+            <div class="form-field"><label>Empresa devedora</label><input type="text" id="credito-fEmpresa" placeholder="Ex.: RAF Construções Ltda" list="credito-dlEmpresa"></div>
             <div class="form-field"><label>Obra vinculada ao devedor</label><select id="credito-fObra"><option value="">Selecione...</option></select><div class="cc-hint" id="credito-obraHint"><span id="credito-obraHintTxt"></span><button type="button" class="cc-add-btn" id="credito-btnNovoCC">+ Cadastrar centro de custo</button></div></div>
             <div class="form-field"><label>Valor do crédito (R$)</label><input type="number" id="credito-fValor" step="0.01" min="0" placeholder="0,00"></div>
             <div class="form-field"><label>Data de disponibilidade</label><input type="date" id="credito-fData"></div>
@@ -9401,7 +9401,7 @@ ul{list-style:none;margin:0;padding:0}
 @media (max-width:420px){.kpis{gap:4px}.kpi{padding:7px 2px}.kpi b{font-size:17px}.kpi span{font-size:9.5px}}
 </style></head><body>
 <h1>${esc(titulo)}</h1>
-<p class="sub">AMETA Engenharia · Painel de Suprimentos · gerado às ${hh}</p>
+<p class="sub">RAF Engenharia · Painel de Suprimentos · gerado às ${hh}</p>
 <p class="filt">${filtros.length?'Filtros: '+esc(filtros.join(' · ')):'Sem filtros aplicados'} · ${cont.pedidos} pedido(s), ${cont.itensPend} item(ns) pendente(s)</p>
 <div class="kpis">${kpi('atrasado','Atrasados')}${kpi('hoje','Hoje')}${kpi('dentro','No prazo')}${kpi('sem-data','Sem data')}${kpi('entregue','Entregues')}</div>
 <input class="busca oculto" id="q" type="search" placeholder="Buscar pedido, insumo, fornecedor…">
@@ -11694,7 +11694,7 @@ function imprimirRelatorioCreditos(){
     .st.ok{background:#e3f2e5;color:#2e7d32;} .st.fat{background:#e3eefc;color:#1d5fb4;} .st.res{background:#fff3d6;color:#8a6100;} .st.off{background:#eceef1;color:#667080;}
     .foot{margin-top:6px;font-size:7pt;color:#8a929c;}
   </style></head><body>
-    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos</div><h1>Controle de Crédito entre Obras</h1></div>
+    <div class="top"><div><div class="mut">RAF · Painel de Suprimentos</div><h1>Controle de Crédito entre Obras</h1></div>
       <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${lista.length} crédito(s)</div></div>
     <div class="kp"><div><span class="mut">Total dos créditos</span><b>${m(gT)}</b></div><div><span class="mut">Faturado (notas)</span><b>${m(gF)}</b></div><div><span class="mut">Reservado em pedidos</span><b>${m(gR)}</b></div><div><span class="mut">Saldo livre</span><b>${m(gS)}</b></div></div>
     <div class="leg"><i class="d f"></i><b>Faturado</b>: notas fiscais emitidas nos pedidos vinculados (abatimento confirmado). <i class="d r"></i><b>Reservado</b>: parte dos pedidos ainda sem nota. <i class="d l"></i><b>Saldo livre</b>: crédito disponível para novos pedidos. Pedido parcialmente entregue continua reservando o restante até ser encerrado no Sienge.</div>
@@ -15019,7 +15019,7 @@ function buildReportHtmlConteudo(fornecedorFiltro, pedidoFiltro, concluidosFora)
     .st.ok{background:#e3f2e5;color:#2e7d32;} .st.res{background:#fff3d6;color:#8a6100;}
     .foot{margin-top:8px;font-size:7pt;color:#8a929c;}
   </style></head><body>
-    <div class="top"><div><div class="mut">AMETA · Painel de Suprimentos</div><h1>Controle de Saldo — CAP</h1>${fornecedorFiltro?`<div class="mut">Fornecedor: <b>${e(fornecedorFiltro)}</b></div>`:''}${pedidoFiltro && state.pedidos[0]?`<div class="mut">Pedido de compra: <b>${e(state.pedidos[0].numero)}</b></div>`:''}</div>
+    <div class="top"><div><div class="mut">RAF · Painel de Suprimentos</div><h1>Controle de Saldo — CAP</h1>${fornecedorFiltro?`<div class="mut">Fornecedor: <b>${e(fornecedorFiltro)}</b></div>`:''}${pedidoFiltro && state.pedidos[0]?`<div class="mut">Pedido de compra: <b>${e(state.pedidos[0].numero)}</b></div>`:''}</div>
       <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${state.pedidos.length} pedido(s)${fornecedorFiltro||pedidoFiltro?'':' · todos os fornecedores'}${concluidosFora?`<br>${concluidosFora} pedido(s) concluído(s) não incluído(s)`:''}</div></div>
     <div class="kp"><div><span class="mut">Contratado</span><b>${fmtT(gQ)}</b><span class="mut">${fmtR(gV)}</span></div><div><span class="mut">Entregue (líquido)</span><b>${fmtT(gE)}</b><span class="mut">${fmtR(gEV)}${gD>0?` · devolvido ${fmtT(gD)}`:''}</span></div><div><span class="mut">Saldo a entregar</span><b>${fmtT(gS)}</b><span class="mut">${fmtR(gSV)}</span></div><div><span class="mut">Estoque físico atual</span><b>${fmtT(estoque)}</b><span class="mut">${fornecedorFiltro?'em tanque deste fornecedor':'combinado em tanque'}</span></div></div>
     <div class="leg"><i class="d f"></i><b>Entregue</b>: notas fiscais de entrega lançadas no pedido, já descontadas as devoluções. <i class="d r"></i><b>Devolvido</b>: devoluções e estornos, que voltam para o saldo do pedido. <i class="d l"></i><b>Saldo a entregar</b>: quantidade contratada que ainda falta entregar. Pedidos "apenas quantidade" não somam valores em R$.</div>
@@ -20527,7 +20527,7 @@ function relImprimir(){
   const ficha=relFiltros(tds).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
   const doc=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
     @page{size:A4 ${anal&&D.cruz||cols.length>3?'landscape':'portrait'};margin:12mm 11mm 14mm;
-      @bottom-left{content:"AMETA · ${esc(titulo)} · emitido em ${emitido}";font:7pt Inter,"Segoe UI",Arial,sans-serif;color:#7b8594;}
+      @bottom-left{content:"RAF · ${esc(titulo)} · emitido em ${emitido}";font:7pt Inter,"Segoe UI",Arial,sans-serif;color:#7b8594;}
       @bottom-right{content:"Página " counter(page) " de " counter(pages);font:7pt Inter,"Segoe UI",Arial,sans-serif;color:#7b8594;}}
     *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     :root{--ink:#1b2430;--ink2:#465162;--mut:#7b8594;--line:#e3e7ec;--line2:#c4ccd5;--band:#f4f6f8;--acc:#c58a00;}
