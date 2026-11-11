@@ -1842,6 +1842,11 @@ footer.appfoot{
 #tab-creditos-cap .po-notas-acoes { display:flex; gap:8px; justify-content:flex-end; margin:-6px 0 10px; }
 #tab-creditos-cap .po-notas-acoes button { border:1px solid var(--line); background:transparent; color:var(--text-mut); font-size:11.5px; padding:4px 10px; border-radius:6px; cursor:pointer; }
 #tab-creditos-cap .po-notas-acoes button:hover { color:var(--text); background:var(--surface-2); }
+#tab-creditos-cap .po-notas-acoes button.voltar { margin-right:auto; color:var(--text); font-weight:600; }
+#tab-creditos-cap .po-notas-acoes button[hidden] { display:none; }
+#tab-creditos-cap .po-card.clicavel { cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+#tab-creditos-cap .po-card.clicavel:hover { border-color:var(--teal); box-shadow:0 0 0 1px var(--teal); }
+#tab-creditos-cap .po-card.clicavel .po-notas { cursor:auto; }
 @media (max-width:640px) {
 #tab-creditos-cap .cap-subtabs { padding:0; }
 #tab-creditos-cap .bar-chart .bc-row { grid-template-columns:90px 1fr 70px; }
@@ -3748,6 +3753,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <span><span class="cap-dot sal"></span><b>Saldo</b>: quantidade ainda a entregar</span>
       </div>
       <div class="po-notas-acoes" id="dashPoNotasAcoes">
+        <button type="button" class="voltar" id="dashPoVoltar" hidden>← Ver todos os pedidos</button>
         <button type="button" data-notas="abrir">Expandir todas as notas</button>
         <button type="button" data-notas="fechar">Recolher todas as notas</button>
       </div>
@@ -13758,13 +13764,15 @@ function renderDashboardConteudo(fornecedorFiltro, pedidoFiltro) {
       <p class="kpi-foot">${k.sub}</p>
     </div>`).join('');
 
-  document.getElementById('dashPoGrid').innerHTML = state.pedidos.map(p => renderPoCard(p)).join('') ||
+  const voltar = document.getElementById('dashPoVoltar');
+  if (voltar) voltar.hidden = !pedidoFiltro;
+  document.getElementById('dashPoGrid').innerHTML = state.pedidos.map(p => renderPoCard(p, !pedidoFiltro)).join('') ||
     `<div class="hint">${fornecedorFiltro || pedidoFiltro ? 'Nenhum pedido para este filtro.' : 'Nenhum pedido cadastrado.'}</div>`;
 
   renderBarChart('dashObraChart', resumoPorObra().map(o => ({ label: o.local, value: o.qtd })));
 }
 
-function renderPoCard(p) {
+function renderPoCard(p, clicavel) {
   const s = pedidoStats(p);
   const low = s.pct >= 85;
   const contr = p.qtdContratada;
@@ -13774,7 +13782,7 @@ function renderPoCard(p) {
   const pd = Math.max(0, Math.min(100 - pe, pctDe(s.devolvidoQtd)));
   const saldoCls = s.saldoQtd <= 0.005 ? 'zero' : (low ? 'low' : 'pos');
   return `
-  <div class="po-card">
+  <div class="po-card${clicavel ? ' clicavel' : ''}" data-pedido="${escapeHtml(String(p.id))}"${clicavel ? ' title="Clique para ver só este pedido"' : ''}>
     <div class="po-head">
       <span class="num">Pedido ${escapeHtml(p.numero)}</span>
       ${s.soQtd ? '<span class="badge qtd">Apenas quantidade</span>' : `<span class="price">${fmtR(p.precoTon)}/t</span>`}
@@ -13848,6 +13856,22 @@ function renderPoNotas(p, s) {
     if (!d.classList || !d.classList.contains('po-notas')) return;
     if (d.open) poNotasAbertas.add(d.dataset.pedido); else poNotasAbertas.delete(d.dataset.pedido);
   }, true);
+  // Clicar no card filtra o dashboard só por aquele pedido (mesmo filtro do seletor "Pedido de compra").
+  grid.addEventListener('click', ev => {
+    const card = ev.target.closest('.po-card.clicavel');
+    if (!card || ev.target.closest('.po-notas')) return;
+    const selP = document.getElementById('dashFiltroPedido');
+    poNotasAbertas.add(card.dataset.pedido);
+    selP.value = card.dataset.pedido;
+    renderDashboard();
+    if (selP.value !== card.dataset.pedido) return;
+    grid.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+  const voltar = document.getElementById('dashPoVoltar');
+  if (voltar) voltar.addEventListener('click', () => {
+    document.getElementById('dashFiltroPedido').value = '';
+    renderDashboard();
+  });
   const acoes = document.getElementById('dashPoNotasAcoes');
   if (acoes) acoes.addEventListener('click', ev => {
     const b = ev.target.closest('button[data-notas]');
