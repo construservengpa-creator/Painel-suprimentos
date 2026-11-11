@@ -4335,6 +4335,9 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
         <div class="cpa-rel-op">
           <label><input type="checkbox" id="cpaRelTodos"> Todos os tipos</label>
         </div>
+        <div class="cpa-rel-pfh"><b>Prefixos</b><span id="cpaRelPfN"></span></div>
+        <div class="cpa-rel-pfbar"><input type="text" id="cpaRelPfQ" placeholder="buscar prefixo ou equipamento…" aria-label="Buscar prefixo"><button type="button" class="btn small" data-pf="1">Marcar todos</button><button type="button" class="btn small" data-pf="0">Desmarcar todos</button></div>
+        <div class="cpa-rel-pf" id="cpaRelPf"></div>
         <div class="field" style="margin-top:12px"><label for="cpaRelNivel">Conteúdo</label>
           <select id="cpaRelNivel"><option value="a">Analítico — resumo + lançamentos de cada aplicação</option><option value="r">Resumo — totais por tipo de despesa e por aplicação</option></select></div>
         <div class="cpa-rel-op">
@@ -19648,6 +19651,17 @@ html[data-tema="estoque"] .cpa-date{color-scheme:light;}
 .cpa-rel-td label{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:6px;padding:7px 10px;}
 .cpa-rel-td label span{margin-left:auto;font-size:11.5px;color:var(--text-dim);font-variant-numeric:tabular-nums;}
 .cpa-rel-op{margin-top:10px;}
+.cpa-rel-pfh{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-size:13px;color:var(--text);}
+.cpa-rel-pfh span{font-size:11.5px;color:var(--text-dim);}
+.cpa-rel-pfbar{display:flex;gap:6px;margin-bottom:6px;}
+.cpa-rel-pfbar input{flex:1;min-width:0;background:var(--asphalt-3);border:1px solid var(--line);color:var(--text);padding:6px 9px;border-radius:5px;font:500 12.5px var(--font-body);}
+.cpa-rel-pf{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:6px;}
+.cpa-rel-pf label{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font:500 12.5px var(--font-body);color:var(--text);cursor:pointer;text-transform:none;letter-spacing:0;}
+.cpa-rel-pf label:last-child{border-bottom:0;}
+.cpa-rel-pf label[hidden]{display:none;}
+.cpa-rel-pf .cpa-plate{grid-row:auto;min-width:0;font-size:11px;padding:2px 6px;}
+.cpa-rel-pf .d{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);}
+.cpa-rel-pf .v{font-variant-numeric:tabular-nums;color:var(--text-dim);font-size:11.5px;}
 #cpaRelMsg:empty{display:none;}
 .cpa-tdbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--asphalt-3);margin-bottom:12px;}
 .cpa-tdbar i{display:block;height:100%;}
@@ -20288,11 +20302,17 @@ async function exportar(){
 /* ---------- relatório analítico (impressão e Excel) ---------- */
 // cores fixas (tema claro) para o papel e para a legenda
 const TD_HEX={lic:'#2a78d6',seg:'#eb6834',plano:'#1baf7a',pecas:'#eda100',serv:'#e87ba4',outros:'#9aa3ad'};
-function relDados(tds){
+function relDados(tds,pfs){
   const sel=new Set(tds),td=st.td;st.td='';
   let R;try{R=base().apps.filter(a=>st.gerais||!a.geral).map(agg)}finally{st.td=td}
   R=R.map(r=>{const L=r.L.filter(l=>sel.has(l.td));const pt={},pn={};TDESP.forEach(([k])=>{pt[k]=0;pn[k]=0});let v=0;
-      L.forEach(l=>{const x=V(l);pt[l.td]+=x;pn[l.td]++;v+=x});return {a:r.a,L,v,pt,pn}}).filter(r=>r.L.length);
+      L.forEach(l=>{const x=V(l);pt[l.td]+=x;pn[l.td]++;v+=x});
+      // itens das solicitações, como na aba "Todos os itens": o tipo vem do lançamento ligado ou do próprio insumo
+      const I=[];r.scs.forEach(g=>g.itens.forEach(e=>{const ls=e.lancs.filter(l=>sel.has(l.td)),t=ls.length?[ls[0].td,ls[0].tdSub]:e.lancs.length?[e.lancs[0].td,e.lancs[0].tdSub]:tipoDespesa(e.it.ins,e.it.det);
+        if(!ls.length&&!sel.has(t[0]))return;I.push({e,ls,td:t[0],tdSub:t[1],v:ls.reduce((s,l)=>s+V(l),0)})}));
+      I.sort((x,y)=>(y.e.it.s.dt||'').localeCompare(x.e.it.s.dt||'')||(+y.e.it.s.n)-(+x.e.it.s.n));
+      const S=r.semSc.filter(l=>sel.has(l.td)),nEnt=I.filter(x=>x.e.ent&&x.e.ent.ok).length;
+      return {a:r.a,L,v,pt,pn,I,S,nEnt}}).filter(r=>r.L.length&&(!pfs||pfs.has(r.a.k)));
   const ap=(x,y)=>(x.a.p||'~'+x.a.d).localeCompare(y.a.p||'~'+y.a.d,'pt-BR',{numeric:true});
   R.sort(st.sort==='p'?ap:(x,y)=>y.v-x.v||ap(x,y));
   const ordTd=Object.fromEntries(TDESP.map(([k],i)=>[k,i]));
@@ -20309,6 +20329,8 @@ function relFiltros(tds){
   if(st.grupo)f.push(['Grupo',st.grupo]);
   if(st.tp)f.push(['Tipo',st.tp]);
   if(st.q.trim())f.push(['Busca',st.q.trim()]);
+  const pf=relPfs();
+  if(pf){const B=new Map(base().apps.map(a=>[a.k,a]));f.push(['Prefixos',[...pf].map(k=>{const a=B.get(k);return a?(a.geral?a.d:a.p):k}).join(', ')])}
   f.push(['Tipos de despesa',tds.length===TDESP.length?'Todos':tds.map(k=>TD_NOME[k]).join(', ')]);
   f.push(['Valor',st.met==='c'?'Consumido':'Apropriado']);
   f.push(['Subetapas gerais',st.gerais?'Incluídas':'Não incluídas']);
@@ -20316,12 +20338,18 @@ function relFiltros(tds){
   if(per.length)f.push(['Período das apropriações',[...new Set(per)].join(' · ')]);
   return f;
 }
+// prefixos marcados; null = todos (sem filtro)
+const relPfs=()=>{const I=[...$('cpaRelPf').querySelectorAll('input')],M=I.filter(i=>i.checked);return M.length===I.length?null:new Set(M.map(i=>i.value))};
+function relPfConta(){const I=[...$('cpaRelPf').querySelectorAll('input')],n=I.filter(i=>i.checked).length;$('cpaRelPfN').textContent=n===I.length?`todos (${int(n)})`:`${int(n)} de ${int(I.length)} marcados`}
 const relTds=()=>[...$('cpaRelTd').querySelectorAll('input:checked')].map(i=>i.value);
 function relAbrir(){
   if(!temAcesso()){msg('Sem acesso a Frotas.',false);return}
   if(!OBRAS.size){msg('Importe o relatório de apropriações antes de gerar o relatório.',false);return}
   const D=relDados(TDESP.map(([k])=>k));
   $('cpaRelTd').innerHTML=TDESP.map(([k,n])=>`<label style="--c:${TD_HEX[k]}"><input type="checkbox" value="${k}"${!st.td||st.td===k?' checked':''}> ${esc(n)}<span>${brl0(D.T[k].v)}</span></label>`).join('');
+  const P=relDados(TDESP.map(([k])=>k)).R;
+  $('cpaRelPf').innerHTML=P.map(r=>`<label data-q="${esc(up(r.a.p+' '+r.a.d+' '+(r.a.extra||'')))}"><input type="checkbox" value="${esc(r.a.k)}" checked><span class="cpa-plate${r.a.geral?' geral':''}">${r.a.geral?'geral':esc(r.a.p)}</span><span class="d" title="${esc(r.a.d)}">${esc(r.a.d)}</span><span class="v">${brl0(r.v)}</span></label>`).join('')||'<div class="cpa-vazio">Nenhuma aplicação com os filtros atuais.</div>';
+  $('cpaRelPfQ').value='';relPfConta();
   $('cpaRelTodos').checked=!st.td;$('cpaRelMsg').textContent='';$('cpaRelMsg').className='ctr-msg';
   $('cpaRelModal').classList.add('open');
 }
@@ -20329,8 +20357,10 @@ const relFechar=()=>$('cpaRelModal').classList.remove('open');
 function relValida(){
   const tds=relTds();
   if(!tds.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Escolha ao menos um tipo de despesa.';return null}
-  const D=relDados(tds);
-  if(!D.R.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Nenhum lançamento com esses tipos de despesa e os filtros atuais.';return null}
+  const pfs=relPfs();
+  if(pfs&&!pfs.size){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Marque ao menos um prefixo.';return null}
+  const D=relDados(tds,pfs);
+  if(!D.R.length){$('cpaRelMsg').className='ctr-msg on err';$('cpaRelMsg').textContent='Nenhum lançamento com esses tipos de despesa, prefixos e filtros atuais.';return null}
   return {tds,D};
 }
 const pct=(v,t)=>t?(v/t*100).toFixed(1).replace('.',',')+'%':'—';
@@ -20348,13 +20378,20 @@ function relImprimir(){
   const resApp=`<table class="t"><thead><tr><th style="width:62px">Prefixo</th><th>Aplicação</th><th class="n" style="width:42px">Lanç.</th>${multi?cols.map(([k,n])=>`<th class="n">${sw(k)}${esc(n)}</th>`).join(''):''}<th class="n">${multi?'Total':rot}</th><th class="n" style="width:46px">%</th></tr></thead><tbody>
     ${D.R.map(r=>`<tr><td class="pf">${pl(r.a)}</td><td>${esc(r.a.d)}${r.a.extra?`<div class="mut">${esc(r.a.extra)}</div>`:''}</td><td class="n">${int(r.L.length)}</td>${multi?cols.map(([k])=>`<td class="n">${r.pt[k]?brl(r.pt[k]):'—'}</td>`).join(''):''}<td class="n"><b>${brl(r.v)}</b></td><td class="n">${pct(r.v,D.tot)}</td></tr>`).join('')}
     <tr class="tot"><td colspan="2">Total (${int(D.R.length)} aplicaç${D.R.length===1?'ão':'ões'})</td><td class="n">${int(D.nL)}</td>${multi?cols.map(([k])=>`<td class="n">${brl(D.T[k].v)}</td>`).join(''):''}<td class="n">${brl(D.tot)}</td><td class="n">100%</td></tr></tbody></table>`;
+  const entTxt=x=>x?esc(x.t)+(x.saldoCanc?'<div class="mut">saldo cancelado</div>':''):'';
+  const valItem=x=>x.ls.length?brl(x.v):x.e.agrup?'<span class="mut">apropriado (agrupado)</span>':'<span class="mut">a apropriar</span>';
+  const tdCel=(k,sub)=>`<td class="td">${sw(k)}${esc(TD_NOME[k])}${sub?`<div class="mut">${esc(sub)}</div>`:''}</td>`;
+  const itensTab=r=>`<table class="t"><thead><tr><th style="width:44px">SC</th><th style="width:62px">Data</th><th style="width:18%">Insumo</th><th>Detalhe</th>${multi?'<th style="width:104px">Tipo</th>':''}<th class="n" style="width:52px">Qtd</th><th class="n" style="width:50px">Entregue</th><th style="width:72px">Entrega</th><th style="width:50px">Pedido</th><th style="width:14%">Fornecedor</th><th style="width:62px">NF</th><th class="n" style="width:76px">${rot}</th></tr></thead><tbody>
+      ${r.I.map(x=>{const e=x.e,p=e.p;return `<tr${e.ent&&!e.ent.ok?' class="ne"':''}><td class="nw">${esc(e.it.s.n)}</td><td class="nw">${brDt(e.it.s.dt)}</td><td><span class="cod">${esc(e.it.cod)}</span> ${esc(e.it.ins)}</td><td>${esc(e.it.det)}</td>${multi?tdCel(x.td,x.tdSub):''}<td class="n">${nf(e.it.qa)} ${esc(e.it.un)}</td><td class="n">${p?nf(p.qe):''}</td><td class="ent">${entTxt(e.ent)}</td><td>${p&&p.ped?esc(p.ped):''}</td><td>${p?esc(p.forn||''):''}</td><td class="nw">${p?p.nfs.map(n=>esc(n.n)+(n.d?`<div class="mut">${esc(n.d)}</div>`:'')).join(''):''}</td><td class="n">${valItem(x)}</td></tr>`}).join('')}
+      ${r.S.map(l=>`<tr><td class="mut">—</td><td></td><td><span class="cod">${esc(l.cod)}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td>${multi?tdCel(l.td,l.tdSub):''}<td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td></td><td class="ent">apropriado<div class="mut">sem SC ligada</div></td><td></td><td></td><td></td><td class="n">${brl(V(l))}</td></tr>`).join('')}
+      <tr class="tot"><td colspan="${multi?11:10}">Total da aplicação</td><td class="n">${brl(r.v)}</td></tr></tbody></table>`;
   const det=!anal?'':D.R.map((r,i)=>{
     const sub=cols.filter(([k])=>r.pn[k]).map(([k,n])=>`<span>${sw(k)}${esc(n)} <b>${brl(r.pt[k])}</b> (${pct(r.pt[k],r.v)})</span>`).join('');
-    return `<section class="app${quebra&&i?' qb':''}"><div class="ah"><span class="plate">${pl(r.a)}</span><div class="an"><b>${esc(r.a.d)}</b><div class="mut">${esc(r.a.tipo)}${r.a.extra?' · '+esc(r.a.extra):''}</div></div><div class="av">${brl(r.v)}<div class="mut">${int(r.L.length)} lançamento${r.L.length===1?'':'s'}</div></div></div>
+    return `<section class="app${quebra&&i?' qb':''}"><div class="ah"><span class="plate">${pl(r.a)}</span><div class="an"><b>${esc(r.a.d)}</b><div class="mut">${esc(r.a.tipo)}${r.a.extra?' · '+esc(r.a.extra):''}</div></div><div class="av">${brl(r.v)}<div class="mut">${D.cruz?`${int(r.I.length+r.S.length)} ite${r.I.length+r.S.length===1?'m':'ns'} · ${int(r.I.length-r.nEnt)} não entregue${r.I.length-r.nEnt===1?'':'s'}`:`${int(r.L.length)} lançamento${r.L.length===1?'':'s'}`}</div></div></div>
       ${multi?`<div class="eq">${sub}</div>`:''}
-      <table class="t"><thead><tr><th style="width:${D.cruz?'21%':'27%'}">Insumo</th><th>Detalhe</th>${multi?'<th style="width:104px">Tipo de despesa</th>':''}<th style="width:${D.cruz?'11%':'15%'}">Unidade construtiva</th><th class="n" style="width:62px">${qtdRot}</th><th class="n" style="width:76px">${rot}</th>${D.cruz?'<th style="width:50px">SC</th><th style="width:54px">Pedido</th><th style="width:13%">Fornecedor</th><th style="width:56px">NF</th>':''}</tr></thead><tbody>
+      ${D.cruz?itensTab(r)+'</section>':`<table class="t"><thead><tr><th style="width:${D.cruz?'21%':'27%'}">Insumo</th><th>Detalhe</th>${multi?'<th style="width:104px">Tipo de despesa</th>':''}<th style="width:${D.cruz?'11%':'15%'}">Unidade construtiva</th><th class="n" style="width:62px">${qtdRot}</th><th class="n" style="width:76px">${rot}</th>${D.cruz?'<th style="width:50px">SC</th><th style="width:54px">Pedido</th><th style="width:13%">Fornecedor</th><th style="width:56px">NF</th>':''}</tr></thead><tbody>
       ${r.L.map(l=>`<tr><td><span class="cod">${esc(l.cod)}</span> ${esc(l.ins)}</td><td>${esc(l.det)}</td>${multi?`<td class="td">${sw(l.td)}${esc(TD_NOME[l.td])}${l.tdSub?`<div class="mut">${esc(l.tdSub)}</div>`:''}</td>`:''}<td class="mut">${esc(l.uni)}</td><td class="n">${nf(st.met==='c'?l.qC:l.qA)} ${esc(l.un)}</td><td class="n">${brl(V(l))}</td>${D.cruz?`<td>${l.sc?esc(l.sc.n)+(l.scProv?'<div class="mut">provável</div>':''):'—'}</td><td>${l.ped&&l.ped.ped?esc(l.ped.ped):''}</td><td>${l.ped?esc(l.ped.forn||''):''}</td><td>${l.ped?l.ped.nfs.map(n=>esc(n.n)).join('<br>'):''}</td>`:''}</tr>`).join('')}
-      <tr class="tot"><td colspan="${multi?5:4}">Total da aplicação</td><td class="n">${brl(r.v)}</td>${D.cruz?'<td colspan="4"></td>':''}</tr></tbody></table></section>`}).join('');
+      <tr class="tot"><td colspan="${multi?5:4}">Total da aplicação</td><td class="n">${brl(r.v)}</td>${D.cruz?'<td colspan="4"></td>':''}</tr></tbody></table></section>`}`}).join('');
   const filt=relFiltros(tds).map(([k,v])=>`<span><b>${esc(k)}:</b> ${esc(v)}</span>`).join('');
   const doc=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório analítico por aplicação</title><style>
     @page{size:A4 ${anal&&D.cruz||cols.length>3?'landscape':'portrait'};margin:10mm 9mm 11mm;}
@@ -20374,6 +20411,10 @@ function relImprimir(){
     .d{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;vertical-align:0;}
     table.t{width:100%;border-collapse:collapse;font-size:inherit;}
     td.td{overflow-wrap:normal;white-space:nowrap;}
+    td.nw{white-space:nowrap;overflow-wrap:normal;}
+    td.ent{font-weight:600;color:#2e7d32;}
+    tr.ne td.ent{color:#b3261e;}
+    tr.ne{background:#fdf1f0;}
     th{font-size:6.8pt;text-transform:uppercase;letter-spacing:.3px;color:#4b5563;text-align:left;border-bottom:1px solid #9aa3ad;padding:3px 4px;vertical-align:bottom;}
     td{padding:3px 4px;border-bottom:1px solid #e3e6ea;vertical-align:top;overflow-wrap:anywhere;}
     tr{break-inside:avoid;}
@@ -20397,7 +20438,7 @@ function relImprimir(){
     <div class="kp"><div><span class="mut">${rot}</span><b>${brl(D.tot)}</b></div><div><span class="mut">Aplicações</span><b>${int(D.R.length)}</b></div><div><span class="mut">Lançamentos</span><b>${int(D.nL)}</b></div><div><span class="mut">Insumos distintos</span><b>${int(D.ins)}</b></div></div>
     <h2>Por tipo de despesa</h2>${barra}${resTd}
     <h2>Por aplicação</h2>${resApp}
-    ${anal?`<h2${quebra?' style="break-before:page"':''}>Lançamentos por aplicação</h2>${det}`:''}
+    ${anal?`<h2${quebra?' style="break-before:page"':''}>${D.cruz?'Itens por aplicação (solicitação, pedido e nota fiscal)':'Lançamentos por aplicação'}</h2>${det}`:''}
     <div class="foot">Fonte: relatório Apropriações de Insumos do Sienge${D.cruz?', cruzado com o relatório de solicitações e com pedidos e notas fiscais do painel':''}. Tipo de despesa classificado pelo nome e pelo detalhe do insumo.</div>
   </body></html>`;
   const fr=document.createElement('iframe');
@@ -20425,6 +20466,15 @@ async function relExcel(){
     const L=[];D.R.forEach(r=>r.L.forEach(l=>L.push(Object.assign({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'Obra':l.obraNome,'Unidade construtiva':l.uni,'Cód. insumo':l.cod,'Insumo':l.ins,'Detalhe':l.det,'Tipo de despesa':TD_NOME[l.td],'Subtipo':l.tdSub||'','Un.':l.un,
       [st.met==='c'?'Qtd. consumida':'Qtd. apropriada']:st.met==='c'?l.qC:l.qA,[rot]:r2(V(l))},
       D.cruz?{'SC':l.sc?+l.sc.n:'','Data SC':l.sc?brDt(l.sc.dt):'','Ligação':l.sc?(l.scProv?'Provável':'Confere'):'','Pedido':l.ped&&l.ped.ped?l.ped.ped:'','Fornecedor':l.ped?l.ped.forn||'':'','NF':l.ped?l.ped.nfs.map(n=>n.n).join(', '):'','Entrega':l.ped?l.ped.ent||'':''}:{}))));
+    if(D.cruz){
+      const I=[];D.R.forEach(r=>{
+        r.I.forEach(x=>{const e=x.e,p=e.p;I.push({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'SC':+e.it.s.n,'Data SC':brDt(e.it.s.dt),'Solicitante':e.it.s.sol||'','Cód. insumo':e.it.cod,'Insumo':e.it.ins,'Detalhe':e.it.det,'Tipo de despesa':TD_NOME[x.td],'Subtipo':x.tdSub||'',
+          'Qtd.':e.it.qa,'Un.':e.it.un,'Entregue':p?p.qe:'','Entrega':e.ent?e.ent.t+(e.ent.saldoCanc?' (saldo cancelado)':''):'','Pedido':p&&p.ped?p.ped:'','Fornecedor':p?p.forn||'':'','NF':p?p.nfs.map(n=>n.n).join(', '):'','Data NF':p?p.nfs.map(n=>n.d).filter(Boolean).join(', '):'',
+          [rot]:x.ls.length?r2(x.v):'','Situação do valor':x.ls.length?'':x.e.agrup?'Apropriado (agrupado)':'A apropriar'})});
+        r.S.forEach(l=>I.push({'Prefixo':r.a.geral?'':r.a.p,'Aplicação':r.a.d,'SC':'','Data SC':'','Solicitante':'','Cód. insumo':l.cod,'Insumo':l.ins,'Detalhe':l.det,'Tipo de despesa':TD_NOME[l.td],'Subtipo':l.tdSub||'',
+          'Qtd.':st.met==='c'?l.qC:l.qA,'Un.':l.un,'Entregue':'','Entrega':'apropriado (sem SC ligada)','Pedido':'','Fornecedor':'','NF':'','Data NF':'',[rot]:r2(V(l)),'Situação do valor':''}))});
+      XLSX.utils.book_append_sheet(wb,ws(I,[11,40,9,11,18,11,36,36,20,14,8,6,9,22,10,30,14,12,15,22]),'Itens');
+    }
     XLSX.utils.book_append_sheet(wb,ws(L,[11,40,22,26,11,36,36,20,14,6,13,15,9,11,9,10,30,14,16]),'Lançamentos');
   }
   const nomeTd=tds.length===TDESP.length?'todos':tds.join('-');
@@ -20461,6 +20511,9 @@ $('cpaRelImp').onclick=relImprimir;
 $('cpaRelXls').onclick=relExcel;
 $('cpaRelModal').addEventListener('click',e=>{if(e.target===e.currentTarget||e.target.closest('[data-relx]'))relFechar()});
 $('cpaRelModal').addEventListener('keydown',e=>{if(e.key==='Escape')relFechar()});
+$('cpaRelPf').addEventListener('change',relPfConta);
+$('cpaRelPfQ').addEventListener('input',e=>{const q=up(e.target.value.trim()),qf=q.replace(/[^A-Z0-9]/g,'');$('cpaRelPf').querySelectorAll('label').forEach(l=>{const t=l.dataset.q;l.hidden=!!q&&!t.includes(q)&&!(qf.length>=2&&t.replace(/[^A-Z0-9]/g,'').includes(qf))})});
+$('cpaRelModal').addEventListener('click',e=>{const b=e.target.closest('[data-pf]');if(!b)return;const on=b.dataset.pf==='1';$('cpaRelPf').querySelectorAll('label').forEach(l=>{if(!l.hidden)l.querySelector('input').checked=on});relPfConta()});
 $('cpaRelTodos').addEventListener('change',e=>$('cpaRelTd').querySelectorAll('input').forEach(i=>i.checked=e.target.checked));
 $('cpaRelTd').addEventListener('change',()=>{const I=[...$('cpaRelTd').querySelectorAll('input')];$('cpaRelTodos').checked=I.every(i=>i.checked)});
 document.addEventListener('perfil-atualizado',()=>{geracao++;carregado=false;carregando=null;OBRAS.clear();SCX=null;versao++;
