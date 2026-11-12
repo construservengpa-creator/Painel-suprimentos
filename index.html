@@ -1557,6 +1557,15 @@ footer.appfoot{
 .cc-preview{ font-size:12px; color:var(--text-dim); min-height:16px; }
 .cc-preview b{ color:var(--text); font-weight:600; }
 /* Entrega em outro centro de custo (Prazo de insumos) */
+/* Ranking de fornecedores por período */
+#modalRankForn{ z-index:10000; }
+#modalRankForn .form-field{ margin-bottom:12px; }
+#modalRankForn .form-field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-mut); margin-bottom:5px; }
+#modalRankForn .form-field input, #modalRankForn .form-field select{ width:100%; box-sizing:border-box; }
+#modalRankForn .rk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+@media (max-width:480px){ #modalRankForn .rk-grid{ grid-template-columns:1fr; } }
+#rk-resumo{ font-size:12px; color:var(--text-dim); line-height:1.5; min-height:18px; }
+#rk-resumo b{ color:var(--text); }
 #modalEntregaCentro{ z-index:10000; }
 #modalEntregaCentro .form-field{ margin-bottom:12px; }
 #modalEntregaCentro .form-field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-mut); margin-bottom:5px; }
@@ -2880,6 +2889,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
       <button class="btn small" id="btnCollapsePed">⤡ Recolher tudo</button>
       <button class="btn small" id="btnWhatsPed" title="Gera um arquivo HTML leve, com os pedidos filtrados, para enviar pelo WhatsApp">📲 Resumo p/ WhatsApp</button>
       <button class="btn small col-vis-btn" data-table="tablePed" title="Mostrar/ocultar colunas">▦ Colunas</button>
+      <button class="btn small" id="btnRankForn" title="Ranking dos fornecedores de quem mais se comprou em um período">🏆 Ranking de fornecedores</button>
       <button class="btn small" id="btnExportPed">⬇ Exportar CSV</button>
     </div>
     <div class="summary-row" id="centroSummary"></div>
@@ -4694,6 +4704,59 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   <div class="pi-present-kpis" id="piPresentKpis"></div>
   <div id="piPresentFiltersSlot"></div>
   <div id="piPresentTimeline"></div>
+</div>
+
+<div class="modal-backdrop" id="modalRankForn">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rk-titulo">
+    <h3 id="rk-titulo">Ranking de fornecedores por período</h3>
+    <p class="cc-modal-sub">Fornecedores de quem mais se comprou no período, a partir da base do Sienge importada no painel. Pedidos cancelados não entram.</p>
+    <div class="form-field"><label for="rk-fPreset">Período</label>
+      <select id="rk-fPreset">
+        <option value="mes">Este mês</option>
+        <option value="mesAnt">Mês passado</option>
+        <option value="3m">Últimos 3 meses</option>
+        <option value="6m">Últimos 6 meses</option>
+        <option value="ano" selected>Este ano</option>
+        <option value="12m">Últimos 12 meses</option>
+        <option value="custom">Personalizado</option>
+      </select>
+    </div>
+    <div class="rk-grid">
+      <div class="form-field"><label for="rk-fIni">De</label><input type="date" id="rk-fIni"></div>
+      <div class="form-field"><label for="rk-fFim">Até</label><input type="date" id="rk-fFim"></div>
+    </div>
+    <div class="rk-grid">
+      <div class="form-field"><label for="rk-fBase">Considerar a data</label>
+        <select id="rk-fBase">
+          <option value="pedido">Do pedido de compra</option>
+          <option value="nota">Da nota fiscal (faturado)</option>
+        </select>
+      </div>
+      <div class="form-field"><label for="rk-fCriterio">Ordenar por</label>
+        <select id="rk-fCriterio">
+          <option value="valor">Valor comprado (R$)</option>
+          <option value="pedidos">Nº de pedidos</option>
+        </select>
+      </div>
+    </div>
+    <div class="rk-grid">
+      <div class="form-field"><label for="rk-fObra">Centro de custo</label><select id="rk-fObra"><option value="">Todos</option></select></div>
+      <div class="form-field"><label for="rk-fTop">Mostrar</label>
+        <select id="rk-fTop">
+          <option value="10">Top 10</option>
+          <option value="20" selected>Top 20</option>
+          <option value="50">Top 50</option>
+          <option value="0">Todos</option>
+        </select>
+      </div>
+    </div>
+    <div id="rk-resumo"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" type="button" data-close="modalRankForn">Cancelar</button>
+      <button class="btn ghost" type="button" id="rk-btnCsv">⬇ Exportar CSV</button>
+      <button class="btn primary" type="button" id="rk-btnGerar">Gerar relatório</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-backdrop" id="modalEntregaCentro">
@@ -9643,6 +9706,247 @@ renderAll();
 Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendimentoEstoque()]).then(autoLoadBaseDados);
 </script>
 <script>
+/* ============================================================
+   RANKING DE FORNECEDORES POR PERÍODO
+   De quem mais se comprou num intervalo de datas, a partir da base do
+   Sienge já importada (state.rows). O Sienge não traz o valor do pedido
+   na base principal, só o valor de cada nota fiscal: o valor comprado é o
+   "Total do pedido" do relatório Pedido x Nota Fiscal (creditos_pedidos_totais)
+   quando ele existe, senão a soma das notas fiscais distintas do pedido.
+   ============================================================ */
+(function(){
+  const $ = id => document.getElementById(id);
+  const isoDe = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const deIso = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s||''); return m ? new Date(+m[1], +m[2]-1, +m[3]) : null; };
+  const brl = n => (Number(n)||0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  const pct = n => (Number(n)||0).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 }) + '%';
+  const cred = () => window.creditoPedidosDados || null;
+  const chaveNF = n => (cred() ? cred().chaveNota(n) : '') || normLabel(n);
+  const abrirModal = () => $('modalRankForn').classList.add('open');
+  const fecharModal = () => $('modalRankForn').classList.remove('open');
+
+  // Um registro por pedido de compra (não cancelado), com as notas fiscais distintas.
+  function pedidosDaBase(){
+    const map = new Map();
+    (state.rows||[]).forEach(r=>{
+      if(!r.temPedido || r.pedidoCancelado) return;
+      let p = map.get(r.numPedido);
+      if(!p){
+        p = { num:r.numPedido, fornecedor:normLabel(r.fornecedor), obra:r.obraOriginalLabel||r.obraLabel, dPedido:null, notas:new Map() };
+        map.set(r.numPedido, p);
+      }
+      if(!p.fornecedor) p.fornecedor = normLabel(r.fornecedor);
+      if(r.dPedido && (!p.dPedido || r.dPedido < p.dPedido)) p.dPedido = r.dPedido;
+      const valor = parseNumBR(r.valorNota);
+      if(valor > 0){
+        const num = normLabel(r.numNotaFiscal);
+        const k = chaveNF(num) || ('linha-'+p.notas.size);
+        if(!p.notas.has(k)) p.notas.set(k, { valor, data: parseDateBR(r.dataNotaFiscal) });
+      }
+    });
+    const c = cred();
+    if(c){
+      // notas do relatório Pedido x Nota Fiscal: completam as que faltam e,
+      // para a mesma nota, valem o "Total atendido nota" (como no Controle de Crédito).
+      map.forEach(p=>{
+        (c.notas.get(String(p.num))||[]).forEach(n=>{
+          if(!n.chave || !(n.valor > 0)) return;
+          const ja = p.notas.get(n.chave);
+          if(ja){ ja.valor = n.valor; if(!ja.data) ja.data = parseDateBR(n.data); }
+          else p.notas.set(n.chave, { valor:n.valor, data:parseDateBR(n.data) });
+        });
+        p.totalPedido = c.totais.get(String(p.num)) || 0;
+      });
+    }
+    return [...map.values()];
+  }
+
+  function calcular(o){
+    const ini = deIso(o.ini), fim = deIso(o.fim);
+    const dentro = d => !!d && (!ini || d >= ini) && (!fim || d <= fim);
+    const forn = new Map();
+    let semData = 0, semValor = 0;
+    pedidosDaBase().forEach(p=>{
+      if(o.obra && p.obra !== o.obra) return;
+      let valor = 0, nNotas = 0;
+      if(o.base === 'pedido'){
+        if(!p.dPedido){ semData++; return; }
+        if(!dentro(p.dPedido)) return;
+        const somaNotas = [...p.notas.values()].reduce((s,n)=>s+n.valor, 0);
+        nNotas = p.notas.size;
+        valor = p.totalPedido > 0 ? p.totalPedido : somaNotas;
+        if(!(valor > 0)) semValor++;
+      }else{
+        p.notas.forEach(n=>{ if(dentro(n.data)){ valor += n.valor; nNotas++; } });
+        if(!nNotas) return;
+      }
+      const nome = p.fornecedor || '(sem fornecedor)';
+      const k = normKey(nome) || nome;
+      let f = forn.get(k);
+      if(!f){ f = { nome, valor:0, pedidos:0, notas:0, obras:new Set(), ultima:null }; forn.set(k, f); }
+      f.valor += valor; f.pedidos++; f.notas += nNotas;
+      if(p.obra) f.obras.add(p.obra);
+      if(p.dPedido && (!f.ultima || p.dPedido > f.ultima)) f.ultima = p.dPedido;
+    });
+    const lista = [...forn.values()].sort((a,b)=> o.criterio === 'pedidos'
+      ? (b.pedidos - a.pedidos) || (b.valor - a.valor)
+      : (b.valor - a.valor) || (b.pedidos - a.pedidos));
+    const totalValor = lista.reduce((s,f)=>s+f.valor, 0);
+    const totalPedidos = lista.reduce((s,f)=>s+f.pedidos, 0);
+    let acum = 0;
+    lista.forEach((f,i)=>{
+      f.pos = i + 1;
+      f.part = totalValor > 0 ? f.valor / totalValor * 100 : 0;
+      acum += f.part; f.acum = acum;
+      // curva ABC pelo valor acumulado (só faz sentido ordenando por valor)
+      f.abc = o.criterio === 'pedidos' ? '' : (acum - f.part < 80 ? 'A' : acum - f.part < 95 ? 'B' : 'C');
+    });
+    return { lista, totalValor, totalPedidos, semData, semValor };
+  }
+
+  function opcoes(){
+    return { ini:$('rk-fIni').value, fim:$('rk-fFim').value, base:$('rk-fBase').value,
+      criterio:$('rk-fCriterio').value, obra:$('rk-fObra').value, top:Number($('rk-fTop').value)||0 };
+  }
+  function descPeriodo(o){
+    const f = s => { const d = deIso(s); return d ? fmtDate(d) : '…'; };
+    return `${f(o.ini)} a ${f(o.fim)}`;
+  }
+
+  function aplicarPreset(){
+    const v = $('rk-fPreset').value, h = new Date();
+    const hoje = new Date(h.getFullYear(), h.getMonth(), h.getDate());
+    let ini = null, fim = hoje;
+    if(v === 'mes') ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    else if(v === 'mesAnt'){ ini = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1); fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0); }
+    else if(v === '3m') ini = new Date(hoje.getFullYear(), hoje.getMonth()-3, hoje.getDate());
+    else if(v === '6m') ini = new Date(hoje.getFullYear(), hoje.getMonth()-6, hoje.getDate());
+    else if(v === 'ano') ini = new Date(hoje.getFullYear(), 0, 1);
+    else if(v === '12m') ini = new Date(hoje.getFullYear()-1, hoje.getMonth(), hoje.getDate());
+    else return;
+    $('rk-fIni').value = isoDe(ini); $('rk-fFim').value = isoDe(fim);
+  }
+
+  function atualizarResumo(){
+    const o = opcoes();
+    if(o.ini && o.fim && o.ini > o.fim){ $('rk-resumo').textContent = 'A data inicial é maior que a final.'; return; }
+    const r = calcular(o);
+    const top = r.lista[0];
+    $('rk-resumo').innerHTML = r.lista.length
+      ? `<b>${r.lista.length}</b> fornecedor(es), <b>${r.totalPedidos}</b> pedido(s), total de <b>${brl(r.totalValor)}</b> no período. 1º lugar: <b>${esc(top.nome)}</b> (${o.criterio==='pedidos' ? top.pedidos+' pedido(s)' : brl(top.valor)}).`
+        + (r.semValor ? ` ${r.semValor} pedido(s) ainda sem valor (sem nota fiscal nem total do pedido importado).` : '')
+      : 'Nenhuma compra encontrada no período com esses filtros.';
+  }
+
+  function gerarHtml(o, r){
+    const lista = o.top ? r.lista.slice(0, o.top) : r.lista;
+    const max = Math.max(...lista.map(f=> o.criterio==='pedidos' ? f.pedidos : f.valor), 1);
+    const resto = r.lista.slice(lista.length);
+    const restoValor = resto.reduce((s,f)=>s+f.valor, 0), restoPed = resto.reduce((s,f)=>s+f.pedidos, 0);
+    const agora = new Date();
+    const linhas = lista.map(f=>{
+      const w = (o.criterio==='pedidos' ? f.pedidos : f.valor) / max * 100;
+      return `<tr><td class="pos">${f.pos}º</td><td><b>${esc(f.nome)}</b><div class="bar"><i style="width:${w.toFixed(1)}%"></i></div><div class="mut">${f.obras.size} centro(s) de custo${f.ultima?` · último pedido em ${fmtDate(f.ultima)}`:''}</div></td>`
+        + `<td class="n">${f.pedidos}</td><td class="n">${f.notas}</td><td class="n">${brl(f.valor)}</td><td class="n">${pct(f.part)}</td><td class="n">${pct(f.acum)}</td>${o.criterio==='pedidos'?'':`<td class="n"><span class="abc ${f.abc}">${f.abc}</span></td>`}</tr>`;
+    }).join('');
+    const top1 = lista[0];
+    const top5 = r.lista.slice(0,5).reduce((s,f)=>s+f.part, 0);
+    const baseTxt = o.base === 'pedido' ? 'data do pedido de compra' : 'data de emissão da nota fiscal';
+    return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Ranking de fornecedores · ${esc(descPeriodo(o))}</title><style>
+      @page{size:A4 portrait;margin:11mm 10mm 12mm;}
+      *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      body{font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:8.6pt;color:#1d2228;margin:0;}
+      h1{font-size:14pt;margin:0;font-weight:700;}
+      .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1d2228;padding-bottom:5px;margin-bottom:8px;}
+      .top .mut{text-align:right;}
+      .mut{color:#667080;font-size:7.6pt;line-height:1.35;}
+      .kp{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px;}
+      .kp div{border:1px solid #d5d9df;border-radius:4px;padding:5px 7px;}
+      .kp b{display:block;font-size:10.5pt;margin-top:1px;overflow-wrap:anywhere;}
+      .leg{font-size:7.4pt;color:#4b5563;margin:0 0 8px;line-height:1.45;}
+      table{width:100%;border-collapse:collapse;}
+      th{font-size:7pt;text-transform:uppercase;letter-spacing:.3px;color:#4b5563;text-align:left;border-bottom:1px solid #9aa3ad;padding:3px 4px;}
+      td{padding:4px;border-bottom:1px solid #e3e6ea;vertical-align:top;}
+      tr{break-inside:avoid;} thead{display:table-header-group;}
+      .n{text-align:right;white-space:nowrap;} .pos{font-weight:700;font-size:10pt;width:28px;}
+      .bar{height:5px;background:#e6e9ed;border-radius:3px;overflow:hidden;margin:3px 0 2px;max-width:260px;}
+      .bar i{display:block;height:100%;background:#f2a900;}
+      tfoot td{font-weight:700;border-top:1px solid #9aa3ad;border-bottom:0;}
+      .abc{display:inline-block;font-size:7pt;font-weight:700;padding:1px 6px;border-radius:7px;}
+      .abc.A{background:#e3f2e5;color:#2e7d32;} .abc.B{background:#fff3d6;color:#8a6100;} .abc.C{background:#eceff2;color:#4b5563;}
+      .foot{margin-top:8px;font-size:7pt;color:#8a929c;line-height:1.4;}
+    </style></head><body>
+      <div class="top"><div><div class="mut">RAF · Painel de Suprimentos</div><h1>Ranking de fornecedores</h1>
+        <div class="mut">Período: <b>${esc(descPeriodo(o))}</b> · pela ${baseTxt}${o.obra?` · Centro de custo: <b>${esc(o.obra)}</b>`:''}</div></div>
+        <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>Ordenado por ${o.criterio==='pedidos'?'nº de pedidos':'valor comprado'}${o.top && r.lista.length>o.top?` · top ${o.top} de ${r.lista.length}`:''}</div></div>
+      <div class="kp">
+        <div><span class="mut">Total comprado</span><b>${brl(r.totalValor)}</b><span class="mut">${r.totalPedidos} pedido(s)</span></div>
+        <div><span class="mut">Fornecedores</span><b>${r.lista.length}</b><span class="mut">com compra no período</span></div>
+        <div><span class="mut">1º lugar</span><b>${top1?esc(top1.nome):'—'}</b><span class="mut">${top1?brl(top1.valor)+' · '+pct(top1.part):''}</span></div>
+        <div><span class="mut">Concentração top 5</span><b>${pct(top5)}</b><span class="mut">do valor total</span></div>
+      </div>
+      <div class="leg">${o.base==='pedido'
+        ? 'Valor comprado = "Total do pedido" do relatório Pedido x Nota Fiscal do Sienge, quando importado; senão, a soma das notas fiscais distintas do pedido.'
+        : 'Valor comprado = soma das notas fiscais emitidas no período (valor faturado).'} Pedidos cancelados não entram.${o.criterio==='pedidos'?'':' Curva ABC: A = fornecedores que somam os primeiros 80% do valor, B = até 95%, C = o restante.'}</div>
+      ${lista.length ? `<table><thead><tr><th>#</th><th>Fornecedor</th><th class="n">Pedidos</th><th class="n">NFs</th><th class="n">Valor comprado</th><th class="n">% do total</th><th class="n">% acum.</th>${o.criterio==='pedidos'?'':'<th class="n">ABC</th>'}</tr></thead>
+        <tbody>${linhas}${resto.length?`<tr><td></td><td class="mut">Demais ${resto.length} fornecedor(es)</td><td class="n">${restoPed}</td><td></td><td class="n">${brl(restoValor)}</td><td class="n">${pct(r.totalValor?restoValor/r.totalValor*100:0)}</td><td class="n">100,0%</td>${o.criterio==='pedidos'?'':'<td></td>'}</tr>`:''}</tbody>
+        <tfoot><tr><td></td><td>Total</td><td class="n">${r.totalPedidos}</td><td class="n">${r.lista.reduce((s,f)=>s+f.notas,0)}</td><td class="n">${brl(r.totalValor)}</td><td class="n">100%</td><td></td>${o.criterio==='pedidos'?'':'<td></td>'}</tr></tfoot></table>`
+        : '<div class="mut">Nenhuma compra encontrada no período com esses filtros.</div>'}
+      <div class="foot">Fonte: ${esc(state.sourceName||'base do Sienge')} importada no Painel de Suprimentos.${r.semValor?` ${r.semValor} pedido(s) do período ainda sem valor (sem nota fiscal nem total do pedido importado) contam só no nº de pedidos.`:''}${r.semData&&o.base==='pedido'?` ${r.semData} pedido(s) sem data do pedido ficaram de fora.`:''}</div>
+    </body></html>`;
+  }
+
+  async function abrir(){
+    if(!(state.rows||[]).length){ alert('Importe a base do Sienge antes de gerar o ranking.'); return; }
+    const sel = $('rk-fObra'), atual = sel.value;
+    const obras = uniqueSorted((state.rows||[]).filter(r=>r.temPedido).map(r=>r.obraOriginalLabel||r.obraLabel));
+    sel.innerHTML = '<option value="">Todos</option>' + obras.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if(obras.includes(atual)) sel.value = atual;
+    if(!$('rk-fIni').value && !$('rk-fFim').value) aplicarPreset();
+    $('rk-resumo').textContent = 'Calculando…';
+    abrirModal();
+    // totais de pedido e notas complementares (Controle de Crédito), se ainda não carregados
+    const c = cred();
+    if(c && !c.totais.size && window.SB){ try{ await c.carregar(); }catch(e){} }
+    atualizarResumo();
+  }
+
+  function validar(o){
+    if(o.ini && o.fim && o.ini > o.fim){ alert('A data inicial é maior que a final.'); return false; }
+    return true;
+  }
+
+  $('btnRankForn').addEventListener('click', abrir);
+  $('modalRankForn').querySelector('[data-close]').addEventListener('click', fecharModal);
+  $('modalRankForn').addEventListener('click', e=>{ if(e.target.id === 'modalRankForn') fecharModal(); });
+  $('rk-fPreset').addEventListener('change', ()=>{ aplicarPreset(); atualizarResumo(); });
+  ['rk-fIni','rk-fFim'].forEach(id=>$(id).addEventListener('change', ()=>{ $('rk-fPreset').value = 'custom'; atualizarResumo(); }));
+  ['rk-fBase','rk-fCriterio','rk-fObra','rk-fTop'].forEach(id=>$(id).addEventListener('change', atualizarResumo));
+
+  $('rk-btnGerar').addEventListener('click', ()=>{
+    const o = opcoes(); if(!validar(o)) return;
+    const html = gerarHtml(o, calcular(o));
+    fecharModal();
+    // Abre a impressão (ou "Salvar como PDF") em A4, como os demais relatórios.
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(fr);
+    const d = fr.contentWindow.document; d.open(); d.write(html); d.close();
+    setTimeout(()=>{ fr.contentWindow.focus(); fr.contentWindow.print(); setTimeout(()=>fr.remove(), 1500); }, 350);
+  });
+
+  $('rk-btnCsv').addEventListener('click', ()=>{
+    const o = opcoes(); if(!validar(o)) return;
+    const r = calcular(o);
+    if(!r.lista.length){ alert('Nenhuma compra encontrada no período com esses filtros.'); return; }
+    const num = n => (Number(n)||0).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+    const headers = ['Posição','Fornecedor','Pedidos','Notas fiscais','Valor comprado (R$)','% do total','% acumulado','Curva ABC','Centros de custo','Último pedido'];
+    const rows = r.lista.map(f=>[f.pos, f.nome, f.pedidos, f.notas, num(f.valor), num(f.part), num(f.acum), f.abc, [...f.obras].join(' | '), f.ultima?fmtDate(f.ultima):'']);
+    downloadCSV(`ranking_fornecedores_${o.ini||'inicio'}_a_${o.fim||'hoje'}.csv`, toCSV(headers, rows));
+  });
+})();
+</script>
+<script>
 (function(){
 let records = [];
 let chart = null;
@@ -11076,6 +11380,13 @@ async function loadNotasExtrasCredito(){
   }
   await loadTotaisPedidoCredito();
 }
+// Acesso de fora deste bloco (Ranking de fornecedores, na aba Pedidos por Centro de Custo).
+window.creditoPedidosDados = {
+  get totais(){ return totaisPedidoCredito; },
+  get notas(){ return notasExtrasCredito; },
+  chaveNota: n => chaveNotaFiscal(n),
+  carregar: () => loadNotasExtrasCredito()
+};
 // Anexos do crédito (relatório de origem): arquivos no bucket privado
 // "creditos-anexos" do Storage, com os dados em creditos_anexos. Sem a
 // tabela (supabase/creditos_anexos.sql), o painel segue sem anexos.
