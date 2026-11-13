@@ -2665,6 +2665,14 @@ nav.tabs.sidebar .tab-btn{ font-family:var(--font-body); font-size:13px; font-we
 nav.tabs.sidebar .nav-group-btn{ font-weight:600; }
 nav.tabs.sidebar .nav-submenu{ background:transparent; border-left:1px solid var(--line); margin:2px 0 6px 18px; padding:2px 0 2px 6px; }
 nav.tabs.sidebar .tab-btn .tab-label{ white-space:normal; line-height:1.3; }
+/* subtítulos dentro de um submenu (ex.: Suprimentos › Insumos críticos) */
+nav.tabs.sidebar .nav-sub-title{ font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); padding:12px 8px 4px; }
+/* itens de gestor no menu: mesma disposição dos demais (a regra geral os deixa inline-block) */
+body.is-admin nav.tabs .tab-btn.gestor-credito-only, body.is-supervisor nav.tabs .tab-btn.gestor-credito-only{ display:flex !important; }
+body.is-admin nav.tabs .nav-sub-title.gestor-credito-only, body.is-supervisor nav.tabs .nav-sub-title.gestor-credito-only{ display:block !important; }
+.shell.collapsed .nav-sub-title{ display:none; }
+/* no celular o submenu vira uma faixa horizontal: os subtítulos sairiam no meio dos itens */
+@media (max-width:860px){ nav.tabs.sidebar .nav-sub-title{ display:none !important; } }
 nav.tabs.sidebar .nav-submenu .tab-btn{ font-size:12.5px; font-weight:450; padding:7px 8px; border-radius:6px; color:var(--text-dim); }
 nav.tabs.sidebar .nav-submenu .tab-btn.active{ color:var(--yellow); font-weight:600; box-shadow:inset 2px 0 0 var(--yellow); }
 nav.tabs.sidebar .tab-btn .count-pill{ font-family:var(--font-body); font-weight:600; font-size:11px; min-width:20px; text-align:center; box-sizing:border-box; }
@@ -2843,10 +2851,15 @@ table.data th.sortable:hover{ color:var(--text); }
         <button class="tab-btn" data-tab="centros"><span class="tab-label">Pedidos por Centro de Custo</span> <span class="count-pill" id="countPed">0</span></button>
         <button class="tab-btn" data-tab="semnf"><span class="tab-label">Pedidos sem Nota Fiscal</span> <span class="count-pill" id="countSemNF">0</span></button>
         <button class="tab-btn" data-tab="fluxo"><span class="tab-label">Conformidade do Fluxo</span> <span class="count-pill" id="countFluxo">0</span></button>
+        <div class="nav-sub-title">Insumos críticos</div>
+        <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-label">Entrega de Insumos Críticos</span> <span class="count-pill" id="countPrazoInsumos">0</span></button>
+        <button class="tab-btn" data-tab="cotacoes"><span class="tab-label">Cotação de Insumos Críticos</span></button>
+        <div class="nav-sub-title gestor-credito-only">Controle de crédito</div>
+        <button class="tab-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-label">Visão geral do crédito</span></button>
+        <button class="tab-btn gestor-credito-only" data-tab="creditos"><span class="tab-label">Crédito entre Obras</span></button>
+        <button class="tab-btn gestor-credito-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
       </div>
     </div>
-    <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-icon">🚚</span><span class="tab-label">Entrega Insumos Críticos</span><span class="count-pill" id="countPrazoInsumos">0</span></button>
-    <button class="tab-btn" data-tab="cotacoes"><span class="tab-icon">💲</span><span class="tab-label">Cotação de Insumos Críticos</span></button>
     <div class="nav-group frotas-acesso" data-group="frotas">
       <button class="tab-btn nav-group-btn" data-tab="frotas"><span class="tab-icon">🚜</span><span class="tab-label">Frotas</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="nav-submenu">
@@ -2854,13 +2867,6 @@ table.data th.sortable:hover{ color:var(--text); }
       </div>
     </div>
     <button class="tab-btn cap-standalone-only" data-tab="creditos-cap"><span class="tab-icon">🛢️</span><span class="tab-label">Controle de CAP</span></button>
-    <div class="nav-group gestor-credito-only" data-group="creditos">
-      <button class="tab-btn nav-group-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-icon">💳</span><span class="tab-label">Controle de Crédito</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-      <div class="nav-submenu">
-        <button class="tab-btn gestor-credito-only" data-tab="creditos"><span class="tab-label">Crédito entre Obras</span></button>
-        <button class="tab-btn gestor-credito-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
-      </div>
-    </div>
     <div class="nav-group ctr-logged" data-group="contratos">
       <button class="tab-btn nav-group-btn" data-tab="contratos-geral" title="Contratos"><span class="tab-icon">📑</span><span class="tab-label">Contratos</span><span class="count-pill" id="ctrCountPill" style="display:none">0</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="nav-submenu">
@@ -9179,7 +9185,9 @@ function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); re
    ============================================================ */
 var navTabGroupMap = {
   overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', semnf:'suprimentos', fluxo:'suprimentos',
-  'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos',
+  prazoinsumos:'suprimentos', cotacoes:'suprimentos', 'creditos-dashboard':'suprimentos', creditos:'suprimentos',
+  // 'creditos-cap' fica de fora: o mesmo destino tem um botão avulso ("Controle de CAP", operador avançado),
+  // e para ele nenhum grupo deve abrir; o botão dentro de Suprimentos usa o grupo em que está
   'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-agenda':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos',
   pxr:'financeiro', cpg:'financeiro',
   frotas:'frotas', consumo:'frotas'
@@ -9237,7 +9245,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     // tela fora da tabela (ex.: item novo no menu): vale o grupo em que o botão está,
     // senão o submenu fechava ao selecioná-la
     var grupoDoBotao = btn.closest('.nav-group');
-    var groupName = navTabGroupMap[targetTab] || (grupoDoBotao && grupoDoBotao.getAttribute('data-group'));
+    var groupName = (grupoDoBotao && grupoDoBotao.getAttribute('data-group')) || navTabGroupMap[targetTab];
     document.querySelectorAll('.nav-group').forEach(function(g){
       g.classList.toggle('group-active', g.getAttribute('data-group') === groupName);
     });
