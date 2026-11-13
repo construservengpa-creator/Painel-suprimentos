@@ -893,7 +893,7 @@ select:focus,input:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;
 .ms-btn:focus{outline:2px solid var(--yellow-dim);outline-offset:1px;}
 .ms-btn.ms-on{border-color:var(--yellow-dim);color:var(--yellow);}
 .ms-pop{
-  display:none;position:fixed;z-index:520;width:290px;
+  display:none;position:fixed;z-index:10050;width:290px;
   background:var(--asphalt-2);border:1px solid var(--line);border-radius:8px;
   padding:12px;box-shadow:0 14px 32px rgba(0,0,0,0.5);
 }
@@ -1559,13 +1559,56 @@ footer.appfoot{
 /* Entrega em outro centro de custo (Prazo de insumos) */
 /* Ranking de fornecedores por período */
 #modalRankForn{ z-index:10000; }
-#modalRankForn .form-field{ margin-bottom:12px; }
-#modalRankForn .form-field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-mut); margin-bottom:5px; }
-#modalRankForn .form-field input, #modalRankForn .form-field select{ width:100%; box-sizing:border-box; }
-#modalRankForn .rk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
-@media (max-width:480px){ #modalRankForn .rk-grid{ grid-template-columns:1fr; } }
-#rk-resumo{ font-size:12px; color:var(--text-dim); line-height:1.5; min-height:18px; }
-#rk-resumo b{ color:var(--text); }
+#modalRankForn .rk-modal{ max-width:620px; padding:0; overflow:hidden; border-top-width:3px; box-shadow:0 24px 60px rgba(0,0,0,.45); }
+#modalRankForn .rk-head{ display:flex; align-items:flex-start; gap:14px; padding:20px 22px 16px; border-bottom:1px solid var(--line); }
+#modalRankForn .rk-ico{ flex:none; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--asphalt-3); border:1px solid var(--line); color:var(--yellow); }
+#modalRankForn .rk-head h3{ margin:0 0 3px; font-size:17px; }
+#modalRankForn .rk-head p{ margin:0; font-size:12px; color:var(--text-dim); line-height:1.5; }
+#modalRankForn .rk-x{ margin-left:auto; flex:none; width:30px; height:30px; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--text-dim); font-size:18px; line-height:1; cursor:pointer; }
+#modalRankForn .rk-x:hover{ color:var(--text); border-color:var(--line); background:var(--asphalt-3); }
+#modalRankForn .rk-body{ padding:4px 22px 6px; }
+#modalRankForn .rk-sec{ padding:14px 0; border-bottom:1px solid var(--line); }
+#modalRankForn .rk-sec:last-of-type{ border-bottom:0; }
+#modalRankForn .rk-sec-t{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.7px; color:var(--text-dim); margin-bottom:10px; }
+#modalRankForn .rk-sec-t span{ font-weight:400; text-transform:none; letter-spacing:0; color:var(--text-faint); }
+#modalRankForn .form-field{ margin:0; }
+#modalRankForn .form-field label{ display:block; font-size:11px; color:var(--text-dim); margin-bottom:5px; }
+#modalRankForn .form-field input, #modalRankForn .form-field select{ width:100%; box-sizing:border-box; height:36px; }
+#modalRankForn .rk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+#modalRankForn .rk-grid.g3{ grid-template-columns:1fr 1fr 1.3fr; }
+@media (max-width:560px){ #modalRankForn .rk-grid, #modalRankForn .rk-grid.g3{ grid-template-columns:1fr; } }
+#modalRankForn .rk-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+#modalRankForn .rk-chip{ border:1px solid var(--line); background:transparent; color:var(--text-dim); border-radius:999px; padding:5px 12px; font-size:12px; font-family:var(--font-body); cursor:pointer; transition:background .15s,color .15s,border-color .15s; }
+#modalRankForn .rk-chip:hover{ color:var(--text); border-color:var(--yellow-dim); }
+#modalRankForn .rk-chip.on{ background:var(--yellow); border-color:var(--yellow); color:#1A1E24; font-weight:600; }
+#modalRankForn .rk-seg{ display:flex; background:var(--asphalt-3); border:1px solid var(--line); border-radius:6px; padding:3px; gap:3px; height:36px; box-sizing:border-box; }
+#modalRankForn .rk-seg button{ flex:1; border:0; background:transparent; color:var(--text-dim); border-radius:4px; font-size:12px; font-family:var(--font-body); cursor:pointer; white-space:nowrap; padding:0 8px; }
+#modalRankForn .rk-seg button:hover{ color:var(--text); }
+#modalRankForn .rk-seg button.on{ background:var(--asphalt-2); color:var(--text); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+#modalRankForn .ms-btn{ width:100%; max-width:none; height:36px; }
+#modalRankForn .rk-cc-sel{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+#modalRankForn .rk-cc-sel:empty{ display:none; }
+#modalRankForn .rk-tag{ display:inline-flex; align-items:center; gap:6px; max-width:100%; background:var(--asphalt-3); border:1px solid var(--line); border-radius:5px; padding:3px 4px 3px 8px; font-size:11.5px; color:var(--text); }
+#modalRankForn .rk-tag b{ font-family:var(--font-mono); font-weight:600; color:var(--yellow); }
+#modalRankForn .rk-tag span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#modalRankForn .rk-tag button{ border:0; background:transparent; color:var(--text-faint); cursor:pointer; font-size:14px; line-height:1; padding:0 3px; }
+#modalRankForn .rk-tag button:hover{ color:var(--bad, #e5534b); }
+#modalRankForn .rk-tag.clear{ background:transparent; border-style:dashed; color:var(--text-dim); cursor:pointer; padding-right:8px; }
+#rk-resumo{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:6px 0 4px; }
+#rk-resumo .rk-k{ background:var(--asphalt-3); border:1px solid var(--line); border-radius:8px; padding:9px 11px; min-width:0; }
+#rk-resumo .rk-k small{ display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--text-faint); }
+#rk-resumo .rk-k strong{ display:block; font-size:15px; font-variant-numeric:tabular-nums; color:var(--text); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#rk-resumo .rk-k em{ display:block; font-style:normal; font-size:11px; color:var(--text-dim); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#rk-resumo .rk-k.wide{ grid-column:1/-1; display:flex; align-items:baseline; gap:10px; }
+#rk-resumo .rk-k.wide strong{ flex:1; margin:0; }
+#rk-resumo .rk-k.wide small{ flex:none; }
+#rk-resumo .rk-msg{ grid-column:1/-1; font-size:12px; color:var(--text-dim); line-height:1.5; }
+#rk-resumo .rk-msg.warn{ color:var(--yellow); }
+@media (max-width:560px){ #rk-resumo{ grid-template-columns:1fr 1fr; } #rk-resumo .rk-k.wide{ flex-wrap:wrap; } }
+#modalRankForn .rk-foot{ display:flex; align-items:center; gap:8px; padding:14px 22px; border-top:1px solid var(--line); background:var(--asphalt); }
+#modalRankForn .rk-foot .grow{ flex:1; }
+@media (max-width:560px){ #modalRankForn .rk-foot{ flex-wrap:wrap; } #modalRankForn .rk-foot .grow{ display:none; } #modalRankForn .rk-foot .btn{ flex:1; } }
+.ms-pop .ms-item .ms-code{ font-family:var(--font-mono); font-size:11.5px; color:var(--yellow); min-width:30px; flex:none; }
 #modalEntregaCentro{ z-index:10000; }
 #modalEntregaCentro .form-field{ margin-bottom:12px; }
 #modalEntregaCentro .form-field label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-mut); margin-bottom:5px; }
@@ -4707,52 +4750,68 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
 </div>
 
 <div class="modal-backdrop" id="modalRankForn">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rk-titulo">
-    <h3 id="rk-titulo">Ranking de fornecedores por período</h3>
-    <p class="cc-modal-sub">Fornecedores de quem mais se comprou no período, a partir da base do Sienge importada no painel. Pedidos cancelados não entram.</p>
-    <div class="form-field"><label for="rk-fPreset">Período</label>
-      <select id="rk-fPreset">
-        <option value="mes">Este mês</option>
-        <option value="mesAnt">Mês passado</option>
-        <option value="3m">Últimos 3 meses</option>
-        <option value="6m">Últimos 6 meses</option>
-        <option value="ano" selected>Este ano</option>
-        <option value="12m">Últimos 12 meses</option>
-        <option value="custom">Personalizado</option>
-      </select>
-    </div>
-    <div class="rk-grid">
-      <div class="form-field"><label for="rk-fIni">De</label><input type="date" id="rk-fIni"></div>
-      <div class="form-field"><label for="rk-fFim">Até</label><input type="date" id="rk-fFim"></div>
-    </div>
-    <div class="rk-grid">
-      <div class="form-field"><label for="rk-fBase">Considerar a data</label>
-        <select id="rk-fBase">
-          <option value="pedido">Do pedido de compra</option>
-          <option value="nota">Da nota fiscal (faturado)</option>
-        </select>
+  <div class="modal rk-modal" role="dialog" aria-modal="true" aria-labelledby="rk-titulo">
+    <div class="rk-head">
+      <div class="rk-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg></div>
+      <div>
+        <h3 id="rk-titulo">Ranking de fornecedores</h3>
+        <p>Fornecedores de quem mais se comprou no período, a partir da base do Sienge importada no painel. Pedidos cancelados não entram.</p>
       </div>
-      <div class="form-field"><label for="rk-fCriterio">Ordenar por</label>
-        <select id="rk-fCriterio">
-          <option value="valor">Valor comprado (R$)</option>
-          <option value="pedidos">Nº de pedidos</option>
-        </select>
-      </div>
+      <button class="rk-x" type="button" data-close="modalRankForn" aria-label="Fechar">×</button>
     </div>
-    <div class="rk-grid">
-      <div class="form-field"><label for="rk-fObra">Centro de custo</label><select id="rk-fObra"><option value="">Todos</option></select></div>
-      <div class="form-field"><label for="rk-fTop">Mostrar</label>
-        <select id="rk-fTop">
-          <option value="10">Top 10</option>
-          <option value="20" selected>Top 20</option>
-          <option value="50">Top 50</option>
-          <option value="0">Todos</option>
+    <div class="rk-body">
+      <section class="rk-sec">
+        <div class="rk-sec-t">Período</div>
+        <div class="rk-chips" id="rk-presets" role="group" aria-label="Atalhos de período">
+          <button type="button" class="rk-chip" data-v="mes">Este mês</button>
+          <button type="button" class="rk-chip" data-v="mesAnt">Mês passado</button>
+          <button type="button" class="rk-chip" data-v="3m">Últimos 3 meses</button>
+          <button type="button" class="rk-chip" data-v="6m">Últimos 6 meses</button>
+          <button type="button" class="rk-chip" data-v="ano">Este ano</button>
+          <button type="button" class="rk-chip" data-v="12m">Últimos 12 meses</button>
+        </div>
+        <select id="rk-fPreset" hidden>
+          <option value="mes">Este mês</option><option value="mesAnt">Mês passado</option>
+          <option value="3m">Últimos 3 meses</option><option value="6m">Últimos 6 meses</option>
+          <option value="ano" selected>Este ano</option><option value="12m">Últimos 12 meses</option>
+          <option value="custom">Personalizado</option>
         </select>
-      </div>
+        <div class="rk-grid g3">
+          <div class="form-field"><label for="rk-fIni">De</label><input type="date" id="rk-fIni"></div>
+          <div class="form-field"><label for="rk-fFim">Até</label><input type="date" id="rk-fFim"></div>
+          <div class="form-field"><label>Considerar a data</label>
+            <div class="rk-seg" data-for="rk-fBase"><button type="button" data-v="pedido">Do pedido</button><button type="button" data-v="nota">Da nota fiscal</button></div>
+            <select id="rk-fBase" hidden><option value="pedido">Do pedido de compra</option><option value="nota">Da nota fiscal (faturado)</option></select>
+          </div>
+        </div>
+      </section>
+      <section class="rk-sec">
+        <div class="rk-sec-t">Centros de custo <span>— deixe em branco para considerar todos</span></div>
+        <div class="form-field"><select id="rk-fObra" multiple data-ms-code="1"><option value="">Todos os centros de custo</option></select></div>
+        <div class="rk-cc-sel" id="rk-ccSel"></div>
+      </section>
+      <section class="rk-sec">
+        <div class="rk-sec-t">Exibição</div>
+        <div class="rk-grid">
+          <div class="form-field"><label>Ordenar por</label>
+            <div class="rk-seg" data-for="rk-fCriterio"><button type="button" data-v="valor">Valor comprado</button><button type="button" data-v="pedidos">Nº de pedidos</button></div>
+            <select id="rk-fCriterio" hidden><option value="valor">Valor comprado (R$)</option><option value="pedidos">Nº de pedidos</option></select>
+          </div>
+          <div class="form-field"><label for="rk-fTop">Mostrar</label>
+            <select id="rk-fTop">
+              <option value="10">Top 10</option>
+              <option value="20" selected>Top 20</option>
+              <option value="50">Top 50</option>
+              <option value="0">Todos os fornecedores</option>
+            </select>
+          </div>
+        </div>
+      </section>
+      <div id="rk-resumo" aria-live="polite"></div>
     </div>
-    <div id="rk-resumo"></div>
-    <div class="modal-actions">
+    <div class="rk-foot">
       <button class="btn ghost" type="button" data-close="modalRankForn">Cancelar</button>
+      <span class="grow"></span>
       <button class="btn ghost" type="button" id="rk-btnCsv">⬇ Exportar CSV</button>
       <button class="btn primary" type="button" id="rk-btnGerar">Gerar relatório</button>
     </div>
@@ -9126,8 +9185,11 @@ document.getElementById('fNfSearch').addEventListener('change', renderSemNF);
         o.selected = cb.checked;
         atual.sel.dispatchEvent(new Event('change'));
       });
-      const sp = document.createElement('span'); sp.textContent = o.text;
-      row.appendChild(cb); row.appendChild(sp);
+      row.appendChild(cb);
+      const m = atual.sel.dataset.msCode ? /^(\S+)\s+-\s+(.+)$/.exec(o.text) : null;
+      if(m){ const c = document.createElement('span'); c.className = 'ms-code'; c.textContent = m[1]; row.appendChild(c); }
+      const sp = document.createElement('span'); sp.textContent = m ? m[2] : o.text;
+      row.appendChild(sp);
       list.appendChild(row);
     });
   }
@@ -9136,8 +9198,9 @@ document.getElementById('fNfSearch').addEventListener('change', renderSemNF);
     atual = {sel, btn};
     busca.value = '';
     renderList();
-    pop.classList.add('open');
     const r = btn.getBoundingClientRect();
+    pop.style.width = Math.max(290, Math.min(r.width, 520)) + 'px';
+    pop.classList.add('open');
     const w = pop.offsetWidth, h = pop.offsetHeight;
     let top = r.bottom + 4;
     if(top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
@@ -9764,10 +9827,11 @@ Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendime
   function calcular(o){
     const ini = deIso(o.ini), fim = deIso(o.fim);
     const dentro = d => !!d && (!ini || d >= ini) && (!fim || d <= fim);
+    const obras = new Set(o.obras||[]);
     const forn = new Map();
     let semData = 0, semValor = 0;
     pedidosDaBase().forEach(p=>{
-      if(o.obra && p.obra !== o.obra) return;
+      if(obras.size && !obras.has(p.obra)) return;
       let valor = 0, nNotas = 0;
       if(o.base === 'pedido'){
         if(!p.dPedido){ semData++; return; }
@@ -9806,7 +9870,31 @@ Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendime
 
   function opcoes(){
     return { ini:$('rk-fIni').value, fim:$('rk-fFim').value, base:$('rk-fBase').value,
-      criterio:$('rk-fCriterio').value, obra:$('rk-fObra').value, top:Number($('rk-fTop').value)||0 };
+      criterio:$('rk-fCriterio').value, obras:ccSelecionados(), top:Number($('rk-fTop').value)||0 };
+  }
+  function ccSelecionados(){ return Array.from($('rk-fObra').selectedOptions).map(op=>op.value).filter(Boolean); }
+  // "1 - Sede", "27 - ...", "100 - ...": ordem pelo código numérico, não alfabética
+  const ordemCC = (a,b) => String(a).localeCompare(String(b), 'pt-BR', { numeric:true, sensitivity:'base' });
+  function descCentros(o, max){
+    const l = o.obras||[];
+    if(!l.length) return '';
+    return l.length <= max ? l.join('; ') : `${l.length} centros de custo`;
+  }
+  function renderCC(){
+    const sel = $('rk-fObra'), box = $('rk-ccSel');
+    const marcados = Array.from(sel.selectedOptions).filter(op=>op.value);
+    box.innerHTML = marcados.map(op=>{
+      const m = /^(\S+)\s+-\s+(.+)$/.exec(op.value);
+      return `<span class="rk-tag" title="${esc(op.value)}">${m?`<b>${esc(m[1])}</b><span>${esc(m[2])}</span>`:`<span>${esc(op.value)}</span>`}<button type="button" data-rm="${esc(op.value)}" aria-label="Remover ${esc(op.value)}">×</button></span>`;
+    }).join('') + (marcados.length > 1 ? '<button type="button" class="rk-tag clear" data-rm="*">Limpar seleção</button>' : '');
+  }
+  function syncUI(){
+    const p = $('rk-fPreset').value;
+    $('rk-presets').querySelectorAll('.rk-chip').forEach(b=>b.classList.toggle('on', b.dataset.v === p));
+    $('modalRankForn').querySelectorAll('.rk-seg').forEach(g=>{
+      const v = $(g.dataset.for).value;
+      g.querySelectorAll('button').forEach(b=>{ b.classList.toggle('on', b.dataset.v === v); b.setAttribute('aria-pressed', b.dataset.v === v); });
+    });
   }
   function descPeriodo(o){
     const f = s => { const d = deIso(s); return d ? fmtDate(d) : '…'; };
@@ -9828,14 +9916,18 @@ Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendime
   }
 
   function atualizarResumo(){
-    const o = opcoes();
-    if(o.ini && o.fim && o.ini > o.fim){ $('rk-resumo').textContent = 'A data inicial é maior que a final.'; return; }
+    syncUI(); renderCC();
+    const o = opcoes(), box = $('rk-resumo');
+    if(o.ini && o.fim && o.ini > o.fim){ box.innerHTML = '<div class="rk-msg warn">A data inicial é maior que a final.</div>'; return; }
     const r = calcular(o);
+    if(!r.lista.length){ box.innerHTML = '<div class="rk-msg">Nenhuma compra encontrada no período com esses filtros.</div>'; return; }
     const top = r.lista[0];
-    $('rk-resumo').innerHTML = r.lista.length
-      ? `<b>${r.lista.length}</b> fornecedor(es), <b>${r.totalPedidos}</b> pedido(s), total de <b>${brl(r.totalValor)}</b> no período. 1º lugar: <b>${esc(top.nome)}</b> (${o.criterio==='pedidos' ? top.pedidos+' pedido(s)' : brl(top.valor)}).`
-        + (r.semValor ? ` ${r.semValor} pedido(s) ainda sem valor (sem nota fiscal nem total do pedido importado).` : '')
-      : 'Nenhuma compra encontrada no período com esses filtros.';
+    const k = (rot, val, sub, wide) => `<div class="rk-k${wide?' wide':''}"><small>${rot}</small><strong title="${esc(val)}">${esc(val)}</strong>${sub?`<em title="${esc(sub)}">${esc(sub)}</em>`:''}</div>`;
+    box.innerHTML = k('Total comprado', brl(r.totalValor), descPeriodo(o))
+      + k('Fornecedores', String(r.lista.length), o.obras.length ? `${o.obras.length} centro(s) de custo` : 'todos os centros')
+      + k('Pedidos', String(r.totalPedidos), o.base === 'pedido' ? 'pela data do pedido' : 'pela data da NF')
+      + k('1º lugar', top.nome, o.criterio === 'pedidos' ? `${top.pedidos} pedido(s)` : `${brl(top.valor)} · ${pct(top.part)} do total`, true)
+      + (r.semValor ? `<div class="rk-msg">${r.semValor} pedido(s) ainda sem valor (sem nota fiscal nem total do pedido importado).</div>` : '');
   }
 
   function gerarHtml(o, r){
@@ -9877,7 +9969,7 @@ Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendime
       .foot{margin-top:8px;font-size:7pt;color:#8a929c;line-height:1.4;}
     </style></head><body>
       <div class="top"><div><div class="mut">RAF · Painel de Suprimentos</div><h1>Ranking de fornecedores</h1>
-        <div class="mut">Período: <b>${esc(descPeriodo(o))}</b> · pela ${baseTxt}${o.obra?` · Centro de custo: <b>${esc(o.obra)}</b>`:''}</div></div>
+        <div class="mut">Período: <b>${esc(descPeriodo(o))}</b> · pela ${baseTxt}${o.obras.length?` · ${o.obras.length>1?'Centros de custo':'Centro de custo'}: <b>${esc(descCentros(o,3))}</b>`:' · Todos os centros de custo'}</div></div>
         <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>Ordenado por ${o.criterio==='pedidos'?'nº de pedidos':'valor comprado'}${o.top && r.lista.length>o.top?` · top ${o.top} de ${r.lista.length}`:''}</div></div>
       <div class="kp">
         <div><span class="mut">Total comprado</span><b>${brl(r.totalValor)}</b><span class="mut">${r.totalPedidos} pedido(s)</span></div>
@@ -9887,7 +9979,7 @@ Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendime
       </div>
       <div class="leg">${o.base==='pedido'
         ? 'Valor comprado = "Total do pedido" do relatório Pedido x Nota Fiscal do Sienge, quando importado; senão, a soma das notas fiscais distintas do pedido.'
-        : 'Valor comprado = soma das notas fiscais emitidas no período (valor faturado).'} Pedidos cancelados não entram.${o.criterio==='pedidos'?'':' Curva ABC: A = fornecedores que somam os primeiros 80% do valor, B = até 95%, C = o restante.'}</div>
+        : 'Valor comprado = soma das notas fiscais emitidas no período (valor faturado).'} Pedidos cancelados não entram.${o.obras.length>3?` Centros de custo considerados: ${esc(o.obras.join('; '))}.`:''}${o.criterio==='pedidos'?'':' Curva ABC: A = fornecedores que somam os primeiros 80% do valor, B = até 95%, C = o restante.'}</div>
       ${lista.length ? `<table><thead><tr><th>#</th><th>Fornecedor</th><th class="n">Pedidos</th><th class="n">NFs</th><th class="n">Valor comprado</th><th class="n">% do total</th><th class="n">% acum.</th>${o.criterio==='pedidos'?'':'<th class="n">ABC</th>'}</tr></thead>
         <tbody>${linhas}${resto.length?`<tr><td></td><td class="mut">Demais ${resto.length} fornecedor(es)</td><td class="n">${restoPed}</td><td></td><td class="n">${brl(restoValor)}</td><td class="n">${pct(r.totalValor?restoValor/r.totalValor*100:0)}</td><td class="n">100,0%</td>${o.criterio==='pedidos'?'':'<td></td>'}</tr>`:''}</tbody>
         <tfoot><tr><td></td><td>Total</td><td class="n">${r.totalPedidos}</td><td class="n">${r.lista.reduce((s,f)=>s+f.notas,0)}</td><td class="n">${brl(r.totalValor)}</td><td class="n">100%</td><td></td>${o.criterio==='pedidos'?'':'<td></td>'}</tr></tfoot></table>`
@@ -9898,12 +9990,14 @@ Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendime
 
   async function abrir(){
     if(!(state.rows||[]).length){ alert('Importe a base do Sienge antes de gerar o ranking.'); return; }
-    const sel = $('rk-fObra'), atual = sel.value;
-    const obras = uniqueSorted((state.rows||[]).filter(r=>r.temPedido).map(r=>r.obraOriginalLabel||r.obraLabel));
-    sel.innerHTML = '<option value="">Todos</option>' + obras.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    if(obras.includes(atual)) sel.value = atual;
+    const sel = $('rk-fObra'), atuais = new Set(ccSelecionados());
+    const obras = [...new Set((state.rows||[]).filter(r=>r.temPedido).map(r=>r.obraOriginalLabel||r.obraLabel))].filter(Boolean).sort(ordemCC);
+    sel.innerHTML = '<option value="">Todos os centros de custo</option>' + obras.map(c=>`<option value="${esc(c)}"${atuais.has(c)?' selected':''}>${esc(c)}</option>`).join('');
+    if(window.msMontar) window.msMontar(sel);
+    sel.dispatchEvent(new Event('ms-sync'));
     if(!$('rk-fIni').value && !$('rk-fFim').value) aplicarPreset();
-    $('rk-resumo').textContent = 'Calculando…';
+    syncUI(); renderCC();
+    $('rk-resumo').innerHTML = '<div class="rk-msg">Calculando…</div>';
     abrirModal();
     // totais de pedido e notas complementares (Controle de Crédito), se ainda não carregados
     const c = cred();
@@ -9917,8 +10011,24 @@ Promise.all([window.loadCriticosRules(), loadEntregasOutroCentro(), loadAtendime
   }
 
   $('btnRankForn').addEventListener('click', abrir);
-  $('modalRankForn').querySelector('[data-close]').addEventListener('click', fecharModal);
-  $('modalRankForn').addEventListener('click', e=>{ if(e.target.id === 'modalRankForn') fecharModal(); });
+  $('modalRankForn').querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', fecharModal));
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && $('modalRankForn').classList.contains('open') && !document.querySelector('.ms-pop.open')) fecharModal(); }, true);
+  $('rk-presets').addEventListener('click', e=>{
+    const b = e.target.closest('.rk-chip'); if(!b) return;
+    $('rk-fPreset').value = b.dataset.v; aplicarPreset(); atualizarResumo();
+  });
+  $('modalRankForn').querySelectorAll('.rk-seg').forEach(g=>g.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    $(g.dataset.for).value = b.dataset.v; atualizarResumo();
+  }));
+  $('rk-ccSel').addEventListener('click', e=>{
+    const b = e.target.closest('[data-rm]'); if(!b) return;
+    const sel = $('rk-fObra');
+    Array.from(sel.options).forEach(op=>{ if(b.dataset.rm === '*' || op.value === b.dataset.rm) op.selected = false; });
+    sel.dispatchEvent(new Event('change'));
+  });
+  // com a lista de centros aberta, o clique fora só fecha a lista, não a janela
+  $('modalRankForn').addEventListener('click', e=>{ if(e.target.id === 'modalRankForn' && !document.querySelector('.ms-pop.open')) fecharModal(); });
   $('rk-fPreset').addEventListener('change', ()=>{ aplicarPreset(); atualizarResumo(); });
   ['rk-fIni','rk-fFim'].forEach(id=>$(id).addEventListener('change', ()=>{ $('rk-fPreset').value = 'custom'; atualizarResumo(); }));
   ['rk-fBase','rk-fCriterio','rk-fObra','rk-fTop'].forEach(id=>$(id).addEventListener('change', atualizarResumo));
@@ -14700,7 +14810,7 @@ function toast(msg) {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(bd => bd.addEventListener('click', (e) => { if (e.target === bd) bd.classList.remove('open'); }));
+document.querySelectorAll('.modal-backdrop').forEach(bd => bd.addEventListener('click', (e) => { if (e.target === bd && !document.querySelector('.ms-pop.open')) bd.classList.remove('open'); }));
 
 /* ============ PEDIDOS: CRUD ============ */
 document.getElementById('btnNovoPedido').addEventListener('click', () => openPedidoModal(null));
