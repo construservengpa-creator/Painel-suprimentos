@@ -2576,6 +2576,128 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   #capAbertura .emp-logos .emp-sep{height:52px}
 }
 </style>
+<style id="acabamento">
+/* ================================================================
+   ACABAMENTO VISUAL — camada aplicada por cima de todo o painel.
+   Tipografia de leitura (Inter) nos rótulos, cabeçalhos de tabela e
+   menu; campos e botões com a mesma altura; seta própria nos selects;
+   foco visível; ícones de traço no lugar dos emojis (ver script
+   "ÍCONES" no fim da página); trilha de navegação no topo da tela.
+   As regras do tema Estoque (html[data-tema="estoque"] …) são mais
+   específicas e continuam valendo por cima destas.
+   ================================================================ */
+:root{ --ctl-h:36px; --raio:8px; --sombra-1:0 1px 2px rgba(0,0,0,.18); --sombra-2:0 10px 30px rgba(0,0,0,.35); }
+body{ -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+
+/* ---- rótulos e textos auxiliares: fonte de leitura, não monoespaçada ---- */
+.filters-bar label,
+.field > label,
+.kpi-label,
+table.data th,
+.brand-tag,
+.group-hint,
+.status-line,
+footer.appfoot{ font-family:var(--font-body); }
+.filters-bar label, .field > label{ font-size:11px; text-transform:uppercase; font-weight:600; letter-spacing:.04em; color:var(--text-dim); margin-bottom:5px; }
+.kpi-label{ font-size:11px; font-weight:600; letter-spacing:.05em; color:var(--text-dim); }
+.kpi-foot{ color:var(--text-dim); line-height:1.45; }
+table.data th{ font-size:11px; font-weight:600; letter-spacing:.04em; color:var(--text-dim); }
+.group-hint{ font-size:12px; line-height:1.55; color:var(--text-faint); max-width:980px; }
+.brand-tag{ letter-spacing:.08em; }
+
+/* ---- campos ---- */
+select:not([multiple]), input[type=text], input[type=search], input[type=date], input[type=month],
+input[type=number], input[type=email], input[type=password], input[type=tel], textarea{
+  background-color:var(--asphalt-3); border:1px solid var(--line); color:var(--text);
+  border-radius:6px; font-family:var(--font-body); font-size:13px;
+  transition:border-color .15s, box-shadow .15s, background-color .15s;
+}
+/* altura padronizada só em barras de filtro, formulários e janelas (campos dentro de tabelas ficam compactos) */
+:is(.filters-bar, .field, .form-field, .modal, .pi-toolbar) :is(select:not([multiple]), input[type=text], input[type=search], input[type=date],
+input[type=month], input[type=number], input[type=email], input[type=password], input[type=tel]){ min-height:var(--ctl-h); box-sizing:border-box; }
+input[type=date], input[type=month], input[type=number], input[type=email], input[type=password], input[type=tel], input[type=search]{ padding:7px 10px; }
+textarea{ padding:8px 10px; line-height:1.45; }
+html:not([data-tema="estoque"]) input[type=date], html:not([data-tema="estoque"]) input[type=month]{ color-scheme:dark; }
+select:not([multiple]){
+  -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:30px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238D97A3' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center; background-size:12px;
+}
+select:not([multiple]):hover, input[type=text]:hover, input[type=date]:hover, input[type=search]:hover,
+input[type=number]:hover, input[type=month]:hover, textarea:hover, .ms-btn:hover{ border-color:var(--text-faint); }
+select:focus, input:focus, textarea:focus, .ms-btn:focus{ outline:none; border-color:var(--yellow); box-shadow:0 0 0 3px color-mix(in srgb, var(--yellow) 22%, transparent); }
+::placeholder{ color:var(--text-faint); opacity:1; }
+.ms-btn{ min-height:var(--ctl-h); border-radius:6px; transition:border-color .15s; }
+.ms-btn::after{ content:''; width:12px; height:12px; right:10px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238D97A3' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center/12px no-repeat; }
+
+/* ---- botões ---- */
+/* display via :where() (especificidade zero): regras que escondem botões
+   (.admin-only, .chat-toggle-btn, …) continuam valendo */
+:where(.btn){ display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.btn{ min-height:var(--ctl-h); padding:0 14px; line-height:1.2; border-radius:6px;
+  transition:background .15s, border-color .15s, color .15s, box-shadow .15s, transform .05s; }
+.btn.small{ min-height:32px; padding:0 11px; font-size:12px; }
+.btn:active{ transform:translateY(1px); }
+.btn.primary{ box-shadow:var(--sombra-1); }
+.btn.primary:hover{ filter:brightness(1.06); }
+.btn:disabled, .btn[disabled]{ opacity:.5; cursor:not-allowed; transform:none; }
+.btn:focus-visible, .tab-btn:focus-visible, .tema-btn:focus-visible, .auth-toggle-btn:focus-visible,
+button:focus-visible, a:focus-visible{ outline:2px solid var(--yellow); outline-offset:2px; }
+:where(.tema-btn, .auth-toggle-btn){ display:inline-flex; align-items:center; gap:7px; }
+.tema-btn, .auth-toggle-btn{ min-height:34px; box-sizing:border-box; }
+@media (min-width:861px){ .topbar-actions{ align-items:center; } }
+
+/* ---- ícones de traço (substituem emojis) ---- */
+.ui-ico{ width:16px; height:16px; flex:none; display:inline-block; vertical-align:-3px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+.btn .ui-ico, .tema-btn .ui-ico, .auth-toggle-btn .ui-ico{ width:14px; height:14px; }
+.btn.small .ui-ico{ width:13px; height:13px; }
+:not(.btn):not(.tema-btn):not(.auth-toggle-btn):not(.tab-icon):not(.es-icon) > .ui-ico.ui-ico-txt{ margin-right:6px; }
+.tab-btn .tab-icon .ui-ico{ width:18px; height:18px; }
+.empty-state .es-icon{ opacity:1; display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:50%;
+  background:var(--asphalt-3); border:1px solid var(--line); color:var(--text-dim); margin:0 auto 14px; }
+.empty-state .es-icon .ui-ico{ width:26px; height:26px; stroke-width:1.6; }
+.empty-state h3{ font-family:var(--font-body); font-weight:600; font-size:15px; }
+.empty-state p{ line-height:1.55; color:var(--text-dim); }
+
+/* ---- menu lateral ---- */
+nav.tabs.sidebar .tab-btn{ font-family:var(--font-body); font-size:13px; font-weight:500; letter-spacing:0; padding:9px 10px 9px 12px; border-radius:0 8px 8px 0;
+  transition:background .15s, color .15s; }
+nav.tabs.sidebar .nav-group-btn{ font-weight:600; }
+nav.tabs.sidebar .nav-submenu{ background:transparent; border-left:1px solid var(--line); margin:2px 0 6px 18px; padding:2px 0 2px 6px; }
+nav.tabs.sidebar .tab-btn .tab-label{ white-space:normal; line-height:1.3; }
+nav.tabs.sidebar .nav-submenu .tab-btn{ font-size:12.5px; font-weight:450; padding:7px 8px; border-radius:6px; color:var(--text-dim); }
+nav.tabs.sidebar .nav-submenu .tab-btn.active{ color:var(--yellow); font-weight:600; box-shadow:inset 2px 0 0 var(--yellow); }
+nav.tabs.sidebar .tab-btn .count-pill{ font-family:var(--font-body); font-weight:600; font-size:11px; min-width:20px; text-align:center; box-sizing:border-box; }
+.shell.collapsed nav.tabs.sidebar .nav-submenu{ margin-left:0; padding-left:0; border-left:0; }
+
+/* ---- cartões, filtros, tabelas ---- */
+.filters-bar, .kpi-card, .chart-card, .table-wrap, .email-panel{ border-radius:var(--raio); }
+.filters-bar{ gap:12px 14px; padding:16px 18px; }
+.kpi-card{ transition:border-color .15s, transform .15s; }
+.kpi-value{ font-variant-numeric:tabular-nums; }
+table.data td{ font-variant-numeric:tabular-nums; }
+table.data tbody tr{ transition:background .1s; }
+table.data th.sortable:hover{ color:var(--text); }
+.modal{ box-shadow:var(--sombra-2); }
+.modal-backdrop{ backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
+
+/* ---- trilha de navegação (Seção › Tela) ---- */
+.page-crumb{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:12.5px; color:var(--text-faint); margin:0 0 16px; min-height:18px; }
+.page-crumb .pc-sec{ color:var(--text-dim); }
+.page-crumb .pc-sep{ opacity:.6; }
+.page-crumb .pc-sep .ui-ico{ width:13px; height:13px; vertical-align:-2px; }
+.page-crumb .pc-atual{ color:var(--text); font-weight:600; }
+
+/* ---- barras de rolagem discretas ---- */
+*{ scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-thumb{ background:var(--line); border-radius:10px; border:2px solid transparent; background-clip:padding-box; }
+::-webkit-scrollbar-thumb:hover{ background-color:var(--text-faint); }
+::-webkit-scrollbar-track{ background:transparent; }
+
+@media (prefers-reduced-motion:reduce){ *{ transition:none !important; } }
+@media print{ .page-crumb{ display:none !important; } }
+</style>
 </head>
 <body>
 <!-- Marca Capivara: silhueta definida uma única vez e reutilizada via <use href="#capivaraSilhueta">. -->
@@ -2760,6 +2882,7 @@ nav.tabs.sidebar .tab-btn.active .count-pill{background:var(--yellow);color:#1A1
   </nav>
 
   <main class="tab-content">
+    <nav class="page-crumb no-print" id="pageCrumb" aria-label="Você está em"></nav>
   <!-- ===================== OVERVIEW ===================== -->
   <section class="tab-panel active" id="tab-overview">
     <div class="kpi-grid" id="kpiGrid"></div>
@@ -7667,7 +7790,7 @@ function renderCentros(){
         ${d.critico?`<span style="color:var(--yellow)">${d.critico} crítico(s)</span>`:''}
       </div>
     </div>`;
-  }).join('') || '<p style="color:var(--text-dim);font-size:13px;">Nenhum pedido encontrado.</p>';
+  }).join('');
   document.getElementById('centroSummary').innerHTML = chipHtml;
 
   document.querySelectorAll('#centroSummary .summary-chip').forEach(chip=>{
@@ -7858,7 +7981,7 @@ function renderSemNF(){
         <span>até ${d.maxDias} dia(s) sem NF</span>
       </div>
     </div>`;
-  }).join('') || '<p style="color:var(--text-dim);font-size:13px;">Nenhum pedido encontrado.</p>';
+  }).join('');
   document.getElementById('nfSummary').innerHTML = chipHtml;
 
   document.querySelectorAll('#nfSummary .summary-chip').forEach(chip=>{
@@ -21325,6 +21448,137 @@ $('fdInsumos').addEventListener('click',e=>{const tr=e.target.closest('[data-ins
 $('fdIrApl').onclick=()=>irAplicacao();
 
 window.CPA={show:render,dash:renderDash,refresh:()=>{render();renderDash()}};   // refresh: o relatório do painel mudou (render só desenha com a aba aberta)
+})();
+</script>
+<script>
+/* ============================================================
+   ÍCONES E TRILHA DE NAVEGAÇÃO
+   Troca os emojis do início de botões, abas e estados vazios por
+   ícones de traço (SVG) — o emoji muda de desenho em cada sistema e
+   destoa do resto da interface. Vale também para o que é desenhado
+   depois (tabelas, modais): um MutationObserver revisa só os nós novos.
+   Só o emoji é trocado; o texto do botão fica como está.
+   ============================================================ */
+(function(){
+  const P = {
+    box:'<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
+    truck:'<path d="M2 5h12v11H2z"/><path d="M14 9h4l3 3.5V16h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+    dollar:'<path d="M12 2v20"/><path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+    tractor:'<circle cx="7" cy="16" r="4"/><circle cx="18" cy="18" r="2"/><path d="M4 12V5h6l2 7h8v5"/><path d="M11 18h5"/>',
+    barrel:'<ellipse cx="12" cy="5" rx="7" ry="2.5"/><path d="M5 5v14c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V5"/><path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/>',
+    card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+    file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h6"/>',
+    clipboard:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/>',
+    money:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+    lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    printer:'<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+    chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+    trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+    trend:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    kanban:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v7M12 7v4M16 7v9"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    bars:'<path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/>',
+    monitor:'<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    expand:'<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
+    collapse:'<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>',
+    columns:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/>',
+    download:'<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
+    upload:'<path d="M12 16V4M7 9l5-5 5 5M4 21h16"/>',
+    trash:'<path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15M10 11v6M14 11v6"/>',
+    pencil:'<path d="M17 3l4 4L8 20H4v-4z"/><path d="M14 6l4 4"/>',
+    refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+    bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/>',
+    mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/>',
+    home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    chevron:'<path d="M9 6l6 6-6 6"/>'
+  };
+  const E = {
+    '📦':'box','🚚':'truck','💲':'dollar','🚜':'tractor','🛢':'barrel','💳':'card','📑':'file','📄':'file','📋':'clipboard',
+    '💰':'money','🔐':'lock','🔒':'lock','🖨':'printer','💬':'chat','👤':'user','📲':'send','🏆':'trophy','📈':'trend',
+    '🗂':'kanban','📅':'calendar','📆':'calendar','📊':'bars','🖥':'monitor','⤢':'expand','⤡':'collapse','▦':'columns',
+    '⬇':'download','⬆':'upload','🗑':'trash','✎':'pencil','✏':'pencil','🔄':'refresh','🔔':'bell','🎤':'mic','⌂':'home','🔍':'search','🔎':'search'
+  };
+  const NS = 'http://www.w3.org/2000/svg';
+  function svg(nome, extra){
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+    s.setAttribute('class', 'ui-ico' + (extra ? ' ' + extra : ''));
+    s.innerHTML = P[nome];
+    return s;
+  }
+  window.uiIcone = svg;
+  const ALVO = 'button, a.btn, a.tema-btn, .tab-icon, .es-icon, [role="tab"], .cot-tab-btn';
+  // emoji no começo do texto (com o seletor de variação opcional)
+  const RE = new RegExp('^(\\s*)(' + Object.keys(E).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')\\uFE0F?\\s*');
+
+  function trocar(el){
+    if(!el || el.nodeType !== 1 || el.closest('svg')) return;
+    // primeiro nó de texto não vazio, filho direto ou dentro de um <span> sem classe
+    let tn = null;
+    for(const n of el.childNodes){
+      if(n.nodeType === 3){ if(n.nodeValue.trim()){ tn = n; break; } continue; }
+      if(n.nodeType === 1 && n.tagName === 'SPAN' && !n.className && n.childNodes.length === 1 && n.firstChild.nodeType === 3){ tn = n.firstChild; break; }
+      if(n.nodeType === 1 && n.tagName.toLowerCase() === 'svg') return; // já tem ícone
+      if(n.nodeType === 1) break;
+    }
+    if(!tn) return;
+    const v = tn.nodeValue;
+    if(v.charCodeAt(v.search(/\S/)) < 0x2000) return;
+    const m = RE.exec(v);
+    if(!m) return;
+    const resto = v.slice(m[0].length);
+    const temTexto = !!resto.trim() || !!tn.nextSibling || tn.parentNode !== el && !!tn.parentNode.nextSibling;
+    tn.parentNode.insertBefore(svg(E[m[2]], temTexto ? 'ui-ico-txt' : ''), tn);
+    tn.nodeValue = resto;
+  }
+  function varrer(raiz){
+    if(raiz.nodeType !== 1) return;
+    if(raiz.matches(ALVO)) trocar(raiz);
+    else { const pai = raiz.parentElement && raiz.parentElement.closest(ALVO); if(pai) trocar(pai); }
+    raiz.querySelectorAll(ALVO).forEach(trocar);
+  }
+  varrer(document.body);
+  const pend = new Set(); let agendado = false;
+  new MutationObserver(ms=>{
+    ms.forEach(m=>{
+      if(m.type === 'characterData'){ if(m.target.parentElement) pend.add(m.target.parentElement); return; }
+      m.addedNodes.forEach(n=>{ if(n.nodeType === 1) pend.add(n); else if(n.nodeType === 3 && n.parentElement) pend.add(n.parentElement); });
+    });
+    if(!agendado && pend.size){
+      agendado = true;
+      requestAnimationFrame(()=>{ agendado = false; const l = [...pend]; pend.clear(); l.forEach(n=>{ if(n.isConnected) varrer(n); }); });
+    }
+  }).observe(document.body, { childList:true, subtree:true, characterData:true });
+
+  /* ---- trilha de navegação: "Seção › Tela" no topo do conteúdo ---- */
+  const crumb = document.getElementById('pageCrumb');
+  const BASE = document.title;
+  const rotulo = b => { const l = b && b.querySelector('.tab-label'); return (l ? l.textContent : (b ? b.textContent : '')).trim(); };
+  function atualizarTrilha(){
+    if(!crumb) return;
+    const btn = [...document.querySelectorAll('nav.tabs .tab-btn.active')].find(b=>b.offsetParent) || document.querySelector('nav.tabs .tab-btn.active');
+    if(!btn){ crumb.innerHTML = ''; return; }
+    const grupo = btn.closest('.nav-group');
+    const gBtn = grupo && grupo.querySelector('.nav-group-btn');
+    const partes = [];
+    if(gBtn && gBtn !== btn) partes.push(rotulo(gBtn));
+    partes.push(gBtn === btn && grupo.querySelector('.nav-submenu') ? rotulo(btn) + ' — visão geral' : rotulo(btn));
+    crumb.innerHTML = '';
+    partes.forEach((t,i)=>{
+      if(i){ const s = document.createElement('span'); s.className = 'pc-sep'; s.appendChild(svg('chevron')); crumb.appendChild(s); }
+      const e = document.createElement('span'); e.className = i === partes.length-1 ? 'pc-atual' : 'pc-sec'; e.textContent = t;
+      crumb.appendChild(e);
+    });
+    document.title = partes[partes.length-1] + ' · ' + BASE;
+  }
+  document.addEventListener('click', e=>{ if(e.target.closest('nav.tabs .tab-btn')) setTimeout(atualizarTrilha, 0); });
+  // trocas de aba feitas por código (atalhos, voltar ao início) também atualizam
+  const nav = document.querySelector('nav.tabs');
+  if(nav) new MutationObserver(()=>atualizarTrilha()).observe(nav, { subtree:true, attributes:true, attributeFilter:['class'] });
+  atualizarTrilha();
 })();
 </script>
 </body>
