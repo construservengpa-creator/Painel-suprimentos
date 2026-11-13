@@ -2667,13 +2667,24 @@ nav.tabs.sidebar .nav-submenu{ background:transparent; border-left:1px solid var
 nav.tabs.sidebar .tab-btn .tab-label{ white-space:normal; line-height:1.3; }
 /* subtítulos dentro de um submenu (ex.: Suprimentos › Insumos críticos) */
 nav.tabs.sidebar .nav-sub-title{ font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); padding:12px 8px 4px; }
+/* títulos de seção recolhem/expandem os itens abaixo (estado salvo no navegador) */
+nav.tabs.sidebar .nav-sec{ display:flex; flex-direction:column; gap:1px; }
+nav.tabs.sidebar button.nav-sub-title{ display:flex; align-items:center; gap:6px; width:100%; background:none; border:0; text-align:left; cursor:pointer; font-family:var(--font-body); border-radius:4px; }
+nav.tabs.sidebar button.nav-sub-title:hover{ color:var(--text-dim); }
+nav.tabs.sidebar .nav-sec-caret{ margin-left:auto; flex:none; opacity:.7; transition:transform .15s; }
+nav.tabs.sidebar .nav-sec.fechada .nav-sec-caret{ transform:rotate(-90deg); }
+@media (min-width:861px){
+  nav.tabs.sidebar .nav-sec.fechada > .tab-btn{ display:none !important; }
+  /* a tela aberta continua à mostra mesmo com a seção recolhida */
+  nav.tabs.sidebar .nav-sec.fechada > .tab-btn.active{ display:flex !important; }
+}
 /* itens de gestor no menu: mesma disposição dos demais (a regra geral os deixa inline-block) */
 body.is-admin nav.tabs .tab-btn.gestor-credito-only, body.is-supervisor nav.tabs .tab-btn.gestor-credito-only{ display:flex !important; }
 body.is-operador-avancado:not(.is-admin):not(.is-supervisor) nav.tabs .tab-btn.cap-standalone-only{ display:flex !important; }
-body.is-admin nav.tabs .nav-sub-title.gestor-credito-only, body.is-supervisor nav.tabs .nav-sub-title.gestor-credito-only{ display:block !important; }
+body.is-admin nav.tabs .nav-sub-title.gestor-credito-only, body.is-supervisor nav.tabs .nav-sub-title.gestor-credito-only{ display:flex !important; }
 .shell.collapsed .nav-sub-title{ display:none; }
 /* no celular o submenu vira uma faixa horizontal: os subtítulos sairiam no meio dos itens */
-@media (max-width:860px){ nav.tabs.sidebar .nav-sub-title{ display:none !important; } }
+@media (max-width:860px){ nav.tabs.sidebar .nav-sec > .nav-sub-title.nav-sub-title{ display:none !important; } nav.tabs.sidebar .nav-sec{ display:contents; } }
 nav.tabs.sidebar .nav-submenu .tab-btn{ font-size:12.5px; font-weight:450; padding:7px 8px; border-radius:6px; color:var(--text-dim); }
 nav.tabs.sidebar .nav-submenu .tab-btn.active{ color:var(--yellow); font-weight:600; box-shadow:inset 2px 0 0 var(--yellow); }
 nav.tabs.sidebar .tab-btn .count-pill{ font-family:var(--font-body); font-weight:600; font-size:11px; min-width:20px; text-align:center; box-sizing:border-box; }
@@ -2848,20 +2859,26 @@ table.data th.sortable:hover{ color:var(--text); }
     <div class="nav-group group-active" data-group="suprimentos">
       <button class="tab-btn nav-group-btn active" data-tab="overview"><span class="tab-icon">📦</span><span class="tab-label">Suprimentos</span><span class="nav-caret"><svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="nav-submenu">
-        <div class="nav-sub-title">Solicitações / Pedidos</div>
-        <button class="tab-btn" data-tab="compradores"><span class="tab-label">Solicitações por Comprador</span> <span class="count-pill" id="countSolic">0</span></button>
-        <button class="tab-btn" data-tab="centros"><span class="tab-label">Pedidos por Centro de Custo</span> <span class="count-pill" id="countPed">0</span></button>
-        <button class="tab-btn" data-tab="semnf"><span class="tab-label">Pedidos sem Nota Fiscal</span> <span class="count-pill" id="countSemNF">0</span></button>
-        <button class="tab-btn" data-tab="fluxo"><span class="tab-label">Conformidade do Fluxo</span> <span class="count-pill" id="countFluxo">0</span></button>
-        <div class="nav-sub-title">Insumos críticos</div>
-        <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-label">Entrega de Insumos Críticos</span> <span class="count-pill" id="countPrazoInsumos">0</span></button>
-        <button class="tab-btn" data-tab="cotacoes"><span class="tab-label">Cotação de Insumos Críticos</span></button>
-        <!-- operador avançado (sem acesso ao Controle de crédito): o CAP vai aqui, entre os insumos críticos -->
-        <button class="tab-btn cap-standalone-only" data-tab="creditos-cap"><span class="tab-label">Controle de CAP</span></button>
-        <div class="nav-sub-title gestor-credito-only">Controle de crédito</div>
-        <button class="tab-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-label">Visão geral do crédito</span></button>
-        <button class="tab-btn gestor-credito-only" data-tab="creditos"><span class="tab-label">Crédito entre Obras</span></button>
-        <button class="tab-btn gestor-credito-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
+        <div class="nav-sec" data-sec="pedidos">
+          <button type="button" class="nav-sub-title" aria-expanded="true"><span>Solicitações / Pedidos</span><svg class="nav-sec-caret" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="tab-btn" data-tab="compradores"><span class="tab-label">Solicitações por Comprador</span> <span class="count-pill" id="countSolic">0</span></button>
+          <button class="tab-btn" data-tab="centros"><span class="tab-label">Pedidos por Centro de Custo</span> <span class="count-pill" id="countPed">0</span></button>
+          <button class="tab-btn" data-tab="semnf"><span class="tab-label">Pedidos sem Nota Fiscal</span> <span class="count-pill" id="countSemNF">0</span></button>
+          <button class="tab-btn" data-tab="fluxo"><span class="tab-label">Conformidade do Fluxo</span> <span class="count-pill" id="countFluxo">0</span></button>
+        </div>
+        <div class="nav-sec" data-sec="criticos">
+          <button type="button" class="nav-sub-title" aria-expanded="true"><span>Insumos críticos</span><svg class="nav-sec-caret" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="tab-btn" data-tab="prazoinsumos"><span class="tab-label">Entrega de Insumos Críticos</span> <span class="count-pill" id="countPrazoInsumos">0</span></button>
+          <button class="tab-btn" data-tab="cotacoes"><span class="tab-label">Cotação de Insumos Críticos</span></button>
+          <!-- operador avançado (sem acesso ao Controle de crédito): o CAP vai aqui, entre os insumos críticos -->
+          <button class="tab-btn cap-standalone-only" data-tab="creditos-cap"><span class="tab-label">Controle de CAP</span></button>
+        </div>
+        <div class="nav-sec" data-sec="credito">
+          <button type="button" class="nav-sub-title gestor-credito-only" aria-expanded="true"><span>Controle de crédito</span><svg class="nav-sec-caret" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="tab-btn gestor-credito-only" data-tab="creditos-dashboard"><span class="tab-label">Visão geral do crédito</span></button>
+          <button class="tab-btn gestor-credito-only" data-tab="creditos"><span class="tab-label">Crédito entre Obras</span></button>
+          <button class="tab-btn gestor-credito-only" data-tab="creditos-cap"><span class="tab-label">CAP</span></button>
+        </div>
       </div>
     </div>
     <div class="nav-group frotas-acesso" data-group="frotas">
@@ -21565,6 +21582,25 @@ window.CPA={show:render,dash:renderDash,refresh:()=>{render();renderDash()}};   
       requestAnimationFrame(()=>{ agendado = false; const l = [...pend]; pend.clear(); l.forEach(n=>{ if(n.isConnected) varrer(n); }); });
     }
   }).observe(document.body, { childList:true, subtree:true, characterData:true });
+
+  /* ---- seções do menu (Solicitações / Pedidos, Insumos críticos…): clicar no título recolhe/expande ---- */
+  (function(){
+    const KEY = 'painelMenuSecoesFechadas';
+    let fechadas = [];
+    try{ fechadas = JSON.parse(localStorage.getItem(KEY) || '[]') || []; }catch(e){}
+    document.querySelectorAll('nav.tabs .nav-sec').forEach(sec=>{
+      const t = sec.querySelector('.nav-sub-title');
+      const aplicar = f => { sec.classList.toggle('fechada', f); t.setAttribute('aria-expanded', f ? 'false' : 'true'); t.title = f ? 'Expandir' : 'Recolher'; };
+      aplicar(fechadas.includes(sec.dataset.sec));
+      t.addEventListener('click', ev=>{
+        ev.stopPropagation();
+        const f = !sec.classList.contains('fechada');
+        aplicar(f);
+        fechadas = fechadas.filter(k=>k !== sec.dataset.sec); if(f) fechadas.push(sec.dataset.sec);
+        try{ localStorage.setItem(KEY, JSON.stringify(fechadas)); }catch(e){}
+      });
+    });
+  })();
 
   /* ---- trilha de navegação: "Seção › Tela" no topo do conteúdo ---- */
   const crumb = document.getElementById('pageCrumb');
