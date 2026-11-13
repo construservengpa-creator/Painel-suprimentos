@@ -87,10 +87,10 @@ main{flex:1 0 auto;width:100%;display:flex;flex-direction:column;background:var(
 .abrir{
   display:inline-flex;align-items:center;gap:8px;text-decoration:none;
   background:var(--cor);color:#fff;font-weight:600;font-size:14px;
-  padding:10px 16px;border-radius:9px;transition:filter .15s;
+  padding:10px 16px;border-radius:9px;transition:box-shadow .15s;
 }
 .app.sup .abrir{color:#1B1408;background:var(--ambar);}
-.abrir:hover{filter:brightness(1.08);}
+.abrir:hover{box-shadow:inset 0 0 0 99px rgba(255,255,255,.1);}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .app .abrir{color:#0E131A;} }
 :root[data-theme="dark"] .app .abrir{color:#0E131A;}
 .abrir svg{width:16px;height:16px;}
@@ -104,6 +104,28 @@ main{flex:1 0 auto;width:100%;display:flex;flex-direction:column;background:var(
 .atalho{padding:7px 12px;}
 .atalho:hover{color:var(--texto);border-color:var(--texto-3);}
 a:focus-visible{outline:2px solid var(--ambar);outline-offset:2px;}
+/* o cartão inteiro abre a aplicação (o link "Abrir" se estende sobre ele);
+   os atalhos ficam por cima e continuam com o próprio destino */
+.app{cursor:pointer;}
+/* sem deslocar o cartão no hover: o deslocamento mudava o alvo entre o apertar e o soltar do clique */
+.app:hover{transform:none;box-shadow:0 1px 2px rgba(27,33,41,.06), 0 14px 30px -18px rgba(27,33,41,.45);}
+.abrir::after{content:'';position:absolute;inset:0;border-radius:14px;}
+.abrir:focus-visible{outline:none;}
+.abrir:focus-visible::after{outline:2px solid var(--ambar);outline-offset:2px;}
+.atalhos{position:relative;z-index:1;cursor:default;}
+/* clarear com sombra interna, não com filter: filter vira referência de posição do ::after e encolhe a área clicável para o botão */
+.app:has(.abrir:hover) .abrir{box-shadow:inset 0 0 0 99px rgba(255,255,255,.1);}
+/* três colunas: as linhas dos cartões são compartilhadas (subgrid), então os
+   botões "Abrir" ficam na mesma altura mesmo com os atalhos só no Estoque */
+@media (min-width:901px){
+  @supports (grid-template-rows:subgrid){
+    /* só a linha da lista é 'auto': a sobra de altura vai toda para ela */
+    .apps{grid-auto-rows:auto;grid-template-rows:min-content min-content auto min-content min-content;row-gap:0;}
+    .app{display:grid;grid-template-rows:subgrid;grid-row:span 5;align-content:start;}
+    .app ul{align-self:start;}
+    .acoes{margin-top:0;}
+  }
+}
 
 .app.sup{--cor:var(--sup);--cor-bg:var(--sup-bg);}
 .app.nf {--cor:var(--nf); --cor-bg:var(--nf-bg);}
@@ -115,6 +137,7 @@ a:focus-visible{outline:2px solid var(--ambar);outline-offset:2px;}
   padding:12px 14px;font-size:13px;color:var(--texto-2);line-height:1.55;
 }
 .aviso b{color:var(--texto);}
+.aviso-ico{width:16px;height:16px;flex:0 0 auto;margin-top:2px;color:var(--ambar-forte);}
 /* segredo: a logo leva ao jogo da capivara, sem nenhuma pista visual */
 #logoCapivara{-webkit-tap-highlight-color:transparent;}
 footer{width:100%;margin:16px 0 0;font-size:11.5px;color:var(--moldura-apagado);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
@@ -225,7 +248,7 @@ footer{width:100%;margin:16px 0 0;font-size:11.5px;color:var(--moldura-apagado);
   </div>
 
   <div class="aviso" role="note">
-    <span aria-hidden="true">🔐</span>
+    <svg class="aviso-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
     <span>Cada aplicação tem o <b>próprio login</b>. Ao abrir uma delas pela primeira vez neste navegador, entre com o usuário daquela aplicação; depois o acesso fica salvo.</span>
   </div>
 </main>
