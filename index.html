@@ -9178,9 +9178,9 @@ function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); re
    10. TABS + FILTER BINDINGS
    ============================================================ */
 var navTabGroupMap = {
-  overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', fluxo:'suprimentos',
+  overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', semnf:'suprimentos', fluxo:'suprimentos',
   'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'creditos',
-  'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos',
+  'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-agenda':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos',
   pxr:'financeiro', cpg:'financeiro',
   frotas:'frotas', consumo:'frotas'
 };
@@ -9234,7 +9234,10 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(targetTab === 'consumo' && window.CPA) window.CPA.show();
     if(targetTab === 'frotas' && window.CPA) window.CPA.dash();
 
-    var groupName = navTabGroupMap[targetTab];
+    // tela fora da tabela (ex.: item novo no menu): vale o grupo em que o botão está,
+    // senão o submenu fechava ao selecioná-la
+    var grupoDoBotao = btn.closest('.nav-group');
+    var groupName = navTabGroupMap[targetTab] || (grupoDoBotao && grupoDoBotao.getAttribute('data-group'));
     document.querySelectorAll('.nav-group').forEach(function(g){
       g.classList.toggle('group-active', g.getAttribute('data-group') === groupName);
     });
