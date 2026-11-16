@@ -110,3 +110,26 @@ create policy medicoes_admin_update on storage.objects for update to authenticat
 drop policy if exists medicoes_admin_select on storage.objects;
 create policy medicoes_admin_select on storage.objects for select to authenticated
   using (bucket_id in ('anexos','fotos') and medicoes.is_admin());
+
+-- =====================================================================
+--  Troca de senha obrigatória (16/11/2026) — já aplicado no projeto
+--  Marca raw_user_meta_data.trocar_senha = true: contas migradas, contas criadas pelo
+--  administrador e senhas redefinidas pelo administrador. O app abre a troca de senha
+--  obrigatória ao entrar; quando a pessoa troca a própria senha, a marca sai (gatilho).
+--  As versões novas de admin_set_password, admin_create_user e migrar_usuario estão no
+--  projeto (migração "medicoes_troca_senha_obrigatoria").
+-- =====================================================================
+create or replace function medicoes.senha_trocada() returns trigger
+language plpgsql security definer set search_path = medicoes as $$
+begin
+  if new.encrypted_password is distinct from old.encrypted_password
+     and coalesce(current_setting('sismed.senha_admin', true), '') <> '1'
+     and coalesce(new.raw_user_meta_data, '{}'::jsonb) ? 'trocar_senha' then
+    new.raw_user_meta_data := new.raw_user_meta_data - 'trocar_senha';
+  end if;
+  return new;
+end $$;
+revoke all on function medicoes.senha_trocada() from public, anon, authenticated;
+drop trigger if exists medicoes_senha_trocada on auth.users;
+create trigger medicoes_senha_trocada before update on auth.users
+  for each row execute procedure medicoes.senha_trocada();

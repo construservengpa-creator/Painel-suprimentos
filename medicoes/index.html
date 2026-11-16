@@ -1603,7 +1603,7 @@ tbody tr:hover>td{background:color-mix(in srgb,var(--surface-2) 70%,transparent)
         </div>
       </div>
     </div>
-    <p class="small muted" style="margin:14px 0 0;text-align:center" id="l-status">Conectando ao servidor…<span class="l-falha">O sistema não iniciou. Recarregue a página. Se continuar assim, a atualização do site está incompleta: falta o arquivo <b>app-3.1.6.js</b> (ele precisa estar na mesma pasta do index.html). Avise o administrador.</span></p>
+    <p class="small muted" style="margin:14px 0 0;text-align:center" id="l-status">Conectando ao servidor…<span class="l-falha">O sistema não iniciou. Recarregue a página. Se continuar assim, a atualização do site está incompleta: falta o arquivo <b>app-3.1.7.js</b> (ele precisa estar na mesma pasta do index.html). Avise o administrador.</span></p>
   </div>
   </div>
   <div class="lx-rodape"><span>RAF ENGENHARIA · v3.1.1</span></div>
@@ -2235,9 +2235,10 @@ tbody tr:hover>td{background:color-mix(in srgb,var(--surface-2) 70%,transparent)
 <!-- ============ ALTERAR A PRÓPRIA SENHA ============ -->
 <div class="modal" id="ms-modal">
   <div class="sheet narrow">
-    <div class="mh"><h2>Alterar minha senha</h2><button class="btn sec sm" id="ms-close" type="button">Fechar</button></div>
+    <div class="mh"><h2 id="ms-titulo">Alterar minha senha</h2><button class="btn sec sm" id="ms-close" type="button">Fechar</button></div>
     <div class="stack">
-      <div class="field"><label for="ms-atual">Senha atual</label><input id="ms-atual" type="password" autocomplete="current-password"></div>
+      <div class="notice warn" id="ms-obrig" hidden><b>Você entrou com uma senha provisória.</b> Para continuar usando o sistema, crie agora a sua senha pessoal.</div>
+      <div class="field"><label for="ms-atual" id="ms-atual-l">Senha atual</label><input id="ms-atual" type="password" autocomplete="current-password"></div>
       <div class="field"><label for="ms-nova">Nova senha</label><input id="ms-nova" type="password" autocomplete="new-password"></div>
       <div class="field"><label for="ms-rep">Repita a nova senha</label><input id="ms-rep" type="password" autocomplete="new-password"></div>
       <div class="small muted">No mínimo 8 caracteres, com letras e números. Não use a mesma senha de outros sistemas.</div>
@@ -2334,7 +2335,7 @@ tbody tr:hover>td{background:color-mix(in srgb,var(--surface-2) 70%,transparent)
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div id="viz-tip" role="tooltip" hidden></div>
 
-<script src="app-3.1.6.js"></script>
+<script src="app-3.1.7.js"></script>
 <script src="instalar.js"></script>
 </body>
 </html>
