@@ -13,6 +13,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { unzipSync, zipSync } from "npm:fflate@0.8.2";
 
 const BUCKET = "fotos";
+const SCHEMA = Deno.env.get("MEDICOES_SCHEMA") || "medicoes";   // banco dentro do painel_suprimentos: schema "medicoes"
 const LIMIAR = 3 * 1024 * 1024;   // 3 MB aguardando → compacta
 const DIAS_CONSULTA = 20;         // igual a FOTO_CFG.dias no app
 const MESES_ZIP = 12;
@@ -61,11 +62,11 @@ Deno.serve(async (req) => {
 
     // quem chama: agenda (service_role) ou administrador logado
     if (token !== service) {
-      const usr = createClient(url, anon, { global: { headers: { Authorization: auth } } });
+      const usr = createClient(url, anon, { db: { schema: SCHEMA }, global: { headers: { Authorization: auth } } });
       const { data, error } = await usr.rpc("is_admin");
       if (error || data !== true) return json({ error: "Só o administrador pode compactar as fotos." }, 403);
     }
-    const sb = createClient(url, service);
+    const sb = createClient(url, service, { db: { schema: SCHEMA } });
     const body = await req.json().catch(() => ({}));
     const incluirHoje = body && body.incluirHoje === true;
     const hoje = diaSP(0);

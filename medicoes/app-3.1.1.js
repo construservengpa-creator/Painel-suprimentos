@@ -10866,7 +10866,7 @@ if(!CFG.SUPABASE_URL||!CFG.SUPABASE_ANON_KEY){document.addEventListener('DOMCont
 function fetchComPrazo(url,o){o=o||{};const ms=/\/storage\/v1\//.test(String(url&&url.url||url))?120000:40000;const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);
   if(o.signal){if(o.signal.aborted)c.abort();else o.signal.addEventListener('abort',()=>c.abort(),{once:true})}
   return fetch(url,{...o,signal:c.signal}).finally(()=>clearTimeout(t))}
-const sb=window.supabase.createClient(CFG.SUPABASE_URL||'https://invalid.supabase.co',CFG.SUPABASE_ANON_KEY||'x',{auth:{persistSession:true,autoRefreshToken:true},global:{fetch:(u,o)=>fetchComPrazo(u,o)}});
+const sb=window.supabase.createClient(CFG.SUPABASE_URL||'https://invalid.supabase.co',CFG.SUPABASE_ANON_KEY||'x',{auth:{persistSession:true,autoRefreshToken:true,...(CFG.AUTH_STORAGE_KEY?{storageKey:CFG.AUTH_STORAGE_KEY}:{})},db:{schema:CFG.DB_SCHEMA||'public'},global:{fetch:(u,o)=>fetchComPrazo(u,o)}});
 const EMAIL_DOMAIN=CFG.EMAIL_DOMAIN||'refeicoes.app';
 function toEmail(login){login=(login||'').trim().toLowerCase();return login.includes('@')?login:login.replace(/[^a-z0-9._-]/g,'')+'@'+EMAIL_DOMAIN}
 const TABLES={perfis:'perfis',empresas:'empresas',terceirizadas:'empresas',obras:'obras',colab:'colaboradores',precos:'precos',contratos:'contratos',contratadas:'contratadas',registros:'registros',sobras:'sobras',bms:'bms',users:'usuarios'};
@@ -11276,7 +11276,7 @@ async function doSignup(){
   try{const r=await sb.rpc('login_livre',{p_login:login});
     if(!r.error){if(r.data===false){$('su-go').disabled=false;return show('Este usuário já existe. Escolha outro.')}}
     else{const {data:ex}=await sb.rpc('email_por_login',{p_login:login});if(ex){$('su-go').disabled=false;return show('Este usuário já existe. Escolha outro.')}}}catch(e){}
-  const {data,error}=await sb.auth.signUp({email:email.toLowerCase(),password:p1,options:{data:{nome:login,login},emailRedirectTo:location.origin+location.pathname}});
+  const {data,error}=await sb.auth.signUp({email:email.toLowerCase(),password:p1,options:{data:{nome:login,login,app:'medicoes'},emailRedirectTo:location.origin+location.pathname}});
   $('su-go').disabled=false;
   if(error)return show(/already|registered/i.test(error.message)?'Já existe uma conta com este e-mail.':/rate/i.test(error.message)?'Limite de envio de e-mails atingido no servidor. Tente novamente em alguns minutos.':'Erro: '+error.message);
   if(data.session){await enterApp();return}
@@ -11286,7 +11286,7 @@ async function doBootstrap(){
   const nome=$('b-nome').value.trim(),login=$('b-login').value.trim(),pass=$('b-pass').value;const err=$('b-err');
   if(!nome||!login||!senhaOk(pass)){err.hidden=false;err.textContent='Preencha nome, login e uma senha com '+SENHA_REGRA+'.';return}
   err.hidden=true;$('b-go').disabled=true;
-  const {data,error}=await sb.auth.signUp({email:toEmail(login),password:pass,options:{data:{nome,login}}});
+  const {data,error}=await sb.auth.signUp({email:toEmail(login),password:pass,options:{data:{nome,login,app:'medicoes'}}});
   $('b-go').disabled=false;
   if(error){err.hidden=false;err.textContent=error.message;return}
   if(!data.session){err.hidden=false;err.textContent='Usuário criado. Confirme o e-mail pelo link enviado e depois entre.';lshow('l-form');return}
