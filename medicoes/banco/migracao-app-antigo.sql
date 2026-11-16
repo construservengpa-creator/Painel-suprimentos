@@ -133,3 +133,10 @@ revoke all on function medicoes.senha_trocada() from public, anon, authenticated
 drop trigger if exists medicoes_senha_trocada on auth.users;
 create trigger medicoes_senha_trocada before update on auth.users
   for each row execute procedure medicoes.senha_trocada();
+
+-- =====================================================================
+--  Vincular conta do Painel (16/11/2026) — já aplicado (migração "medicoes_vincular_conta_painel")
+--  admin_create_user: se o e-mail já tem conta (Painel de Suprimentos) e ela ainda não usa o
+--  CAP-Refeições, vincula essa conta (linha em medicoes.usuarios) em vez de recusar; a senha
+--  continua a do Painel. medicoes.conta_do_painel(id) diz ao app se a conta é do Painel.
+-- =====================================================================
