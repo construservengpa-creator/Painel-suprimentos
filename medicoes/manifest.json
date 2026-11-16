@@ -29,5 +29,10 @@
       "purpose": "maskable"
     }
   ],
-  "id": "./"
+  "id": "./",
+  "handle_links": "not-preferred",
+  "capture_links": "none",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
 }
