@@ -1,6 +1,6 @@
 /* Service worker: guarda a "casca" do app para abrir mesmo sem internet.
    Os dados continuam vindo do Supabase; registros feitos offline ficam na fila do app. */
-const CACHE='refeicoes-shell-3.1.2';
+const CACHE='refeicoes-shell-3.1.2-csp';
 const SHELL=['./', './index.html', './config.js?v=painel-1', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './app-3.1.2.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>null)))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
