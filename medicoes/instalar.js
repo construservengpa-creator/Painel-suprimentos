@@ -13,6 +13,15 @@
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
   }
+  // botão Início: no app instalado abre a página inicial no navegador (sem prender o Capivara dentro da janela do app);
+  // no navegador, abre na mesma aba, como nas demais aplicações
+  document.addEventListener('DOMContentLoaded', function () {
+    var ls = document.querySelectorAll('a[data-inicio]');
+    for (var i = 0; i < ls.length; i++) {
+      if (standalone) { ls[i].setAttribute('target', '_blank'); ls[i].setAttribute('rel', 'noopener'); }
+      else ls[i].removeAttribute('target');
+    }
+  });
   if (standalone) return;
 
   function fechouAntes() { try { return localStorage.getItem(KEY_FECHOU) === '1'; } catch (e) { return false; } }
