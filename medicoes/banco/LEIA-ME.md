@@ -1,4 +1,22 @@
-# Banco do SISMED (Medição de Refeições) — reconstruído
+# Banco do SISMED (Medição de Refeições)
+
+## ⚠️ Onde está o banco agora (desde 16/11/2026)
+
+O Medições roda **dentro do projeto Supabase `painel_suprimentos`**, no schema próprio **`medicoes`**
+(o Painel usa o `public`). O arquivo usado é **`sismed-painel-suprimentos.sql`** — já aplicado no projeto.
+O `sismed-banco-completo.sql` continua aqui só como referência (versão para um projeto só do Medições).
+
+Cuidados por dividir o projeto com o Painel:
+- **Exposed schemas**: em *Project Settings › Data API*, o schema `medicoes` precisa estar na lista (sem ele o app dá erro ao entrar).
+- **Logins**: só vira usuário do Medições quem se cadastra pelo Medições (o app marca `app: 'medicoes'`) ou é criado pelo administrador dele.
+  Contas do Painel não aparecem no Medições.
+- O administrador do Medições **só troca senha / exclui contas criadas pelo Medições**. Para quem também usa o Painel, "excluir" só tira o acesso ao Medições.
+- A sessão do Medições fica separada da do Painel no navegador (`AUTH_STORAGE_KEY` no `config.js`).
+- A função `fotos-compactar` foi publicada no projeto e usa o schema `medicoes`.
+
+---
+
+## Versão original — reconstruída
 
 O `schema.sql` da pasta de cima é da versão 1.0 e **não tem tudo o que o app v3.1.1 usa**.
 Esta pasta tem o banco completo, reconstruído a partir do código do app (`app-3.1.1.js`).
