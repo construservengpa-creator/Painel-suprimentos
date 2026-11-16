@@ -1,7 +1,8 @@
 /* Service worker: guarda a "casca" do app para abrir mesmo sem internet.
    Os dados continuam vindo do Supabase; registros feitos offline ficam na fila do app. */
-const CACHE='refeicoes-shell-3.1.8b';
-const SHELL=['./', './index.html', './config.js?v=painel-1', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './app-3.1.8.js', './instalar.js'];
+const CACHE='refeicoes-shell-3.1.9';
+const SHELL=['./', './index.html', './config.js?v=painel-1', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './app-3.1.9.js', './pdf-3.1.9.js', './qr-3.1.9.js', './instalar.js',
+  './fontes/barlow-semi-condensed-500.woff2', './fontes/barlow-semi-condensed-600.woff2', './fontes/barlow-semi-condensed-700.woff2', './fontes/ibm-plex-sans-200.woff2', './fontes/ibm-plex-sans-400.woff2', './fontes/ibm-plex-sans-500.woff2', './fontes/ibm-plex-sans-600.woff2', './fontes/ibm-plex-mono-400.woff2', './fontes/ibm-plex-mono-500.woff2'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>null)))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
@@ -11,7 +12,7 @@ self.addEventListener('fetch',e=>{
   if(!isShell)return; // Supabase: sempre rede (bibliotecas e fontes agora vêm junto com o próprio site)
   // rede primeiro (para pegar a versão nova); se a rede falhar, responder com erro ou não responder em 4 s (internet fraca), usa a cópia guardada
   e.respondWith(caches.match(e.request).then(hit=>{
-    if(hit&&/\/app-[0-9.]+\.js$/.test(u.pathname))return hit;   // o programa tem a versão no nome: a cópia guardada é sempre a certa
+    if(hit&&(/\/(app|pdf|qr)-[0-9.]+\.js$/.test(u.pathname)||/\/fontes\/[\w-]+\.woff2$/.test(u.pathname)))return hit;   // programa e bibliotecas têm a versão no nome; fontes não mudam: a cópia guardada é sempre a certa
     const rede=fetch(e.request).then(res=>{
       if(res&&res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(e.request,cp));return res}
       return hit||res;

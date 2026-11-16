@@ -9,6 +9,9 @@ Conteúdo desta pasta:
 | `index.html` | O app (Restaurante, Suprimentos, Auditoria, Configurações) já conectado ao Supabase |
 | `config.js` | URL e chave pública do seu projeto Supabase — **único arquivo a editar** |
 | `schema.sql` | Banco de dados completo: tabelas, permissões (RLS), auditoria com IP, bucket de anexos |
+| `app-X.Y.Z.js` | O programa (com a conexão Supabase). Cada versão tem um nome próprio |
+| `pdf-X.Y.Z.js`, `qr-X.Y.Z.js` | Bibliotecas de PDF/ZIP e de leitura de QR — baixadas em segundo plano depois que a tela abre (desde a v3.1.9) |
+| `fontes/` | Fontes da interface (antes ficavam dentro do `index.html`) |
 | `manifest.json`, `sw.js`, `icon*.png/svg` | Deixam o app instalável no celular (ícone na tela inicial) e abrem a tela mesmo sem sinal |
 | `prototipo-localstorage-corte-2026-09-23.html` | Versão anterior, sem servidor (dados só no navegador). Guardada como corte para migração futura |
 
@@ -83,4 +86,4 @@ O app guarda os dados no aparelho e enfileira registros feitos sem sinal; a boli
 
 ## 8. Atualizações
 
-Para atualizar o app basta substituir `index.html` (e `sw.js` se mudar) na hospedagem. O `config.js` e o banco continuam os mesmos.
+Para atualizar o app basta substituir `index.html`, `sw.js` e os arquivos com a versão no nome (`app-`, `pdf-`, `qr-`) na hospedagem. O `config.js` e o banco continuam os mesmos.
