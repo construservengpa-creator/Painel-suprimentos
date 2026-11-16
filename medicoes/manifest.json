@@ -1,6 +1,6 @@
 {
-  "name": "SISMED — Medição de Refeições",
-  "short_name": "SISMED",
+  "name": "CAP-Refeições — Medição de Refeições",
+  "short_name": "CAP-Refeições",
   "description": "Registro de refeições por QR Code e Boletim de Medição",
   "start_url": "./index.html",
   "scope": "./",

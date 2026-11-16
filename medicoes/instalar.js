@@ -1,4 +1,4 @@
-/* SISMED — instalação como aplicativo (celular e computador)
+/* CAP-Refeições — instalação como aplicativo (celular e computador)
    • registra o service worker (abre mesmo com internet fraca e permite instalar)
    • Android / Chrome / Edge no PC: botão "Instalar app" (usa o pedido de instalação do navegador)
    • iPhone / iPad (Safari): dica "Compartilhar › Adicionar à Tela de Início"
@@ -48,7 +48,7 @@
   var pedido = null;
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault(); pedido = e;
-    mostrar('Instalar o SISMED', 'Abre como aplicativo, com ícone próprio e câmera.', 'Instalar app', function () {
+    mostrar('Instalar o CAP-Refeições', 'Abre como aplicativo, com ícone próprio e câmera.', 'Instalar app', function () {
       if (!pedido) return;
       pedido.prompt();
       pedido.userChoice.then(function () { pedido = null; esconder(); }).catch(function () {});
