@@ -2112,6 +2112,10 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
 #tab-creditos .cr-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
 #tab-creditos .cr-dot.fat{background:var(--teal);} #tab-creditos .cr-dot.res{background:var(--amber);} #tab-creditos .cr-dot.liv{background:var(--surface-3,#3a3f47);border:1px solid var(--line);}
 #tab-creditos .cr-who{font-weight:600;color:var(--text);line-height:1.35;}
+#tab-creditos tr.cr-grupo-row td{background:var(--surface-2);}
+#tab-creditos tr.cr-sub-row td:nth-child(2){padding-left:28px;border-left:3px solid var(--line);}
+#tab-creditos .cr-grupo-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:9px;background:var(--surface-3,#3a3f47);color:var(--text-mut);margin-left:6px;vertical-align:1px;}
+#tab-creditos #credito-btnUnificado.on{background:var(--teal);color:#fff;border-color:var(--teal);}
 #tab-creditos .cr-who .arrow{color:var(--text-faint);font-weight:400;margin:0 4px;}
 #tab-creditos .cr-sub{display:block;font-size:11.5px;color:var(--text-mut);margin-top:2px;line-height:1.4;}
 #tab-creditos .cr-bar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--surface-3,#3a3f47);min-width:180px;margin:2px 0 6px;}
@@ -3733,6 +3737,7 @@ table.data th.sortable:hover{ color:var(--text); }
           </div>
           <div class="toolbar">
             <span class="count-badge" id="creditoCountBadge">0 créditos</span>
+            <button class="ghost no-print" id="credito-btnUnificado" title="Agrupa os créditos do mesmo par credora ← devedora em uma única linha">⧉ Mostrar unificado</button>
             <button class="ghost no-print" id="credito-btnExportExcel">⬇ Exportar Excel</button>
             <button class="ghost no-print gestor-credito-only" id="credito-btnImportNotas" title="Relatório Acompanhamento de Pedidos do Sienge (PDF ou Excel), com as notas fiscais de cada pedido">⬆ Importar notas do Sienge</button>
             <input type="file" id="credito-fileNotas" accept=".pdf,.xlsx,.xls,.csv" style="display:none">
@@ -11481,6 +11486,9 @@ let auditoriaLimit = 100;
 let editingCreditoId = null;
 let editingVinculoId = null;
 const creditoDetailOpen = new Set();
+const creditoGrupoOpen = new Set();
+let creditoUnificado = false;
+try{ creditoUnificado = localStorage.getItem('creditoUnificado')==='1'; }catch(e){}
 
 function creditoRowFromDb(row){
   return {
@@ -12688,7 +12696,8 @@ function renderCreditos(){
   const pedidosMap = new Map(getPedidosUnicos().map(p=>[String(p.numPedido), p]));
   const pct = (v,t)=> t>0 ? (v/t*100) : 0;
   const pctTxt = (v,t)=> t>0 ? (v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '0%';
-  lista.forEach(c=>{
+  const htmlCredito = (c, sub)=>{
+    let html = '';
     const reservado = creditoReservado(c.id);
     const faturado = creditoRealizadoAbatido(c.id);
     const saldo = c.valorTotal - reservado - faturado;
@@ -12697,7 +12706,7 @@ function renderCreditos(){
     const anexos = anexosDoCredito(c.id);
     const enviando = creditoAnexoEnviando.has(String(c.id));
     const pf = Math.min(100, pct(faturado, c.valorTotal)), pr = Math.min(100-pf, pct(reservado, c.valorTotal));
-    html += `<tr>
+    html += `<tr${sub?' class="cr-sub-row"':''}>
       <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}" title="Ver pedidos vinculados">${isOpen?'▾':'▸'}</button></td>
       <td class="txt">
         <span class="cr-who">${esc(c.empresaBeneficiaria)||'—'}<span class="arrow">←</span>${esc(c.empresaDevedora)||'—'}</span>
@@ -12759,8 +12768,68 @@ function renderCreditos(){
         </table>`
         : `<div class="empty-mini">Nenhum pedido vinculado a este crédito ainda.</div>`}
     </td></tr>`;
-  });
+    return html;
+  };
+
+  const btnUnif = document.getElementById('credito-btnUnificado');
+  if(btnUnif){
+    btnUnif.classList.toggle('on', creditoUnificado);
+    btnUnif.textContent = creditoUnificado ? '☰ Mostrar individual' : '⧉ Mostrar unificado';
+  }
+
+  if(!creditoUnificado){
+    lista.forEach(c=>{ html += htmlCredito(c, false); });
+  } else {
+    // Agrupa pelo par credora ← devedora, mantendo a ordem da lista.
+    const grupos = new Map();
+    lista.forEach(c=>{
+      const k = `${String(c.empresaBeneficiaria||'').trim().toUpperCase()}§${String(c.empresaDevedora||'').trim().toUpperCase()}`;
+      if(!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push(c);
+    });
+    grupos.forEach((itens, k)=>{
+      if(itens.length===1){ html += htmlCredito(itens[0], false); return; }
+      const c0 = itens[0];
+      let total=0, fat=0, res=0, nVinc=0, dataMin='';
+      const obras = new Set();
+      itens.forEach(c=>{
+        total += c.valorTotal; res += creditoReservado(c.id); fat += creditoRealizadoAbatido(c.id);
+        nVinc += vinculosDoCredito(c.id).length;
+        if(c.obra) obras.add(c.obra);
+        if(c.dataDisponibilidade && (!dataMin || String(c.dataDisponibilidade) < String(dataMin))) dataMin = c.dataDisponibilidade;
+      });
+      const saldo = total - res - fat;
+      const pf = Math.min(100, pct(fat, total)), pr = Math.min(100-pf, pct(res, total));
+      const aberto = creditoGrupoOpen.has(k);
+      html += `<tr class="cr-grupo-row">
+        <td class="no-print"><button class="credito-toggle" data-toggle-grupo="${esc(k)}" title="Ver os créditos deste grupo">${aberto?'▾':'▸'}</button></td>
+        <td class="txt">
+          <span class="cr-who">${esc(c0.empresaBeneficiaria)||'—'}<span class="arrow">←</span>${esc(c0.empresaDevedora)||'—'}<span class="cr-grupo-tag">${itens.length} créditos</span></span>
+          <span class="cr-sub">Obra ${Array.from(obras).map(o=>esc(o)).join(' · ')||'—'}</span>
+          <span class="cr-sub">${nVinc ? `${nVinc} pedido(s) vinculado(s)` : 'Nenhum pedido vinculado'}</span>
+        </td>
+        <td><span class="cr-big">R$ ${fmtMoney(total)}</span></td>
+        <td>
+          <div class="cr-bar" title="Faturado ${pctTxt(fat,total)} · Reservado ${pctTxt(res,total)} · Livre ${pctTxt(Math.max(0,saldo),total)}"><i class="fat" style="width:${pf}%"></i><i class="res" style="width:${pr}%"></i></div>
+          <div class="cr-num"><span class="cr-dot fat"></span><span class="lbl">Faturado</span> R$ ${fmtMoney(fat)} <span class="cr-pct">(${pctTxt(fat,total)})</span></div>
+          <div class="cr-num"><span class="cr-dot res"></span><span class="lbl">Reservado</span> R$ ${fmtMoney(res)} <span class="cr-pct">(${pctTxt(res,total)})</span></div>
+        </td>
+        <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span><span class="cr-sub">${pctTxt(Math.max(0,saldo),total)} do crédito</span></td>
+        <td>${dataMin?fmtBRDate(dataMin):'—'}</td>
+        <td class="no-print"></td>
+      </tr>`;
+      if(aberto) itens.forEach(c=>{ html += htmlCredito(c, true); });
+    });
+  }
   tbody.innerHTML = html;
+
+  tbody.querySelectorAll('[data-toggle-grupo]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const k = btn.getAttribute('data-toggle-grupo');
+      if(creditoGrupoOpen.has(k)) creditoGrupoOpen.delete(k); else creditoGrupoOpen.add(k);
+      renderCreditos();
+    });
+  });
 
   tbody.querySelectorAll('[data-toggle]').forEach(btn=>{
     btn.addEventListener('click', ()=> toggleCreditoDetail(btn.getAttribute('data-toggle')));
@@ -13459,6 +13528,11 @@ async function init(){
   document.getElementById('fCreditoObra').addEventListener('change', renderCreditos);
   document.getElementById('fCreditoSaldo').addEventListener('change', renderCreditos);
   document.getElementById('credito-btnExportExcel').addEventListener('click', exportCreditosExcel);
+  document.getElementById('credito-btnUnificado').addEventListener('click', ()=>{
+    creditoUnificado = !creditoUnificado;
+    try{ localStorage.setItem('creditoUnificado', creditoUnificado?'1':'0'); }catch(e){}
+    renderCreditos();
+  });
   document.getElementById('credito-btnPrint').addEventListener('click', ()=>{ setCreditoTab('lista'); imprimirRelatorioCreditos(); });
   document.getElementById('credito-btnImportNotas').addEventListener('click', ()=> document.getElementById('credito-fileNotas').click());
   document.getElementById('credito-fileNotas').addEventListener('change', async (e)=>{
