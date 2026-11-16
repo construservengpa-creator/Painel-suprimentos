@@ -21,20 +21,21 @@
   --sup:#A86200; --sup-bg:rgba(245,165,36,.14);
   --nf:#2563C9;  --nf-bg:rgba(37,99,201,.10);
   --est:#1A7F45; --est-bg:rgba(30,142,78,.12);
+  --ref:#B5481C; --ref-bg:rgba(181,72,28,.11);
   --sombra:0 1px 2px rgba(27,33,41,.05), 0 10px 24px -18px rgba(27,33,41,.35);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --centro:#121821; --cartao:#1A212B; --cartao-2:#222B37;
     --texto:#E9EDF2; --texto-2:#B3BCC8; --texto-3:#8E99A8; --linha:rgba(255,255,255,.10);
-    --ambar-forte:#F5A524; --sup:#F5A524; --nf:#6EA6FF; --nf-bg:rgba(110,166,255,.14); --est:#4CC27E;
+    --ambar-forte:#F5A524; --sup:#F5A524; --nf:#6EA6FF; --nf-bg:rgba(110,166,255,.14); --est:#4CC27E; --ref:#F08A5D; --ref-bg:rgba(240,138,93,.14);
     --sombra:0 1px 2px rgba(0,0,0,.3), 0 12px 28px -18px rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
   --centro:#121821; --cartao:#1A212B; --cartao-2:#222B37;
   --texto:#E9EDF2; --texto-2:#B3BCC8; --texto-3:#8E99A8; --linha:rgba(255,255,255,.10);
-  --ambar-forte:#F5A524; --sup:#F5A524; --nf:#6EA6FF; --nf-bg:rgba(110,166,255,.14); --est:#4CC27E;
+  --ambar-forte:#F5A524; --sup:#F5A524; --nf:#6EA6FF; --nf-bg:rgba(110,166,255,.14); --est:#4CC27E; --ref:#F08A5D; --ref-bg:rgba(240,138,93,.14);
   --sombra:0 1px 2px rgba(0,0,0,.3), 0 12px 28px -18px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box;}
@@ -66,7 +67,7 @@ main{flex:1 0 auto;width:100%;display:flex;flex-direction:column;background:var(
 .saudacao{margin:0 0 4px;font-size:22px;font-weight:700;letter-spacing:-.01em;}
 .intro{margin:0 0 24px;color:var(--texto-2);font-size:14px;line-height:1.55;max-width:720px;}
 
-.apps{flex:1 0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:16px;}
+.apps{flex:1 0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:1fr;gap:16px;}
 .app{
   position:relative;display:flex;flex-direction:column;
   background:var(--cartao);border:1px solid var(--linha);border-radius:14px;box-shadow:var(--sombra);
@@ -130,6 +131,7 @@ a:focus-visible{outline:2px solid var(--ambar);outline-offset:2px;}
 .app.sup{--cor:var(--sup);--cor-bg:var(--sup-bg);}
 .app.nf {--cor:var(--nf); --cor-bg:var(--nf-bg);}
 .app.est{--cor:var(--est);--cor-bg:var(--est-bg);}
+.app.ref{--cor:var(--ref);--cor-bg:var(--ref-bg);}
 
 .aviso{
   margin:22px 0 0;display:flex;gap:10px;align-items:flex-start;
@@ -157,7 +159,9 @@ footer{width:100%;margin:16px 0 0;font-size:11.5px;color:var(--moldura-apagado);
   .atalhos{margin-top:16px;padding-top:16px;} .atalho{font-size:14px;padding:9px 14px;}
   .aviso{font-size:14px;padding:14px 18px;}
 }
-@media (max-width:900px){ .apps{grid-template-columns:1fr 1fr;grid-auto-rows:auto;} .app.est{grid-column:1 / -1;} }
+@media (max-width:1279px){ .apps{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (min-width:901px) and (max-width:1279px){ .apps{row-gap:16px !important;} .app{row-gap:0;} }
+@media (max-width:900px){ .apps{grid-auto-rows:auto;} }
 @media (max-width:640px){
   body{padding:16px;}
   .topo{gap:12px;} .topo h1{font-size:23px;} .emp-logos{gap:10px;padding:6px 10px;} .emp-logos img{height:36px;max-width:90px;} .emp-logos .emp-sep{height:28px;}
@@ -184,7 +188,7 @@ footer{width:100%;margin:16px 0 0;font-size:11.5px;color:var(--moldura-apagado);
 
 <main>
   <h2 class="saudacao" id="saudacao">Bem-vindo</h2>
-  <p class="intro">Escolha a aplicação para começar. Suprimentos, Notas e Estoque reúnem o acompanhamento de compras, a conferência de notas fiscais e o controle de materiais nas obras.</p>
+  <p class="intro">Escolha a aplicação para começar. Suprimentos, Notas, Estoque e Refeições reúnem o acompanhamento de compras, a conferência de notas fiscais, o controle de materiais nas obras e a medição das refeições.</p>
 
   <div class="apps">
     <article class="app sup">
@@ -243,6 +247,23 @@ footer{width:100%;margin:16px 0 0;font-size:11.5px;color:var(--moldura-apagado);
         <span>Atalhos</span>
         <a class="atalho" href="https://construservengpa-creator.github.io/almoxarifado/contagem.html">Contagem</a>
         <a class="atalho" href="https://construservengpa-creator.github.io/almoxarifado/aprovacoes.html">Aprovações</a>
+      </div>
+    </article>
+    <article class="app ref">
+      <div class="app-topo">
+        <div class="app-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v7a2 2 0 0 0 2 2v9M11 3v7a2 2 0 0 1-2 2M7 3v4M11 3v4M9 3v4"/><path d="M17 21V3c-2 1.5-3 4-3 7v3h3"/></svg>
+        </div>
+        <h3 class="app-nome">CAP-Refeições<small>Medição de Refeições · BM</small></h3>
+      </div>
+      <p>Registro das refeições dos colaboradores nos restaurantes e emissão do Boletim de Medição.</p>
+      <ul>
+        <li>Registro por QR Code do crachá</li>
+        <li>Sobras, fechamento do dia e estornos</li>
+        <li>BM com assinatura eletrônica e anexos</li>
+      </ul>
+      <div class="acoes">
+        <a class="abrir" data-app="refeicoes" href="medicoes/">Abrir Refeições <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
       </div>
     </article>
   </div>
