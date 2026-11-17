@@ -1613,7 +1613,7 @@ tbody tr:hover>td{background:color-mix(in srgb,var(--surface-2) 70%,transparent)
         </div>
       </div>
     </div>
-    <p class="small muted" style="margin:14px 0 0;text-align:center" id="l-status">Conectando ao servidor…<span class="l-falha">O sistema não iniciou. Recarregue a página. Se continuar assim, a atualização do site está incompleta: falta o arquivo <b>app-3.1.9.js</b> (ele precisa estar na mesma pasta do index.html). Avise o administrador.</span></p>
+    <p class="small muted" style="margin:14px 0 0;text-align:center" id="l-status">Conectando ao servidor…<span class="l-falha">O sistema não iniciou. Recarregue a página. Se continuar assim, a atualização do site está incompleta: falta o arquivo <b>app-3.2.0.js</b> (ele precisa estar na mesma pasta do index.html). Avise o administrador.</span></p>
     <p class="l-inicio"><a href="../inicio.html" data-inicio>← Voltar à página inicial do Capivara</a></p>
   </div>
   </div>
@@ -1909,7 +1909,7 @@ tbody tr:hover>td{background:color-mix(in srgb,var(--surface-2) 70%,transparent)
                 <div class="grid2"><div class="field"><label for="u-nome">Nome</label><input id="u-nome"></div><div class="field"><label for="u-login">Usuário (login)</label><input id="u-login" autocomplete="off" style="text-transform:uppercase"></div></div>
                 <div class="field"><label for="u-email">E-mail (opcional — se ficar em branco, o acesso é só pelo usuário)</label><input id="u-email" type="email" autocomplete="off" style="text-transform:uppercase"></div>
                 <div class="grid2"><div class="field"><label for="u-senha">Senha</label><input id="u-senha" type="password" autocomplete="new-password"><div class="small muted" id="u-senha-hint" style="margin-top:4px" hidden>Redefinir senha: digite a nova e salve. <button class="link small" id="u-senha-gen" type="button" style="background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer">Gerar senha temporária</button></div></div><div class="field"><label for="u-tipo">Tipo de usuário</label><select id="u-tipo"><option value="Adm">Administrador (acesso total)</option><option value="Suprimentos">Suprimentos</option><option value="Obra">Obra</option><option value="Restaurante">Restaurante</option></select></div></div>
-                <div class="field" id="u-perfil-wrap"><label for="u-perfil">Acessos iniciais (perfil)</label><select id="u-perfil"></select><div class="small muted" style="margin-top:4px">Só o ponto de partida da conta nova. Depois, cada acesso é liberado ou tirado em <b>Configurações › Permissões</b>.</div></div>
+                <div class="field" id="u-perfil-wrap"><label for="u-perfil" id="u-perfil-lbl">Acessos iniciais (perfil)</label><select id="u-perfil"></select><div class="small muted" style="margin-top:4px" id="u-perfil-hint">Só o ponto de partida da conta nova. Depois, cada acesso é liberado ou tirado em <b>Configurações › Permissões</b>.</div></div>
                 <div class="field"><label for="u-ativo">Situação</label><select id="u-ativo"><option value="1">Ativo</option><option value="0">Inativo</option></select></div>
                 <div class="coll" data-coll><button type="button" class="coll-h" aria-expanded="false"><span>Obras que este usuário enxerga <span class="coll-note">(nenhuma ligada = todas)</span></span><span class="coll-sum" id="u-obras-sum"></span><span class="chev" aria-hidden="true">▾</span></button><div class="coll-b" hidden><div class="perm-grid" id="u-obras"></div></div></div>
                 <div class="coll" data-coll><button type="button" class="coll-h" aria-expanded="false"><span>Restaurantes (contratadas) que este usuário acessa <span class="coll-note">(nenhum ligado = todos)</span></span><span class="coll-sum" id="u-cts-sum"></span><span class="chev" aria-hidden="true">▾</span></button><div class="coll-b" hidden><div class="perm-grid" id="u-cts"></div></div></div>
@@ -2347,7 +2347,7 @@ tbody tr:hover>td{background:color-mix(in srgb,var(--surface-2) 70%,transparent)
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div id="viz-tip" role="tooltip" hidden></div>
 
-<script src="app-3.1.9.js"></script>
+<script src="app-3.2.0.js"></script>
 <script src="instalar.js"></script>
 <script>
 /* Aplicativo instalado: cada app (Estoque, Aprovações, Contagem, Notificações, CAP-Refeições...) fica na própria janela.
