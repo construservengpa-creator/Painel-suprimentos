@@ -6664,7 +6664,14 @@ function applyPedidoAtendidoOverride(rows){
   const groups = new Map();
   rows.forEach(r=>{
     if(!r.temPedido) return;
-    const key = normKey(r.numPedido) + '§' + normKey(r.descricaoInsumo);
+    // Só são "a mesma linha" as repetições do MESMO item do pedido: mesma
+    // solicitação, mesmo insumo, mesmo detalhe/marca e mesma qtd. solicitada.
+    // Antes a chave era só pedido + insumo — itens diferentes com o mesmo código
+    // de insumo (ex.: pedido 58965, tampas 036-1865 entregue e 258-4003 pendente;
+    // pedido 60010, vários óleos 4679) caíam no mesmo grupo, e bastava UM deles
+    // estar entregue para todos os outros, ainda com saldo, saírem das pendências.
+    const key = [r.numPedido, r.numSolicitacao, r.descricaoInsumo, r.detalhe, r.marca, parseNumBR(r.qtdSolicitada).toFixed(4)]
+      .map(v => normKey(v==null ? '' : v)).join('§');
     if(!groups.has(key)) groups.set(key, []);
     groups.get(key).push(r);
   });
