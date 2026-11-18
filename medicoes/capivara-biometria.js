@@ -3,6 +3,7 @@
  * Fonte única. Este mesmo código vai embutido (entre os comentários
  * "capivara-biometria:inicio" e "capivara-biometria:fim") em todos os apps do Capivara:
  *   Painel-suprimentos: index.html, inicio.html, medicoes/ (arquivo medicoes/capivara-biometria.js,
+ *                       com data-sessao="sb-medicoes-auth", a chave própria da CAP-Refeições —
  *                       porque a página de Refeições só aceita scripts em arquivo)
  *   almoxarifado:       index.html, aprovacoes/, contagem/, notificacoes/
  *   ControleNotasFiscais: index.html, validador/
