@@ -682,7 +682,7 @@
     cotacoes:'Cotações', contratos:'Contratos', cap:'CAP', creditos:'Crédito entre obras'
   };
   window.TEMA_DA_ABA = {
-    overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', semnf:'suprimentos', fluxo:'fluxo',
+    overview:'suprimentos', compradores:'suprimentos', certames:'cotacoes', centros:'suprimentos', semnf:'suprimentos', fluxo:'fluxo',
     prazoinsumos:'criticos', cotacoes:'cotacoes', 'creditos-dashboard':'creditos', creditos:'creditos', 'creditos-cap':'cap',
     'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-agenda':'contratos',
     'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos', admin:'geral'
@@ -3461,6 +3461,7 @@ table.data th.sortable:hover{ color:var(--text); }
         <div class="nav-sec" data-sec="pedidos">
           <button type="button" class="nav-sub-title" aria-expanded="true"><span>Solicitações / Pedidos</span><svg class="nav-sec-caret" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           <button class="tab-btn" data-tab="compradores"><span class="tab-label">Solicitações por Comprador</span> <span class="count-pill" id="countSolic">0</span></button>
+          <button class="tab-btn" data-tab="certames"><span class="tab-label">Cotação de Preços (certame)</span> <span class="count-pill" id="countCertames">0</span></button>
           <button class="tab-btn" data-tab="centros"><span class="tab-label">Pedidos por Centro de Custo</span> <span class="count-pill" id="countPed">0</span></button>
           <button class="tab-btn" data-tab="semnf"><span class="tab-label">Pedidos sem Nota Fiscal</span> <span class="count-pill" id="countSemNF">0</span></button>
           <button class="tab-btn" data-tab="fluxo"><span class="tab-label">Conformidade do Fluxo</span> <span class="count-pill" id="countFluxo">0</span></button>
@@ -3546,6 +3547,9 @@ table.data th.sortable:hover{ color:var(--text); }
   </section>
 
   <!-- ===================== COMPRADORES ===================== -->
+  <!-- ===================== COTAÇÃO DE PREÇOS (CERTAME) — conteúdo montado por cotacao-certame.js ===================== -->
+  <section class="tab-panel" id="tab-certames"></section>
+
   <section class="tab-panel" id="tab-compradores">
   <div id="compradoresPresentWrap">
     <div class="filters-bar">
@@ -3595,6 +3599,7 @@ table.data th.sortable:hover{ color:var(--text); }
       <button class="btn small" id="btnCollapseSolic">⤡ Recolher tudo</button>
       <button class="btn small col-vis-btn" data-table="tableSolic" title="Mostrar/ocultar colunas">▦ Colunas</button>
       <button class="btn small" id="btnExportSolic">⬇ Exportar CSV</button>
+      <button class="btn small pode-lancar-cotacao-only" id="btnCotarSolic" title="Abre um novo certame de cotação com as solicitações filtradas já marcadas">🧾 Cotar preços</button>
     </div>
 
     <div class="summary-row" id="compradorSummary"></div>
@@ -9811,7 +9816,7 @@ function renderAll(){ renderOverview(); renderCompradores(); renderCentros(); re
    10. TABS + FILTER BINDINGS
    ============================================================ */
 var navTabGroupMap = {
-  overview:'suprimentos', compradores:'suprimentos', centros:'suprimentos', semnf:'suprimentos', fluxo:'suprimentos',
+  overview:'suprimentos', compradores:'suprimentos', certames:'suprimentos', centros:'suprimentos', semnf:'suprimentos', fluxo:'suprimentos',
   prazoinsumos:'suprimentos', cotacoes:'suprimentos', 'creditos-dashboard':'suprimentos', creditos:'suprimentos',
   'creditos-cap':'suprimentos',
   'contratos-geral':'contratos', 'contratos-lista':'contratos', 'contratos-agenda':'contratos', 'contratos-aditivos':'contratos', 'contratos-medicoes':'contratos', 'contratos-importar':'contratos',
@@ -9866,6 +9871,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(targetTab === 'pxr' && window.PXR) window.PXR.show();
     if(targetTab === 'cpg' && window.PXR) window.PXR.showCpg();
     if(targetTab === 'consumo' && window.CPA) window.CPA.show();
+    if(targetTab === 'certames' && window.CERT) window.CERT.show();
     if(targetTab === 'frotas' && window.CPA) window.CPA.dash();
 
     // tela fora da tabela (ex.: item novo no menu): vale o grupo em que o botão está,
@@ -22306,6 +22312,13 @@ window.CPA={show:render,dash:renderDash,refresh:()=>{render();renderDash()}};   
   if(nav) new MutationObserver(()=>atualizarTrilha()).observe(nav, { subtree:true, attributes:true, attributeFilter:['class'] });
   atualizarTrilha();
 })();
+</script>
+<script src="cotacao-certame.js"></script>
+<script>
+  // Solicitações → Cotação: leva as linhas filtradas para um novo certame
+  document.getElementById('btnCotarSolic').addEventListener('click', function(){
+    if(window.CERT) window.CERT.cotarSolicitacoes(typeof lastSolicRows !== 'undefined' ? lastSolicRows : []);
+  });
 </script>
 </body>
 </html>

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Enviar cotação</title>
+<!--
+  Página do FORNECEDOR na cotação de preços (certame) do Painel de Suprimentos.
+  Chega pelo link enviado no WhatsApp: cotacao.html?t=<token do convite>.
+  Não tem login: lê e grava só pelo token, nas funções do banco
+  cotacao_portal_obter / cotacao_portal_responder (supabase/cotacao_certame.sql).
+  O fornecedor vê apenas o próprio convite, nunca os preços dos concorrentes.
+-->
+<style>
+  :root{--bg:#F3F0EA;--card:#FFFFFF;--text:#1B2129;--dim:#5A6371;--faint:#8A919B;--line:rgba(27,33,41,.14);--acc:#A86200;--acc-bg:#F5C433;--ok:#0B7A0B;--bad:#C03030;--wa:#25D366}
+  @media (prefers-color-scheme: dark){:root{--bg:#12151A;--card:#1A1E24;--text:#EDEFF2;--dim:#9AA3AE;--faint:#6A737E;--line:#333A44;--acc:#F5C433;--ok:#3CC63C;--bad:#F06060}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 16px 120px}
+  header.top{display:flex;align-items:center;gap:10px;margin:6px 0 14px}
+  header.top .logo{width:36px;height:36px;border-radius:9px;background:var(--acc-bg);display:grid;place-items:center;font-weight:800;color:#1A1E24}
+  h1{font-size:19px;margin:0}
+  .sub{color:var(--dim);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+  .meta div{font-size:13px;color:var(--dim)} .meta b{display:block;color:var(--text);font-size:14px}
+  .item{border-top:1px solid var(--line);padding:12px 0}
+  .item:first-of-type{border-top:0}
+  .item .nome{font-weight:600}
+  .item .qtd{font-size:13px;color:var(--dim);margin:2px 0 8px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  label{display:block;font-size:12.5px;color:var(--dim)}
+  input,textarea{width:100%;font:16px system-ui,sans-serif;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:3px}
+  input:focus,textarea:focus{outline:2px solid var(--acc);border-color:transparent}
+  input[type=checkbox]{width:auto;margin:0 6px 0 0;transform:scale(1.15)}
+  .chk{display:flex;align-items:center;font-size:13px;color:var(--dim);margin-top:8px}
+  .tot{font-size:13px;color:var(--dim);margin-top:6px;text-align:right}
+  .barra{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .barra .in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
+  .barra .total{flex:1;font-size:13px;color:var(--dim)} .barra .total b{display:block;font-size:17px;color:var(--text)}
+  button{font:600 15px system-ui,sans-serif;border-radius:10px;padding:12px 16px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+  button.pri{background:var(--acc-bg);border-color:var(--acc-bg);color:#1A1E24}
+  button.wa{background:var(--wa);border-color:var(--wa);color:#0B141A}
+  button:disabled{opacity:.55}
+  .msg{border-radius:10px;padding:12px;margin-bottom:12px;font-size:14px}
+  .msg.ok{border:1px solid var(--ok);color:var(--ok)}
+  .msg.bad{border:1px solid var(--bad);color:var(--bad)}
+  .msg.info{border:1px solid var(--line);color:var(--dim)}
+  .centro{text-align:center;padding:40px 10px;color:var(--dim)}
+  @media (max-width:420px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="centro">Carregando a cotação…</div></div>
+<script>
+(function(){
+  'use strict';
+  var URL_SB = 'https://xuukjnpkltvgzjfgivnd.supabase.co';
+  var KEY = 'sb_publishable_67e6uHmdZJw2MU6QRht-gg_Qw6fioLY';
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var app = document.getElementById('app');
+  var dados = null;
+
+  function h(s){ return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function money(v){ return (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function num(v){ return (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 }); }
+  function parseNum(v){
+    var s = String(v == null ? '' : v).trim().replace(/[R$\s]/g, '');
+    if (!s) return null;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var n = Number(s); return isFinite(n) ? n : NaN;
+  }
+  function dataHora(iso){ if (!iso) return '—'; var d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+  function numCert(id){ return 'COT-' + String(id).padStart(4, '0'); }
+
+  function rpc(fn, body){
+    return fetch(URL_SB + '/rest/v1/rpc/' + fn, {
+      method: 'POST', headers: { 'apikey': KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function(r){
+      return r.json().then(function(j){ if (!r.ok) throw new Error((j && (j.message || j.hint)) || ('Erro ' + r.status)); return j; });
+    });
+  }
+
+  function carregar(){
+    if (!/^[0-9a-f-]{36}$/i.test(token)) { app.innerHTML = '<div class="centro">Link inválido. Confira o link recebido pelo WhatsApp.</div>'; return; }
+    rpc('cotacao_portal_obter', { p_token: token }).then(function(j){
+      if (j.erro) { app.innerHTML = '<div class="centro">' + h(j.erro) + '</div>'; return; }
+      dados = j; render();
+    }).catch(function(e){ app.innerHTML = '<div class="centro">Não foi possível abrir a cotação agora. Tente de novo em instantes.<br><small>' + h(e.message) + '</small></div>'; });
+  }
+
+  function render(aviso){
+    var p = dados.processo, c = dados.convite, itens = dados.itens;
+    var aberto = !!p.aberto;
+    var jaResp = c.status === 'respondido', declinou = c.status === 'declinou';
+    var html = '<header class="top"><div class="logo">$</div><div><h1>Cotação ' + numCert(p.numero) + '</h1><div class="sub">' + h(dados.fornecedor.nome) + '</div></div></header>';
+    if (aviso) html += aviso;
+    else if (!aberto) html += '<div class="msg info">Esta cotação não está mais recebendo propostas' + (p.status === 'concluida' ? ' (já foi concluída)' : '') + '. Obrigado pelo interesse!</div>';
+    else if (jaResp) html += '<div class="msg ok">Proposta recebida em ' + dataHora(c.respondido_em) + '. Você pode corrigir e reenviar até o prazo.</div>';
+    else if (declinou) html += '<div class="msg info">Você informou que não vai cotar. Se mudar de ideia, preencha os preços e envie.</div>';
+
+    html += '<div class="card"><div style="font-weight:600">' + h(p.titulo) + '</div><div class="meta">' +
+      '<div>Entrega<b>' + h(p.localidade || '—') + '</b></div>' +
+      '<div>Responder até<b>' + dataHora(p.prazo) + '</b></div>' +
+      '<div>Comprador<b>' + h(p.comprador_nome || '—') + '</b></div></div>' +
+      (p.observacao ? '<p class="sub" style="margin:10px 0 0;white-space:pre-wrap">' + h(p.observacao) + '</p>' : '') + '</div>';
+
+    html += '<div class="card"><div style="font-weight:600;margin-bottom:4px">Itens — informe o preço unitário</div><div class="sub" style="margin-bottom:6px">Valores em R$, sem frete (o frete vai no campo abaixo). Deixe em branco ou marque “não forneço” o que não tiver.</div>';
+    itens.forEach(function(i){
+      html += '<div class="item"><div class="nome">' + h(i.insumo) + '</div>' + (i.detalhe ? '<div class="sub">' + h(i.detalhe) + '</div>' : '') +
+        '<div class="qtd">Quantidade: <b>' + num(i.quantidade) + ' ' + h(i.unidade || '') + '</b></div>' +
+        '<div class="row"><label>Preço unitário (R$)<input inputmode="decimal" data-v="' + i.id + '" value="' + (i.valor_unitario != null ? money(i.valor_unitario) : '') + '" placeholder="0,00" ' + (aberto ? '' : 'disabled') + '></label>' +
+        '<label>Marca / modelo<input data-m="' + i.id + '" value="' + h(i.marca || '') + '" ' + (aberto ? '' : 'disabled') + '></label></div>' +
+        '<label class="chk"><input type="checkbox" data-nd="' + i.id + '" ' + (i.disponivel === false ? 'checked' : '') + ' ' + (aberto ? '' : 'disabled') + '>Não forneço este item</label>' +
+        '<div class="tot" data-t="' + i.id + '"></div></div>';
+    });
+    html += '</div>';
+
+    var dis = aberto ? '' : 'disabled';
+    html += '<div class="card"><div class="row">' +
+      '<label>Frete total (R$)<input inputmode="decimal" id="frete" value="' + (c.frete_total ? money(c.frete_total) : '') + '" placeholder="0,00 se CIF" ' + dis + '></label>' +
+      '<label>Prazo de entrega<input id="prazo" value="' + h(c.prazo_entrega || '') + '" placeholder="Ex.: 3 dias úteis" ' + dis + '></label>' +
+      '<label>Condição de pagamento<input id="pag" value="' + h(c.condicao_pagamento || '') + '" placeholder="Ex.: 28 dias" ' + dis + '></label>' +
+      '<label>Validade da proposta<input type="date" id="val" value="' + h(c.validade_proposta || '') + '" ' + dis + '></label></div>' +
+      '<label style="margin-top:8px">Observações<textarea id="obs" rows="3" ' + dis + '>' + h(c.observacao || '') + '</textarea></label></div>';
+
+    if (aberto) html += '<div style="text-align:center"><button id="declinar" type="button">Não vou cotar desta vez</button></div>';
+    if (p.comprador_telefone && (jaResp || aviso)) html += '<div style="text-align:center;margin-top:12px"><button class="wa" id="avisar" type="button">Avisar o comprador no WhatsApp</button></div>';
+
+    html += aberto ? '<div class="barra"><div class="in"><div class="total">Total da proposta<b id="total">R$ 0,00</b></div><button class="pri" id="enviar" type="button">' + (jaResp ? 'Reenviar proposta' : 'Enviar proposta') + '</button></div></div>' : '';
+    app.innerHTML = html;
+
+    app.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', somar); inp.addEventListener('change', somar); });
+    somar();
+    var b = document.getElementById('enviar'); if (b) b.addEventListener('click', function(){ enviar(false); });
+    var d = document.getElementById('declinar'); if (d) d.addEventListener('click', function(){ if (confirm('Confirmar que não vai enviar proposta para esta cotação?')) enviar(true); });
+    var a = document.getElementById('avisar'); if (a) a.addEventListener('click', avisarComprador);
+  }
+
+  function somar(){
+    var total = 0;
+    dados.itens.forEach(function(i){
+      var nd = app.querySelector('[data-nd="' + i.id + '"]').checked;
+      var inp = app.querySelector('[data-v="' + i.id + '"]');
+      inp.disabled = nd || !dados.processo.aberto;
+      var v = parseNum(inp.value), t = app.querySelector('[data-t="' + i.id + '"]');
+      if (!nd && v != null && !isNaN(v)) { var s = v * Number(i.quantidade); total += s; t.textContent = 'Subtotal: R$ ' + money(s); }
+      else t.textContent = '';
+    });
+    var f = parseNum((document.getElementById('frete') || {}).value);
+    if (f && !isNaN(f)) total += f;
+    var el = document.getElementById('total'); if (el) el.textContent = 'R$ ' + money(total);
+    return total;
+  }
+
+  function enviar(declinar){
+    var itens = [], invalido = false, algum = false;
+    dados.itens.forEach(function(i){
+      var nd = app.querySelector('[data-nd="' + i.id + '"]').checked;
+      var v = parseNum(app.querySelector('[data-v="' + i.id + '"]').value);
+      if (!nd && (isNaN(v) || (v != null && v < 0))) invalido = true;
+      if (!nd && v != null && !isNaN(v)) algum = true;
+      itens.push({ id: i.id, valor_unitario: nd || v == null || isNaN(v) ? null : v, marca: app.querySelector('[data-m="' + i.id + '"]').value, disponivel: !nd });
+    });
+    var frete = parseNum(document.getElementById('frete').value);
+    if (!declinar) {
+      if (invalido || (frete != null && (isNaN(frete) || frete < 0))) { alert('Há um valor inválido. Use apenas números, ex.: 1.250,90'); return; }
+      if (!algum) { alert('Informe o preço de pelo menos um item.'); return; }
+    }
+    var btn = document.getElementById('enviar'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+    rpc('cotacao_portal_responder', { p_token: token, p_dados: {
+      declinar: !!declinar, itens: itens, frete_total: frete == null || isNaN(frete) ? 0 : frete,
+      prazo_entrega: document.getElementById('prazo').value, condicao_pagamento: document.getElementById('pag').value,
+      validade_proposta: document.getElementById('val').value, observacao: document.getElementById('obs').value
+    } }).then(function(j){
+      if (j.erro) { alert(j.erro); if (btn) { btn.disabled = false; btn.textContent = 'Enviar proposta'; } return; }
+      return rpc('cotacao_portal_obter', { p_token: token }).then(function(n){
+        dados = n;
+        render(declinar ? '<div class="msg info">Registrado: você não vai cotar desta vez. Obrigado pelo retorno!</div>'
+                        : '<div class="msg ok"><b>Proposta enviada!</b> O comprador já recebeu no painel. Você pode corrigir e reenviar até o prazo.</div>');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }).catch(function(e){ alert('Não foi possível enviar agora. Verifique a internet e tente de novo.\n' + e.message); if (btn) { btn.disabled = false; btn.textContent = 'Enviar proposta'; } });
+  }
+
+  function avisarComprador(){
+    var p = dados.processo;
+    var fone = String(p.comprador_telefone || '').replace(/\D/g, '');
+    var txt = dados.convite.status === 'declinou'
+      ? 'Olá! A ' + dados.fornecedor.nome + ' não vai cotar a ' + numCert(p.numero) + ' desta vez.'
+      : 'Olá! A ' + dados.fornecedor.nome + ' enviou a proposta da cotação ' + numCert(p.numero) + ' (' + p.titulo + ') pelo link. Total: R$ ' + money(somar()) + '.';
+    window.open('https://wa.me/' + fone + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  }
+
+  carregar();
+})();
+</script>
+</body>
+</html>
