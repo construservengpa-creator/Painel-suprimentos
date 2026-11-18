@@ -523,13 +523,15 @@
             <tbody>${A.convites.length ? A.convites.map(c => {
               const f = fornecedorDe(c), t = m && m.totais.find(x => x.conv.id === c.id);
               return `<tr><td class="wrap" style="min-width:160px">${h(f.nome)}${c.observacao ? `<span class="cert-sub">“${h(c.observacao)}”</span>` : ''}</td><td>${h(fmtFone(f.telefone))}</td>
-                <td>${pill(ST_CONV[c.status])}${c.respondido_via === 'manual' ? '<span class="cert-sub">lançado pelo comprador</span>' : ''}</td>
+                <td>${pill(ST_CONV[c.status])}${c.respondido_via === 'manual' ? '<span class="cert-sub">lançado pelo comprador</span>' : ''}${c.editado_em ? `<span class="cert-sub" title="Última correção feita no painel">✎ editado por ${h(c.editado_por_nome || 'comprador')} em ${fmtDataHora(c.editado_em)}</span>` : ''}</td>
                 <td>${fmtDataHora(c.enviado_em)}</td><td>${fmtDataHora(c.respondido_em)}</td>
                 <td class="num">${t && t.cot ? 'R$ ' + money(t.total) + `<span class="cert-sub">${t.cot}/${A.itens.length} itens</span>` : '—'}</td>
                 <td><div class="cert-acoes">
                   ${edita && aberto ? `<button class="btn small wa" data-wa="${c.id}" title="Abrir o WhatsApp com a mensagem pronta">${c.enviado_em ? 'Reenviar' : 'Enviar'} 📲</button>` : ''}
                   <button class="btn small" data-copiar="${c.id}" title="Copiar o link de resposta do fornecedor">🔗</button>
-                  ${edita && p.status !== 'concluida' && p.status !== 'cancelada' ? `<button class="btn small" data-manual="${c.id}" title="O fornecedor respondeu por mensagem? Lance os preços aqui">Lançar resposta</button>` : ''}
+                  ${edita && p.status !== 'concluida' && p.status !== 'cancelada' ? (c.status === 'respondido'
+                    ? `<button class="btn small" data-manual="${c.id}" title="Corrigir preços ou condições desta proposta">✎ Editar resposta</button>`
+                    : `<button class="btn small" data-manual="${c.id}" title="O fornecedor respondeu por mensagem? Lance os preços aqui">Lançar resposta</button>`) : ''}
                   ${edita && aberto && c.status !== 'respondido' ? `<button class="btn small ghost" data-rmconv="${c.id}" title="Retirar convite">✕</button>` : ''}
                 </div></td></tr>`;
             }).join('') : `<tr><td colspan="7"><div class="cert-vazio">Nenhum fornecedor convidado ainda.</div></td></tr>`}</tbody></table></div>
@@ -567,7 +569,7 @@
       </div>
       ${crit === 'global' && !m.completos.length ? `<div class="cert-aviso">Critério global: nenhum fornecedor cotou <b>todos</b> os itens. Indique o vencedor manualmente com justificativa, ou mude o critério para “por item”.</div>` : ''}
       <div class="table-scroll"><table class="data cert-mapa"><thead><tr><th>#</th><th>Insumo</th><th class="num">Qtd.</th>
-        ${m.conv.map(c => `<th class="forn">${h(fornecedorDe(c).nome)}${crit === 'global' && decide ? `<br><label class="radio"><input type="radio" name="cdVG" value="${c.id}" ${vg === c.id ? 'checked' : ''}> vencedor</label>` : ''}</th>`).join('')}
+        ${m.conv.map(c => `<th class="forn">${h(fornecedorDe(c).nome)}${decide ? `<br><button class="btn small ghost" data-editmapa="${c.id}" title="Editar a resposta deste fornecedor" style="padding:2px 8px;margin-top:4px">✎ editar</button>` : ''}${crit === 'global' && decide ? `<br><label class="radio"><input type="radio" name="cdVG" value="${c.id}" ${vg === c.id ? 'checked' : ''}> vencedor</label>` : ''}</th>`).join('')}
         <th class="num">Média</th>${crit === 'item' ? '<th>Vencedor do item</th>' : ''}</tr></thead>
       <tbody>${m.itens.map((li, n) => {
         const venc = res[li.item.id];
@@ -616,6 +618,7 @@
     $('#cdImprimir', el).addEventListener('click', () => imprimirMapa(m));
     $('#cdCsv', el).addEventListener('click', () => exportarCsv(m));
     const ba = $('#cdAvisarVenc', el); if (ba) ba.addEventListener('click', () => avisarVencedores(m));
+    $$('[data-editmapa]', el).forEach(b => b.addEventListener('click', () => lancarManual(A.convites.find(c => c.id === Number(b.dataset.editmapa)))));
   }
 
   function ligarDetalhe(){
@@ -716,8 +719,11 @@
   function lancarManual(c){
     const A = S.atual, f = fornecedorDe(c);
     const r = id => A.respostas.find(x => x.convite_id === c.id && x.item_id === id) || {};
-    const bd = modal(`Lançar resposta — ${f.nome}`, `
-      <p class="ctr-note" style="margin-top:0">Use quando o fornecedor responder por mensagem de texto, áudio ou e-mail. Deixe em branco o que ele não cotou.</p>
+    const editando = c.status === 'respondido';
+    const bd = modal(`${editando ? 'Editar resposta' : 'Lançar resposta'} — ${f.nome}`, `
+      <p class="ctr-note" style="margin-top:0">${editando
+        ? `Corrija o que for preciso. A alteração fica registrada com o seu nome${c.respondido_via === 'link' ? ' (a proposta original veio pelo link do fornecedor)' : ''}.`
+        : 'Use quando o fornecedor responder por mensagem de texto, áudio ou e-mail. Deixe em branco o que ele não cotou.'}</p>
       <div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th class="num">Qtd.</th><th>Preço unitário (R$)</th><th>Marca</th><th>Não fornece</th></tr></thead><tbody>
       ${A.itens.map(i => { const x = r(i.id); return `<tr><td class="wrap" style="min-width:180px">${h(i.insumo)}<span class="cert-sub">${h(i.unidade || '')}</span></td><td class="num">${num(i.quantidade)}</td>
         <td><input data-v="${i.id}" inputmode="decimal" value="${x.valor_unitario != null ? money(x.valor_unitario) : ''}" style="min-width:110px"></td>
@@ -726,9 +732,9 @@
       </tbody></table></div>
       <div class="ctr-frm" style="margin-top:12px">
         <label>Frete total (R$)<input id="mlFrete" inputmode="decimal" value="${c.frete_total ? money(c.frete_total) : ''}"></label>
-        <label>Prazo de entrega<input id="mlPrazo" value="${h(c.prazo_entrega || '')}" placeholder="Ex.: 5 dias úteis"></label>
-        <label>Condição de pagamento<input id="mlPag" value="${h(c.condicao_pagamento || '')}" placeholder="Ex.: 28 dias"></label>
-        <label>Validade da proposta<input type="date" id="mlVal" value="${h(c.validade_proposta || '')}"></label>
+        <label>Prazo de entrega <b style="color:var(--red)">*</b><input id="mlPrazo" value="${h(c.prazo_entrega || '')}" placeholder="Ex.: 5 dias úteis"></label>
+        <label>Condição de pagamento <b style="color:var(--red)">*</b><input id="mlPag" value="${h(c.condicao_pagamento || '')}" placeholder="Ex.: 28 dias"></label>
+        <label>Validade da proposta <b style="color:var(--red)">*</b><input type="date" id="mlVal" value="${h(c.validade_proposta || '')}"></label>
         <label class="full">Observação<textarea id="mlObs">${h(c.observacao || '')}</textarea></label>
       </div>`, [
       { t: 'Cancelar', cls: 'ghost' },
@@ -741,16 +747,29 @@
         }).filter(l => l.valor_unitario != null || !l.disponivel);
         if (linhas.some(l => l.valor_unitario != null && l.valor_unitario < 0)) return alert('Preço não pode ser negativo.');
         if (!linhas.some(l => l.valor_unitario != null)) return alert('Informe o preço de pelo menos um item.');
+        const faltam = [['#mlPrazo', 'prazo de entrega'], ['#mlPag', 'condição de pagamento'], ['#mlVal', 'validade da proposta']]
+          .filter(([sel]) => !$(sel, bd).value.trim());
+        $$('#mlPrazo,#mlPag,#mlVal', bd).forEach(i => { i.style.borderColor = i.value.trim() ? '' : 'var(--red)'; });
+        if (faltam.length) return alert('Preencha: ' + faltam.map(x => x[1]).join(', ') + '.');
+        // itens que ficaram sem preço nesta edição: retira a resposta antiga desse item
+        const retirar = A.respostas.filter(r => r.convite_id === c.id && !linhas.some(l => l.item_id === r.item_id)).map(r => r.id);
+        if (retirar.length) {
+          const { error: ed } = await SB().from('cotacao_respostas').delete().in('id', retirar);
+          if (ed) return erro(ed, 'Não foi possível limpar os preços retirados.');
+        }
         const { error } = await SB().from('cotacao_respostas').upsert(linhas, { onConflict: 'convite_id,item_id' });
         if (error) return erro(error, 'Não foi possível salvar os preços.');
-        const { error: e2 } = await SB().from('cotacao_convites').update({
-          status: 'respondido', respondido_em: new Date().toISOString(), respondido_via: 'manual',
+        const P = window.PERFIL || {};
+        const marca = editando
+          ? { editado_em: new Date().toISOString(), editado_por: P.id || null, editado_por_nome: P.nome || null }
+          : { status: 'respondido', respondido_em: new Date().toISOString(), respondido_via: 'manual' };
+        const { error: e2 } = await SB().from('cotacao_convites').update(Object.assign(marca, {
           frete_total: parseNum($('#mlFrete', bd).value) || 0, prazo_entrega: $('#mlPrazo', bd).value.trim() || null,
           condicao_pagamento: $('#mlPag', bd).value.trim() || null, validade_proposta: $('#mlVal', bd).value || null,
           observacao: $('#mlObs', bd).value.trim() || null
-        }).eq('id', c.id);
+        })).eq('id', c.id);
         if (e2) return erro(e2, 'Preços salvos, mas não consegui atualizar o convite.');
-        fecharModal(); toast('Resposta lançada.'); abrir(A.p.id);
+        fecharModal(); toast(editando ? 'Resposta corrigida.' : 'Resposta lançada.'); abrir(A.p.id);
       } }
     ]);
     return bd;

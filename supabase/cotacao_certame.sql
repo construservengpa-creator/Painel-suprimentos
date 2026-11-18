@@ -78,8 +78,15 @@ create table if not exists public.cotacao_convites (
   validade_proposta  date,
   frete_total        numeric not null default 0 check (frete_total >= 0),
   observacao         text,
+  editado_em         timestamptz,     -- última correção feita pelo comprador no painel
+  editado_por        uuid,
+  editado_por_nome   text,
   unique (processo_id, fornecedor_id)
 );
+-- bancos criados antes destas colunas
+alter table public.cotacao_convites add column if not exists editado_em timestamptz;
+alter table public.cotacao_convites add column if not exists editado_por uuid;
+alter table public.cotacao_convites add column if not exists editado_por_nome text;
 create index if not exists cotacao_convites_processo_idx on public.cotacao_convites(processo_id);
 
 create table if not exists public.cotacao_respostas (
@@ -224,12 +231,45 @@ begin
     v_validade := nullif(p_dados->>'validade_proposta', '')::date;
   exception when others then v_validade := null;
   end;
+  -- condições comerciais obrigatórias (o mapa comparativo precisa delas)
+  if nullif(btrim(p_dados->>'prazo_entrega'), '') is null then
+    return jsonb_build_object('erro', 'Informe o prazo de entrega.');
+  end if;
+  if nullif(btrim(p_dados->>'condicao_pagamento'), '') is null then
+    return jsonb_build_object('erro', 'Informe a condição de pagamento.');
+  end if;
+  if v_validade is null then
+    return jsonb_build_object('erro', 'Informe a validade da proposta.');
+  end if;
+  if v_validade < current_date then
+    return jsonb_build_object('erro', 'A validade da proposta não pode ser anterior a hoje.');
+  end if;
   begin
     v_frete := greatest(coalesce(nullif(p_dados->>'frete_total', '')::numeric, 0), 0);
   exception when others then
     return jsonb_build_object('erro', 'Valor de frete inválido.');
   end;
 
+  -- 1ª passada: só valida (nada é gravado se houver erro)
+  for it in select * from jsonb_array_elements(coalesce(p_dados->'itens', '[]'::jsonb)) loop
+    begin
+      v_valor := nullif(it->>'valor_unitario', '')::numeric;
+    exception when others then
+      return jsonb_build_object('erro', 'Há um preço com formato inválido.');
+    end;
+    if v_valor is not null and v_valor < 0 then
+      return jsonb_build_object('erro', 'Preço não pode ser negativo.');
+    end if;
+    if v_valor is not null and coalesce((it->>'disponivel')::boolean, true)
+       and exists (select 1 from public.cotacao_itens where id = nullif(it->>'id', '')::bigint and processo_id = p.id) then
+      v_qtd := v_qtd + 1;
+    end if;
+  end loop;
+  if v_qtd = 0 then
+    return jsonb_build_object('erro', 'Informe o preço de pelo menos um item (ou use "Não vou cotar").');
+  end if;
+
+  -- 2ª passada: grava
   for it in select * from jsonb_array_elements(coalesce(p_dados->'itens', '[]'::jsonb)) loop
     v_item := nullif(it->>'id', '')::bigint;
     if not exists (select 1 from public.cotacao_itens where id = v_item and processo_id = p.id) then
@@ -251,12 +291,7 @@ begin
     on conflict (convite_id, item_id) do update
       set valor_unitario = excluded.valor_unitario, marca = excluded.marca,
           observacao = excluded.observacao, disponivel = excluded.disponivel, atualizado_em = now();
-    if v_valor is not null then v_qtd := v_qtd + 1; end if;
   end loop;
-
-  if v_qtd = 0 then
-    return jsonb_build_object('erro', 'Informe o preço de pelo menos um item (ou use "Não vou cotar").');
-  end if;
 
   update public.cotacao_convites
      set status = 'respondido', respondido_em = now(), respondido_via = 'link',
