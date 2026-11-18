@@ -48,6 +48,8 @@
   .msg.bad{border:1px solid var(--bad);color:var(--bad)}
   .msg.info{border:1px solid var(--line);color:var(--dim)}
   .centro{text-align:center;padding:40px 10px;color:var(--dim)}
+  .req{color:var(--bad);font-weight:700}
+  input.falta,textarea.falta{border-color:var(--bad);outline:2px solid var(--bad)}
   @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
 </head>
@@ -72,6 +74,7 @@
     var n = Number(s); return isFinite(n) ? n : NaN;
   }
   function dataHora(iso){ if (!iso) return '—'; var d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+  function hoje(){ var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   function numCert(id){ return 'COT-' + String(id).padStart(4, '0'); }
 
   function rpc(fn, body){
@@ -120,9 +123,10 @@
     var dis = aberto ? '' : 'disabled';
     html += '<div class="card"><div class="row">' +
       '<label>Frete total (R$)<input inputmode="decimal" id="frete" value="' + (c.frete_total ? money(c.frete_total) : '') + '" placeholder="0,00 se CIF" ' + dis + '></label>' +
-      '<label>Prazo de entrega<input id="prazo" value="' + h(c.prazo_entrega || '') + '" placeholder="Ex.: 3 dias úteis" ' + dis + '></label>' +
-      '<label>Condição de pagamento<input id="pag" value="' + h(c.condicao_pagamento || '') + '" placeholder="Ex.: 28 dias" ' + dis + '></label>' +
-      '<label>Validade da proposta<input type="date" id="val" value="' + h(c.validade_proposta || '') + '" ' + dis + '></label></div>' +
+      '<label>Prazo de entrega <span class="req">*</span><input id="prazo" required value="' + h(c.prazo_entrega || '') + '" placeholder="Ex.: 3 dias úteis" ' + dis + '></label>' +
+      '<label>Condição de pagamento <span class="req">*</span><input id="pag" required value="' + h(c.condicao_pagamento || '') + '" placeholder="Ex.: 28 dias no boleto" ' + dis + '></label>' +
+      '<label>Validade da proposta <span class="req">*</span><input type="date" id="val" required min="' + hoje() + '" value="' + h(c.validade_proposta || '') + '" ' + dis + '></label></div>' +
+      '<div class="sub" style="margin-top:8px"><span class="req">*</span> campos obrigatórios</div>' +
       '<label style="margin-top:8px">Observações<textarea id="obs" rows="3" ' + dis + '>' + h(c.observacao || '') + '</textarea></label></div>';
 
     if (aberto) html += '<div style="text-align:center"><button id="declinar" type="button">Não vou cotar desta vez</button></div>';
@@ -131,7 +135,7 @@
     html += aberto ? '<div class="barra"><div class="in"><div class="total">Total da proposta<b id="total">R$ 0,00</b></div><button class="pri" id="enviar" type="button">' + (jaResp ? 'Reenviar proposta' : 'Enviar proposta') + '</button></div></div>' : '';
     app.innerHTML = html;
 
-    app.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', somar); inp.addEventListener('change', somar); });
+    app.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){ inp.classList.remove('falta'); somar(); }); inp.addEventListener('change', somar); });
     somar();
     var b = document.getElementById('enviar'); if (b) b.addEventListener('click', function(){ enviar(false); });
     var d = document.getElementById('declinar'); if (d) d.addEventListener('click', function(){ if (confirm('Confirmar que não vai enviar proposta para esta cotação?')) enviar(true); });
@@ -167,6 +171,13 @@
     if (!declinar) {
       if (invalido || (frete != null && (isNaN(frete) || frete < 0))) { alert('Há um valor inválido. Use apenas números, ex.: 1.250,90'); return; }
       if (!algum) { alert('Informe o preço de pelo menos um item.'); return; }
+      var faltam = [];
+      [['prazo', 'prazo de entrega'], ['pag', 'condição de pagamento'], ['val', 'validade da proposta']].forEach(function(c){
+        var el = document.getElementById(c[0]); var vazio = !el.value.trim();
+        el.classList.toggle('falta', vazio); if (vazio) faltam.push(c[1]);
+      });
+      if (faltam.length) { alert('Preencha: ' + faltam.join(', ') + '.'); document.querySelector('.falta').focus(); return; }
+      if (document.getElementById('val').value < hoje()) { document.getElementById('val').classList.add('falta'); alert('A validade da proposta não pode ser anterior a hoje.'); return; }
     }
     var btn = document.getElementById('enviar'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
     rpc('cotacao_portal_responder', { p_token: token, p_dados: {
