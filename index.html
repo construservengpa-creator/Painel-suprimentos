@@ -1798,6 +1798,8 @@ table.data td{
   white-space:nowrap;
 }
 table.data tbody tr:hover{background:var(--asphalt-3);}
+/* Insumo + detalhe: quebra em várias linhas para a descrição inteira aparecer (as outras colunas seguem sem quebra) */
+table.data td.td-insumo{white-space:normal;min-width:300px;max-width:560px;line-height:1.45;overflow-wrap:anywhere;}
 table.data tr.group-row{cursor:pointer;user-select:none;}
 table.data tr.group-row td{
   background:var(--asphalt-3);
@@ -8350,7 +8352,7 @@ function renderCompradores(){
         <td class="muted">${lamp(r.solicPrazoStatus)}${esc(r.numSolicitacao)}${r.duplicidadeDivergente?' <span class="saldo-flag" title="Havia mais de uma linha para esta solicitação/insumo/pedido com dados de pendência diferentes entre si — revisar na planilha de origem">⚠dup</span>':''}</td>
         <td class="muted">${esc(r.obraLabel)}${flagEntregaOutroCentro(r.obraOriginalLabel, r.entregaObservacao)}</td>
         <td class="muted">${esc(r.compradorDistribuidoLabel)}</td>
-        <td>${esc(r.descricaoInsumo)}${r.detalhe?' <span style="color:var(--text-faint)">— '+esc(r.detalhe)+'</span>':''}</td>
+        <td class="td-insumo">${esc(r.descricaoInsumo)}${r.detalhe?' <span style="color:var(--text-faint)">— '+esc(r.detalhe)+'</span>':''}</td>
         <td>${esc(r.qtdSolicitada)} ${esc(r.unidadeMovimento)}</td>
         <td>${fmtDate(r.dSolicitacao)}</td>
         <td>${fmtDate(r.dChegada)}</td>
@@ -8494,7 +8496,7 @@ function renderCentros(){
         <td class="muted">${entregue?lamp('dentro'):lamp(r.pedidoPrazoStatus)}${esc(r.obraLabel)}${flagEntregaOutroCentro(r.obraOriginalLabel, r.entregaObservacao)}</td>
         <td class="muted">${esc(r.compradorLabel)}</td>
         <td class="muted">${esc(r.numPedido)}${r.duplicidadeDivergente?' <span class="saldo-flag" title="Havia mais de uma linha para esta solicitação/insumo/pedido com dados de pendência diferentes entre si — revisar na planilha de origem">⚠dup</span>':''}${r.pedidoComSolicCancelada?' <span class="saldo-flag" title="A solicitação de origem deste item foi cancelada/rejeitada, mas o pedido de compra já gerado continua com saldo em aberto e situação própria não cancelada — acompanhe normalmente pela data de entrega.">ⓘ solic. cancelada</span>':''}${r.pedidoSemAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado, mas o pedido segue com saldo em aberto e situação própria não cancelada — confirme no Sienge se a autorização já foi dada e o relatório está desatualizado.">⚠ sem autorização</span>':''}${r.nfDuplicadaEntreLinhas?(r.nfDuplicadaRecalculada?` <span class="saldo-flag" title="A mesma nota fiscal de entrega aparece repetida em ${r.nfDuplicadaLinhasNoCluster} linhas da mesma solicitação. Quantidade entregue recontada uma única vez e saldo pendente redistribuído proporcionalmente entre as linhas.">⚠NF dup (recalculado)</span>`:` <span class="saldo-flag" title="A mesma nota fiscal aparece em ${r.nfDuplicadaLinhasNoCluster} linhas de solicitações diferentes deste pedido/insumo — pode ser uma entrega duplicada no relatório ou entregas distintas com valores coincidentes. Números NÃO alterados automaticamente — revisar manualmente.">⚠NF dup (revisar)</span>`):''}</td>
-        <td>${esc(r.descricaoInsumo)}${r.detalhe?' <span style="color:var(--text-faint)">— '+esc(r.detalhe)+'</span>':''}</td>
+        <td class="td-insumo">${esc(r.descricaoInsumo)}${r.detalhe?' <span style="color:var(--text-faint)">— '+esc(r.detalhe)+'</span>':''}</td>
         <td>${r.materialCritico?`<span class="badge critico">${esc(r.materialCritico)}</span>`:'—'}</td>
         <td class="muted">${esc(r.fornecedor)}</td>
         <td>${esc(r.qtdSolicitada)} ${esc(r.unidadeMovimento)}</td>
@@ -9012,7 +9014,7 @@ function renderPiTable(items, container){
       <td class="muted">${esc(it.origemLabel)}</td>
       <td class="muted">${esc(it.obra)}${flagEntregaOutroCentro(it.obraOriginal, it.entregaObservacao)}</td>
       <td><span class="badge critico">${esc(it.material)}</span></td>
-      <td>${esc(it.insumo)}${it.detalhe?' <span style="color:var(--text-faint)">— '+esc(it.detalhe)+'</span>':''}</td>
+      <td class="td-insumo">${esc(it.insumo)}${it.detalhe?' <span style="color:var(--text-faint)">— '+esc(it.detalhe)+'</span>':''}</td>
       <td class="muted">${esc(it.fornecedor)}</td>
       <td class="muted">${esc(it.pedido)}${it.solicCancelada?' <span class="saldo-flag" title="A solicitação de origem foi cancelada/rejeitada, mas este pedido segue com saldo em aberto — continue acompanhando pela data de entrega.">ⓘ</span>':''}${it.semAutorizacao?' <span class="saldo-flag" title="Situação de autorização do pedido = Não autorizado/Reprovado no relatório exportado — confirme no Sienge.">⚠</span>':''}</td>
       <td>${esc(it.qtd)} ${esc(it.unidade)}</td>
