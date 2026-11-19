@@ -2733,12 +2733,18 @@ body.is-admin .ctr-notif.admin-only{display:block !important;}
 #tab-creditos .cr-st.fat{background:rgba(90,169,255,.15);color:var(--blue,#5aa9ff);}
 #tab-creditos .cr-st.res{background:rgba(250,178,25,.15);color:var(--amber);}
 #tab-creditos .cr-st.off{background:rgba(92,101,112,.2);color:var(--text-mut);}
+#tab-creditos .cr-st.ant{background:rgba(155,110,255,.16);color:var(--violet,#a98bff);}
+#tab-creditos .cr-dot.ant{background:var(--violet,#a98bff);} #tab-creditos .cr-bar i.ant{background:var(--violet,#a98bff);}
+#tab-creditos .cr-nfctl{display:block;font-size:11px;color:var(--text-faint);font-style:italic;white-space:normal;}
+#tab-creditos .vinc-antecipado{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text);cursor:pointer;min-height:38px;}
+#tab-creditos .vinc-antecipado input{width:auto;margin:0;}
 #tab-creditos .cr-nf{display:block;font-size:11.5px;white-space:nowrap;}
 #tab-creditos .cr-pct{font-size:10.5px;color:var(--text-mut);font-family:var(--font-body);}
 @media print{
   #tab-creditos .cr-bar{border:1px solid #999;}
   #tab-creditos .cr-bar i.fat{background:#2e7d32 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   #tab-creditos .cr-bar i.res{background:#f9a825 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #tab-creditos .cr-bar i.ant{background:#7e57c2 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
 
 /* ==========================================================
@@ -4404,8 +4410,9 @@ table.data th.sortable:hover{ color:var(--text); }
             <div class="form-field"><label>Valor a abater (R$)</label><input type="number" id="vinculo-fValor" step="0.01" min="0" placeholder="0,00"></div>
             <div class="form-field"><label>Data do vínculo</label><input type="date" id="vinculo-fData"></div>
             <div class="form-field"><label>Observação (opcional)</label><input type="text" id="vinculo-fObs" placeholder="Ex.: referente à NF 12345"></div>
+            <div class="form-field"><label>Pagamento</label><label class="vinc-antecipado" title="Marque quando o pedido já foi pago antecipadamente ao fornecedor: o valor conta inteiro no crédito e as notas fiscais passam a ser só controle do saldo de nota fiscal"><input type="checkbox" id="vinculo-fAntecipado"> 💰 Pedido pago antecipadamente</label></div>
           </div>
-          <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;">O pedido de compra é o mesmo importado do Sienge no Painel de Suprimentos. Ao selecionar um pedido, o valor a abater já vem com o valor total do pedido de compra (do relatório "Acompanhamento de Pedidos" importado em Créditos; sem ele, a soma das notas fiscais já emitidas) — e continua editável. Clique no campo "Pedido de compra" para ver a lista (já filtrada pela empresa do crédito selecionado, pelo código no início do nome da obra) e digite para pesquisar — só é possível vincular pedidos da mesma empresa devedora.</div>
+          <div style="font-size:11.5px;color:var(--text-faint);margin-bottom:12px;">O pedido de compra é o mesmo importado do Sienge no Painel de Suprimentos. Ao selecionar um pedido, o valor a abater já vem com o valor total do pedido de compra (do relatório "Acompanhamento de Pedidos" importado em Créditos; sem ele, a soma das notas fiscais já emitidas) — e continua editável. Clique no campo "Pedido de compra" para ver a lista (já filtrada pela empresa do crédito selecionado, pelo código no início do nome da obra) e digite para pesquisar — só é possível vincular pedidos da mesma empresa devedora. <b>Pedido pago antecipadamente</b>: o valor a abater conta inteiro no crédito na hora (não fica reservado); as notas fiscais que chegarem servem apenas para controlar o saldo de nota fiscal a receber do fornecedor.</div>
           <button class="primary" id="vinculo-btnAdd">Vincular</button>
           <button class="ghost" id="vinculo-btnCancelEdit" style="display:none;">Cancelar edição</button>
           <span id="vinculo-formMsg" style="margin-left:10px;font-size:12px;color:var(--bad);"></span>
@@ -12122,9 +12129,24 @@ function vinculoRowFromDb(row){
     valorRealizado: Number(row.valor_realizado)||0,
     status: row.status || 'previsto',
     dataVinculo: row.data_vinculo,
-    observacao: row.observacao || ''
+    observacao: row.observacao || '',
+    pagoAntecipado: row.pago_antecipado === true
   };
 }
+// Pedido pago antecipadamente: o valor pago (valorPrevisto) conta inteiro no
+// crédito desde já — não fica "reservado". As notas fiscais que chegam servem
+// só para controlar o saldo de nota fiscal a receber do fornecedor.
+function vinculoAntecipado(v){
+  return !!(v && v.pagoAntecipado && v.status !== 'cancelado');
+}
+// Saldo de nota fiscal ainda a receber num pedido pago antecipadamente
+// (valor pago − notas já emitidas). Só controle: não mexe no crédito.
+function vinculoSaldoNf(v){
+  return vinculoAntecipado(v) ? Math.max(0, (v.valorPrevisto||0) - vinculoFaturado(v)) : 0;
+}
+// A coluna "pago_antecipado" vem de supabase/creditos_vinculos_antecipado.sql;
+// enquanto o script não roda, o painel grava os vínculos sem ela.
+let vinculoColunaAntecipado = false;
 // Valor que efetivamente conta contra o saldo do crédito: enquanto não
 // tem nota fiscal, é o previsto (reservado); quando a nota aparece, vira
 // o realizado (valor real); se o vínculo foi cancelado, não conta nada.
@@ -12134,6 +12156,7 @@ function vinculoRowFromDb(row){
 function vinculoValorEfetivo(v){
   const status = vinculoStatusAtual(v);
   if(status === 'cancelado') return 0;
+  if(vinculoAntecipado(v)) return v.valorPrevisto||0;
   const fat = vinculoFaturado(v);
   if(status === 'realizado') return fat;
   return Math.max(v.valorPrevisto||0, fat);
@@ -12175,6 +12198,10 @@ function vinculoStatusAtual(v){
   return ped && ped.valorTotal > 0 && pedidoEncerradoNoSienge(ped) ? 'realizado' : 'previsto';
 }
 function vinculoStatusBadge(status, v){
+  if(status!=='cancelado' && vinculoAntecipado(v)){
+    const sNf = vinculoSaldoNf(v);
+    return `<span class="badge dentro" title="Pedido pago antecipadamente: o valor pago já conta inteiro no crédito; as notas fiscais servem só para controlar o saldo de nota fiscal">💰 Pago antecipado${sNf>0.005?` · NF a receber R$ ${fmtMoney(sNf)}`:' · NF completa'}</span>`;
+  }
   if(status==='previsto' && v && vinculoFaturado(v)>0.005) return `<span class="badge dentro" title="Pedido parcialmente entregue: R$ ${fmtMoney(vinculoFaturado(v))} já faturado; o restante continua reservado">Parcial · R$ ${fmtMoney(vinculoFaturado(v))} faturado</span>`;
   if(status==='realizado') return '<span class="badge dentro">Realizado</span>';
   if(status==='cancelado') return '<span class="badge sem-data">Cancelado</span>';
@@ -12419,6 +12446,7 @@ async function loadVinculosCredito(){
   try{
     const { data, error } = await window.SB.from('creditos_vinculos').select('*').order('data_vinculo', { ascending:false });
     if(error) throw error;
+    if(data && data.length) vinculoColunaAntecipado = Object.prototype.hasOwnProperty.call(data[0], 'pago_antecipado');
     vinculosCredito = (data||[]).map(vinculoRowFromDb);
   }catch(e){
     console.error('Falha ao carregar vínculos de crédito:', e);
@@ -12468,18 +12496,31 @@ async function deleteCredito(id){
     return false;
   }
 }
+// Só manda "pago_antecipado" quando a coluna existe (ou quando o usuário marcou
+// a opção — aí o erro avisa que falta rodar o script do banco).
+function vinculoCampoAntecipado(v){
+  return (vinculoColunaAntecipado || v.pagoAntecipado) ? { pago_antecipado: !!v.pagoAntecipado } : {};
+}
+function erroColunaAntecipado(e){
+  const txt = String((e && (e.message||e.details)) || '');
+  if(!/pago_antecipado/i.test(txt)) return false;
+  alert('Para marcar pedido pago antecipadamente, o banco precisa da coluna nova: rode o script supabase/creditos_vinculos_antecipado.sql no SQL Editor do Supabase e tente de novo.');
+  return true;
+}
 async function insertVinculoCredito(v){
   try{
     const { error } = await window.SB.from('creditos_vinculos').insert({
       credito_id: v.creditoId, num_pedido: v.numPedido, obra_pedido: v.obraPedido || null,
       fornecedor: v.fornecedor || null, comprador: v.comprador || null,
       valor_previsto: v.valorPrevisto, valor_realizado: v.valorRealizado, status: v.status,
-      data_vinculo: v.dataVinculo, observacao: v.observacao || null
+      data_vinculo: v.dataVinculo, observacao: v.observacao || null,
+      ...vinculoCampoAntecipado(v)
     });
     if(error) throw error;
     return true;
   }catch(e){
     console.error('Falha ao vincular pedido ao crédito:', e);
+    if(erroColunaAntecipado(e)) return false;
     if(e && e.code==='23505'){ alert('Este pedido já está vinculado a um crédito. Edite o vínculo existente em vez de criar outro.'); return false; }
     alert('Não foi possível vincular o pedido. Verifique se você está logado como administrador ou supervisor.');
     return false;
@@ -12491,12 +12532,14 @@ async function updateVinculoCredito(id, v){
       credito_id: v.creditoId, num_pedido: v.numPedido, obra_pedido: v.obraPedido || null,
       fornecedor: v.fornecedor || null, comprador: v.comprador || null,
       valor_previsto: v.valorPrevisto, valor_realizado: v.valorRealizado, status: v.status,
-      data_vinculo: v.dataVinculo, observacao: v.observacao || null
+      data_vinculo: v.dataVinculo, observacao: v.observacao || null,
+      ...vinculoCampoAntecipado(v)
     }).eq('id', id);
     if(error) throw error;
     return true;
   }catch(e){
     console.error('Falha ao atualizar vínculo:', e);
+    if(erroColunaAntecipado(e)) return false;
     if(e && e.code==='23505'){ alert('Este pedido já está vinculado a um crédito. Não é possível ter dois vínculos ativos para o mesmo pedido.'); return false; }
     alert('Não foi possível salvar as alterações. Verifique se você está logado como administrador ou supervisor.');
     return false;
@@ -12526,10 +12569,16 @@ function creditoAbatido(creditoId){
 // (com nota fiscal confirmada) — pra não apresentar um valor reservado
 // como se já tivesse sido abatido de verdade.
 function creditoReservado(creditoId){
-  return vinculosDoCredito(creditoId).filter(v=>vinculoStatusAtual(v)==='previsto').reduce((s,v)=>s+Math.max(0,(v.valorPrevisto||0)-vinculoFaturado(v)),0);
+  return vinculosDoCredito(creditoId).filter(v=>vinculoStatusAtual(v)==='previsto' && !vinculoAntecipado(v)).reduce((s,v)=>s+Math.max(0,(v.valorPrevisto||0)-vinculoFaturado(v)),0);
 }
+// Abatido de fato: notas fiscais dos pedidos normais + valor integral dos
+// pedidos pagos antecipadamente.
 function creditoRealizadoAbatido(creditoId){
-  return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado'||v.status==='previsto').reduce((s,v)=>s+vinculoFaturado(v),0);
+  return vinculosDoCredito(creditoId).filter(v=>v.status==='realizado'||v.status==='previsto').reduce((s,v)=>s+(vinculoAntecipado(v) ? (v.valorPrevisto||0) : vinculoFaturado(v)),0);
+}
+// Parte do abatido que é pagamento antecipado (já pago, independe das notas).
+function creditoPagoAntecipado(creditoId){
+  return vinculosDoCredito(creditoId).filter(vinculoAntecipado).reduce((s,v)=>s+(v.valorPrevisto||0),0);
 }
 function creditoSaldo(c){
   return c.valorTotal - creditoAbatido(c.id);
@@ -12842,19 +12891,20 @@ function imprimirRelatorioCreditos(){
   const e = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const m = v => 'R$ ' + fmtMoney(v||0);
   const pc = (v,t) => t>0 ? (v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '0%';
-  let gT=0,gF=0,gR=0;
+  let gT=0,gF=0,gR=0,gA=0;
   const blocos = lista.map(c=>{
-    const res = creditoReservado(c.id), fat = creditoRealizadoAbatido(c.id), sal = c.valorTotal - res - fat;
-    gT += c.valorTotal; gF += fat; gR += res;
-    const pf = c.valorTotal>0 ? Math.min(100, fat/c.valorTotal*100) : 0, pr = c.valorTotal>0 ? Math.min(100-pf, res/c.valorTotal*100) : 0;
+    const res = creditoReservado(c.id), abt = creditoRealizadoAbatido(c.id), ant = creditoPagoAntecipado(c.id), fat = abt - ant, sal = c.valorTotal - res - abt;
+    gT += c.valorTotal; gF += fat; gR += res; gA += ant;
+    const pf = c.valorTotal>0 ? Math.min(100, fat/c.valorTotal*100) : 0, pa = c.valorTotal>0 ? Math.min(100-pf, ant/c.valorTotal*100) : 0, pr = c.valorTotal>0 ? Math.min(100-pf-pa, res/c.valorTotal*100) : 0;
     const vs = vinculosDoCredito(c.id);
     let tP=0,tF=0,tR=0,tE=0;
     const linhas = vs.map(v=>{
       const ped = pedidosMap.get(String(v.numPedido)), status = vinculoStatusAtual(v), cancel = status==='cancelado';
-      const f = vinculoFaturado(v), r = (!cancel && status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-f) : 0, ef = vinculoValorEfetivo(v);
+      const an = vinculoAntecipado(v), sNf = vinculoSaldoNf(v);
+      const f = vinculoFaturado(v), r = (!cancel && !an && status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-f) : 0, ef = vinculoValorEfetivo(v);
       tP += cancel?0:(v.valorPrevisto||0); tF += f; tR += r; tE += ef;
-      const st = cancel ? 'Cancelado' : status==='realizado' ? 'Concluído' : f>0.005 ? 'Em faturamento · '+pc(f, v.valorPrevisto) : 'Aguardando nota';
-      const stc = cancel ? 'off' : status==='realizado' ? 'ok' : f>0.005 ? 'fat' : 'res';
+      const st = cancel ? 'Cancelado' : an ? 'Pago antecipado' : status==='realizado' ? 'Concluído' : f>0.005 ? 'Em faturamento · '+pc(f, v.valorPrevisto) : 'Aguardando nota';
+      const stc = cancel ? 'off' : an ? 'ant' : status==='realizado' ? 'ok' : f>0.005 ? 'fat' : 'res';
       const sit = ped && ped.situacoes && ped.situacoes.length ? ped.situacoes.join(' / ') : '';
       const nfs = ped && ped.notas && ped.notas.length ? ped.notas.map(n=>`<div class="nf">${e(n.numero)}${n.data?` · ${e(n.data)}`:''}<span>${m(n.valor)}</span></div>`).join('') : '<div class="mut">sem nota</div>';
       // Pedido com muitas notas não cabe numa página: deixa a linha quebrar
@@ -12862,10 +12912,10 @@ function imprimirRelatorioCreditos(){
       return `<tr${ped && ped.notas && ped.notas.length > 8 ? ' class="longa"' : ''}>
         <td><b>${e(v.numPedido)}</b><div class="mut">${v.dataVinculo?fmtBRDate(v.dataVinculo):''}</div></td>
         <td>${e(v.fornecedor)}${v.observacao?`<div class="mut">${e(v.observacao)}</div>`:''}</td>
-        <td><span class="st ${stc}">${st}</span>${sit?`<div class="mut">Sienge: ${e(sit)}</div>`:''}${ped&&ped.saldoPedido!=null?`<div class="mut">Saldo do pedido: ${m(ped.saldoPedido)}</div>`:''}</td>
+        <td><span class="st ${stc}">${st}</span>${an?`<div class="mut"><i>Notas: só controle de saldo de NF (${pc(f, v.valorPrevisto)} recebido)</i></div>`:''}${sit?`<div class="mut">Sienge: ${e(sit)}</div>`:''}${ped&&ped.saldoPedido!=null?`<div class="mut">Saldo do pedido: ${m(ped.saldoPedido)}</div>`:''}</td>
         <td class="n">${m(v.valorPrevisto)}</td>
         <td class="n">${nfs}</td>
-        <td class="n">${r>0.005?m(r):'—'}</td>
+        <td class="n">${an ? `<div class="mut"><i>${sNf>0.005?'NF a receber':'NF completa'}</i></div>${sNf>0.005?`<span class="mut">${m(sNf)}</span>`:''}` : r>0.005?m(r):'—'}</td>
         <td class="n"><b>${m(ef)}</b></td></tr>`;
     });
     return `<section class="cred">
@@ -12874,8 +12924,8 @@ function imprimirRelatorioCreditos(){
           <div class="mut">Obra ${e(c.obra)}${c.descricao?' · '+e(c.descricao):''} · disponível desde ${c.dataDisponibilidade?fmtBRDate(c.dataDisponibilidade):'—'}</div></div>
         <div class="cv">${m(c.valorTotal)}</div>
       </div>
-      <div class="bar"><i class="f" style="width:${pf}%"></i><i class="r" style="width:${pr}%"></i></div>
-      <div class="eq"><span><i class="d f"></i>Faturado <b>${m(fat)}</b> (${pc(fat,c.valorTotal)})</span><span><i class="d r"></i>Reservado <b>${m(res)}</b> (${pc(res,c.valorTotal)})</span><span><i class="d l"></i>Saldo livre <b>${m(sal)}</b> (${pc(Math.max(0,sal),c.valorTotal)})</span></div>
+      <div class="bar"><i class="f" style="width:${pf}%"></i><i class="a" style="width:${pa}%"></i><i class="r" style="width:${pr}%"></i></div>
+      <div class="eq"><span><i class="d f"></i>Faturado <b>${m(fat)}</b> (${pc(fat,c.valorTotal)})</span>${ant>0.005?`<span><i class="d a"></i>Pago antecipado <b>${m(ant)}</b> (${pc(ant,c.valorTotal)})</span>`:''}<span><i class="d r"></i>Reservado <b>${m(res)}</b> (${pc(res,c.valorTotal)})</span><span><i class="d l"></i>Saldo livre <b>${m(sal)}</b> (${pc(Math.max(0,sal),c.valorTotal)})</span></div>
       ${vs.length ? `<table><colgroup><col style="width:9.5%"><col style="width:16.5%"><col style="width:15%"><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:13%"></colgroup>
         <thead><tr><th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="n">Previsto</th><th class="n">Faturado (notas)</th><th class="n">Reservado</th><th class="n">Conta no crédito</th></tr></thead>
         <tbody>${linhas.slice(0,-1).join('')}</tbody>
@@ -12883,7 +12933,7 @@ function imprimirRelatorioCreditos(){
       : '<div class="mut" style="padding:6px 0">Nenhum pedido vinculado a este crédito.</div>'}
     </section>`;
   }).join('');
-  const gS = gT - gF - gR, agora = new Date();
+  const gS = gT - gF - gA - gR, agora = new Date();
   const doc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Controle de Crédito entre Obras</title><style>
     @page{size:A4 portrait;margin:11mm 10mm 12mm;}
     *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -12901,7 +12951,7 @@ function imprimirRelatorioCreditos(){
     .who{font-weight:700;font-size:9.6pt;}
     .cv{font-weight:700;font-size:11pt;white-space:nowrap;}
     .bar{display:flex;height:6px;background:#e6e9ed;border-radius:3px;overflow:hidden;margin:5px 0 4px;}
-    .bar i{display:block;height:100%;} .f{background:#2e7d32;} .r{background:#f2a900;} .l{background:#d6dae0;}
+    .bar i{display:block;height:100%;} .f{background:#2e7d32;} .a{background:#7e57c2;} .r{background:#f2a900;} .l{background:#d6dae0;}
     .eq{display:flex;flex-wrap:wrap;gap:3px 14px;font-size:7.8pt;margin-bottom:5px;}
     .d{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:4px;vertical-align:0;}
     table{width:100%;border-collapse:collapse;table-layout:fixed;}
@@ -12917,13 +12967,13 @@ function imprimirRelatorioCreditos(){
     .nf{font-size:7.3pt;line-height:1.3;white-space:normal;text-align:right;margin-bottom:2px;}
     .nf span{display:block;white-space:nowrap;font-weight:600;}
     .st{display:inline-block;font-size:7pt;font-weight:700;padding:1px 5px;border-radius:7px;}
-    .st.ok{background:#e3f2e5;color:#2e7d32;} .st.fat{background:#e3eefc;color:#1d5fb4;} .st.res{background:#fff3d6;color:#8a6100;} .st.off{background:#eceef1;color:#667080;}
+    .st.ok{background:#e3f2e5;color:#2e7d32;} .st.fat{background:#e3eefc;color:#1d5fb4;} .st.res{background:#fff3d6;color:#8a6100;} .st.off{background:#eceef1;color:#667080;} .st.ant{background:#ede5fb;color:#5e35b1;}
     .foot{margin-top:6px;font-size:7pt;color:#8a929c;}
   </style></head><body>
     <div class="top"><div><div class="mut">RAF · Painel de Suprimentos</div><h1>Controle de Crédito entre Obras</h1></div>
       <div class="mut">Emitido em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}<br>${lista.length} crédito(s)</div></div>
-    <div class="kp"><div><span class="mut">Total dos créditos</span><b>${m(gT)}</b></div><div><span class="mut">Faturado (notas)</span><b>${m(gF)}</b></div><div><span class="mut">Reservado em pedidos</span><b>${m(gR)}</b></div><div><span class="mut">Saldo livre</span><b>${m(gS)}</b></div></div>
-    <div class="leg"><i class="d f"></i><b>Faturado</b>: notas fiscais emitidas nos pedidos vinculados (abatimento confirmado). <i class="d r"></i><b>Reservado</b>: parte dos pedidos ainda sem nota. <i class="d l"></i><b>Saldo livre</b>: crédito disponível para novos pedidos. Pedido parcialmente entregue continua reservando o restante até ser encerrado no Sienge.</div>
+    <div class="kp"><div><span class="mut">Total dos créditos</span><b>${m(gT)}</b></div><div><span class="mut">Faturado (notas)${gA>0.005?' + pago antecipado':''}</span><b>${m(gF+gA)}</b>${gA>0.005?`<span class="mut">antecipado: ${m(gA)}</span>`:''}</div><div><span class="mut">Reservado em pedidos</span><b>${m(gR)}</b></div><div><span class="mut">Saldo livre</span><b>${m(gS)}</b></div></div>
+    <div class="leg"><i class="d f"></i><b>Faturado</b>: notas fiscais emitidas nos pedidos vinculados (abatimento confirmado). <i class="d r"></i><b>Reservado</b>: parte dos pedidos ainda sem nota. <i class="d l"></i><b>Saldo livre</b>: crédito disponível para novos pedidos. Pedido parcialmente entregue continua reservando o restante até ser encerrado no Sienge. <i class="d a"></i><b>Pago antecipado</b>: pedido já pago ao fornecedor — conta inteiro no crédito; as notas fiscais dele são apenas controle de saldo de nota fiscal.</div>
     ${blocos || '<div class="mut">Nenhum crédito com o filtro atual.</div>'}
     <div class="foot">Fonte: relatórios do Sienge importados no Painel de Suprimentos (pedidos e notas fiscais por pedido).</div>
   </body></html>`;
@@ -13307,13 +13357,15 @@ function renderCreditos(){
   const htmlCredito = (c, sub)=>{
     let html = '';
     const reservado = creditoReservado(c.id);
-    const faturado = creditoRealizadoAbatido(c.id);
-    const saldo = c.valorTotal - reservado - faturado;
+    const abatidoTot = creditoRealizadoAbatido(c.id);
+    const antecipado = creditoPagoAntecipado(c.id);
+    const faturado = abatidoTot - antecipado;   // só notas fiscais de pedidos normais
+    const saldo = c.valorTotal - reservado - abatidoTot;
     const isOpen = creditoDetailOpen.has(String(c.id));
     const vinculos = vinculosDoCredito(c.id);
     const anexos = anexosDoCredito(c.id);
     const enviando = creditoAnexoEnviando.has(String(c.id));
-    const pf = Math.min(100, pct(faturado, c.valorTotal)), pr = Math.min(100-pf, pct(reservado, c.valorTotal));
+    const pf = Math.min(100, pct(faturado, c.valorTotal)), pa = Math.min(100-pf, pct(antecipado, c.valorTotal)), pr = Math.min(100-pf-pa, pct(reservado, c.valorTotal));
     html += `<tr${sub?' class="cr-sub-row"':''}>
       <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}" title="Ver pedidos vinculados">${isOpen?'▾':'▸'}</button></td>
       <td class="txt">
@@ -13324,8 +13376,9 @@ function renderCreditos(){
       </td>
       <td><span class="cr-big">R$ ${fmtMoney(c.valorTotal)}</span></td>
       <td>
-        <div class="cr-bar" title="Faturado ${pctTxt(faturado,c.valorTotal)} · Reservado ${pctTxt(reservado,c.valorTotal)} · Livre ${pctTxt(Math.max(0,saldo),c.valorTotal)}"><i class="fat" style="width:${pf}%"></i><i class="res" style="width:${pr}%"></i></div>
+        <div class="cr-bar" title="Faturado ${pctTxt(faturado,c.valorTotal)}${antecipado>0.005?` · Pago antecipado ${pctTxt(antecipado,c.valorTotal)}`:''} · Reservado ${pctTxt(reservado,c.valorTotal)} · Livre ${pctTxt(Math.max(0,saldo),c.valorTotal)}"><i class="fat" style="width:${pf}%"></i><i class="ant" style="width:${pa}%"></i><i class="res" style="width:${pr}%"></i></div>
         <div class="cr-num"><span class="cr-dot fat"></span><span class="lbl">Faturado</span> R$ ${fmtMoney(faturado)} <span class="cr-pct">(${pctTxt(faturado,c.valorTotal)})</span></div>
+        ${antecipado>0.005?`<div class="cr-num" title="Pedidos pagos antecipadamente: o valor pago já conta no crédito; as notas fiscais são só controle de saldo de NF"><span class="cr-dot ant"></span><span class="lbl">Pago antecipado</span> R$ ${fmtMoney(antecipado)} <span class="cr-pct">(${pctTxt(antecipado,c.valorTotal)})</span></div>`:''}
         <div class="cr-num"><span class="cr-dot res"></span><span class="lbl">Reservado</span> R$ ${fmtMoney(reservado)} <span class="cr-pct">(${pctTxt(reservado,c.valorTotal)})</span></div>
       </td>
       <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span><span class="cr-sub">${pctTxt(Math.max(0,saldo),c.valorTotal)} do crédito</span></td>
@@ -13333,16 +13386,19 @@ function renderCreditos(){
       <td class="no-print cr-acoes">${anexosCreditoDisponivel ? `<button class="ghost gestor-credito-only" data-anexar-credito="${c.id}" title="Anexar o relatório/documento de origem do crédito (PDF, planilha, imagem... até 20 MB)" ${enviando?'disabled':''}>${enviando?'Enviando…':'📎 Anexar'}</button> ` : ''}<button class="ghost gestor-credito-only" data-edit-credito="${c.id}">Editar</button> <button class="danger gestor-credito-only" data-del-credito="${c.id}">Excluir</button></td>
     </tr>`;
     // ---- detalhe: pedidos vinculados ----
-    let tPrev=0,tFat=0,tRes=0,tEf=0;
+    let tPrev=0,tFat=0,tRes=0,tEf=0,tNf=0;
     const linhas = vinculos.map(v=>{
       const ped = pedidosMap.get(String(v.numPedido));
       const status = vinculoStatusAtual(v), cancel = status==='cancelado';
+      const ant = vinculoAntecipado(v);
       const fat = vinculoFaturado(v);
-      const res = (!cancel && status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-fat) : 0;
+      const res = (!cancel && !ant && status==='previsto') ? Math.max(0,(v.valorPrevisto||0)-fat) : 0;
+      const sNf = vinculoSaldoNf(v);
       const ef = vinculoValorEfetivo(v);
-      tPrev += cancel?0:(v.valorPrevisto||0); tFat += fat; tRes += res; tEf += ef;
+      tPrev += cancel?0:(v.valorPrevisto||0); tFat += fat; tRes += res; tEf += ef; tNf += sNf;
       let st;
       if(cancel) st = '<span class="cr-st off">Cancelado</span>';
+      else if(ant) st = `<span class="cr-st ant" title="Pedido pago antecipadamente: o valor pago já conta inteiro no crédito">💰 Pago antecipado</span><span class="cr-nfctl">Notas: só controle de saldo de NF · ${pctTxt(fat, v.valorPrevisto)} recebido</span>`;
       else if(status==='realizado') st = '<span class="cr-st ok" title="Pedido encerrado no Sienge: vale o valor das notas">Concluído</span>';
       else if(fat>0.005) st = `<span class="cr-st fat" title="Pedido com entrega parcial: o restante continua reservado">Em faturamento · ${pctTxt(fat, v.valorPrevisto)}</span>`;
       else st = '<span class="cr-st res">Aguardando nota</span>';
@@ -13356,8 +13412,8 @@ function renderCreditos(){
           <td class="txt">${esc(v.fornecedor)||'—'}${v.observacao?`<span class="cr-sub">${esc(v.observacao)}</span>`:''}${obraDif}</td>
           <td>${st}${sit?`<span class="cr-sub">Sienge: ${esc(sit)}</span>`:''}</td>
           <td class="num">R$ ${fmtMoney(v.valorPrevisto||0)}</td>
-          <td class="num">${nfs}${fat>0.005 && ped && Math.abs(ped.valorTotal-fat)>0.005 ? `<span class="cr-sub">considerado: R$ ${fmtMoney(fat)}</span>`:''}</td>
-          <td class="num">${res>0.005?`R$ ${fmtMoney(res)}`:'—'}</td>
+          <td class="num">${nfs}${!ant && fat>0.005 && ped && Math.abs(ped.valorTotal-fat)>0.005 ? `<span class="cr-sub">considerado: R$ ${fmtMoney(fat)}</span>`:''}</td>
+          <td class="num">${ant ? (sNf>0.005 ? `<span class="cr-nfctl">NF a receber (controle)</span>R$ ${fmtMoney(sNf)}` : '<span class="cr-nfctl">NF completa</span>') : res>0.005?`R$ ${fmtMoney(res)}`:'—'}</td>
           <td class="num"><b>R$ ${fmtMoney(ef)}</b></td>
           <td class="no-print"><button class="credito-toggle gestor-credito-only" data-edit-vinculo="${v.id}" title="Editar vínculo">✎</button><button class="credito-toggle gestor-credito-only" data-del-vinculo="${v.id}" title="Remover vínculo">✕</button></td>
         </tr>`;
@@ -13366,13 +13422,15 @@ function renderCreditos(){
       <div class="cr-detail-head">
         <span>Crédito <b>R$ ${fmtMoney(c.valorTotal)}</b></span><span class="eq">=</span>
         <span><span class="cr-dot fat"></span>faturado <b>R$ ${fmtMoney(faturado)}</b></span><span class="eq">+</span>
+        ${antecipado>0.005?`<span><span class="cr-dot ant"></span>pago antecipado <b>R$ ${fmtMoney(antecipado)}</b></span><span class="eq">+</span>`:''}
         <span><span class="cr-dot res"></span>reservado <b>R$ ${fmtMoney(reservado)}</b></span><span class="eq">+</span>
         <span><span class="cr-dot liv"></span>saldo livre <b>R$ ${fmtMoney(saldo)}</b></span>
       </div>
       ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
           <th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="num">Previsto no pedido</th><th class="num">Faturado (notas)</th><th class="num">Ainda reservado</th><th class="num">Conta no crédito</th><th class="no-print"></th>
         </tr></thead><tbody>${linhas}</tbody>
-        <tfoot><tr><td colspan="3">Total dos pedidos vinculados</td><td class="num">R$ ${fmtMoney(tPrev)}</td><td class="num">R$ ${fmtMoney(tFat)}</td><td class="num">R$ ${fmtMoney(tRes)}</td><td class="num">R$ ${fmtMoney(tEf)}</td><td class="no-print"></td></tr></tfoot>
+        <tfoot><tr><td colspan="3">Total dos pedidos vinculados</td><td class="num">R$ ${fmtMoney(tPrev)}</td><td class="num">R$ ${fmtMoney(tFat)}</td><td class="num">R$ ${fmtMoney(tRes)}</td><td class="num">R$ ${fmtMoney(tEf)}</td><td class="no-print"></td></tr>
+        ${vinculos.some(vinculoAntecipado)?`<tr><td colspan="8" class="cr-nfctl" style="text-align:left;">💰 Pedidos pagos antecipadamente contam inteiros no crédito pelo valor pago. As notas fiscais deles são apenas controle de saldo de nota fiscal${tNf>0.005?` — ainda faltam R$ ${fmtMoney(tNf)} em NF a receber (não entra no "Ainda reservado")`:' — notas completas'}.</td></tr>`:''}</tfoot>
         </table>`
         : `<div class="empty-mini">Nenhum pedido vinculado a este crédito ainda.</div>`}
     </td></tr>`;
@@ -13398,16 +13456,17 @@ function renderCreditos(){
     grupos.forEach((itens, k)=>{
       if(itens.length===1){ html += htmlCredito(itens[0], false); return; }
       const c0 = itens[0];
-      let total=0, fat=0, res=0, nVinc=0, dataMin='';
+      let total=0, fat=0, res=0, ant=0, nVinc=0, dataMin='';
       const obras = new Set();
       itens.forEach(c=>{
-        total += c.valorTotal; res += creditoReservado(c.id); fat += creditoRealizadoAbatido(c.id);
+        total += c.valorTotal; res += creditoReservado(c.id); fat += creditoRealizadoAbatido(c.id); ant += creditoPagoAntecipado(c.id);
         nVinc += vinculosDoCredito(c.id).length;
         if(c.obra) obras.add(c.obra);
         if(c.dataDisponibilidade && (!dataMin || String(c.dataDisponibilidade) < String(dataMin))) dataMin = c.dataDisponibilidade;
       });
       const saldo = total - res - fat;
-      const pf = Math.min(100, pct(fat, total)), pr = Math.min(100-pf, pct(res, total));
+      fat -= ant;   // daqui em diante "faturado" = só notas; antecipado aparece à parte
+      const pf = Math.min(100, pct(fat, total)), pa = Math.min(100-pf, pct(ant, total)), pr = Math.min(100-pf-pa, pct(res, total));
       const aberto = creditoGrupoOpen.has(k);
       html += `<tr class="cr-grupo-row">
         <td class="no-print"><button class="credito-toggle" data-toggle-grupo="${esc(k)}" title="Ver os créditos deste grupo">${aberto?'▾':'▸'}</button></td>
@@ -13418,8 +13477,9 @@ function renderCreditos(){
         </td>
         <td><span class="cr-big">R$ ${fmtMoney(total)}</span></td>
         <td>
-          <div class="cr-bar" title="Faturado ${pctTxt(fat,total)} · Reservado ${pctTxt(res,total)} · Livre ${pctTxt(Math.max(0,saldo),total)}"><i class="fat" style="width:${pf}%"></i><i class="res" style="width:${pr}%"></i></div>
+          <div class="cr-bar" title="Faturado ${pctTxt(fat,total)}${ant>0.005?` · Pago antecipado ${pctTxt(ant,total)}`:''} · Reservado ${pctTxt(res,total)} · Livre ${pctTxt(Math.max(0,saldo),total)}"><i class="fat" style="width:${pf}%"></i><i class="ant" style="width:${pa}%"></i><i class="res" style="width:${pr}%"></i></div>
           <div class="cr-num"><span class="cr-dot fat"></span><span class="lbl">Faturado</span> R$ ${fmtMoney(fat)} <span class="cr-pct">(${pctTxt(fat,total)})</span></div>
+          ${ant>0.005?`<div class="cr-num"><span class="cr-dot ant"></span><span class="lbl">Pago antecipado</span> R$ ${fmtMoney(ant)} <span class="cr-pct">(${pctTxt(ant,total)})</span></div>`:''}
           <div class="cr-num"><span class="cr-dot res"></span><span class="lbl">Reservado</span> R$ ${fmtMoney(res)} <span class="cr-pct">(${pctTxt(res,total)})</span></div>
         </td>
         <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span><span class="cr-sub">${pctTxt(Math.max(0,saldo),total)} do crédito</span></td>
@@ -13811,6 +13871,7 @@ function startEditVinculo(id){
   document.getElementById('vinculo-fValor').value = vinculoValorEfetivo(v);
   document.getElementById('vinculo-fData').value = v.dataVinculo;
   document.getElementById('vinculo-fObs').value = v.observacao;
+  document.getElementById('vinculo-fAntecipado').checked = !!v.pagoAntecipado;
   document.getElementById('vinculo-formTitle').textContent = 'Editar vínculo';
   document.getElementById('vinculo-btnAdd').textContent = 'Salvar alterações';
   document.getElementById('vinculo-btnCancelEdit').style.display = 'inline-block';
@@ -13822,6 +13883,7 @@ function cancelEditVinculo(){
   document.getElementById('vinculo-fValor').value = '';
   document.getElementById('vinculo-fData').value = todayISO();
   document.getElementById('vinculo-fObs').value = '';
+  document.getElementById('vinculo-fAntecipado').checked = false;
   document.getElementById('vinculo-formTitle').textContent = 'Vincular pedido de compra a um crédito';
   document.getElementById('vinculo-btnAdd').textContent = 'Vincular';
   document.getElementById('vinculo-btnCancelEdit').style.display = 'none';
@@ -13837,6 +13899,7 @@ async function addVinculoCredito(){
   const valor = parseFloat(document.getElementById('vinculo-fValor').value);
   const data = document.getElementById('vinculo-fData').value;
   const obs = document.getElementById('vinculo-fObs').value.trim();
+  const pagoAntecipado = !!document.getElementById('vinculo-fAntecipado')?.checked;
 
   if(!creditoId){ msg.textContent = 'Selecione um crédito.'; return; }
   if(!numPedido){ msg.textContent = 'Informe o número do pedido de compra.'; return; }
@@ -13896,11 +13959,14 @@ async function addVinculoCredito(){
   } else {
     status = 'previsto'; valorPrevisto = valor; valorRealizado = 0;
   }
+  // Pago antecipadamente: o valor informado é o que foi pago e é ele que
+  // conta no crédito, seja qual for o status das notas.
+  if(pagoAntecipado) valorPrevisto = valor;
 
   const payload = {
     creditoId, numPedido,
     obraPedido: pedido?pedido.obra:'', fornecedor: pedido?pedido.fornecedor:'', comprador: pedido?pedido.comprador:'',
-    valorPrevisto, valorRealizado, status, dataVinculo: data, observacao: obs
+    valorPrevisto, valorRealizado, status, dataVinculo: data, observacao: obs, pagoAntecipado
   };
   const ok = editingVinculoId ? await updateVinculoCredito(editingVinculoId, payload) : await insertVinculoCredito(payload);
   if(ok){
@@ -13955,7 +14021,7 @@ function resumoAuditoria(a){
       return mudou.length ? `Alterou crédito de ${novo.obra||antigo.obra}: ${mudou.join('; ')}` : `Alterou crédito de ${novo.obra||antigo.obra}`;
     }
   } else if(a.tabela === 'creditos_vinculos'){
-    const efetivoRaw = (row) => !row ? 0 : (row.status==='cancelado' ? 0 : row.status==='realizado' ? Number(row.valor_realizado)||0 : Math.max(Number(row.valor_previsto)||0, Number(row.valor_realizado)||0));
+    const efetivoRaw = (row) => !row ? 0 : (row.status==='cancelado' ? 0 : row.pago_antecipado ? Number(row.valor_previsto)||0 : row.status==='realizado' ? Number(row.valor_realizado)||0 : Math.max(Number(row.valor_previsto)||0, Number(row.valor_realizado)||0));
     if(a.operacao === 'INSERT') return `Vinculou pedido ${novo.num_pedido||'—'} (R$ ${fmtMoney(efetivoRaw(novo))}, ${novo.status||'previsto'})`;
     if(a.operacao === 'DELETE') return `Removeu vínculo do pedido ${antigo.num_pedido||'—'} (R$ ${fmtMoney(efetivoRaw(antigo))})`;
     if(a.operacao === 'UPDATE'){
@@ -13963,6 +14029,7 @@ function resumoAuditoria(a){
       if(antigo.status !== novo.status) mudou.push(`status de "${antigo.status}" para "${novo.status}"`);
       if(efetivoRaw(antigo) !== efetivoRaw(novo)) mudou.push(`valor de R$ ${fmtMoney(efetivoRaw(antigo))} para R$ ${fmtMoney(efetivoRaw(novo))}`);
       if(antigo.num_pedido !== novo.num_pedido) mudou.push(`pedido de ${antigo.num_pedido} para ${novo.num_pedido}`);
+      if(!!antigo.pago_antecipado !== !!novo.pago_antecipado) mudou.push(novo.pago_antecipado ? 'marcou como pago antecipadamente' : 'desmarcou pago antecipadamente');
       return mudou.length ? `Alterou vínculo do pedido ${novo.num_pedido||antigo.num_pedido}: ${mudou.join('; ')}` : `Alterou vínculo do pedido ${novo.num_pedido||antigo.num_pedido}`;
     }
   }
@@ -17648,7 +17715,7 @@ window.JARVIS_CONFIG = {
   async function creditos() {
     const [cr, vi] = await Promise.all([todas("creditos_obra"), todas("creditos_vinculos")]);
     if (!cr.length) return "Não há créditos cadastrados, ou você não tem acesso a eles.";
-    const efetivo = (v) => (v.status === "cancelado" ? 0 : v.status === "realizado" ? Number(v.valor_realizado) || 0 : Math.max(Number(v.valor_previsto) || 0, Number(v.valor_realizado) || 0));
+    const efetivo = (v) => (v.status === "cancelado" ? 0 : v.pago_antecipado ? Number(v.valor_previsto) || 0 : v.status === "realizado" ? Number(v.valor_realizado) || 0 : Math.max(Number(v.valor_previsto) || 0, Number(v.valor_realizado) || 0));
     const usado = (id) => vi.filter((v) => v.credito_id === id).reduce((s, v) => s + efetivo(v), 0);
     const total = soma(cr, "valor_total");
     const abatido = cr.reduce((s, c) => s + usado(c.id), 0);
