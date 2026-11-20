@@ -456,8 +456,8 @@
     if(i >= 0) S.pessoas[i] = data; else S.pessoas.push(data);
     S.pessoas.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     if(!p.id){ render(); abrirPessoa(data.id); return; }
-    // desativar/reativar: Notas é sincronizado pela função
-    if(p.ativo !== data.ativo) await sincronizarExternos(data.id);
+    // desativar/reativar ou trocar o nome: Notas e Estoque recebem pela função (os apps do Painel, pelo banco)
+    if(p.ativo !== data.ativo || p.nome !== data.nome) await sincronizarExternos(data.id);
     render(); abrirPessoa(data.id);
     msg(modal.querySelector('[data-ca-pessoa] [data-ca-msg]'), 'Salvo!', true);
   }
