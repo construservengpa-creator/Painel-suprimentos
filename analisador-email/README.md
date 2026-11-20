@@ -53,8 +53,13 @@ Depois de mudar variáveis, faça um novo deploy (Deployments → Redeploy).
 
 ### 3. Projeto no Vercel
 
-Projeto apontando para este repositório com **Root Directory = `analisador-email`**, sem framework
-(o Vercel serve os arquivos estáticos e as funções de `api/`).
+Publicado em **https://analisador-email.vercel.app** (projeto `analisador-email`, time AssistentePessoal),
+sem framework: o Vercel serve os arquivos estáticos e as funções de `api/`.
+
+O primeiro deploy foi feito enviando os arquivos desta pasta direto (o app do Vercel no GitHub
+ainda não tem acesso a este repositório). Para o Vercel publicar sozinho a cada push, dê acesso ao
+repositório no app do Vercel no GitHub e conecte o projeto em Settings → Git, com
+**Root Directory = `analisador-email`**.
 
 ## Custos
 
