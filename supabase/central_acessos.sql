@@ -274,7 +274,8 @@ begin
       'status', 'aprovado',
       'perfil', coalesce(ef->>'perfil', 'Personalizado'),
       'perfilId', 'central-' || coalesce(ef->>'perfil_id', '0'),
-      'perms', to_jsonb(array_append(perms, 'acessos.v283')),
+      -- inativo: o app já bloqueia pelo "ativo"; as permissões ficam guardadas para quando voltar
+      'perms', to_jsonb(array_append(array(select jsonb_array_elements_text(ef->'permissoes')), 'acessos.v283')),
       'obras', refs,
       'central', true);
     if u.email is not null then d := d || jsonb_build_object('emailContato', lower(u.email)); end if;
@@ -592,6 +593,15 @@ begin
         on conflict (app_id, nome) do nothing;
       update public.acesso_usuario_apps set perfil_id = (select p2.id from public.acesso_perfis p2, public.acesso_perfis p1
           where p1.id = v_pf and p2.app_id = 'suprimentos' and p2.nome = p1.nome || ' + Jarvis')
+        where usuario_id = v_uid and app_id = 'suprimentos';
+    elsif not r.jarvis_liberado and not r.is_admin and exists (select 1 from public.acesso_perfis where id = v_pf and 'painel.jarvis' = any(permissoes)) then
+      -- gestor sem Jarvis hoje: perfil "<papel> sem Jarvis" (ninguém ganha nem perde acesso na importação)
+      insert into public.acesso_perfis (app_id, nome, descricao, permissoes, todas_obras)
+        select app_id, nome || ' sem Jarvis', 'Criado na importação', array_remove(permissoes, 'painel.jarvis'), true
+          from public.acesso_perfis where id = v_pf
+        on conflict (app_id, nome) do nothing;
+      update public.acesso_usuario_apps set perfil_id = (select p2.id from public.acesso_perfis p2, public.acesso_perfis p1
+          where p1.id = v_pf and p2.app_id = 'suprimentos' and p2.nome = p1.nome || ' sem Jarvis')
         where usuario_id = v_uid and app_id = 'suprimentos';
     end if;
     n_p := n_p + 1;
