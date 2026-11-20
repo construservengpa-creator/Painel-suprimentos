@@ -1,0 +1,10 @@
+{
+  "name": "analisador-email",
+  "private": true,
+  "type": "module",
+  "description": "Analisador do email corporativo: aponta quais emails precisam da sua ação",
+  "engines": { "node": "22.x" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0"
+  }
+}
