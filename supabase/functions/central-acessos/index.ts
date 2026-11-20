@@ -37,10 +37,30 @@ const db = createClient(PAINEL_URL, PAINEL_KEY, { auth: { persistSession: false 
 
 // ------------------------------------------------------------------ auth admin genérico (qualquer projeto)
 type Conta = { id: string; email: string; last_sign_in_at?: string; banned_until?: string; created_at?: string };
+// Confere o secret sem chamar o outro projeto: tem de ser a chave de SERVIÇO (service_role / sb_secret_) do projeto certo.
+// A chave anon/publishable é aceita pelo Supabase, mas não enxerga os dados (a importação volta vazia) — por isso o aviso.
+function problemaDaChave(nome: string, url: string, key: string): string | null {
+  const segredo = `${nome.toUpperCase()}_SERVICE_ROLE_KEY`;
+  const onde = "Project Settings → API Keys → Legacy API Keys, linha service_role (secret)";
+  const k = key.trim();
+  if (k.startsWith("sb_secret_")) return null;
+  if (k.startsWith("sb_publishable_")) return `O secret ${segredo} tem a chave pública (publishable). Use a chave de serviço do projeto: ${onde}.`;
+  const partes = k.split(".");
+  if (partes.length !== 3) return `O secret ${segredo} não parece uma chave do Supabase. Copie de novo: ${onde}.`;
+  let carga: any;
+  try { carga = JSON.parse(atob(partes[1].replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(partes[1].length / 4) * 4, "="))); }
+  catch { return `O secret ${segredo} não parece uma chave do Supabase. Copie de novo: ${onde}.`; }
+  const ref = (url.match(/^https:\/\/([a-z0-9]+)\.supabase\.co/) || [])[1];
+  if (ref && carga.ref && carga.ref !== ref) return `O secret ${segredo} é de outro projeto (${carga.ref}); o certo é o ${ref}. Copie a chave do projeto certo: ${onde}.`;
+  if (carga.role === "anon") return `O secret ${segredo} tem a chave anon (pública). Use a outra linha, service_role: ${onde}.`;
+  if (carga.role !== "service_role") return `O secret ${segredo} não é a chave de serviço (role: ${carga.role || "?"}). Use: ${onde}.`;
+  return null;
+}
 function projeto(nome: string) {
   const p = PROJETOS[nome];
   if (!p) throw new Erro(`Projeto desconhecido: ${nome}`);
   if (!p.key) throw new Erro(`O projeto "${nome}" ainda não está ligado à central: falta o secret ${nome.toUpperCase()}_SERVICE_ROLE_KEY na função central-acessos.`, 412);
+  if (nome !== "painel") { const prob = problemaDaChave(nome, p.url, p.key); if (prob) throw new Erro(prob, 412); }
   return p as { url: string; key: string };
 }
 async function gotrue(nome: string, caminho: string, init: RequestInit = {}) {
@@ -324,7 +344,12 @@ Deno.serve(async (req) => {
     const acao = String(b.acao || "");
 
     if (acao === "projetos") {
-      return json({ projetos: Object.fromEntries(Object.entries(PROJETOS).map(([k, v]) => [k, !!v.key])) });
+      // true = ligado; false = sem secret ou com a chave errada (o motivo vai em "problemas")
+      const problemas: Record<string, string> = {};
+      const projetos = Object.fromEntries(Object.keys(PROJETOS).map((k) => {
+        try { projeto(k); return [k, true]; } catch (e) { problemas[k] = (e as Error).message; return [k, false]; }
+      }));
+      return json({ projetos, problemas });
     }
     if (acao === "importar_estoque") {
       const r = await importarEstoque();

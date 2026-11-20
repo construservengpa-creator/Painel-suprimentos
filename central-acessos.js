@@ -62,7 +62,7 @@
     }
     S.carregando = false;
     render();
-    if(S.carregado && S.projetos === null) funcao({ acao:'projetos' }).then(r => { S.projetos = r.projetos; render(); }).catch(() => { S.projetos = false; render(); });
+    if(S.carregado && S.projetos === null) funcao({ acao:'projetos' }).then(r => { S.projetos = r.projetos; S.problemas = r.problemas || {}; render(); }).catch(() => { S.projetos = false; render(); });
   }
   async function carregarLog(){
     const { data, error } = await SB.from('acesso_log').select('*').order('em', { ascending:false }).limit(300);
@@ -143,10 +143,17 @@
 
   function avisoProjetos(){
     if(!S.projetos) return '';
-    const falta = S.apps.filter(a => S.projetos[a.projeto] === false).map(a => a.nome);
+    const falta = S.apps.filter(a => S.projetos[a.projeto] === false);
     if(!falta.length) return '';
-    return `<div class="ca-aviso">🔌 Login e senha de <b>${esc(falta.join(', '))}</b> ainda não estão ligados à central: falta cadastrar a chave de serviço do projeto na função <code>central-acessos</code> (veja <code>supabase/CENTRAL-ACESSOS.md</code>). O perfil e as obras podem ser definidos mesmo assim.</div>`;
+    // um aviso por projeto (Painel, Notas, Estoque), com o motivo que a função encontrou
+    const porProjeto = {};
+    falta.forEach(a => { (porProjeto[a.projeto] = porProjeto[a.projeto] || []).push(a.nome); });
+    return Object.keys(porProjeto).map(pj => {
+      const motivo = (S.problemas || {})[pj];
+      return `<div class="ca-aviso">🔌 Login e senha de <b>${esc(porProjeto[pj].join(', '))}</b> não estão ligados à central. ${motivo ? esc(motivo) : 'Falta cadastrar a chave de serviço do projeto na função <code>central-acessos</code> (veja <code>supabase/CENTRAL-ACESSOS.md</code>).'} O perfil e as obras podem ser definidos mesmo assim.</div>`;
+    }).join('');
   }
+
 
   function chipApp(p, a){
     const ua = uapp(p.id, a.id);
