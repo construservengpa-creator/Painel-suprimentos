@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Validador Email · Capivara</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📬</text></svg>">
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --texto: #1d2330; --suave: #5f6878; --borda: #e2e5ea;
+    --primaria: #0b5cad; --primaria-texto: #fff;
+    --acao: #c62828; --responder: #e65100; --acompanhar: #b28704; --info: #546e7a; --ruido: #9e9e9e; --ok: #2e7d32;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b2029; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #2b313c;
+      --primaria: #4a9eff; --primaria-texto: #0b1220;
+      --acao: #ef5350; --responder: #ff8a3d; --acompanhar: #f2c94c; --info: #90a4ae; --ruido: #757575; --ok: #66bb6a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--texto); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+           padding: 14px 16px; background: var(--card); border-bottom: 1px solid var(--borda); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 1.15rem; margin: 0; }
+  header .usuario { color: var(--suave); font-size: .9rem; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  button, select { font: inherit; }
+  .btn { background: var(--primaria); color: var(--primaria-texto); border: 0; border-radius: 8px; padding: 9px 16px; cursor: pointer; font-weight: 600; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn.sec { background: transparent; color: var(--texto); border: 1px solid var(--borda); font-weight: 500; }
+  .controles { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .controles label { font-size: .9rem; color: var(--suave); display: flex; gap: 6px; align-items: center; }
+  select { padding: 8px; border-radius: 8px; border: 1px solid var(--borda); background: var(--card); color: var(--texto); }
+  .status { font-size: .9rem; color: var(--suave); min-height: 1.3em; margin: 6px 0 12px; }
+  .status.erro { color: var(--acao); }
+  .contadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .contador { background: var(--card); border: 1px solid var(--borda); border-left: 5px solid var(--cor); border-radius: 10px; padding: 10px 12px; cursor: pointer; text-align: left; color: var(--texto); }
+  .contador b { display: block; font-size: 1.6rem; }
+  .contador span { font-size: .85rem; color: var(--suave); }
+  section.grupo { margin-bottom: 22px; }
+  section.grupo > h2 { font-size: 1rem; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  section.grupo > h2 .bolinha { width: 10px; height: 10px; border-radius: 50%; background: var(--cor); }
+  section.grupo.fechado .lista { display: none; }
+  .email { background: var(--card); border: 1px solid var(--borda); border-left: 4px solid var(--cor); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+  .email.resolvido { opacity: .5; }
+  .email .topo { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .email a.assunto { color: var(--texto); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+  .email a.assunto:hover { text-decoration: underline; }
+  .email .meta { font-size: .82rem; color: var(--suave); margin-top: 2px; overflow-wrap: anywhere; }
+  .email .resumo { margin: 8px 0 4px; font-size: .93rem; }
+  .email .acao { font-size: .93rem; }
+  .email .acao b { color: var(--cor); }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+  .tag { font-size: .75rem; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--borda); color: var(--suave); }
+  .tag.alta { border-color: var(--acao); color: var(--acao); font-weight: 600; }
+  .tag.prazo { border-color: var(--responder); color: var(--responder); }
+  .tags label { margin-left: auto; font-size: .82rem; color: var(--suave); display: flex; gap: 5px; align-items: center; cursor: pointer; }
+  .vazio { color: var(--suave); font-size: .9rem; padding: 6px 2px; }
+  .boasvindas { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 24px; max-width: 560px; margin: 40px auto; }
+  .boasvindas h2 { margin-top: 0; }
+  .boasvindas p { color: var(--suave); line-height: 1.5; }
+  .oculto { display: none !important; }
+  header a.voltar { color: var(--texto); text-decoration: none; border: 1px solid var(--borda); border-radius: 8px; padding: 6px 12px; font-size: .9rem; }
+  .ultima { font-size: .85rem; color: var(--suave); }
+  @media (max-width: 560px) { .tags label { margin-left: 0; width: 100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📬 Validador Email</h1>
+  <div class="usuario">
+    <span id="nomeUsuario"></span>
+    <a class="voltar" href="index.html">← Painel</a>
+  </div>
+</header>
+
+<main>
+  <div id="telaAviso" class="boasvindas">
+    <h2 id="avisoTitulo">Carregando…</h2>
+    <p id="avisoTexto"></p>
+    <a id="avisoBotao" class="btn oculto" href="index.html">Entrar no Painel</a>
+  </div>
+
+  <div id="telaApp" class="oculto">
+    <div class="controles">
+      <label>Período
+        <select id="periodo">
+          <option value="1">Hoje</option>
+          <option value="3" selected>Últimos 3 dias</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="14">Últimos 14 dias</option>
+          <option value="30">Últimos 30 dias</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="mostrarResolvidos"> Mostrar resolvidos</label>
+      <button id="btnAtualizar" class="btn sec" type="button">Atualizar</button>
+      <span id="ultima" class="ultima"></span>
+    </div>
+    <div id="status" class="status"></div>
+    <div id="contadores" class="contadores"></div>
+    <div id="grupos"></div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="validador-email.js"></script>
+</body>
+</html>
