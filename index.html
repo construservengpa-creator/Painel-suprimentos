@@ -3408,6 +3408,7 @@ table.data th.sortable:hover{ color:var(--text); }
     </div>
     <div class="topbar-actions">
       <a class="tema-btn inicio-btn no-print" href="inicio.html" title="Voltar à página inicial do Capivara (Suprimentos, Notas e Estoque)"><span aria-hidden="true">⌂</span> Início</a>
+      <a class="tema-btn no-print" id="validadorEmailBtn" href="validador-email.html" style="display:none" title="Seus emails que precisam de ação (visível só para quem tem acesso)"><span aria-hidden="true">📬</span> Validador Email</a>
       <button class="tema-btn no-print" id="temaBtn" type="button" title="Trocar o tema do painel (fica salvo neste navegador)"><span class="tema-amostra"></span><span id="temaBtnTxt">Tema: Asfalto</span></button>
       <div class="header-auth no-print" id="headerAuth">
         <button class="auth-toggle-btn" id="authToggleBtn">👤 Entrar</button>
@@ -14623,6 +14624,28 @@ init();
     refreshAuthUI();
   });
   refreshAuthUI();
+})();
+</script>
+
+<!-- Validador Email: o botão só aparece para quem tem linha em validador_email_acesso (RLS: cada um só vê a própria). -->
+<script>
+(function(){
+  const btn = document.getElementById('validadorEmailBtn');
+  if(!btn || !window.SB) return;
+  let ultimoUid;
+  async function conferir(session){
+    const uid = session && session.user ? session.user.id : null;
+    if(uid === ultimoUid) return;
+    ultimoUid = uid;
+    btn.style.display = 'none';
+    if(!uid) return;
+    try{
+      const { data } = await window.SB.from('validador_email_acesso').select('user_id').eq('user_id', uid).maybeSingle();
+      btn.style.display = data ? '' : 'none';
+    }catch(e){ btn.style.display = 'none'; }
+  }
+  window.SB.auth.onAuthStateChange((_evento, session) => { conferir(session); });
+  window.SB.auth.getSession().then(({ data }) => conferir(data && data.session));
 })();
 </script>
 
