@@ -9,7 +9,7 @@
 // Projetos:
 //   painel  — este projeto (Suprimentos, CAP-Refeições, Validador Email). Chave automática.
 //   notas   — Controle_Documentos-Fiscais. Secret NOTAS_SERVICE_ROLE_KEY.
-//   estoque — almoxarifado. Secret ESTOQUE_SERVICE_ROLE_KEY.
+//   estoque — almoxarifado. Secret ESTOQUE_SERVICE_ROLE_KEY (perfil, obras e "aprova requisições" vão para profiles).
 // Sem o secret de um projeto, as ações daquele app respondem com o aviso de configuração.
 //
 // Publicar no projeto xuukjnpkltvgzjfgivnd (painel_suprimentos) com verify_jwt = true.
@@ -132,6 +132,7 @@ async function sincronizar(usuarioId: string, appId: string): Promise<string> {
     if (error) throw new Erro(error.message, 500);
     return String(data);
   }
+  if (appId === "estoque") return await sincronizarEstoque(usuarioId);
   if (appId !== "notas") return "esta aplicação ainda não recebe a sincronização automática (ajuste manual no app)";
   const p = projeto("notas");
   const notas = createClient(p.url, p.key, { auth: { persistSession: false } });
@@ -157,6 +158,108 @@ async function sincronizar(usuarioId: string, appId: string): Promise<string> {
     await notas.from("validador_acessos").delete().eq("user_id", ua.conta_id);
   }
   return "ok";
+}
+
+// ------------------------------------------------------------------ Estoque (projeto almoxarifado)
+// O cadastro do Estoque é profiles: papel (operador | encarregado | admin), setor (almoxarifado | compras | frotas),
+// ativo, obras_vinculadas (ids das obras do documento do app) e aprova_requisicoes (coluna criada por
+// almoxarifado/scripts/central_acessos.sql; sem ela, a marcação antiga do app continua valendo).
+const ESTOQUE_DOC = "controle-estoque-obras-v1";
+function papelEstoque(perms: string[]) {
+  const papel = perms.includes("estoque.admin") ? "admin" : perms.includes("estoque.encarregado") ? "encarregado" : "operador";
+  const setor = (perms.find((x) => x.startsWith("estoque.setor.")) || "").replace("estoque.setor.", "") || null;
+  const aprova = papel === "admin" || perms.includes("estoque.aprova");
+  return { papel, setor, aprova };
+}
+async function obrasDoEstoque(est: any): Promise<{ id: string; nome: string }[]> {
+  const { data, error } = await est.from("app_kv").select("obras:value->obras").eq("key", ESTOQUE_DOC).maybeSingle();
+  if (error) throw new Erro("Estoque: " + error.message, 502);
+  return (Array.isArray(data?.obras) ? data.obras : []).filter((o: any) => o && o.id).map((o: any) => ({ id: String(o.id), nome: String(o.nome || o.id) }));
+}
+async function sincronizarEstoque(usuarioId: string): Promise<string> {
+  const p = projeto("estoque");
+  const est = createClient(p.url, p.key, { auth: { persistSession: false } });
+  const { data: ua } = await db.from("acesso_usuario_apps").select("conta_id").eq("usuario_id", usuarioId).eq("app_id", "estoque").maybeSingle();
+  if (!ua?.conta_id) return "sem login vinculado";
+  const { data: u } = await db.from("acesso_usuarios").select("nome").eq("id", usuarioId).maybeSingle();
+  const { data: ef, error } = await db.rpc("acesso_efetivo_admin", { p_usuario: usuarioId, p_app: "estoque" });
+  if (error) throw new Erro(error.message, 500);
+  const ativo = !!ef?.ativo;
+  const { papel, setor, aprova } = papelEstoque(ef?.permissoes || []);
+  const obras = ef?.todas_obras
+    ? (await obrasDoEstoque(est)).map((o) => o.id)
+    : (ef?.obras || []).map((o: any) => o.ref).filter((r: any) => r != null).map(String);
+  const conta = await contaPorId("estoque", ua.conta_id);
+  const linha: Record<string, unknown> = { id: ua.conta_id, nome: u?.nome, email: conta?.email, papel, setor, ativo, obras_vinculadas: obras, aprova_requisicoes: aprova };
+  let r = await est.from("profiles").upsert(linha, { onConflict: "id" });
+  if (r.error && /aprova_requisicoes/.test(r.error.message)) {
+    delete linha.aprova_requisicoes;
+    r = await est.from("profiles").upsert(linha, { onConflict: "id" });
+    if (!r.error) return "ok, mas falta rodar almoxarifado/scripts/central_acessos.sql no banco do Estoque: a marcação \"Aprova requisições\" não foi gravada";
+  }
+  if (r.error) throw new Erro("Estoque: " + r.error.message, 502);
+  return "ok";
+}
+// Estoque: traz pessoas, perfis e obras para a central (não grava nada no Estoque)
+async function importarEstoque() {
+  const p = projeto("estoque");
+  const est = createClient(p.url, p.key, { auth: { persistSession: false } });
+  const [{ data: perfis, error: e1 }, obras, { data: kv }] = await Promise.all([
+    est.from("profiles").select("*"),
+    obrasDoEstoque(est),
+    est.from("app_kv").select("aprov:value->config->aprovadores").eq("key", ESTOQUE_DOC).maybeSingle(),
+  ]);
+  if (e1) throw new Erro("Estoque: " + e1.message, 502);
+  const aprovadores: Record<string, boolean> = (kv?.aprov && typeof kv.aprov === "object") ? kv.aprov : {};
+  let nObras = 0, nPessoas = 0;
+  for (const o of obras) {
+    let { data: ob } = await db.from("acesso_obras").select("id").ilike("nome", o.nome).maybeSingle();
+    if (!ob) ({ data: ob } = await db.from("acesso_obras").insert({ nome: o.nome }).select("id").single());
+    if (ob) { await db.from("acesso_obra_vinculos").upsert({ obra_id: ob.id, app_id: "estoque", ref: o.id }, { onConflict: "obra_id,app_id", ignoreDuplicates: true }); nObras++; }
+  }
+  const { data: vinc } = await db.from("acesso_obra_vinculos").select("obra_id,ref").eq("app_id", "estoque");
+  const { data: pfs } = await db.from("acesso_perfis").select("id,nome,permissoes").eq("app_id", "estoque");
+  const perfisCentral = [...(pfs || [])];
+  const mesmo = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
+  for (const n of perfis || []) {
+    if (!n.email) continue;
+    const email = String(n.email).toLowerCase();
+    let { data: u } = await db.from("acesso_usuarios").select("id").ilike("email", email).maybeSingle();
+    if (!u) ({ data: u } = await db.from("acesso_usuarios").insert({ nome: n.nome || email, email }).select("id").single());
+    if (!u) continue;
+    const { data: ja } = await db.from("acesso_usuario_apps").select("usuario_id").eq("usuario_id", u.id).eq("app_id", "estoque").maybeSingle();
+    if (ja) continue; // não sobrescreve o que já foi ajustado na central
+    // a mesma regra do app: coluna aprova_requisicoes → marcação do documento → padrão do papel
+    const aprova = n.papel === "admin" || (typeof n.aprova_requisicoes === "boolean" ? n.aprova_requisicoes
+      : Object.prototype.hasOwnProperty.call(aprovadores, n.id) ? !!aprovadores[n.id] : n.papel === "encarregado");
+    const perms = [
+      ...(n.papel === "admin" ? ["estoque.admin"] : n.papel === "encarregado" ? ["estoque.encarregado"] : []),
+      ...(n.setor ? ["estoque.setor." + n.setor] : []),
+      ...(aprova ? ["estoque.aprova"] : []),
+    ];
+    let pf = perfisCentral.find((x) => mesmo(x.permissoes || [], perms));
+    if (!pf) {
+      const nome = [n.papel === "admin" ? "Admin" : n.papel === "encarregado" ? "Encarregado" : "Operador", n.setor, aprova && n.papel !== "admin" ? "aprova" : ""]
+        .filter(Boolean).join(" · ");
+      const { data: novo } = await db.from("acesso_perfis").insert({ app_id: "estoque", nome, descricao: "Criado na importação", permissoes: perms }).select("id,nome,permissoes").single();
+      if (novo) { pf = novo; perfisCentral.push(novo); }
+    }
+    const vinculadas: string[] = Array.isArray(n.obras_vinculadas) ? n.obras_vinculadas.map(String) : [];
+    const veTodas = n.papel === "admin" || (n.papel === "encarregado" && n.setor === "almoxarifado");
+    // a importação não deve regravar o Estoque: grava direto, sem chamar sincronizar()
+    const { error: eIns } = await db.from("acesso_usuario_apps").insert({
+      usuario_id: u.id, app_id: "estoque", perfil_id: pf?.id ?? null, ativo: n.ativo !== false,
+      todas_obras: veTodas && !vinculadas.length, conta_id: n.id, conta_email: email,
+    });
+    if (eIns) continue;
+    if (vinculadas.length) {
+      const linhas = vinculadas.map((oid) => vinc?.find((x) => x.ref === oid)?.obra_id).filter(Boolean)
+        .map((obra_id) => ({ usuario_id: u!.id, app_id: "estoque", obra_id }));
+      if (linhas.length) await db.from("acesso_usuario_obras").insert(linhas);
+    }
+    nPessoas++;
+  }
+  return { pessoas: nPessoas, obras: nObras };
 }
 
 // Notas: traz pessoas, perfis e obras do outro projeto para a central
@@ -222,6 +325,11 @@ Deno.serve(async (req) => {
 
     if (acao === "projetos") {
       return json({ projetos: Object.fromEntries(Object.entries(PROJETOS).map(([k, v]) => [k, !!v.key])) });
+    }
+    if (acao === "importar_estoque") {
+      const r = await importarEstoque();
+      await log(por, null, "estoque", "importou usuários do Estoque", r);
+      return json(r);
     }
     if (acao === "importar_notas") {
       const r = await importarNotas();

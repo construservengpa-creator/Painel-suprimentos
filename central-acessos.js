@@ -107,10 +107,16 @@
     const col = (perms.find(x => x.startsWith('notas.coluna.')) || '').replace('notas.coluna.','');
     return role + (col ? ' · coluna ' + col : '') + (perms.includes('notas.validador') ? ' · validador' : '');
   }
+  function papelEstoque(perms){
+    const papel = perms.includes('estoque.admin') ? 'admin' : perms.includes('estoque.encarregado') ? 'encarregado' : 'operador';
+    const setor = (perms.find(x => x.startsWith('estoque.setor.')) || '').replace('estoque.setor.','');
+    const aprova = papel === 'admin' || perms.includes('estoque.aprova');
+    return papel + (setor ? ' · setor ' + setor : '') + (aprova ? ' · aprova requisições' : '');
+  }
   function resultadoNoApp(aid, perms){
     if(aid === 'suprimentos') return 'No Painel vira: <b>' + esc(papelPainel(perms)) + '</b>';
     if(aid === 'notas') return 'No Notas vira: <b>' + esc(papelNotas(perms)) + '</b>';
-    if(aid === 'estoque') return 'O Estoque ainda não lê a central: ajuste o acesso também dentro do app (integração pendente).';
+    if(aid === 'estoque') return 'No Estoque vira: <b>' + esc(papelEstoque(perms)) + '</b>';
     return '';
   }
 
@@ -618,7 +624,7 @@
   }
 
   async function importar(){
-    if(!confirm('Trazer para a central quem já usa o Painel, o Validador Email e o CAP-Refeições (e o Notas, se a chave estiver configurada)?\n\nNada muda dentro das aplicações: a mesma pessoa é reconhecida pelo e-mail e recebe o perfil que já tem hoje.')) return;
+    if(!confirm('Trazer para a central quem já usa o Painel, o Validador Email e o CAP-Refeições (e o Notas e o Estoque, se as chaves estiverem configuradas)?\n\nNada muda dentro das aplicações: a mesma pessoa é reconhecida pelo e-mail e recebe o perfil que já tem hoje.')) return;
     const linhas = [];
     try{
       const { data, error } = await SB.rpc('acesso_importar_existentes');
@@ -629,6 +635,10 @@
       const r = await funcao({ acao:'importar_notas' });
       linhas.push(`Notas: ${r.pessoas} pessoa(s), ${r.obras} obra(s)`);
     }catch(e){ linhas.push('Notas: ' + e.message); }
+    try{
+      const r = await funcao({ acao:'importar_estoque' });
+      linhas.push(`Estoque: ${r.pessoas} pessoa(s), ${r.obras} obra(s)`);
+    }catch(e){ linhas.push('Estoque: ' + e.message); }
     await carregar();
     alert('Importação concluída.\n\n' + linhas.join('\n') + '\n\nConfira as pessoas repetidas (mesma pessoa com e-mails diferentes) e junte-as manualmente se precisar.');
   }

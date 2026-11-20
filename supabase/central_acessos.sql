@@ -442,7 +442,7 @@ create trigger acesso_usuarios_depois after insert or update on public.acesso_us
 insert into public.acesso_aplicacoes (id, nome, descricao, url, projeto, tipo_login, dominio_login, usa_obras, sincroniza, ordem) values
   ('suprimentos',     'Suprimentos',   'Painel de Compras · Sienge', 'https://construservengpa-creator.github.io/Painel-suprimentos/index.html', 'painel', 'email', null, false, 'banco', 1),
   ('notas',           'Notas',         'Notas Fiscais · Sede RAF',  'https://construservengpa-creator.github.io/ControleNotasFiscais/',         'notas',  'email', null, true,  'funcao', 2),
-  ('estoque',         'Estoque',       'Controle de Estoque por Obra', 'https://construservengpa-creator.github.io/almoxarifado/',            'estoque','email', null, true,  'manual', 3),
+  ('estoque',         'Estoque',       'Controle de Estoque por Obra', 'https://construservengpa-creator.github.io/almoxarifado/',            'estoque','email', null, true,  'funcao', 3),
   ('refeicoes',       'CAP-Refeições', 'Medição de Refeições · BM', 'https://construservengpa-creator.github.io/Painel-suprimentos/medicoes/', 'painel', 'login', 'rafinfraestrutura.com.br', true, 'banco', 4),
   ('validador-email', 'Validador Email', 'Triagem do Outlook',      'https://construservengpa-creator.github.io/Painel-suprimentos/validador-email.html', 'painel', 'email', null, false, 'banco', 5)
 on conflict (id) do update set nome = excluded.nome, descricao = excluded.descricao, projeto = excluded.projeto,
@@ -470,13 +470,13 @@ insert into public.acesso_permissoes (app_id, codigo, nome, grupo, ordem) values
   ('notas','notas.coluna.lancamento','Coluna Lançamento','Coluna do quadro',4),
   ('notas','notas.coluna.financeiro_cx','Coluna Financeiro / Caixa','Coluna do quadro',5),
   ('notas','notas.validador','Validador de NF (homologa notas das obras liberadas)','Validação',6),
-  -- Estoque (projeto próprio — integração a configurar)
-  ('estoque','estoque.ver','Consultar saldo por obra','Consulta',1),
-  ('estoque','estoque.entrada','Registrar entradas','Movimentação',2),
-  ('estoque','estoque.saida','Registrar saídas e despachos','Movimentação',3),
-  ('estoque','estoque.contagem','Contagem de inventário','Inventário',4),
-  ('estoque','estoque.aprovar','Aprovar movimentações','Aprovação',5),
-  ('estoque','estoque.admin','Administrar cadastros e usuários','Administração',6)
+  -- Estoque (projeto almoxarifado): papel, setor e "aprova requisições" do cadastro do app (profiles)
+  ('estoque','estoque.admin','Papel Admin — tudo','Papel',1),
+  ('estoque','estoque.encarregado','Papel Encarregado — entradas, baixas, ajuste, inventário e mútuo (sem isto: Operador, que solicita e consulta)','Papel',2),
+  ('estoque','estoque.setor.almoxarifado','Setor Almoxarifado — separa, embala, expede e entrega (com Encarregado: todas as obras)','Setor',3),
+  ('estoque','estoque.setor.compras','Setor Compras — recebe as compras pendentes','Setor',4),
+  ('estoque','estoque.setor.frotas','Setor Frotas — recebe as compras de frotas','Setor',5),
+  ('estoque','estoque.aprova','Aprova requisições (no sistema e no app de Aprovações) das obras liberadas','Aprovação',6)
 on conflict (app_id, codigo) do update set nome = excluded.nome, grupo = excluded.grupo, ordem = excluded.ordem;
 
 -- CAP-Refeições: o mesmo catálogo de permissões do app (const PERMS em medicoes/app-*.js)
@@ -541,11 +541,28 @@ insert into public.acesso_perfis (app_id, nome, descricao, permissoes, todas_obr
   ('notas','Operador · Lançamento','Quadro: coluna Lançamento', array['notas.coluna.lancamento'], true),
   ('notas','Operador · Financeiro/Caixa','Quadro: coluna Financeiro/Caixa', array['notas.coluna.financeiro_cx'], true),
   ('notas','Validador de obra','Homologa as notas das obras liberadas', array['notas.validador'], false),
-  ('estoque','Administrador','Tudo', array['estoque.ver','estoque.entrada','estoque.saida','estoque.contagem','estoque.aprovar','estoque.admin'], true),
-  ('estoque','Almoxarife','Movimenta e conta o estoque da obra', array['estoque.ver','estoque.entrada','estoque.saida','estoque.contagem'], false),
-  ('estoque','Aprovador','Aprova movimentações', array['estoque.ver','estoque.aprovar'], false),
-  ('estoque','Consulta','Só consulta', array['estoque.ver'], false)
+  ('estoque','Administrador','Tudo', array['estoque.admin','estoque.aprova'], true),
+  ('estoque','Encarregado do almoxarifado','Todas as funções e obras, exceto Auditoria, Importar, Empresas e Administração', array['estoque.encarregado','estoque.setor.almoxarifado','estoque.aprova'], true),
+  ('estoque','Encarregado de obra','Aprova e opera as obras liberadas', array['estoque.encarregado','estoque.aprova'], false),
+  ('estoque','Encarregado de frotas','Encarregado do setor de frotas', array['estoque.encarregado','estoque.setor.frotas','estoque.aprova'], false),
+  ('estoque','Almoxarife','Separa, embala, expede e entrega', array['estoque.setor.almoxarifado'], true),
+  ('estoque','Compras','Setor de compras', array['estoque.setor.compras'], true),
+  ('estoque','Frotas','Setor de frotas', array['estoque.setor.frotas'], true),
+  ('estoque','Aprovador de obra','Operador que aprova requisições das obras liberadas', array['estoque.aprova'], false),
+  ('estoque','Operador','Solicita e consulta', array[]::text[], true)
 on conflict (app_id, nome) do nothing;
+
+-- Estoque: tira o catálogo provisório da primeira versão (só perfis sem ninguém) e liga a sincronização pela função
+delete from public.acesso_perfis p where p.app_id = 'estoque' and p.nome in ('Aprovador','Consulta')
+  and not exists (select 1 from public.acesso_usuario_apps ua where ua.perfil_id = p.id);
+update public.acesso_perfis set permissoes = array['estoque.setor.almoxarifado'], descricao = 'Separa, embala, expede e entrega'
+  where app_id = 'estoque' and nome = 'Almoxarife' and 'estoque.ver' = any(permissoes)
+    and not exists (select 1 from public.acesso_usuario_apps ua where ua.perfil_id = acesso_perfis.id);
+update public.acesso_perfis set permissoes = array['estoque.admin','estoque.aprova']
+  where app_id = 'estoque' and nome = 'Administrador' and 'estoque.ver' = any(permissoes)
+    and not exists (select 1 from public.acesso_usuario_apps ua where ua.perfil_id = acesso_perfis.id);
+delete from public.acesso_permissoes where app_id = 'estoque' and codigo in ('estoque.ver','estoque.entrada','estoque.saida','estoque.contagem','estoque.aprovar');
+update public.acesso_aplicacoes set sincroniza = 'funcao' where id = 'estoque';
 
 -- perfis do CAP-Refeições: copiados do próprio app (medicoes.perfis)
 do $$ begin
