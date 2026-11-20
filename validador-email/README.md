@@ -1,4 +1,4 @@
-# Analisador de Email
+# Validador Email
 
 Módulo independente, publicado no Vercel, que lê a Caixa de Entrada do Outlook corporativo
 (Microsoft 365) e mostra quais emails precisam da sua interação:
@@ -32,9 +32,9 @@ O app **só lê** o email (permissão `Mail.Read`): não envia, apaga nem marca 
 ### 1. Registrar o app no Azure (Microsoft Entra) — feito por quem administra o Microsoft 365
 
 1. Portal Azure → **Microsoft Entra ID** → **Registros de aplicativo** → **Novo registro**.
-2. Nome: `Analisador de Email`. Tipos de conta: **somente contas deste diretório organizacional**.
+2. Nome: `Validador Email`. Tipos de conta: **somente contas deste diretório organizacional**.
 3. URI de redirecionamento: plataforma **Aplicativo de página única (SPA)**, endereço
-   `https://<projeto>.vercel.app/` (com a barra no final).
+   `https://validador-email-ameta.vercel.app/` (com a barra no final).
 4. Em **Permissões de API** → Microsoft Graph → **Permissões delegadas**: `User.Read` e `Mail.Read`.
    Se a organização exigir, clique em **Conceder consentimento do administrador**.
 5. Anote o **ID do aplicativo (cliente)** e o **ID do diretório (locatário)**.
@@ -53,13 +53,13 @@ Depois de mudar variáveis, faça um novo deploy (Deployments → Redeploy).
 
 ### 3. Projeto no Vercel
 
-Publicado em **https://analisador-email.vercel.app** (projeto `analisador-email`, time AssistentePessoal),
+Publicado em **https://validador-email-ameta.vercel.app** (projeto `validador-email`, time AssistentePessoal),
 sem framework: o Vercel serve os arquivos estáticos e as funções de `api/`.
 
 O primeiro deploy foi feito enviando os arquivos desta pasta direto (o app do Vercel no GitHub
 ainda não tem acesso a este repositório). Para o Vercel publicar sozinho a cada push, dê acesso ao
 repositório no app do Vercel no GitHub e conecte o projeto em Settings → Git, com
-**Root Directory = `analisador-email`**.
+**Root Directory = `validador-email`**.
 
 ## Custos
 

@@ -1,4 +1,4 @@
-/* Analisador de Email — frontend
+/* Validador Email — frontend
  *
  * 1. Login Microsoft (MSAL, fluxo de redirecionamento) com permissão só de leitura (Mail.Read).
  * 2. Lê a Caixa de Entrada e os Itens Enviados do período direto no Microsoft Graph.
@@ -14,8 +14,8 @@
   const TAMANHO_LOTE = 25;
   const LOTES_EM_PARALELO = 3;
   const LIMITE_EMAILS = 600;
-  const CHAVE_CACHE = "analisador-email:classificacoes:v1";
-  const CHAVE_RESOLVIDOS = "analisador-email:resolvidos:v1";
+  const CHAVE_CACHE = "validador-email:classificacoes:v1";
+  const CHAVE_RESOLVIDOS = "validador-email:resolvidos:v1";
 
   const GRUPOS = [
     { id: "acao", titulo: "Precisa da sua ação", cor: "var(--acao)", aberto: true },
@@ -336,7 +336,7 @@
   }
 
   // Lembra as últimas escolhas de período e filtros.
-  const PREFS = "analisador-email:prefs";
+  const PREFS = "validador-email:prefs";
   function carregarPrefs() {
     const p = lerLocal(PREFS);
     if (p.periodo) $("periodo").value = p.periodo;
