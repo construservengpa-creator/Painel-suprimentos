@@ -17,7 +17,7 @@ Aba **🛡️ Central de acessos** no Painel (só administrador). Um cadastro de
 | Validador Email | painel_suprimentos | trigger → `public.validador_email_acesso` | mesmo login do Painel |
 | CAP-Refeições | painel_suprimentos (schema `medicoes`) | trigger → `medicoes.usuarios` (`perms`, `perfil`, `obras`, `ativo`) | função `central-acessos` (login vira `LOGIN@rafinfraestrutura.com.br`) |
 | Notas | Controle_Documentos-Fiscais | função `central-acessos` → `profiles` (role/coluna/active) e `validador_acessos` (obras) | função, com o secret `NOTAS_SERVICE_ROLE_KEY` |
-| Estoque | almoxarifado (qjmqburjyqlgwjihvlgp) | **ainda não** — o perfil fica registrado na central, mas o app não lê | função, com o secret `ESTOQUE_SERVICE_ROLE_KEY` |
+| Estoque | almoxarifado (qjmqburjyqlgwjihvlgp) | função `central-acessos` → `profiles` (papel, setor, ativo, `obras_vinculadas`, `aprova_requisicoes`) | função, com o secret `ESTOQUE_SERVICE_ROLE_KEY` |
 
 **A central é a fonte da verdade.** Ajustes feitos dentro de cada app continuam funcionando, mas são sobrescritos na próxima vez que a central salvar aquela pessoa naquela aplicação.
 
@@ -32,6 +32,21 @@ Papel no Painel, calculado a partir das permissões do perfil de Suprimentos:
 | nenhuma das acima | Convidado |
 | `painel.jarvis` | + Jarvis liberado |
 
+Papel no Estoque, calculado a partir das permissões do perfil de Estoque:
+
+| Tem a permissão | Vira |
+|---|---|
+| `estoque.admin` | papel **admin** (sempre aprova) |
+| `estoque.encarregado` | papel **encarregado** |
+| nenhuma das duas | papel **operador** |
+| `estoque.setor.almoxarifado` / `compras` / `frotas` | setor |
+| `estoque.aprova` | aprova requisições das obras liberadas (no sistema e no app de Aprovações) |
+
+As obras liberadas viram `obras_vinculadas` (o id da obra no documento do Estoque). "Todas as obras" grava todas as obras cadastradas no Estoque.
+A marcação "Aprova requisições" passa a morar na coluna `profiles.aprova_requisicoes`; rode uma vez
+`almoxarifado/scripts/central_acessos.sql` no SQL Editor do projeto do Estoque. Enquanto a coluna não existir,
+o resto sincroniza normalmente e a marcação antiga do app continua valendo.
+
 ## Instalação (uma vez)
 
 1. **SQL Editor** do projeto `painel_suprimentos`: rode `supabase/central_acessos.sql` inteiro. Pode rodar de novo quando quiser.
@@ -40,7 +55,7 @@ Papel no Painel, calculado a partir das permissões do perfil de Suprimentos:
    - `NOTAS_SERVICE_ROLE_KEY` — *Project Settings › API › service_role* do projeto Controle_Documentos-Fiscais.
    - `ESTOQUE_SERVICE_ROLE_KEY` — o mesmo, do projeto do Estoque.
    Sem eles a central funciona, só não troca senha nesses dois apps (aparece um aviso na tela).
-4. No Painel, aba **Central de acessos → Importar usuários existentes**. Traz quem já usa o Painel, o Validador Email, o CAP-Refeições e (com o secret) o Notas, reconhecendo a mesma pessoa pelo e-mail. Nada muda dentro dos apps na importação.
+4. No Painel, aba **Central de acessos → Importar usuários existentes**. Traz quem já usa o Painel, o Validador Email, o CAP-Refeições e (com os secrets) o Notas e o Estoque, reconhecendo a mesma pessoa pelo e-mail. Nada muda dentro dos apps na importação.
 5. Confira as pessoas repetidas (mesma pessoa com e-mails diferentes em apps diferentes) e os perfis `Personalizado · Nome` criados para quem tinha permissões individuais no CAP-Refeições.
 
 ## Senhas
@@ -62,5 +77,4 @@ Em políticas RLS: `public.acesso_pode('refeicoes', 'sup.bm')`.
 
 ## Próximos passos
 
-- Estoque: ligar o app à central (ler `acesso_meu` via função, ou gravar o perfil no cadastro dele como é feito no Notas). Precisa do esquema de usuários do projeto do Estoque.
 - Exigir a troca da senha temporária no primeiro login (cada app lê `user_metadata.trocar_senha`).
