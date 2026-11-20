@@ -310,7 +310,7 @@
       <section class="ca-bloco" data-ca-pessoa="${p.id||''}">
         <h4>Dados da pessoa</h4>
         <div class="ca-linha">
-          <label>Nome<input class="ca-in" data-pe="nome" value="${esc(p.nome)}"></label>
+          <label>Nome<input class="ca-in" style="text-transform:uppercase" data-pe="nome" value="${esc(p.nome)}"></label>
           <label>E-mail<input class="ca-in" type="email" data-pe="email" value="${esc(p.email||'')}" placeholder="nome@empresa.com.br"></label>
         </div>
         <div class="ca-linha">
@@ -442,7 +442,8 @@
   /* ------------------------------------------------------------ ações */
   async function salvarPessoa(bloco, p){
     const v = k => bloco.querySelector(`[data-pe="${k}"]`);
-    const dados = { nome: v('nome').value.trim(), email: v('email').value.trim().toLowerCase() || null, cargo: v('cargo').value.trim() || null,
+    const dados = { nome: v('nome').value.trim().replace(/\s+/g,' ').toUpperCase(),  // nomes sempre em maiúsculas em todos os apps
+                    email: v('email').value.trim().toLowerCase() || null, cargo: v('cargo').value.trim() || null,
                     telefone: v('telefone').value.trim() || null, observacao: v('observacao').value.trim() || null, ativo: v('ativo').checked };
     const m = bloco.querySelector('[data-ca-msg]');
     if(!dados.nome) return msg(m, 'Informe o nome.');
