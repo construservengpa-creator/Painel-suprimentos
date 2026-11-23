@@ -499,9 +499,30 @@
     }
     await recarregarPessoa(p.id);
     if(a.sincroniza === 'funcao') await sincronizarExternos(p.id, a.id);
+    // sem login vinculado o acesso não chega ao app: acha o login que a pessoa já tem ou oferece criar na hora
+    if(!uapp(p.id, a.id).conta_id && projetoLigado(a)){
+      msg(m, 'Procurando o login no ' + a.nome + '…', true);
+      if(!(await vincularAuto(p, a)) &&
+         confirm(`${p.nome} ainda não tem login no ${a.nome} — sem login o acesso não chega ao app.\n\nCriar o login agora?`))
+        return acaoLogin('criar_login', bloco, p, a);
+    }
     const semLogin = !uapp(p.id, a.id).conta_id;
     render(); abrirPessoa(p.id);
-    msg(modal.querySelector(`[data-ca-app="${a.id}"] [data-ca-msg]`), semLogin ? 'Salvo! Agora crie ou vincule o login.' : 'Salvo e aplicado no ' + a.nome + '.', true);
+    const mNovo = modal.querySelector(`[data-ca-app="${a.id}"] [data-ca-msg]`);
+    if(semLogin) msg(mNovo, 'Salvo, mas SEM LOGIN: o acesso só chega ao ' + a.nome + ' depois de “Criar login” ou “Vincular login existente”.');
+    else msg(mNovo, 'Salvo e aplicado no ' + a.nome + '.', true);
+  }
+
+  // tenta vincular, sem perguntar nada, o login que a pessoa já tem no projeto da aplicação
+  async function vincularAuto(p, a){
+    const ua = uapp(p.id, a.id) || {};
+    const body = { acao:'vincular', usuario_id: p.id, app_id: a.id };
+    if(a.tipo_login === 'login' && !ua.conta_email){
+      if(!p.email) return false;
+      body.login = p.email.split('@')[0];   // ex.: kaiquesantana@empresa → KAIQUESANTANA@dominio do app
+    }
+    try{ await funcao(body); await recarregarPessoa(p.id); return !!(uapp(p.id, a.id) || {}).conta_id; }
+    catch(_){ return false; }
   }
 
   async function removerApp(bloco, p, a){
