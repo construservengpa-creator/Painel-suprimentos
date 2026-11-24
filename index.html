@@ -8568,7 +8568,37 @@ function vunitCell(r){
   if(!r.vUnitEstimado) return esc(fmtVUnit(r.vUnit));
   return `<span title="Estimado pela nota fiscal: valor da NF ÷ qtd. entregue (${esc(String(r.qtdEntregueNum))} ${esc(r.unidadeMovimento||'')}). Pode incluir frete e impostos destacados na nota.">≈ ${esc(fmtVUnit(r.vUnit))}</span>`;
 }
+// Valor total de cada pedido, para o cabeçalho do grupo e o CSV:
+// 1) "Total do pedido" do relatório Pedido x Nota Fiscal do Sienge
+//    (creditos_pedidos_totais, importado na aba Créditos);
+// 2) senão, soma de valor unitário × qtd. pedida, só quando todos os itens
+//    do pedido têm valor unitário (≈ quando algum deles é estimado pela NF).
+let pedTotaisCarregando = false, pedTotaisTentado = false;
+function garantirTotaisPedido(){
+  const c = window.creditoPedidosDados;
+  if(pedTotaisTentado || !c || !window.SB) return;
+  pedTotaisTentado = true;
+  if(c.totais.size) return;
+  pedTotaisCarregando = true;
+  Promise.resolve(c.carregar()).catch(()=>{}).then(()=>{
+    pedTotaisCarregando = false;
+    if(c.totais.size) renderCentros();
+  });
+}
+function totalPedidoInfo(numPedido, items){
+  const c = window.creditoPedidosDados;
+  const doSienge = c && c.totais ? c.totais.get(String(numPedido||'').trim()) : null;
+  if(doSienge > 0) return { valor:doSienge, estimado:false, fonte:'Total do pedido no Sienge (relatório Pedido x Nota Fiscal)' };
+  if(!items.length || items.some(it=>it.vUnit==null)) return null;
+  const valor = items.reduce((s,it)=>s + it.vUnit * (it.qtdSolicitadaNum||0), 0);
+  if(!(valor > 0)) return null;
+  const estimado = items.some(it=>it.vUnitEstimado);
+  return { valor, estimado, fonte: estimado
+    ? 'Soma de valor unitário × qtd. pedida dos itens deste pedido na lista; valor unitário estimado pela nota fiscal em algum item'
+    : 'Soma de valor unitário × qtd. pedida dos itens deste pedido na lista' };
+}
 function renderCentros(){
+  garantirTotaisPedido();
   const fCentro = selVals('fPedCentro');
   const fComprador = selVals('fPedComprador');
   const fMaterial = selVals('fPedMaterial');
@@ -8679,7 +8709,8 @@ function renderCentros(){
       allEntregue: itemsPendentes.length===0,
       worst: itemsPendentes.length ? worstStatus(itemsPendentes,'pedidoPrazoStatus') : null,
       hasCritico: items.some(it=>it.materialCritico),
-      hasParcial: items.some(it=>it.pedidoParcial)
+      hasParcial: items.some(it=>it.pedidoParcial),
+      total: totalPedidoInfo(key, items)
     };
   });
   sortGroupArr(groupArr, pedSort, pedSortValue);
@@ -8696,6 +8727,7 @@ function renderCentros(){
         ${g.allEntregue?lamp('dentro'):lamp(g.worst)}<span class="group-toggle">▾</span>
         Pedido nº ${esc(g.key)}
         <span class="group-meta">${esc(first.obraLabel)} · ${esc(first.compradorLabel)} · ${esc(first.fornecedor)} · ${qtdPendentes} pendente(s) · ${qtdEntregues} entregue(s)</span>
+        ${g.total?`<span class="badge" style="background:transparent;border:1px solid var(--line);color:var(--text);font-weight:600" title="${esc(g.total.fonte)}">Total ${g.total.estimado?'≈ ':''}${esc(g.total.valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}))}</span>`:''}
         ${g.allEntregue?badge('dentro','Entregue'):badge(g.worst, prazoLabel(g.worst, first.dPrevisao))}
         ${g.hasCritico?'<span class="badge critico">Material crítico</span>':''}
         ${g.hasParcial?'<span class="badge parcial">Atendimento parcial</span>':''}
@@ -10386,12 +10418,15 @@ document.getElementById('btnExportSolic').addEventListener('click', ()=>{
 });
 document.getElementById('btnExportPed').addEventListener('click', ()=>{
   if(!lastPedRows.length){ alert('Não há dados para exportar.'); return; }
-  const headers = ['Centro de custo','Comprador','Pedido','Insumo','Detalhe','Material crítico','Fornecedor','Qtd pedida','Unidade','Valor unitário (R$)','Valor unitário estimado pela NF','Data do pedido','Entregue','Saldo','Saldo divergente (qtd-entregue ≠ saldo)','Linhas agrupadas (NF/parcela)','Previsão entrega','Situação pedido','Status de entrega','Status do prazo','Atendimento parcial','Duplicidade divergente (revisar)'];
+  const headers = ['Centro de custo','Comprador','Pedido','Insumo','Detalhe','Material crítico','Fornecedor','Qtd pedida','Unidade','Valor unitário (R$)','Valor unitário estimado pela NF','Valor total do pedido (R$)','Data do pedido','Entregue','Saldo','Saldo divergente (qtd-entregue ≠ saldo)','Linhas agrupadas (NF/parcela)','Previsão entrega','Situação pedido','Status de entrega','Status do prazo','Atendimento parcial','Duplicidade divergente (revisar)'];
+  const totPorPedido = new Map();
+  lastPedRows.forEach(r=>{ const k=String(r.numPedido||''); if(!totPorPedido.has(k)) totPorPedido.set(k, []); totPorPedido.get(k).push(r); });
   const rows = lastPedRows.map(r=>[
     r.obraLabel, r.compradorLabel, r.numPedido, r.descricaoInsumo, r.detalhe||'', r.materialCritico||'',
     r.fornecedor, r.qtdSolicitada, r.unidadeMovimento,
     r.vUnit==null ? '' : r.vUnit.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4}),
     r.vUnit==null ? '' : (r.vUnitEstimado ? 'Sim' : 'Não'),
+    (()=>{ const t = totalPedidoInfo(r.numPedido, totPorPedido.get(String(r.numPedido||'')) || []); return t ? (t.estimado?'≈ ':'') + t.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''; })(),
     fmtDate(r.dPedido), r.qtdEntregueNum||0, r.saldoNum||0,
     r.saldoDivergente ? `Sim (esperado ${r.saldoEsperado})` : 'Não',
     r.linhasAgrupadas>1 ? r.linhasAgrupadas : 1,
