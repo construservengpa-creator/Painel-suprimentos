@@ -3762,6 +3762,21 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
           <option value="entregue">Somente entregues</option>
         </select>
       </div>
+      <div class="field">
+        <label>Filtrar data por</label>
+        <select id="fPedDataTipo">
+          <option value="pedido">Data do pedido</option>
+          <option value="previsao">Previsão de entrega</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>De</label>
+        <input type="date" id="fPedDataDe">
+      </div>
+      <div class="field">
+        <label>Até</label>
+        <input type="date" id="fPedDataAte">
+      </div>
       <div class="field field-hidden">
         <label>Status do prazo</label>
         <select id="fPedPrazo" multiple>
@@ -3806,6 +3821,7 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
             <th class="sortable" data-key="material">Material<span class="sort-arrow"></span><span class="col-filter-btn" data-key="material" title="Filtrar">⏷</span></th>
             <th class="sortable" data-key="fornecedor">Fornecedor<span class="sort-arrow"></span><span class="col-filter-btn" data-key="fornecedor" title="Filtrar">⏷</span></th>
             <th class="sortable" data-key="qtd">Qtd. pedida<span class="sort-arrow"></span><span class="col-filter-btn" data-key="qtd" title="Filtrar">⏷</span></th>
+            <th class="sortable" data-key="vunit" title="Valor unitário do insumo. Vem da coluna &quot;Valor/Preço unitário&quot; do relatório do Sienge; sem ela, é estimado pela nota fiscal (valor da NF ÷ qtd. entregue) quando a nota é só deste insumo.">Valor unit.<span class="sort-arrow"></span><span class="col-filter-btn" data-key="vunit" title="Filtrar">⏷</span></th>
             <th class="sortable" data-key="entregue">Entregue<span class="sort-arrow"></span><span class="col-filter-btn" data-key="entregue" title="Filtrar">⏷</span></th>
             <th class="sortable" data-key="saldo">Saldo<span class="sort-arrow"></span><span class="col-filter-btn" data-key="saldo" title="Filtrar">⏷</span></th>
             <th class="sortable" data-key="previsao">Previsão entrega<span class="sort-arrow"></span><span class="col-filter-btn" data-key="previsao" title="Filtrar">⏷</span></th>
@@ -5849,7 +5865,13 @@ const HEADER_NORM_TO_FIELD = {
   'VALORDANOTA':'valorNota','VALORDANOTAFISCAL':'valorNota','CHAVENFE':'chaveNFe','CHAVEDANFE':'chaveNFe',
   'ANEXONOTAFISCAL':'anexoNotaFiscal','NUMERODEPARCELAS':'numParcelas','NDEPARCELAS':'numParcelas',
   'SITUACAOPAGAMENTO':'situacaoPagamento','STATUSDOPAGAMENTO':'situacaoPagamento',
-  'DATAENTREGANAOBRA':'dataEntregaObra','DATADEENTREGANAOBRA':'dataEntregaObra'
+  'DATAENTREGANAOBRA':'dataEntregaObra','DATADEENTREGANAOBRA':'dataEntregaObra',
+  // Valor unitário do item do pedido: não faz parte do layout padrão (não está
+  // em FIELD_ORDER), só é lido quando o relatório traz a coluna pelo título.
+  'VALORUNITARIO':'valorUnitario','PRECOUNITARIO':'valorUnitario','PRUNITARIO':'valorUnitario',
+  'VLUNITARIO':'valorUnitario','VLRUNITARIO':'valorUnitario','VALORUNIT':'valorUnitario',
+  'PRECOUNIT':'valorUnitario','VALORUNITARIODOITEM':'valorUnitario','PRECOUNITARIODOITEM':'valorUnitario',
+  'VALORUNITARIODOPEDIDO':'valorUnitario','PRECOUNITARIODOPEDIDO':'valorUnitario','VALORUNITARIODOINSUMO':'valorUnitario'
 };
 
 // Lê uma planilha (array de linhas) e devolve as linhas já com os nomes de
@@ -8002,7 +8024,11 @@ function irParaDados(aba, filtros){
   cfg.multi.forEach(id=>selDefinir(id, filtros[id] || []));
   document.getElementById(cfg.busca).value = '';
   colFiltros[cfg.col] = {};
-  if(aba==='centros') document.getElementById('fPedStatusEntrega').value = 'pendente';
+  if(aba==='centros'){
+    document.getElementById('fPedStatusEntrega').value = 'pendente';
+    document.getElementById('fPedDataDe').value = '';
+    document.getElementById('fPedDataAte').value = '';
+  }
   cfg.render();
   const btn = document.querySelector(`.tab-btn[data-tab="${aba}"]`);
   if(btn) btn.click();
@@ -8240,6 +8266,7 @@ function pedSortValue(g, key){
     case 'material': return g.hasCritico ? 0 : 1;
     case 'fornecedor': return first.fornecedor;
     case 'qtd': return sumField(g.items,'qtdSolicitadaNum');
+    case 'vunit': { const vs = g.items.map(it=>it.vUnit).filter(v=>v!=null); return vs.length ? Math.max(...vs) : null; }
     case 'entregue': return sumField(g.items,'qtdEntregueNum');
     case 'saldo': return sumField(g.items,'saldoNum');
     case 'previsao': return first.dPrevisao;
@@ -8345,6 +8372,7 @@ function pedColValue(r, key){
     case 'material': return r.materialCritico || 'Não crítico';
     case 'fornecedor': return r.fornecedor||'';
     case 'qtd': return `${r.qtdSolicitada||''} ${r.unidadeMovimento||''}`.trim();
+    case 'vunit': return vunitTexto(r);
     case 'entregue': return String(r.qtdEntregueNum||0);
     case 'saldo': return String(r.saldoNum||0);
     case 'previsao': return r.dPrevisao ? fmtDate(r.dPrevisao) : '—';
@@ -8489,6 +8517,57 @@ function renderCompradores(){
 /* ============================================================
    9. RENDER: CENTROS DE CUSTO TAB
    ============================================================ */
+function pedInputDate(id){
+  const el = document.getElementById(id);
+  const m = el && el.value && el.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? new Date(Number(m[1]),Number(m[2])-1,Number(m[3])) : null;
+}
+const fmtVUnit = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:4});
+// Valor unitário de cada linha de pedido (r.vUnit / r.vUnitEstimado).
+// 1) coluna "Valor/Preço unitário" do relatório, quando vier;
+// 2) senão, estimativa pela nota fiscal: soma do valor das NFs ÷ qtd. entregue.
+//    O "Valor da nota" do relatório é o TOTAL da nota (confirmado: a mesma NF
+//    repete o mesmo valor em todos os insumos dela), então só vale quando
+//    todas as notas da linha são exclusivas deste insumo/pedido. Inclui o que
+//    estiver na nota além da mercadoria (frete, impostos destacados).
+let vUnitCacheBase = null;
+function calcValorUnitPed(rows){
+  if(vUnitCacheBase === state.rows) return;
+  vUnitCacheBase = state.rows;
+  const nfKey = (n, forn) => normKey(n) + '§' + normKey(forn);
+  const itemKey = r => normKey(r.numPedido) + '§' + normKey(r.descricaoInsumo) + '§' + normKey(r.detalhe);
+  const notasDe = r => (r.nfsAgrupadas && r.nfsAgrupadas.length)
+    ? r.nfsAgrupadas
+    : (normLabel(r.numNotaFiscal) ? [{ n:r.numNotaFiscal, v:r.valorNota }] : []);
+  const itensPorNota = new Map();
+  state.rows.forEach(r=>{
+    notasDe(r).forEach(nf=>{
+      const k = nfKey(nf.n, r.fornecedor);
+      if(!itensPorNota.has(k)) itensPorNota.set(k, new Set());
+      itensPorNota.get(k).add(itemKey(r));
+    });
+  });
+  rows.forEach(r=>{
+    r.vUnit = null; r.vUnitEstimado = false;
+    const doRel = parseNumBR(r.valorUnitario);
+    if(normLabel(r.valorUnitario) && doRel > 0){ r.vUnit = doRel; return; }
+    const notas = notasDe(r);
+    const qtd = r.qtdEntregueNum || 0;
+    if(!notas.length || qtd <= 0) return;
+    if(notas.some(nf=>(itensPorNota.get(nfKey(nf.n, r.fornecedor))||new Set()).size !== 1)) return;
+    const total = notas.reduce((s,nf)=>s + parseNumBR(nf.v), 0);
+    if(total > 0){ r.vUnit = total / qtd; r.vUnitEstimado = true; }
+  });
+}
+function vunitTexto(r){
+  if(r.vUnit == null) return '—';
+  return (r.vUnitEstimado ? '≈ ' : '') + fmtVUnit(r.vUnit);
+}
+function vunitCell(r){
+  if(r.vUnit == null) return '<span class="muted" title="Sem valor unitário no relatório e sem nota fiscal exclusiva deste insumo para estimar">—</span>';
+  if(!r.vUnitEstimado) return esc(fmtVUnit(r.vUnit));
+  return `<span title="Estimado pela nota fiscal: valor da NF ÷ qtd. entregue (${esc(String(r.qtdEntregueNum))} ${esc(r.unidadeMovimento||'')}). Pode incluir frete e impostos destacados na nota.">≈ ${esc(fmtVUnit(r.vUnit))}</span>`;
+}
 function renderCentros(){
   const fCentro = selVals('fPedCentro');
   const fComprador = selVals('fPedComprador');
@@ -8496,10 +8575,21 @@ function renderCentros(){
   const fPrazo = selVals('fPedPrazo');
   const fStatusEntrega = document.getElementById('fPedStatusEntrega').value;
   const fSearch = document.getElementById('fPedSearch').value.trim().toUpperCase();
+  const fDataTipo = document.getElementById('fPedDataTipo').value;
+  const fDataDe = pedInputDate('fPedDataDe');
+  const fDataAte = pedInputDate('fPedDataAte');
+  const dataOk = r => {
+    if(!fDataDe && !fDataAte) return true;
+    const d = fDataTipo==='previsao' ? r.dPrevisao : r.dPedido;
+    if(!d) return false;
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    return (!fDataDe || t >= fDataDe.getTime()) && (!fDataAte || t <= fDataAte.getTime());
+  };
 
   // Base: todo pedido de compra vinculado e não cancelado — entregue ou pendente.
   // O filtro "Status de entrega" abaixo permite restringir a um dos dois.
   let rows = state.rows.filter(r=>r.statusEntregaPed);
+  calcValorUnitPed(rows);
   document.getElementById('countPed').textContent = rows.length;
   ultimaBasePed = rows.slice();
 
@@ -8512,6 +8602,7 @@ function renderCentros(){
   if(fMaterial.length) rowsParaCards = rowsParaCards.filter(r=>matchMaterial(fMaterial, r));
   if(fPrazo.length) rowsParaCards = rowsParaCards.filter(r=>fPrazo.includes(r.pedidoPrazoStatus));
   if(fStatusEntrega) rowsParaCards = rowsParaCards.filter(r=>r.statusEntregaPed===fStatusEntrega);
+  rowsParaCards = rowsParaCards.filter(dataOk);
   if(fSearch) rowsParaCards = rowsParaCards.filter(r=>
     String(r.numPedido||'').toUpperCase().includes(fSearch) ||
     (r.descricaoInsumo||'').toUpperCase().includes(fSearch) ||
@@ -8558,6 +8649,7 @@ function renderCentros(){
   if(fMaterial.length) rows = rows.filter(r=>matchMaterial(fMaterial, r));
   if(fPrazo.length) rows = rows.filter(r=>fPrazo.includes(r.pedidoPrazoStatus));
   if(fStatusEntrega) rows = rows.filter(r=>r.statusEntregaPed===fStatusEntrega);
+  rows = rows.filter(dataOk);
   if(fSearch) rows = rows.filter(r=>
     String(r.numPedido||'').toUpperCase().includes(fSearch) ||
     (r.descricaoInsumo||'').toUpperCase().includes(fSearch) ||
@@ -8569,7 +8661,7 @@ function renderCentros(){
 
   const tbody = document.getElementById('tbodyPed');
   if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="es-icon">🚚</div><h3>Nenhum pedido encontrado</h3><p>Ajuste os filtros ou importe um relatório do Sienge para visualizar os pedidos por centro de custo.</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><div class="es-icon">🚚</div><h3>Nenhum pedido encontrado</h3><p>Ajuste os filtros ou importe um relatório do Sienge para visualizar os pedidos por centro de custo.</p></div></td></tr>`;
     return;
   }
 
@@ -8600,7 +8692,7 @@ function renderCentros(){
     const qtdPendentes = g.items.filter(it=>it.statusEntregaPed==='pendente').length;
     const qtdEntregues = g.items.length - qtdPendentes;
     html += `<tr class="group-row ${g.allEntregue?'':rowClass(g.worst)}" data-group="${esc(g.key)}">
-      <td colspan="13">
+      <td colspan="14">
         ${g.allEntregue?lamp('dentro'):lamp(g.worst)}<span class="group-toggle">▾</span>
         Pedido nº ${esc(g.key)}
         <span class="group-meta">${esc(first.obraLabel)} · ${esc(first.compradorLabel)} · ${esc(first.fornecedor)} · ${qtdPendentes} pendente(s) · ${qtdEntregues} entregue(s)</span>
@@ -8619,6 +8711,7 @@ function renderCentros(){
         <td>${r.materialCritico?`<span class="badge critico">${esc(r.materialCritico)}</span>`:'—'}</td>
         <td class="muted">${esc(r.fornecedor)}</td>
         <td>${esc(r.qtdSolicitada)} ${esc(r.unidadeMovimento)}</td>
+        <td>${vunitCell(r)}</td>
         <td>${r.qtdEntregueNum || 0}</td>
         <td>${r.saldoNum || 0}${r.saldoDivergente?` <span class="saldo-flag" title="Saldo informado (${r.saldoNum}) diferente do calculado (qtd. solicitada − qtd. entregue = ${r.saldoEsperado}). Confira a origem dos dados.">⚠</span>`:''}${r.linhasAgrupadas>1?` <span class="saldo-flag" title="Qtd. inicial, entregue e saldo consolidados a partir de ${r.linhasAgrupadas} linhas repetidas (NF/parcela/programação) do relatório de origem">Σ${r.linhasAgrupadas}</span>`:''}</td>
         <td>${fmtDate(r.dPrevisao)}${r.previsaoReatribuida?` <span class="saldo-flag" title="Este lote fazia parte de um grupo de ${r.previsaoReatribuidaLinhasNoCluster} lotes do mesmo pedido/insumo cujas datas de previsão vinham duplicadas entre todos eles no relatório. Data reatribuída por ordem (lote com chegada mais cedo = previsão mais cedo). Confirme no Sienge se necessário.">⚠previsão</span>`:''}${r.previsaoPelaChegada?` <span class="saldo-flag" title="O relatório traz uma única previsão de entrega (${esc(r.previsaoOriginalPedido||'')}) para todos os lotes deste pedido/insumo, mas este lote tem data de chegada à obra posterior. Usada a data de chegada do lote como previsão. Confirme no Sienge se necessário.">⚠previsão</span>`:''}</td>
@@ -10015,7 +10108,7 @@ document.addEventListener('click', function(e){
   document.getElementById(id).addEventListener('input', renderCompradores);
   document.getElementById(id).addEventListener('change', renderCompradores);
 });
-['fPedCentro','fPedComprador','fPedMaterial','fPedPrazo','fPedStatusEntrega'].forEach(id=>{
+['fPedCentro','fPedComprador','fPedMaterial','fPedPrazo','fPedStatusEntrega','fPedDataTipo','fPedDataDe','fPedDataAte'].forEach(id=>{
   document.getElementById(id).addEventListener('change', renderCentros);
 });
 document.getElementById('fPedSearch').addEventListener('input', renderCentros);
@@ -10293,10 +10386,13 @@ document.getElementById('btnExportSolic').addEventListener('click', ()=>{
 });
 document.getElementById('btnExportPed').addEventListener('click', ()=>{
   if(!lastPedRows.length){ alert('Não há dados para exportar.'); return; }
-  const headers = ['Centro de custo','Comprador','Pedido','Insumo','Detalhe','Material crítico','Fornecedor','Qtd pedida','Unidade','Entregue','Saldo','Saldo divergente (qtd-entregue ≠ saldo)','Linhas agrupadas (NF/parcela)','Previsão entrega','Situação pedido','Status de entrega','Status do prazo','Atendimento parcial','Duplicidade divergente (revisar)'];
+  const headers = ['Centro de custo','Comprador','Pedido','Insumo','Detalhe','Material crítico','Fornecedor','Qtd pedida','Unidade','Valor unitário (R$)','Valor unitário estimado pela NF','Data do pedido','Entregue','Saldo','Saldo divergente (qtd-entregue ≠ saldo)','Linhas agrupadas (NF/parcela)','Previsão entrega','Situação pedido','Status de entrega','Status do prazo','Atendimento parcial','Duplicidade divergente (revisar)'];
   const rows = lastPedRows.map(r=>[
     r.obraLabel, r.compradorLabel, r.numPedido, r.descricaoInsumo, r.detalhe||'', r.materialCritico||'',
-    r.fornecedor, r.qtdSolicitada, r.unidadeMovimento, r.qtdEntregueNum||0, r.saldoNum||0,
+    r.fornecedor, r.qtdSolicitada, r.unidadeMovimento,
+    r.vUnit==null ? '' : r.vUnit.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4}),
+    r.vUnit==null ? '' : (r.vUnitEstimado ? 'Sim' : 'Não'),
+    fmtDate(r.dPedido), r.qtdEntregueNum||0, r.saldoNum||0,
     r.saldoDivergente ? `Sim (esperado ${r.saldoEsperado})` : 'Não',
     r.linhasAgrupadas>1 ? r.linhasAgrupadas : 1,
     fmtDate(r.dPrevisao), r.situacaoPedido,
@@ -10325,6 +10421,7 @@ function gerarResumoPedidosHTML(rows){
     ['Centro de custo', selTxt('fPedCentro')], ['Comprador', selTxt('fPedComprador')],
     ['Material', selTxt('fPedMaterial')], ['Prazo', selTxt('fPedPrazo')],
     ['Status de entrega', selTxt('fPedStatusEntrega')],
+    ['Período', (()=>{ const de=document.getElementById('fPedDataDe').value, ate=document.getElementById('fPedDataAte').value; if(!de&&!ate) return ''; const br=v=>v?v.split('-').reverse().join('/'):'…'; return `${selTxt('fPedDataTipo')} de ${br(de)} até ${br(ate)}`; })()],
     ['Busca', (document.getElementById('fPedSearch')||{}).value||'']
   ].filter(f=>f[1]).map(f=>`${f[0]}: ${f[1]}`);
 
@@ -10551,6 +10648,13 @@ document.getElementById('btnCollapsePed').addEventListener('click', ()=>setAllGr
     TABLES.forEach(id=>{
       let arr = [];
       try{ arr = JSON.parse(lsGet(KEY(id)) || '[]'); }catch(e){ arr = []; }
+      // A coluna "Valor unit." entrou na 8ª posição de tablePed: as colunas
+      // ocultas salvas antes dela andam uma casa (migração feita uma vez só).
+      if(id==='tablePed' && Array.isArray(arr) && !lsGet(KEY(id)+'_v2')){
+        arr = arr.map(n=>n>=8 ? n+1 : n);
+        lsSet(KEY(id), JSON.stringify(arr));
+        lsSet(KEY(id)+'_v2', '1');
+      }
       const total = headers(id).length;
       const set = new Set(arr.filter(n=>Number.isInteger(n) && n>=1 && n<=total));
       if(total && set.size >= total) set.clear();   // nunca deixa a tabela sem colunas
