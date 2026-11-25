@@ -12012,6 +12012,9 @@ function renderTiposTable(){
     : (semClassificar > 0 ? `${semClassificar} de ${insumos.length} sem tipo` : `${insumos.length} insumo(s) classificado(s)`);
 }
 
+// usado pela Cotação de Preços (certame) depois de registrar preços aqui
+window.COT_RECARREGAR = async function(){ await loadData(); renderAll(); };
+
 function renderAll(){
   updateDatalists();
   renderTiposTable();

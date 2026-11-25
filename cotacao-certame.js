@@ -605,6 +605,7 @@
       <div class="ctr-toolbar" style="margin-top:12px;margin-bottom:0">
         <button class="btn small" id="cdImprimir">🖨 Imprimir mapa comparativo</button>
         <button class="btn small" id="cdCsv">⬇ Exportar CSV</button>
+        ${podeLancar() ? `<button class="btn small" id="cdRegCrit" title="Grava os preços recebidos no histórico da aba Cotação de Insumos Críticos">📈 Registrar na Cotação de Insumos Críticos</button>` : ''}
         <span style="flex:1"></span>
         ${decide ? `<button class="btn small" id="cdSugestao">Usar sugestão (menor preço)</button><button class="btn primary" id="cdConcluir">Indicar vencedor e concluir certame</button>` : ''}
         ${p.status === 'concluida' && podeLancar() ? `<button class="btn small wa" id="cdAvisarVenc">Avisar vencedor(es) pelo WhatsApp 📲</button>` : ''}
@@ -618,6 +619,7 @@
     $('#cdImprimir', el).addEventListener('click', () => imprimirMapa(m));
     $('#cdCsv', el).addEventListener('click', () => exportarCsv(m));
     const ba = $('#cdAvisarVenc', el); if (ba) ba.addEventListener('click', () => avisarVencedores(m));
+    const br = $('#cdRegCrit', el); if (br) br.addEventListener('click', () => registrarCriticos(m));
     $$('[data-editmapa]', el).forEach(b => b.addEventListener('click', () => lancarManual(A.convites.find(c => c.id === Number(b.dataset.editmapa)))));
   }
 
@@ -806,12 +808,122 @@
         });
         const { error: eh } = await SB().from('cotacoes').insert(regs);
         if (eh) erro(eh, 'Certame concluído, mas não consegui registrar no histórico de preços.');
+        else if (window.COT_RECARREGAR) window.COT_RECARREGAR().catch(() => {});
       }
       toast(`Certame ${numCert(p.id)} concluído.`);
       await carregarLista().catch(() => {});
       abrir(p.id);
     } catch (e) { erro(e, 'Não foi possível concluir o certame.'); }
   }
+  /* ---------------- registro na Cotação de Insumos Críticos (tabela "cotacoes") ----------------
+     Leva os preços recebidos no certame para o histórico de preços por fornecedor e
+     localidade. Cada item pode ganhar o nome usado no histórico (ex.: "Diesel S10"),
+     lembrado neste navegador para os próximos certames. Os insumos críticos já vêm
+     marcados; o que já estiver registrado (mesma data, fornecedor, insumo, valor e
+     local) aparece como "já registrado" e não é gravado de novo. */
+  const isoLocal = d => { const x = d ? new Date(d) : new Date(); return new Date(x.getTime() - x.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+  const NOMES_KEY = 'cert_nome_historico';
+  const nomesSalvos = () => { try { return JSON.parse(localStorage.getItem(NOMES_KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const guardarNomes = o => { try { localStorage.setItem(NOMES_KEY, JSON.stringify(o)); } catch (e) { /* só conveniência */ } };
+  const nomeSugerido = i => nomesSalvos()[i.insumo] || String(i.insumo || '').replace(/^\s*\d+\s*-\s*/, '').trim();
+  const ehCritico = i => (window.classificarMaterialCritico && window.classificarMaterialCritico(`${i.insumo || ''} ${i.detalhe || ''}`)) || '';
+  const chaveHist = r => [r.data, String(r.fornecedor).trim().toLowerCase(), String(r.insumo).trim().toLowerCase(),
+    Number(r.valor_unitario).toFixed(4), String(r.localidade_entrega).trim().toLowerCase()].join('|');
+
+  async function registrarCriticos(m){
+    const A = S.atual, p = A.p;
+    if (!m || !m.conv.length) return alert('Ainda não há propostas para registrar.');
+    const { data: hist, error } = await SB().from('cotacoes').select('data,fornecedor,insumo,unidade_medida,valor_unitario,localidade_entrega');
+    if (error) return erro(error, 'Não foi possível ler o histórico de preços.');
+    const existentes = new Set((hist || []).map(chaveHist));
+    const uniq = arr => [...new Set(arr.filter(Boolean).map(s => String(s).trim()))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const nomesHist = uniq((hist || []).map(r => r.insumo)), unidHist = uniq((hist || []).map(r => r.unidade_medida)), locHist = uniq((hist || []).map(r => r.localidade_entrega));
+    const criticos = A.itens.filter(ehCritico);
+    const marcarItem = i => criticos.length ? !!ehCritico(i) : true;
+
+    // uma linha por preço recebido (fornecedor × item); frete total rateado pelo valor de cada item
+    const linhas = [];
+    m.totais.forEach(t => {
+      A.itens.forEach(i => {
+        const v = m.valor(i.id, t.conv.id); if (v == null) return;
+        const frete = t.frete && t.sub ? Math.round(t.frete * v / t.sub * 1e4) / 1e4 : 0;
+        linhas.push({ k: `${t.conv.id}_${i.id}`, conv: t.conv, item: i, v, frete, data: isoLocal(t.conv.respondido_em) });
+      });
+    });
+    const res = resultado(m);
+
+    const bd = modal(`Registrar na Cotação de Insumos Críticos — ${numCert(p.id)}`, `
+      <p class="ctr-note" style="margin-top:0">Os preços marcados vão para o histórico da aba <b>Cotação de Insumos Críticos</b> (melhor preço do dia, série histórica e registros).
+        ${criticos.length ? `Os itens classificados como <b>insumo crítico</b> já vêm marcados.` : 'Nenhum item deste certame casa com a classificação de insumo crítico — confira antes de registrar.'}</p>
+      <datalist id="crtDlIns">${nomesHist.map(n => `<option value="${h(n)}">`).join('')}</datalist>
+      <datalist id="crtDlUn">${unidHist.map(n => `<option value="${h(n)}">`).join('')}</datalist>
+      <datalist id="crtDlLoc">${locHist.map(n => `<option value="${h(n)}">`).join('')}</datalist>
+      <div class="ctr-frm"><label class="full">Localidade de entrega<input id="crtLocal" list="crtDlLoc" value="${h(p.localidade_entrega || '')}"></label></div>
+      <h4 style="margin:14px 0 6px;font:600 13px var(--font-body)">Como cada item aparece no histórico</h4>
+      <div class="table-scroll"><table class="data"><thead><tr><th>Item do certame</th><th>Nome no histórico</th><th>Unidade</th></tr></thead><tbody>
+        ${A.itens.map(i => `<tr><td class="wrap" style="min-width:180px">${h(i.insumo)}${ehCritico(i) ? ` <span class="badge critico">${h(ehCritico(i))}</span>` : ''}</td>
+          <td><input data-nome="${i.id}" list="crtDlIns" value="${h(nomeSugerido(i))}" style="min-width:180px"></td>
+          <td><input data-un="${i.id}" list="crtDlUn" value="${h(i.unidade || '')}" style="min-width:70px"></td></tr>`).join('')}
+      </tbody></table></div>
+      <h4 style="margin:14px 0 6px;font:600 13px var(--font-body)">Preços recebidos</h4>
+      <div class="table-scroll"><table class="data"><thead><tr><th><input type="checkbox" id="crtTodos" title="Marcar/desmarcar todos"></th><th>Fornecedor</th><th>Item</th><th class="num">Valor unit. (R$)</th><th>Frete unit. (R$)</th><th>Data</th><th></th></tr></thead><tbody>
+        ${linhas.map(l => `<tr data-k="${l.k}"><td><input type="checkbox" data-sel="${l.k}" ${marcarItem(l.item) ? 'checked' : ''}></td>
+          <td class="wrap" style="min-width:140px">${h(fornecedorDe(l.conv).nome)}${res[l.item.id] && res[l.item.id].conv === l.conv.id ? ' <span class="cert-sub" style="color:var(--teal)">vencedor do item</span>' : ''}</td>
+          <td class="wrap" style="min-width:160px">${h(l.item.insumo)}</td>
+          <td class="num">${money(l.v)}</td>
+          <td><input data-fr="${l.k}" inputmode="decimal" value="${l.frete ? String(l.frete).replace('.', ',') : '0'}" style="min-width:80px" title="Frete total da proposta rateado pelo valor de cada item"></td>
+          <td><input type="date" data-dt="${l.k}" value="${l.data}"></td>
+          <td data-st="${l.k}"></td></tr>`).join('')}
+      </tbody></table></div>`, [
+      { t: 'Cancelar', cls: 'ghost' },
+      { t: 'Registrar preços', cls: 'primary', fn: async (bd) => {
+        const local = $('#crtLocal', bd).value.trim();
+        if (!local) { $('#crtLocal', bd).style.borderColor = 'var(--red)'; return alert('Informe a localidade de entrega.'); }
+        const regs = [], vistos = new Set(); let dup = 0;
+        for (const l of linhas) {
+          if (!$(`[data-sel="${l.k}"]`, bd).checked) continue;
+          const nome = $(`[data-nome="${l.item.id}"]`, bd).value.trim();
+          const un = $(`[data-un="${l.item.id}"]`, bd).value.trim();
+          const fr = parseNum($(`[data-fr="${l.k}"]`, bd).value) || 0;
+          const dt = $(`[data-dt="${l.k}"]`, bd).value;
+          if (!nome || !un) return alert(`Preencha o nome no histórico e a unidade de "${l.item.insumo}".`);
+          if (!dt) return alert('Informe a data de todos os preços marcados.');
+          if (fr < 0) return alert('Frete não pode ser negativo.');
+          const r = { data: dt, fornecedor: fornecedorDe(l.conv).nome, insumo: nome, unidade_medida: un,
+                      valor_unitario: l.v, frete_unitario: fr, localidade_entrega: local };
+          const k = chaveHist(r);
+          if (existentes.has(k) || vistos.has(k)) { dup++; continue; }
+          vistos.add(k); regs.push(r);
+        }
+        if (!regs.length) return alert(dup ? 'Os preços marcados já estão registrados no histórico.' : 'Marque pelo menos um preço.');
+        const { error: ei } = await SB().from('cotacoes').insert(regs);
+        if (ei) return erro(ei, 'Não foi possível registrar os preços na Cotação de Insumos Críticos.');
+        const nomes = nomesSalvos();
+        A.itens.forEach(i => { const v = $(`[data-nome="${i.id}"]`, bd).value.trim(); if (v) nomes[i.insumo] = v; });
+        guardarNomes(nomes);
+        fecharModal();
+        toast(`${regs.length} preço(s) registrado(s) na Cotação de Insumos Críticos${dup ? ` · ${dup} já existia(m)` : ''}.`);
+        if (window.COT_RECARREGAR) window.COT_RECARREGAR().catch(() => {});
+      } }
+    ]);
+
+    // marca "já registrado" conforme o que está na tela (nome, data, local)
+    const conferir = () => {
+      const local = $('#crtLocal', bd).value.trim();
+      linhas.forEach(l => {
+        const r = { data: $(`[data-dt="${l.k}"]`, bd).value, fornecedor: fornecedorDe(l.conv).nome,
+                    insumo: $(`[data-nome="${l.item.id}"]`, bd).value.trim(), valor_unitario: l.v, localidade_entrega: local };
+        $(`[data-st="${l.k}"]`, bd).innerHTML = existentes.has(chaveHist(r)) ? '<span class="cert-sub" style="color:var(--amber)">já registrado</span>' : '';
+      });
+    };
+    conferir();
+    linhas.forEach(l => { const st = $(`[data-st="${l.k}"]`, bd); if (st.textContent) $(`[data-sel="${l.k}"]`, bd).checked = false; });
+    $$('input[data-nome],input[data-dt],#crtLocal', bd).forEach(inp => inp.addEventListener('input', conferir));
+    const todos = $('#crtTodos', bd);
+    todos.checked = $$('input[data-sel]', bd).every(c => c.checked);
+    todos.addEventListener('change', () => $$('input[data-sel]', bd).forEach(c => { c.checked = todos.checked; }));
+  }
+
   function avisarVencedores(m){
     const A = S.atual, res = resultado(m);
     const porConv = {};
