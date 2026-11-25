@@ -9,7 +9,7 @@
   Página do FORNECEDOR na cotação de preços (certame) do Painel de Suprimentos.
   Chega pelo link enviado no WhatsApp: cotacao.html?t=<token do convite>.
   Não tem login: lê e grava só pelo token, nas funções do banco
-  cotacao_portal_obter / cotacao_portal_responder (supabase/cotacao_certame.sql).
+  cotacao_portal_obter / cotacao_portal_responder (supabase/cotacao_certame.sql e cotacao_ibs_cbs.sql).
   O fornecedor vê apenas o próprio convite, nunca os preços dos concorrentes.
 -->
 <style>
@@ -31,8 +31,10 @@
   .item .qtd{font-size:13px;color:var(--dim);margin:2px 0 8px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   label{display:block;font-size:12.5px;color:var(--dim)}
-  input,textarea{width:100%;font:16px system-ui,sans-serif;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:3px}
-  input:focus,textarea:focus{outline:2px solid var(--acc);border-color:transparent}
+  input,textarea,select{width:100%;font:16px system-ui,sans-serif;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:3px}
+  select option{color:#1B2129}
+  .trib{font-size:12.5px;color:var(--dim);margin-top:8px;line-height:1.45}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--acc);border-color:transparent}
   input[type=checkbox]{width:auto;margin:0 6px 0 0;transform:scale(1.15)}
   .chk{display:flex;align-items:center;font-size:13px;color:var(--dim);margin-top:8px}
   .tot{font-size:13px;color:var(--dim);margin-top:6px;text-align:right}
@@ -49,7 +51,7 @@
   .msg.info{border:1px solid var(--line);color:var(--dim)}
   .centro{text-align:center;padding:40px 10px;color:var(--dim)}
   .req{color:var(--bad);font-weight:700}
-  input.falta,textarea.falta{border-color:var(--bad);outline:2px solid var(--bad)}
+  input.falta,textarea.falta,select.falta{border-color:var(--bad);outline:2px solid var(--bad)}
   @media (max-width:420px){.row{grid-template-columns:1fr}}
 </style>
 <style id="capivara-liga-desliga">
@@ -96,6 +98,17 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
     var n = Number(s); return isFinite(n) ? n : NaN;
   }
   function dataHora(iso){ if (!iso) return '—'; var d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+  function pct(v){ return (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 }); }
+  var REGIMES = {
+    regular: 'Regime regular (Lucro Real ou Presumido)',
+    simples: 'Simples Nacional (IBS/CBS dentro do DAS)',
+    simples_por_fora: 'Simples Nacional com IBS/CBS por fora (regime regular)'
+  };
+  var REGIME_DICA = {
+    regular: 'Informe o preço SEM IBS/CBS e as alíquotas que vão destacadas na nota. O IBS e a CBS são somados ao preço na nota.',
+    simples: 'Informe o preço final (o IBS/CBS já está dentro do DAS) e, nas alíquotas, o percentual de CBS e IBS do Simples que sai na nota para crédito do comprador.',
+    simples_por_fora: 'Informe o preço SEM IBS/CBS e as alíquotas que vão destacadas na nota. O IBS e a CBS são somados ao preço na nota.'
+  };
   function hoje(){ var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   function numCert(id){ return 'COT-' + String(id).padStart(4, '0'); }
 
@@ -131,12 +144,21 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
       '<div>Comprador<b>' + h(p.comprador_nome || '—') + '</b></div></div>' +
       (p.observacao ? '<p class="sub" style="margin:10px 0 0;white-space:pre-wrap">' + h(p.observacao) + '</p>' : '') + '</div>';
 
-    html += '<div class="card"><div style="font-weight:600;margin-bottom:4px">Itens — informe o preço unitário</div><div class="sub" style="margin-bottom:6px">Valores em R$, sem frete (o frete vai no campo abaixo). Deixe em branco ou marque “não forneço” o que não tiver.</div>';
+    var reg = c.regime_tributario || '';
+    html += '<div class="card"><div style="font-weight:600;margin-bottom:4px">Tributação — IBS e CBS (reforma tributária)</div>' +
+      '<label>Regime tributário da sua empresa <span class="req">*</span><select id="regime" ' + (aberto ? '' : 'disabled') + '>' +
+      '<option value="">Selecione…</option>' +
+      Object.keys(REGIMES).map(function(k){ return '<option value="' + k + '"' + (reg === k ? ' selected' : '') + '>' + h(REGIMES[k]) + '</option>'; }).join('') +
+      '</select></label><div class="trib" id="regimeDica"></div></div>';
+
+    html += '<div class="card"><div style="font-weight:600;margin-bottom:4px">Itens — informe o preço unitário e as alíquotas de CBS e IBS</div><div class="sub" style="margin-bottom:6px">Valores em R$, sem frete (o frete vai no campo abaixo). Deixe em branco ou marque “não forneço” o que não tiver.</div>';
     itens.forEach(function(i){
       html += '<div class="item"><div class="nome">' + h(i.insumo) + '</div>' + (i.detalhe ? '<div class="sub">' + h(i.detalhe) + '</div>' : '') +
         '<div class="qtd">Quantidade: <b>' + num(i.quantidade) + ' ' + h(i.unidade || '') + '</b></div>' +
         '<div class="row"><label>Preço unitário (R$)<input inputmode="decimal" data-v="' + i.id + '" value="' + (i.valor_unitario != null ? money(i.valor_unitario) : '') + '" placeholder="0,00" ' + (aberto ? '' : 'disabled') + '></label>' +
         '<label>Marca / modelo<input data-m="' + i.id + '" value="' + h(i.marca || '') + '" ' + (aberto ? '' : 'disabled') + '></label></div>' +
+        '<div class="row" style="margin-top:8px"><label>CBS (%)<input inputmode="decimal" data-cbs="' + i.id + '" value="' + (i.aliq_cbs != null ? pct(i.aliq_cbs) : '') + '" placeholder="ex.: 0,9" ' + (aberto ? '' : 'disabled') + '></label>' +
+        '<label>IBS (%)<input inputmode="decimal" data-ibs="' + i.id + '" value="' + (i.aliq_ibs != null ? pct(i.aliq_ibs) : '') + '" placeholder="ex.: 0,1" ' + (aberto ? '' : 'disabled') + '></label></div>' +
         '<label class="chk"><input type="checkbox" data-nd="' + i.id + '" ' + (i.disponivel === false ? 'checked' : '') + ' ' + (aberto ? '' : 'disabled') + '>Não forneço este item</label>' +
         '<div class="tot" data-t="' + i.id + '"></div></div>';
     });
@@ -157,6 +179,8 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
     html += aberto ? '<div class="barra"><div class="in"><div class="total">Total da proposta<b id="total">R$ 0,00</b></div><button class="pri" id="enviar" type="button">' + (jaResp ? 'Reenviar proposta' : 'Enviar proposta') + '</button></div></div>' : '';
     app.innerHTML = html;
 
+    var selReg = document.getElementById('regime');
+    if (selReg) selReg.addEventListener('change', function(){ selReg.classList.remove('falta'); somar(); });
     app.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){ inp.classList.remove('falta'); somar(); }); inp.addEventListener('change', somar); });
     somar();
     var b = document.getElementById('enviar'); if (b) b.addEventListener('click', function(){ enviar(false); });
@@ -164,14 +188,27 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
     var a = document.getElementById('avisar'); if (a) a.addEventListener('click', avisarComprador);
   }
 
+  // total da nota: no regime regular (e no Simples com IBS/CBS por fora) os tributos vão por fora do preço
   function somar(){
     var total = 0;
+    var regEl = document.getElementById('regime'), reg = regEl ? regEl.value : '';
+    var porFora = reg === 'regular' || reg === 'simples_por_fora';
+    var dica = document.getElementById('regimeDica');
+    if (dica) dica.textContent = REGIME_DICA[reg] || 'Escolha o regime para sabermos como o IBS e a CBS entram no preço.';
     dados.itens.forEach(function(i){
       var nd = app.querySelector('[data-nd="' + i.id + '"]').checked;
       var inp = app.querySelector('[data-v="' + i.id + '"]');
       inp.disabled = nd || !dados.processo.aberto;
+      ['cbs', 'ibs'].forEach(function(k){ app.querySelector('[data-' + k + '="' + i.id + '"]').disabled = nd || !dados.processo.aberto; });
       var v = parseNum(inp.value), t = app.querySelector('[data-t="' + i.id + '"]');
-      if (!nd && v != null && !isNaN(v)) { var s = v * Number(i.quantidade); total += s; t.textContent = 'Subtotal: R$ ' + money(s); }
+      if (!nd && v != null && !isNaN(v)) {
+        var s = v * Number(i.quantidade);
+        var al = (parseNum(app.querySelector('[data-cbs="' + i.id + '"]').value) || 0) + (parseNum(app.querySelector('[data-ibs="' + i.id + '"]').value) || 0);
+        if (isNaN(al)) al = 0;
+        var trib = s * al / 100;
+        if (porFora && trib) { total += s + trib; t.textContent = 'Subtotal: R$ ' + money(s) + ' + IBS/CBS R$ ' + money(trib) + ' = R$ ' + money(s + trib) + ' na nota'; }
+        else { total += s; t.textContent = 'Subtotal: R$ ' + money(s) + (reg === 'simples' && trib ? ' (IBS/CBS de R$ ' + money(trib) + ' já incluído)' : ''); }
+      }
       else t.textContent = '';
     });
     var f = parseNum((document.getElementById('frete') || {}).value);
@@ -181,18 +218,25 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
   }
 
   function enviar(declinar){
-    var itens = [], invalido = false, algum = false;
+    var itens = [], invalido = false, algum = false, aliqInvalida = false;
     dados.itens.forEach(function(i){
       var nd = app.querySelector('[data-nd="' + i.id + '"]').checked;
       var v = parseNum(app.querySelector('[data-v="' + i.id + '"]').value);
       if (!nd && (isNaN(v) || (v != null && v < 0))) invalido = true;
       if (!nd && v != null && !isNaN(v)) algum = true;
-      itens.push({ id: i.id, valor_unitario: nd || v == null || isNaN(v) ? null : v, marca: app.querySelector('[data-m="' + i.id + '"]').value, disponivel: !nd });
+      var cbs = parseNum(app.querySelector('[data-cbs="' + i.id + '"]').value), ibs = parseNum(app.querySelector('[data-ibs="' + i.id + '"]').value);
+      if (!nd && [cbs, ibs].some(function(a){ return a != null && (isNaN(a) || a < 0 || a > 100); })) aliqInvalida = true;
+      itens.push({ id: i.id, valor_unitario: nd || v == null || isNaN(v) ? null : v,
+                   aliq_cbs: nd || cbs == null || isNaN(cbs) ? null : cbs, aliq_ibs: nd || ibs == null || isNaN(ibs) ? null : ibs,
+                   marca: app.querySelector('[data-m="' + i.id + '"]').value, disponivel: !nd });
     });
+    var regime = document.getElementById('regime').value;
     var frete = parseNum(document.getElementById('frete').value);
     if (!declinar) {
       if (invalido || (frete != null && (isNaN(frete) || frete < 0))) { alert('Há um valor inválido. Use apenas números, ex.: 1.250,90'); return; }
+      if (aliqInvalida) { alert('As alíquotas de CBS e IBS devem ser números entre 0 e 100 (ex.: 0,9).'); return; }
       if (!algum) { alert('Informe o preço de pelo menos um item.'); return; }
+      if (!regime) { var sr = document.getElementById('regime'); sr.classList.add('falta'); sr.focus(); alert('Informe o regime tributário da sua empresa (IBS/CBS).'); return; }
       var faltam = [];
       [['prazo', 'prazo de entrega'], ['pag', 'condição de pagamento'], ['val', 'validade da proposta']].forEach(function(c){
         var el = document.getElementById(c[0]); var vazio = !el.value.trim();
@@ -203,7 +247,7 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
     }
     var btn = document.getElementById('enviar'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
     rpc('cotacao_portal_responder', { p_token: token, p_dados: {
-      declinar: !!declinar, itens: itens, frete_total: frete == null || isNaN(frete) ? 0 : frete,
+      declinar: !!declinar, itens: itens, regime_tributario: regime || null, frete_total: frete == null || isNaN(frete) ? 0 : frete,
       prazo_entrega: document.getElementById('prazo').value, condicao_pagamento: document.getElementById('pag').value,
       validade_proposta: document.getElementById('val').value, observacao: document.getElementById('obs').value
     } }).then(function(j){
