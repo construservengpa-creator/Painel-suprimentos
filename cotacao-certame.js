@@ -66,6 +66,29 @@
     respondido: { t: 'Respondeu',   c: 'var(--teal)' },
     declinou:   { t: 'Declinou',    c: 'var(--red)' }
   };
+  /* IBS/CBS (reforma tributária): o mapa compara pelo CUSTO LÍQUIDO de cada preço.
+       regular / Simples com IBS/CBS por fora: nota = preço × (1 + t)   crédito = preço × t × a
+       Simples (IBS/CBS dentro do DAS):        nota = preço             crédito = preço × t × a
+       custo líquido = nota − crédito; t = (CBS% + IBS%)/100; a = aproveitamento do crédito no certame.
+     Sem regime informado: sem crédito (custo = preço). Frete entra pelo valor informado. */
+  const REGIMES = {
+    regular:          { t: 'Regime regular',              c: 'var(--teal)' },
+    simples:          { t: 'Simples Nacional',            c: 'var(--amber)' },
+    simples_por_fora: { t: 'Simples c/ IBS/CBS por fora', c: 'var(--blue)' }
+  };
+  const SEM_REGIME = { t: 'Regime não informado', c: 'var(--text-dim)' };
+  const pct = v => (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 });
+  const aproveitamento = p => (p && p.credito_ibs_cbs_pct != null ? Number(p.credito_ibs_cbs_pct) : 100) / 100;
+  function fiscal(preco, resp, regime, aprov){
+    const cbs = resp && resp.aliq_cbs != null ? Number(resp.aliq_cbs) : 0;
+    const ibs = resp && resp.aliq_ibs != null ? Number(resp.aliq_ibs) : 0;
+    const t = regime ? (cbs + ibs) / 100 : 0;
+    const porFora = regime === 'regular' || regime === 'simples_por_fora';
+    const trib = preco * t;
+    const nota = porFora ? preco + trib : preco;
+    const credito = trib * aprov;
+    return { cbs, ibs, t, trib, nota, credito, liquido: nota - credito, porFora, informado: !!regime && (resp && (resp.aliq_cbs != null || resp.aliq_ibs != null)) };
+  }
   const pill = (o) => `<span class="cert-pill" style="--c:${o.c}">${h(o.t)}</span>`;
 
   const S = {
@@ -207,20 +230,35 @@
       const r = (preco[itemId] || {})[convId];
       return r && r.disponivel !== false && r.valor_unitario != null ? Number(r.valor_unitario) : null;
     };
+    const aprov = aproveitamento(A.p);
+    // detalhe fiscal de um preço (por unidade): nota, IBS/CBS, crédito e custo líquido
+    const fisc = (itemId, convId) => {
+      const v = valor(itemId, convId); if (v == null) return null;
+      const c = conv.find(x => x.id === convId);
+      return Object.assign({ preco: v }, fiscal(v, (preco[itemId] || {})[convId], c && c.regime_tributario, aprov));
+    };
+    const custo = (itemId, convId) => { const f = fisc(itemId, convId); return f ? f.liquido : null; };
     const itens = A.itens.map(i => {
-      const ofertas = conv.map(c => ({ conv: c.id, v: valor(i.id, c.id) })).filter(o => o.v != null).sort((a, b) => a.v - b.v);
+      const ofertas = conv.map(c => ({ conv: c.id, v: custo(i.id, c.id), p: valor(i.id, c.id) })).filter(o => o.v != null).sort((a, b) => a.v - b.v);
       const media = ofertas.length ? ofertas.reduce((s, o) => s + o.v, 0) / ofertas.length : null;
       return { item: i, ofertas, melhor: ofertas[0] || null, maior: ofertas[ofertas.length - 1] || null, media };
     });
+    // total = custo líquido + frete (é o que decide); totalNota = desembolso na nota
     const totais = conv.map(c => {
-      let sub = 0, cot = 0;
-      A.itens.forEach(i => { const v = valor(i.id, c.id); if (v != null) { sub += v * Number(i.quantidade); cot++; } });
+      let sub = 0, trib = 0, nota = 0, credito = 0, liquido = 0, cot = 0;
+      A.itens.forEach(i => {
+        const f = fisc(i.id, c.id); if (!f) return;
+        const q = Number(i.quantidade);
+        sub += f.preco * q; trib += f.trib * q; nota += f.nota * q; credito += f.credito * q; liquido += f.liquido * q; cot++;
+      });
       const frete = Number(c.frete_total) || 0;
-      return { conv: c, sub, frete, total: sub + frete, cot, completo: cot === A.itens.length && A.itens.length > 0 };
+      return { conv: c, sub, trib, nota, credito, liquido, frete, total: liquido + frete, totalNota: nota + frete, cot,
+               completo: cot === A.itens.length && A.itens.length > 0 };
     });
     const completos = totais.filter(t => t.completo).sort((a, b) => a.total - b.total);
     const sugestaoGlobal = completos[0] ? completos[0].conv.id : null;
-    return { conv, itens, totais, valor, sugestaoGlobal, completos };
+    const semRegime = conv.filter(c => !c.regime_tributario);
+    return { conv, itens, totais, valor, custo, fisc, aprov, sugestaoGlobal, completos, semRegime };
   }
   function vencedorItem(m, li){
     const e = S.escolha[li.item.id];
@@ -232,15 +270,15 @@
     if (e && m.totais.some(t => t.conv.id === e && t.cot > 0)) return e;
     return m.sugestaoGlobal;
   }
-  // resultado final conforme o critério: itemId -> { conv, valor }
+  // resultado final conforme o critério: itemId -> { conv, v: preço unitário, c: custo líquido unitário }
   function resultado(m){
     const crit = S.atual.p.criterio;
     const out = {};
     if (crit === 'global') {
       const g = vencedorGlobal(m);
-      m.itens.forEach(li => { const v = g ? m.valor(li.item.id, g) : null; if (v != null) out[li.item.id] = { conv: g, v }; });
+      m.itens.forEach(li => { const v = g ? m.valor(li.item.id, g) : null; if (v != null) out[li.item.id] = { conv: g, v, c: m.custo(li.item.id, g) }; });
     } else {
-      m.itens.forEach(li => { const c = vencedorItem(m, li); if (c) out[li.item.id] = { conv: c, v: m.valor(li.item.id, c) }; });
+      m.itens.forEach(li => { const c = vencedorItem(m, li); if (c) out[li.item.id] = { conv: c, v: m.valor(li.item.id, c), c: m.custo(li.item.id, c) }; });
     }
     return out;
   }
@@ -502,6 +540,9 @@
           <div class="cert-kpi"><div class="k">Prazo para resposta</div><div class="v" style="font-size:15px">${fmtDataHora(p.prazo_resposta)}</div></div>
           <div class="cert-kpi"><div class="k">Critério</div><div class="v" style="font-size:15px">${p.criterio === 'global' ? 'Menor preço global' : 'Menor preço por item'}</div></div>
           <div class="cert-kpi"><div class="k">Respostas</div><div class="v">${resp}/${A.convites.length}</div><div class="d">${A.itens.length} item(ns) em cotação</div></div>
+          <div class="cert-kpi"><div class="k">Crédito de IBS/CBS</div><div class="v" style="font-size:15px">${edita && p.status !== 'concluida' && p.status !== 'cancelada'
+            ? `<input class="cert-in" id="cdCredito" inputmode="decimal" value="${pct(aproveitamento(p) * 100)}" style="width:80px;text-align:right"> %`
+            : pct(aproveitamento(p) * 100) + '%'}</div><div class="d">aproveitamento usado no custo líquido</div></div>
         </div>
         ${p.observacao ? `<p class="ctr-note" style="margin:10px 0 0"><b>Observações ao fornecedor:</b> ${h(p.observacao)}</p>` : ''}
         ${p.status === 'em_cotacao' && resp < 3 ? `<div class="cert-aviso" style="margin:12px 0 0">Recomendado: pelo menos <b>3 propostas válidas</b> para o mapa comparativo.</div>` : ''}
@@ -519,13 +560,13 @@
             ${edita && aberto ? `<div class="ctr-toolbar"><select id="cdAddForn" style="flex:1 1 260px"><option value="">+ Convidar fornecedor do cadastro…</option>${S.fornecedores.filter(f => f.ativo && !A.convites.some(c => c.fornecedor_id === f.id)).map(f => `<option value="${f.id}">${h(f.nome)}${f.insumos ? ' — ' + h(f.insumos) : ''}</option>`).join('')}</select>
               <button class="btn small" id="cdNovoForn">Cadastrar novo</button>
               ${A.convites.some(c => c.status === 'pendente') ? `<button class="btn small wa" id="cdEnviarTodos">Enviar para os não enviados</button>` : ''}</div>` : ''}
-            <div class="table-scroll"><table class="data"><thead><tr><th>Fornecedor</th><th>WhatsApp</th><th>Situação</th><th>Enviado</th><th>Respondido</th><th class="num">Total proposta</th><th></th></tr></thead>
+            <div class="table-scroll"><table class="data"><thead><tr><th>Fornecedor</th><th>WhatsApp</th><th>Situação</th><th>Enviado</th><th>Respondido</th><th class="num">Total na nota</th><th></th></tr></thead>
             <tbody>${A.convites.length ? A.convites.map(c => {
               const f = fornecedorDe(c), t = m && m.totais.find(x => x.conv.id === c.id);
               return `<tr><td class="wrap" style="min-width:160px">${h(f.nome)}${c.observacao ? `<span class="cert-sub">“${h(c.observacao)}”</span>` : ''}</td><td>${h(fmtFone(f.telefone))}</td>
-                <td>${pill(ST_CONV[c.status])}${c.respondido_via === 'manual' ? '<span class="cert-sub">lançado pelo comprador</span>' : ''}${c.editado_em ? `<span class="cert-sub" title="Última correção feita no painel">✎ editado por ${h(c.editado_por_nome || 'comprador')} em ${fmtDataHora(c.editado_em)}</span>` : ''}</td>
+                <td>${pill(ST_CONV[c.status])}${c.status === 'respondido' ? `<span class="cert-sub">${h((REGIMES[c.regime_tributario] || SEM_REGIME).t)}</span>` : ''}${c.respondido_via === 'manual' ? '<span class="cert-sub">lançado pelo comprador</span>' : ''}${c.editado_em ? `<span class="cert-sub" title="Última correção feita no painel">✎ editado por ${h(c.editado_por_nome || 'comprador')} em ${fmtDataHora(c.editado_em)}</span>` : ''}</td>
                 <td>${fmtDataHora(c.enviado_em)}</td><td>${fmtDataHora(c.respondido_em)}</td>
-                <td class="num">${t && t.cot ? 'R$ ' + money(t.total) + `<span class="cert-sub">${t.cot}/${A.itens.length} itens</span>` : '—'}</td>
+                <td class="num">${t && t.cot ? 'R$ ' + money(t.totalNota) + `<span class="cert-sub">líquido R$ ${money(t.total)} · ${t.cot}/${A.itens.length} itens</span>` : '—'}</td>
                 <td><div class="cert-acoes">
                   ${edita && aberto ? `<button class="btn small wa" data-wa="${c.id}" title="Abrir o WhatsApp com a mensagem pronta">${c.enviado_em ? 'Reenviar' : 'Enviar'} 📲</button>` : ''}
                   <button class="btn small" data-copiar="${c.id}" title="Copiar o link de resposta do fornecedor">🔗</button>
@@ -537,7 +578,7 @@
             }).join('') : `<tr><td colspan="7"><div class="cert-vazio">Nenhum fornecedor convidado ainda.</div></td></tr>`}</tbody></table></div>
           </div></div>
 
-        <div class="ctr-card"><header><h3>Mapa comparativo</h3><p>Preço unitário de cada proposta · ★ menor preço do item · contorno amarelo = vencedor indicado</p></header>
+        <div class="ctr-card"><header><h3>Mapa comparativo</h3><p>Preço unitário de cada proposta e custo líquido após o crédito de IBS/CBS · ★ menor custo líquido do item · contorno amarelo = vencedor indicado</p></header>
           <div class="ctr-body" id="cdMapa"></div></div>
       </div>`;
     renderMapa($('#cdMapa'), m);
@@ -551,54 +592,66 @@
     const crit = p.criterio;
     const res = resultado(m);
     const vg = crit === 'global' ? vencedorGlobal(m) : null;
-    const totalVenc = Object.entries(res).reduce((s, [iid, r]) => s + r.v * Number((A.itens.find(i => i.id === Number(iid)) || {}).quantidade || 0), 0);
+    const qtdDe = iid => Number((A.itens.find(i => i.id === Number(iid)) || {}).quantidade || 0);
+    const totalVenc = Object.entries(res).reduce((s, [iid, r]) => s + r.c * qtdDe(iid), 0);
+    const notaVenc = Object.entries(res).reduce((s, [iid, r]) => s + m.fisc(Number(iid), r.conv).nota * qtdDe(iid), 0);
+    const credVenc = Object.entries(res).reduce((s, [iid, r]) => s + m.fisc(Number(iid), r.conv).credito * qtdDe(iid), 0);
     const totalMedia = m.itens.reduce((s, li) => s + (li.media != null ? li.media * Number(li.item.quantidade) : 0), 0);
     const totalMaior = m.itens.reduce((s, li) => s + (li.maior ? li.maior.v * Number(li.item.quantidade) : 0), 0);
     const semOferta = m.itens.filter(li => !li.ofertas.length).length;
     const fretesVenc = crit === 'global' ? (vg ? Number((m.conv.find(c => c.id === vg) || {}).frete_total) || 0 : 0)
       : [...new Set(Object.values(res).map(r => r.conv))].reduce((s, cid) => s + (Number((m.conv.find(c => c.id === cid) || {}).frete_total) || 0), 0);
     const naoMenor = crit === 'global' ? (vg && m.sugestaoGlobal && vg !== m.sugestaoGlobal)
-      : m.itens.some(li => li.melhor && res[li.item.id] && res[li.item.id].v > li.melhor.v);
+      : m.itens.some(li => li.melhor && res[li.item.id] && res[li.item.id].c > li.melhor.v + 1e-9);
 
     el.innerHTML = `
       <div class="cert-kpis">
-        <div class="cert-kpi"><div class="k">Valor indicado (vencedor)</div><div class="v">R$ ${money(totalVenc + fretesVenc)}</div><div class="d">itens R$ ${money(totalVenc)} + frete R$ ${money(fretesVenc)}</div></div>
+        <div class="cert-kpi"><div class="k">Custo líquido indicado</div><div class="v">R$ ${money(totalVenc + fretesVenc)}</div><div class="d">itens R$ ${money(totalVenc)} + frete R$ ${money(fretesVenc)}</div></div>
+        <div class="cert-kpi"><div class="k">Valor na nota (vencedor)</div><div class="v">R$ ${money(notaVenc + fretesVenc)}</div><div class="d">crédito de IBS/CBS R$ ${money(credVenc)} (${pct(m.aprov * 100)}% aproveitado)</div></div>
         <div class="cert-kpi"><div class="k">Economia × média</div><div class="v" style="color:var(--teal)">R$ ${money(Math.max(totalMedia - totalVenc, 0))}</div><div class="d">${totalMedia ? ((1 - totalVenc / totalMedia) * 100).toFixed(1).replace('.', ',') + '% abaixo da média das propostas' : '—'}</div></div>
         <div class="cert-kpi"><div class="k">Economia × maior preço</div><div class="v">R$ ${money(Math.max(totalMaior - totalVenc, 0))}</div></div>
         <div class="cert-kpi"><div class="k">Propostas</div><div class="v">${m.conv.length}</div><div class="d">${semOferta ? `<span style="color:var(--red)">${semOferta} item(ns) sem oferta</span>` : 'todos os itens com oferta'}</div></div>
       </div>
+      ${m.semRegime.length ? `<div class="cert-aviso">${m.semRegime.map(c => h(fornecedorDe(c).nome)).join(', ')} não informou o regime tributário — a proposta entra sem crédito de IBS/CBS (custo = preço). Use “✎ editar” para completar.</div>` : ''}
       ${crit === 'global' && !m.completos.length ? `<div class="cert-aviso">Critério global: nenhum fornecedor cotou <b>todos</b> os itens. Indique o vencedor manualmente com justificativa, ou mude o critério para “por item”.</div>` : ''}
       <div class="table-scroll"><table class="data cert-mapa"><thead><tr><th>#</th><th>Insumo</th><th class="num">Qtd.</th>
-        ${m.conv.map(c => `<th class="forn">${h(fornecedorDe(c).nome)}${decide ? `<br><button class="btn small ghost" data-editmapa="${c.id}" title="Editar a resposta deste fornecedor" style="padding:2px 8px;margin-top:4px">✎ editar</button>` : ''}${crit === 'global' && decide ? `<br><label class="radio"><input type="radio" name="cdVG" value="${c.id}" ${vg === c.id ? 'checked' : ''}> vencedor</label>` : ''}</th>`).join('')}
-        <th class="num">Média</th>${crit === 'item' ? '<th>Vencedor do item</th>' : ''}</tr></thead>
+        ${m.conv.map(c => `<th class="forn">${h(fornecedorDe(c).nome)}<span class="cert-sub">${h((REGIMES[c.regime_tributario] || SEM_REGIME).t)}</span>${decide ? `<br><button class="btn small ghost" data-editmapa="${c.id}" title="Editar a resposta deste fornecedor" style="padding:2px 8px;margin-top:4px">✎ editar</button>` : ''}${crit === 'global' && decide ? `<br><label class="radio"><input type="radio" name="cdVG" value="${c.id}" ${vg === c.id ? 'checked' : ''}> vencedor</label>` : ''}</th>`).join('')}
+        <th class="num">Média (líquido)</th>${crit === 'item' ? '<th>Vencedor do item</th>' : ''}</tr></thead>
       <tbody>${m.itens.map((li, n) => {
         const venc = res[li.item.id];
         return `<tr><td>${n + 1}</td><td class="wrap">${h(li.item.insumo)}<span class="cert-sub">${h(li.item.unidade || '')}</span></td><td class="num">${num(li.item.quantidade)}</td>
           ${m.conv.map(c => {
             const r = (A.respostas.find(x => x.convite_id === c.id && x.item_id === li.item.id)) || null;
-            const v = m.valor(li.item.id, c.id);
-            if (v == null) return `<td class="num semcot">${r && r.disponivel === false ? 'não fornece' : '—'}</td>`;
-            const melhor = li.melhor && v === li.melhor.v;
+            const f = m.fisc(li.item.id, c.id);
+            if (!f) return `<td class="num semcot">${r && r.disponivel === false ? 'não fornece' : '—'}</td>`;
+            const v = f.preco, q = Number(li.item.quantidade);
+            const melhor = li.melhor && Math.abs(f.liquido - li.melhor.v) < 1e-9;
             const ehV = venc && venc.conv === c.id;
-            return `<td class="num ${melhor ? 'melhor' : ''} ${ehV ? 'vence' : ''}" title="${r && r.marca ? 'Marca: ' + h(r.marca) : ''}${r && r.observacao ? ' · ' + h(r.observacao) : ''}">
-              ${melhor ? '★ ' : ''}R$ ${money(v)}<span class="cert-sub">total R$ ${money(v * Number(li.item.quantidade))}${r && r.marca ? ' · ' + h(r.marca) : ''}</span>
+            const dica = [`Preço R$ ${money(v)}`, `CBS ${pct(f.cbs)}% + IBS ${pct(f.ibs)}%`,
+              f.porFora ? `IBS/CBS por fora R$ ${money(f.trib)} → nota R$ ${money(f.nota)}` : `IBS/CBS dentro do preço R$ ${money(f.trib)}`,
+              `crédito R$ ${money(f.credito)}`, `custo líquido R$ ${money(f.liquido)}`, r && r.marca ? 'Marca: ' + r.marca : '', r && r.observacao ? r.observacao : ''].filter(Boolean).join(' · ');
+            return `<td class="num ${melhor ? 'melhor' : ''} ${ehV ? 'vence' : ''}" title="${h(dica)}">
+              ${melhor ? '★ ' : ''}R$ ${money(v)}<span class="cert-sub">${f.informado ? `IBS/CBS ${pct(f.cbs + f.ibs)}% · ` : ''}líquido R$ ${money(f.liquido)}</span><span class="cert-sub">total líq. R$ ${money(f.liquido * q)}${r && r.marca ? ' · ' + h(r.marca) : ''}</span>
               ${crit === 'item' && decide ? `<label class="radio"><input type="radio" name="cdV${li.item.id}" value="${c.id}" data-item="${li.item.id}" ${ehV ? 'checked' : ''}> vence</label>` : ''}</td>`;
           }).join('')}
           <td class="num">${li.media != null ? 'R$ ' + money(li.media) : '—'}</td>
-          ${crit === 'item' ? `<td>${venc ? h(fornecedorDe(m.conv.find(c => c.id === venc.conv)).nome) + (li.melhor && venc.v > li.melhor.v ? ' <span style="color:var(--amber)" title="não é o menor preço">⚠</span>' : '') : '<span style="color:var(--text-faint)">sem oferta</span>'}</td>` : ''}</tr>`;
+          ${crit === 'item' ? `<td>${venc ? h(fornecedorDe(m.conv.find(c => c.id === venc.conv)).nome) + (li.melhor && venc.c > li.melhor.v + 1e-9 ? ' <span style="color:var(--amber)" title="não é o menor custo líquido">⚠</span>' : '') : '<span style="color:var(--text-faint)">sem oferta</span>'}</td>` : ''}</tr>`;
       }).join('')}</tbody>
       <tfoot>
-        <tr><td></td><td>Subtotal dos itens</td><td></td>${m.totais.map(t => `<td class="num">R$ ${money(t.sub)}<span class="cert-sub">${t.cot}/${A.itens.length} itens</span></td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
+        <tr><td></td><td>Subtotal dos itens (preço)</td><td></td>${m.totais.map(t => `<td class="num">R$ ${money(t.sub)}<span class="cert-sub">${t.cot}/${A.itens.length} itens</span></td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
+        <tr><td></td><td>IBS/CBS</td><td></td>${m.totais.map(t => `<td class="num" style="font-weight:400">R$ ${money(t.trib)}<span class="cert-sub">${t.conv.regime_tributario === 'simples' ? 'dentro do preço' : t.conv.regime_tributario ? 'por fora, na nota' : 'não informado'}</span></td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
         <tr><td></td><td>Frete</td><td></td>${m.totais.map(t => `<td class="num">R$ ${money(t.frete)}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
-        <tr><td></td><td>Total da proposta</td><td></td>${m.totais.map(t => `<td class="num ${crit === 'global' && t.conv.id === m.sugestaoGlobal ? 'melhor' : ''} ${crit === 'global' && t.conv.id === vg ? 'vence' : ''}">R$ ${money(t.total)}${t.completo ? '' : '<span class="cert-sub" style="color:var(--amber)">incompleta</span>'}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
+        <tr><td></td><td>Total na nota</td><td></td>${m.totais.map(t => `<td class="num" style="font-weight:400">R$ ${money(t.totalNota)}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
+        <tr><td></td><td>(−) Crédito de IBS/CBS</td><td></td>${m.totais.map(t => `<td class="num" style="font-weight:400;color:var(--teal)">− R$ ${money(t.credito)}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
+        <tr><td></td><td>Custo líquido da proposta</td><td></td>${m.totais.map(t => `<td class="num ${crit === 'global' && t.conv.id === m.sugestaoGlobal ? 'melhor' : ''} ${crit === 'global' && t.conv.id === vg ? 'vence' : ''}">R$ ${money(t.total)}${t.completo ? '' : '<span class="cert-sub" style="color:var(--amber)">incompleta</span>'}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
         <tr><td></td><td>Prazo de entrega</td><td></td>${m.totais.map(t => `<td class="num" style="font-weight:400">${h(t.conv.prazo_entrega || '—')}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
         <tr><td></td><td>Pagamento</td><td></td>${m.totais.map(t => `<td class="num" style="font-weight:400">${h(t.conv.condicao_pagamento || '—')}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
         <tr><td></td><td>Validade</td><td></td>${m.totais.map(t => `<td class="num" style="font-weight:400">${t.conv.validade_proposta ? new Date(t.conv.validade_proposta + 'T12:00').toLocaleDateString('pt-BR') : '—'}</td>`).join('')}<td></td>${crit === 'item' ? '<td></td>' : ''}</tr>
       </tfoot></table></div>
-      ${crit === 'item' ? `<p class="ctr-note">No critério por item o frete de cada fornecedor é somado uma vez ao valor indicado quando ele vence ao menos um item.</p>` : ''}
+      <p class="ctr-note">O vencedor é escolhido pelo <b>custo líquido</b>: preço + IBS/CBS destacado na nota − crédito de IBS/CBS (${pct(m.aprov * 100)}% de aproveitamento). Fornecedor do regime regular soma IBS/CBS por fora e gera crédito integral; no Simples Nacional o IBS/CBS já está no preço e só gera o crédito do percentual informado. O frete entra pelo valor informado.${crit === 'item' ? ' No critério por item o frete de cada fornecedor é somado uma vez ao valor indicado quando ele vence ao menos um item.' : ''}</p>
       ${decide || p.status === 'concluida' ? `
       <div class="ctr-frm" style="margin-top:12px">
-        <label class="full">Justificativa ${naoMenor ? '<b style="color:var(--amber)">(obrigatória: o vencedor indicado não é o menor preço)</b>' : '(opcional)'}
+        <label class="full">Justificativa ${naoMenor ? '<b style="color:var(--amber)">(obrigatória: o vencedor indicado não é o menor custo líquido)</b>' : '(opcional)'}
           <textarea id="cdJust" ${decide ? '' : 'disabled'} placeholder="Ex.: menor prazo de entrega, fornecedor já homologado, qualidade comprovada…">${h(p.justificativa || '')}</textarea></label>
         ${decide ? `<label class="ctr-chk full"><input type="checkbox" id="cdHist"> Registrar os preços vencedores no histórico de preços (aba Cotação de Insumos Críticos)</label>` : ''}
       </div>` : ''}
@@ -607,7 +660,7 @@
         <button class="btn small" id="cdCsv">⬇ Exportar CSV</button>
         ${podeLancar() ? `<button class="btn small" id="cdRegCrit" title="Grava os preços recebidos no histórico da aba Cotação de Insumos Críticos">📈 Registrar na Cotação de Insumos Críticos</button>` : ''}
         <span style="flex:1"></span>
-        ${decide ? `<button class="btn small" id="cdSugestao">Usar sugestão (menor preço)</button><button class="btn primary" id="cdConcluir">Indicar vencedor e concluir certame</button>` : ''}
+        ${decide ? `<button class="btn small" id="cdSugestao">Usar sugestão (menor custo líquido)</button><button class="btn primary" id="cdConcluir">Indicar vencedor e concluir certame</button>` : ''}
         ${p.status === 'concluida' && podeLancar() ? `<button class="btn small wa" id="cdAvisarVenc">Avisar vencedor(es) pelo WhatsApp 📲</button>` : ''}
       </div>`;
 
@@ -628,6 +681,14 @@
     const on = (id, fn) => { const b = document.getElementById(id); if (b) b.addEventListener('click', fn); };
     on('cdVoltar', () => { S.view = 'lista'; S.atual = null; atualizarLista(); });
     on('cdAtualizar', () => abrir(p.id));
+    const cr = $('#cdCredito');
+    if (cr) cr.addEventListener('change', async () => {
+      const v = parseNum(cr.value);
+      if (v == null || v < 0 || v > 100) { alert('Informe um percentual entre 0 e 100.'); return abrir(p.id); }
+      const { error } = await SB().from('cotacao_processos').update({ credito_ibs_cbs_pct: v }).eq('id', p.id);
+      if (error) return erro(error, 'Não foi possível salvar o aproveitamento do crédito.');
+      toast('Aproveitamento do crédito atualizado — mapa recalculado.'); abrir(p.id);
+    });
     on('cdAbrir', () => mudarStatus('em_cotacao'));
     on('cdEncerrar', () => { if (confirm('Encerrar o recebimento de propostas? Os links dos fornecedores deixam de aceitar respostas.')) mudarStatus('em_analise'); });
     on('cdReabrir', () => mudarStatus('em_cotacao'));
@@ -726,9 +787,14 @@
       <p class="ctr-note" style="margin-top:0">${editando
         ? `Corrija o que for preciso. A alteração fica registrada com o seu nome${c.respondido_via === 'link' ? ' (a proposta original veio pelo link do fornecedor)' : ''}.`
         : 'Use quando o fornecedor responder por mensagem de texto, áudio ou e-mail. Deixe em branco o que ele não cotou.'}</p>
-      <div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th class="num">Qtd.</th><th>Preço unitário (R$)</th><th>Marca</th><th>Não fornece</th></tr></thead><tbody>
+      <div class="ctr-frm" style="margin-bottom:10px"><label class="full">Regime tributário do fornecedor (IBS/CBS) <b style="color:var(--red)">*</b><select id="mlRegime">
+        <option value="">Selecione…</option>${Object.entries(REGIMES).map(([k, o]) => `<option value="${k}" ${c.regime_tributario === k ? 'selected' : ''}>${h(o.t)}</option>`).join('')}</select></label></div>
+      <p class="ctr-note" style="margin-top:0">Regime regular / Simples com IBS/CBS por fora: preço <b>sem</b> IBS/CBS e as alíquotas destacadas na nota. Simples Nacional: preço final e o percentual de CBS/IBS que sai na nota para crédito.</p>
+      <div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th class="num">Qtd.</th><th>Preço unitário (R$)</th><th>CBS (%)</th><th>IBS (%)</th><th>Marca</th><th>Não fornece</th></tr></thead><tbody>
       ${A.itens.map(i => { const x = r(i.id); return `<tr><td class="wrap" style="min-width:180px">${h(i.insumo)}<span class="cert-sub">${h(i.unidade || '')}</span></td><td class="num">${num(i.quantidade)}</td>
         <td><input data-v="${i.id}" inputmode="decimal" value="${x.valor_unitario != null ? money(x.valor_unitario) : ''}" style="min-width:110px"></td>
+        <td><input data-cbs="${i.id}" inputmode="decimal" value="${x.aliq_cbs != null ? pct(x.aliq_cbs) : ''}" placeholder="0,9" style="min-width:64px"></td>
+        <td><input data-ibs="${i.id}" inputmode="decimal" value="${x.aliq_ibs != null ? pct(x.aliq_ibs) : ''}" placeholder="0,1" style="min-width:64px"></td>
         <td><input data-m="${i.id}" value="${h(x.marca || '')}" style="min-width:100px"></td>
         <td style="text-align:center"><input type="checkbox" data-nd="${i.id}" ${x.disponivel === false ? 'checked' : ''}></td></tr>`; }).join('')}
       </tbody></table></div>
@@ -744,10 +810,14 @@
         const linhas = A.itens.map(i => {
           const nd = $(`[data-nd="${i.id}"]`, bd).checked;
           const v = parseNum($(`[data-v="${i.id}"]`, bd).value);
-          return { convite_id: c.id, item_id: i.id, valor_unitario: nd ? null : v, marca: $(`[data-m="${i.id}"]`, bd).value.trim() || null,
-                   disponivel: !nd, atualizado_em: new Date().toISOString() };
+          const cbs = parseNum($(`[data-cbs="${i.id}"]`, bd).value), ibs = parseNum($(`[data-ibs="${i.id}"]`, bd).value);
+          return { convite_id: c.id, item_id: i.id, valor_unitario: nd ? null : v, aliq_cbs: nd ? null : cbs, aliq_ibs: nd ? null : ibs,
+                   marca: $(`[data-m="${i.id}"]`, bd).value.trim() || null, disponivel: !nd, atualizado_em: new Date().toISOString() };
         }).filter(l => l.valor_unitario != null || !l.disponivel);
         if (linhas.some(l => l.valor_unitario != null && l.valor_unitario < 0)) return alert('Preço não pode ser negativo.');
+        if (linhas.some(l => [l.aliq_cbs, l.aliq_ibs].some(a => a != null && (a < 0 || a > 100)))) return alert('As alíquotas de CBS e IBS devem ficar entre 0 e 100%.');
+        const regime = $('#mlRegime', bd).value;
+        if (!regime) { $('#mlRegime', bd).style.borderColor = 'var(--red)'; return alert('Informe o regime tributário do fornecedor (IBS/CBS).'); }
         if (!linhas.some(l => l.valor_unitario != null)) return alert('Informe o preço de pelo menos um item.');
         const faltam = [['#mlPrazo', 'prazo de entrega'], ['#mlPag', 'condição de pagamento'], ['#mlVal', 'validade da proposta']]
           .filter(([sel]) => !$(sel, bd).value.trim());
@@ -766,7 +836,7 @@
           ? { editado_em: new Date().toISOString(), editado_por: P.id || null, editado_por_nome: P.nome || null }
           : { status: 'respondido', respondido_em: new Date().toISOString(), respondido_via: 'manual' };
         const { error: e2 } = await SB().from('cotacao_convites').update(Object.assign(marca, {
-          frete_total: parseNum($('#mlFrete', bd).value) || 0, prazo_entrega: $('#mlPrazo', bd).value.trim() || null,
+          regime_tributario: regime, frete_total: parseNum($('#mlFrete', bd).value) || 0, prazo_entrega: $('#mlPrazo', bd).value.trim() || null,
           condicao_pagamento: $('#mlPag', bd).value.trim() || null, validade_proposta: $('#mlVal', bd).value || null,
           observacao: $('#mlObs', bd).value.trim() || null
         })).eq('id', c.id);
@@ -781,7 +851,7 @@
   async function concluir(m, naoMenor){
     const A = S.atual, p = A.p;
     const just = ($('#cdJust') || {}).value ? $('#cdJust').value.trim() : '';
-    if (naoMenor && !just) { alert('Informe a justificativa: o vencedor indicado não é o menor preço.'); $('#cdJust').focus(); return; }
+    if (naoMenor && !just) { alert('Informe a justificativa: o vencedor indicado não é o menor custo líquido.'); $('#cdJust').focus(); return; }
     const res = resultado(m);
     if (!Object.keys(res).length) return alert('Nenhum item tem vencedor (sem propostas válidas).');
     const semV = A.itens.filter(i => !res[i.id]).length;
@@ -951,11 +1021,11 @@
     const w = window.open('', '_blank');
     if (!w) return alert('Libere as janelas pop-up para imprimir.');
     const linhas = m.itens.map((li, n) => `<tr><td>${n + 1}</td><td>${h(li.item.insumo)}${li.item.detalhe ? '<br><small>' + h(li.item.detalhe) + '</small>' : ''}</td><td class="n">${num(li.item.quantidade)} ${h(li.item.unidade || '')}</td>
-      ${m.conv.map(c => { const v = m.valor(li.item.id, c.id); const ehV = res[li.item.id] && res[li.item.id].conv === c.id;
-        return `<td class="n ${li.melhor && v === li.melhor.v ? 'm' : ''} ${ehV ? 'v' : ''}">${v == null ? '—' : money(v) + '<br><small>' + money(v * Number(li.item.quantidade)) + '</small>'}</td>`; }).join('')}
+      ${m.conv.map(c => { const f = m.fisc(li.item.id, c.id); const ehV = res[li.item.id] && res[li.item.id].conv === c.id;
+        return `<td class="n ${f && li.melhor && Math.abs(f.liquido - li.melhor.v) < 1e-9 ? 'm' : ''} ${ehV ? 'v' : ''}">${!f ? '—' : money(f.preco) + '<br><small>IBS/CBS ' + pct(f.cbs + f.ibs) + '% · líq. ' + money(f.liquido) + '<br>total líq. ' + money(f.liquido * Number(li.item.quantidade)) + '</small>'}</td>`; }).join('')}
       <td>${res[li.item.id] ? h(fornecedorDe(m.conv.find(c => c.id === res[li.item.id].conv)).nome) : '—'}</td></tr>`).join('');
     const rodape = (rot, fn) => `<tr class="t"><td></td><td>${rot}</td><td></td>${m.totais.map(fn).join('')}<td></td></tr>`;
-    const totalV = Object.entries(res).reduce((s, [iid, r]) => s + r.v * Number(A.itens.find(i => i.id === Number(iid)).quantidade), 0);
+    const totalV = Object.entries(res).reduce((s, [iid, r]) => s + r.c * Number(A.itens.find(i => i.id === Number(iid)).quantidade), 0);
     w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Mapa comparativo ${numCert(p.id)}</title>
       <style>body{font:12px Arial,sans-serif;color:#111;margin:24px}h1{font-size:17px;margin:0}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{border:1px solid #999;padding:5px 6px;vertical-align:top}th{background:#eee}
       .n{text-align:right;white-space:nowrap}.m{background:#dff3df;font-weight:bold}.v{outline:2px solid #c98a00;outline-offset:-2px}.t td{font-weight:bold;background:#fafafa}small{color:#555}
@@ -964,10 +1034,10 @@
       <h1>Mapa comparativo de preços — ${numCert(p.id)}</h1><div>${h(p.titulo)}</div>
       <div class="meta"><span><b>Local de entrega:</b> ${h(p.localidade_entrega || '—')}</span><span><b>Critério:</b> ${p.criterio === 'global' ? 'Menor preço global' : 'Menor preço por item'}</span>
       <span><b>Situação:</b> ${STATUS[p.status].t}</span><span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span></div>
-      <table><thead><tr><th>#</th><th>Insumo</th><th>Qtd.</th>${nomes.map(n => `<th>${h(n)}<br><small>unit. / total (R$)</small></th>`).join('')}<th>Vencedor</th></tr></thead><tbody>${linhas}</tbody>
-      <tfoot>${rodape('Subtotal', t => `<td class="n">${money(t.sub)}</td>`)}${rodape('Frete', t => `<td class="n">${money(t.frete)}</td>`)}${rodape('Total da proposta', t => `<td class="n">${money(t.total)}</td>`)}
+      <table><thead><tr><th>#</th><th>Insumo</th><th>Qtd.</th>${m.conv.map((c, k) => `<th>${h(nomes[k])}<br><small>${h((REGIMES[c.regime_tributario] || SEM_REGIME).t)}<br>preço unit. / custo líquido (R$)</small></th>`).join('')}<th>Vencedor</th></tr></thead><tbody>${linhas}</tbody>
+      <tfoot>${rodape('Subtotal (preço)', t => `<td class="n">${money(t.sub)}</td>`)}${rodape('IBS/CBS', t => `<td class="n">${money(t.trib)}</td>`)}${rodape('Frete', t => `<td class="n">${money(t.frete)}</td>`)}${rodape('Total na nota', t => `<td class="n">${money(t.totalNota)}</td>`)}${rodape('(−) Crédito de IBS/CBS', t => `<td class="n">${money(t.credito)}</td>`)}${rodape('Custo líquido', t => `<td class="n">${money(t.total)}</td>`)}
       ${rodape('Prazo de entrega', t => `<td>${h(t.conv.prazo_entrega || '—')}</td>`)}${rodape('Pagamento', t => `<td>${h(t.conv.condicao_pagamento || '—')}</td>`)}</tfoot></table>
-      <p><b>Valor total indicado (itens):</b> R$ ${money(totalV)}. Verde = menor preço do item; contorno = vencedor indicado.</p>
+      <p><b>Custo líquido indicado (itens):</b> R$ ${money(totalV)}. Comparação pelo custo líquido = preço + IBS/CBS na nota − crédito de IBS/CBS (${pct(m.aprov * 100)}% de aproveitamento). Verde = menor custo líquido do item; contorno = vencedor indicado.</p>
       ${p.justificativa ? `<p><b>Justificativa:</b> ${h(p.justificativa)}</p>` : ''}
       <div class="ass"><div>Comprador${p.comprador_nome ? ': ' + h(p.comprador_nome) : ''}</div><div>Aprovação</div></div></body></html>`);
     w.document.close();
@@ -975,11 +1045,12 @@
   function exportarCsv(m){
     const A = S.atual, nomes = m.conv.map(c => fornecedorDe(c).nome), res = resultado(m);
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const linhas = [['Item', 'Insumo', 'Unidade', 'Quantidade', ...nomes, 'Vencedor'].map(q).join(';')];
+    const linhas = [['Item', 'Insumo', 'Unidade', 'Quantidade', ...nomes.flatMap(n => [n + ' — preço', n + ' — IBS+CBS %', n + ' — custo líquido']), 'Vencedor'].map(q).join(';')];
     m.itens.forEach((li, n) => linhas.push([n + 1, li.item.insumo, li.item.unidade, num(li.item.quantidade),
-      ...m.conv.map(c => { const v = m.valor(li.item.id, c.id); return v == null ? '' : money(v); }),
+      ...m.conv.flatMap(c => { const f = m.fisc(li.item.id, c.id); return f ? [money(f.preco), pct(f.cbs + f.ibs), money(f.liquido)] : ['', '', '']; }),
       res[li.item.id] ? fornecedorDe(m.conv.find(c => c.id === res[li.item.id].conv)).nome : ''].map(q).join(';')));
-    linhas.push(['', 'Total da proposta', '', '', ...m.totais.map(t => money(t.total)), ''].map(q).join(';'));
+    linhas.push(['', 'Total na nota', '', '', ...m.totais.flatMap(t => [money(t.totalNota), '', '']), ''].map(q).join(';'));
+    linhas.push(['', 'Custo líquido da proposta', '', '', ...m.totais.flatMap(t => ['', '', money(t.total)]), ''].map(q).join(';'));
     const blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mapa_${numCert(A.p.id)}.csv`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
