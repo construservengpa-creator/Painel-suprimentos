@@ -13483,19 +13483,21 @@ function populateCreditoDatalists(){
       if(vinculoEmEdicao && String(vinculoEmEdicao.creditoId)===String(c.id)) saldo += vinculoValorEfetivo(vinculoEmEdicao);
       return { c, saldo };
     }).filter(x=>x.saldo > 0.005);
-    // Créditos da mesma obra aparecem unificados numa única opção, com o
-    // saldo somado; ao gravar, o vínculo vai para um dos créditos do grupo
-    // (ver escolherCreditoDoGrupo). O value é o id do primeiro crédito do
-    // grupo e data-ids guarda todos.
+    // Créditos do MESMO credor (empresa beneficiária) e da mesma obra
+    // aparecem unificados numa única opção, com o saldo somado; ao gravar,
+    // o vínculo vai para um dos créditos do grupo ou é dividido entre eles
+    // (ver addVinculoCredito). Créditos de credores diferentes nunca se
+    // somam. O value é o id do primeiro crédito do grupo e data-ids guarda todos.
+    const norm = t=>String(t||'').trim().toUpperCase();
     const grupos = new Map();
     candidatos.forEach(x=>{
-      const chave = String(x.c.obra||'').trim().toUpperCase();
-      if(!grupos.has(chave)) grupos.set(chave, { obra:x.c.obra, ids:[], saldo:0 });
+      const chave = norm(x.c.empresaBeneficiaria)+'|'+norm(x.c.obra);
+      if(!grupos.has(chave)) grupos.set(chave, { obra:x.c.obra, credor:x.c.empresaBeneficiaria, ids:[], saldo:0 });
       const g = grupos.get(chave);
       g.ids.push(String(x.c.id)); g.saldo += x.saldo;
     });
     selCredito.innerHTML = grupos.size
-      ? [...grupos.values()].map(g=>`<option value="${esc(g.ids[0])}" data-ids="${esc(g.ids.join(','))}">${esc(g.obra)} — saldo R$ ${fmtMoney(g.saldo)}${g.ids.length>1 ? ` (${g.ids.length} créditos)` : ''}</option>`).join('')
+      ? [...grupos.values()].map(g=>`<option value="${esc(g.ids[0])}" data-ids="${esc(g.ids.join(','))}">${esc(g.obra)}${g.credor ? ` — credor: ${esc(g.credor)}` : ''} — saldo R$ ${fmtMoney(g.saldo)}${g.ids.length>1 ? ` (${g.ids.length} créditos)` : ''}</option>`).join('')
       : '<option value="">Nenhum crédito com saldo disponível</option>';
     selecionarCreditoNoForm(atual);
   }
