@@ -12536,7 +12536,18 @@ function vinculoFaturado(v){
   const gravado = v.valorRealizado||0;
   const ped = pedidoAtualDoVinculo(v.numPedido);
   if(!ped || !(ped.valorTotal > 0)) return gravado;
-  return v.status === 'realizado' ? Math.max(gravado, ped.valorTotal) : ped.valorTotal;
+  const fat = ped.valorTotal * vinculoFracaoDoPedido(v);
+  return v.status === 'realizado' ? Math.max(gravado, fat) : fat;
+}
+// Pedido abatido de vários créditos (um vínculo ativo por crédito): as notas
+// fiscais do pedido são repartidas entre os vínculos na proporção do valor
+// previsto de cada um. Pedido com um só vínculo: fração 1.
+function vinculoFracaoDoPedido(v){
+  if(!v || v.status === 'cancelado') return 0;
+  const irmaos = vinculosCredito.filter(x=>String(x.numPedido)===String(v.numPedido) && x.status!=='cancelado');
+  if(irmaos.length <= 1) return 1;
+  const total = irmaos.reduce((t,x)=>t+(x.valorPrevisto||0),0);
+  return total > 0.005 ? (v.valorPrevisto||0)/total : 1/irmaos.length;
 }
 // Pedido encerrado no Sienge (totalmente entregue, saldo cancelado ou
 // cancelado): não há mais o que faturar, então o restante deixa de ficar
@@ -12878,7 +12889,7 @@ async function insertVinculoCredito(v){
   }catch(e){
     console.error('Falha ao vincular pedido ao crédito:', e);
     if(erroColunaAntecipado(e)) return false;
-    if(e && e.code==='23505'){ alert('Este pedido já está vinculado a um crédito. Edite o vínculo existente em vez de criar outro.'); return false; }
+    if(e && e.code==='23505'){ alert('Este pedido já está vinculado a este crédito (ou o banco ainda não permite dividir um pedido entre créditos: rode supabase/creditos_vinculos_multicredito.sql no SQL Editor do Supabase).'); return false; }
     alert('Não foi possível vincular o pedido. Verifique se você está logado como administrador ou supervisor.');
     return false;
   }
@@ -13368,11 +13379,13 @@ async function reconciliarVinculosComNotasFiscais(){
     for(const v of pendentes){
       const pedido = pedidosPorNumero.get(String(v.numPedido));
       if(!pedido || !(pedido.valorTotal > 0)) continue;
+      // pedido dividido entre créditos: cada vínculo fica com a sua parte
+      const fat = Math.round(pedido.valorTotal * vinculoFracaoDoPedido(v) * 100) / 100;
       let novo = null;
       if(v.status==='realizado'){
-        if(pedido.valorTotal - (v.valorRealizado||0) > 0.005) novo = { valorRealizado: pedido.valorTotal };
-      } else if(pedidoEncerradoNoSienge(pedido)) novo = { valorRealizado: pedido.valorTotal, status: 'realizado' };
-      else if(Math.abs((v.valorRealizado||0) - pedido.valorTotal) > 0.005) novo = { valorRealizado: pedido.valorTotal };
+        if(fat - (v.valorRealizado||0) > 0.005) novo = { valorRealizado: fat };
+      } else if(pedidoEncerradoNoSienge(pedido)) novo = { valorRealizado: fat, status: 'realizado' };
+      else if(Math.abs((v.valorRealizado||0) - fat) > 0.005) novo = { valorRealizado: fat };
       if(!novo) continue;
       const ok = await updateVinculoCredito(v.id, Object.assign({}, v, novo));
       if(ok) algumAtualizado = true;
@@ -13470,11 +13483,41 @@ function populateCreditoDatalists(){
       if(vinculoEmEdicao && String(vinculoEmEdicao.creditoId)===String(c.id)) saldo += vinculoValorEfetivo(vinculoEmEdicao);
       return { c, saldo };
     }).filter(x=>x.saldo > 0.005);
-    selCredito.innerHTML = candidatos.length
-      ? candidatos.map(x=>`<option value="${x.c.id}">${esc(x.c.obra)} — saldo R$ ${fmtMoney(x.saldo)}</option>`).join('')
+    // Créditos do MESMO credor (empresa beneficiária) e da mesma obra
+    // aparecem unificados numa única opção, com o saldo somado; ao gravar,
+    // o vínculo vai para um dos créditos do grupo ou é dividido entre eles
+    // (ver addVinculoCredito). Créditos de credores diferentes nunca se
+    // somam. O value é o id do primeiro crédito do grupo e data-ids guarda todos.
+    const norm = t=>String(t||'').trim().toUpperCase();
+    const grupos = new Map();
+    candidatos.forEach(x=>{
+      const chave = norm(x.c.empresaBeneficiaria)+'|'+norm(x.c.obra);
+      if(!grupos.has(chave)) grupos.set(chave, { obra:x.c.obra, credor:x.c.empresaBeneficiaria, ids:[], saldo:0 });
+      const g = grupos.get(chave);
+      g.ids.push(String(x.c.id)); g.saldo += x.saldo;
+    });
+    selCredito.innerHTML = grupos.size
+      ? [...grupos.values()].map(g=>`<option value="${esc(g.ids[0])}" data-ids="${esc(g.ids.join(','))}">${esc(g.obra)}${g.credor ? ` — credor: ${esc(g.credor)}` : ''} — saldo R$ ${fmtMoney(g.saldo)}${g.ids.length>1 ? ` (${g.ids.length} créditos)` : ''}</option>`).join('')
       : '<option value="">Nenhum crédito com saldo disponível</option>';
-    if([...selCredito.options].some(o=>o.value===atual)) selCredito.value = atual;
+    selecionarCreditoNoForm(atual);
   }
+}
+
+// Seleciona no formulário de vínculo a opção (grupo de créditos da mesma
+// obra) que contém o crédito informado.
+function selecionarCreditoNoForm(creditoId){
+  const sel = document.getElementById('vinculo-fCredito');
+  if(!sel || !creditoId) return;
+  const opt = [...sel.options].find(o=>(o.dataset.ids||o.value).split(',').includes(String(creditoId)));
+  if(opt) sel.value = opt.value;
+}
+// Ids dos créditos unificados na opção selecionada.
+function creditosDoGrupoSelecionado(){
+  const sel = document.getElementById('vinculo-fCredito');
+  const opt = sel ? sel.selectedOptions[0] : null;
+  if(!opt || !opt.value) return [];
+  const ids = (opt.dataset.ids||opt.value).split(',');
+  return ids.map(id=>creditos.find(c=>String(c.id)===id)).filter(Boolean);
 }
 
 // Pedido de compra: só pode ser vinculado se pertencer à mesma "empresa" do
@@ -13496,9 +13539,13 @@ function getPedidosDisponiveisParaVinculo(){
 }
 
 // Vínculo ativo (não cancelado) já existente para o pedido, ignorando o
-// vínculo em edição. Um pedido só pode estar vinculado uma vez: vincular de
-// novo abateria o mesmo valor duas vezes.
+// vínculo em edição. Um pedido só é vinculado uma vez (podendo ser dividido
+// entre créditos no mesmo lançamento): vincular de novo abateria duas vezes.
+// Pedido dividido entre vários créditos: os demais vínculos do mesmo pedido
+// do vínculo em edição também são ignorados (fazem parte da mesma divisão).
 function vinculoAtivoDoPedido(numPedido, ignorarId){
+  const ignorado = ignorarId ? vinculosCredito.find(v=>String(v.id)===String(ignorarId)) : null;
+  if(ignorado && String(ignorado.numPedido)===String(numPedido)) return null;
   return vinculosCredito.find(v=>
     String(v.numPedido)===String(numPedido) && v.status!=='cancelado' &&
     (!ignorarId || String(v.id)!==String(ignorarId))
@@ -14221,9 +14268,8 @@ function startEditVinculo(id){
   if(!v) return;
   editingVinculoId = id;
   setCreditoTab('vincular');
-  document.getElementById('vinculo-fCredito').value = v.creditoId;
   populateCreditoDatalists();
-  document.getElementById('vinculo-fCredito').value = v.creditoId;
+  selecionarCreditoNoForm(v.creditoId);
   document.getElementById('vinculo-fPedido').value = v.numPedido;
   document.getElementById('vinculo-fValor').value = vinculoValorEfetivo(v);
   document.getElementById('vinculo-fData').value = v.dataVinculo;
@@ -14251,7 +14297,8 @@ function cancelEditVinculo(){
 async function addVinculoCredito(){
   const msg = document.getElementById('vinculo-formMsg');
   msg.textContent = '';
-  const creditoId = document.getElementById('vinculo-fCredito').value;
+  const grupoCreditos = creditosDoGrupoSelecionado();
+  let creditoId = document.getElementById('vinculo-fCredito').value;
   const numPedido = document.getElementById('vinculo-fPedido').value.trim();
   const valor = parseFloat(document.getElementById('vinculo-fValor').value);
   const data = document.getElementById('vinculo-fData').value;
@@ -14262,6 +14309,49 @@ async function addVinculoCredito(){
   if(!numPedido){ msg.textContent = 'Informe o número do pedido de compra.'; return; }
   if(!valor || valor<=0){ msg.textContent = 'Informe o valor a abater (maior que zero).'; return; }
   if(!data){ msg.textContent = 'Informe a data do vínculo.'; return; }
+
+  // Créditos da mesma obra são exibidos unificados: escolhe, dentro do
+  // grupo, o crédito que recebe o vínculo: o primeiro (na ordem da lista)
+  // com saldo suficiente — na edição, o crédito atual, se ainda comportar o
+  // valor. Se nenhum comportar sozinho, o vínculo novo é dividido.
+  const vinculoEditado = editingVinculoId ? vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId)) : null;
+  const saldoNoForm = c=>{
+    let s = creditoSaldo(c);
+    if(vinculoEditado && String(vinculoEditado.creditoId)===String(c.id)) s += vinculoValorEfetivo(vinculoEditado);
+    return s;
+  };
+  // Valor maior que o saldo de um crédito só: num vínculo novo, divide o
+  // pedido entre os créditos do grupo (um vínculo por crédito, na ordem da
+  // lista); na edição, a parte editada precisa caber num crédito só.
+  let divisao = null;
+  if(grupoCreditos.length > 1){
+    const ordenados = vinculoEditado
+      ? [...grupoCreditos].sort((a,b)=>(String(b.id)===String(vinculoEditado.creditoId)) - (String(a.id)===String(vinculoEditado.creditoId)))
+      : grupoCreditos;
+    const escolhido = ordenados.find(c=>valor <= saldoNoForm(c) + 0.005);
+    const soma = grupoCreditos.reduce((t,c)=>t+saldoNoForm(c),0);
+    if(escolhido){
+      creditoId = String(escolhido.id);
+    } else if(valor > soma + 0.005){
+      msg.textContent = `Valor maior que o saldo disponível (R$ ${fmtMoney(soma)}).`;
+      return;
+    } else if(vinculoEditado){
+      msg.textContent = `Na edição, o valor precisa caber no saldo de um crédito (maior saldo: R$ ${fmtMoney(Math.max(...grupoCreditos.map(saldoNoForm)))}). Para dividir entre créditos, exclua este vínculo e vincule o pedido de novo.`;
+      return;
+    } else {
+      divisao = [];
+      let resta = Math.round(valor*100)/100;
+      for(const c of grupoCreditos){
+        if(resta <= 0.005) break;
+        const parte = Math.min(resta, Math.floor(saldoNoForm(c)*100)/100);
+        if(parte <= 0.005) continue;
+        divisao.push({ creditoId:String(c.id), valor:parte });
+        resta = Math.round((resta-parte)*100)/100;
+      }
+      if(resta > 0.005 && divisao.length) divisao[divisao.length-1].valor = Math.round((divisao[divisao.length-1].valor+resta)*100)/100;
+      creditoId = divisao[0].creditoId;
+    }
+  }
 
   const credito = creditos.find(c=>String(c.id)===String(creditoId));
   const pedido = getPedidosUnicos().find(p=>p.numPedido===numPedido);
@@ -14287,7 +14377,7 @@ async function addVinculoCredito(){
     }
   }
 
-  if(credito){
+  if(credito && !divisao){
     let saldoDisponivel = creditoSaldo(credito);
     if(editingVinculoId){
       const atual = vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId));
@@ -14325,7 +14415,26 @@ async function addVinculoCredito(){
     obraPedido: pedido?pedido.obra:'', fornecedor: pedido?pedido.fornecedor:'', comprador: pedido?pedido.comprador:'',
     valorPrevisto, valorRealizado, status, dataVinculo: data, observacao: obs, pagoAntecipado
   };
-  const ok = editingVinculoId ? await updateVinculoCredito(editingVinculoId, payload) : await insertVinculoCredito(payload);
+  let ok;
+  if(divisao){
+    // Pedido dividido: um vínculo por crédito, cada um com a sua parte.
+    const fator = p => Math.round(p*100)/100;
+    ok = true;
+    let gravados = 0;
+    for(const d of divisao){
+      const parcial = Object.assign({}, payload, {
+        creditoId: d.creditoId,
+        valorPrevisto: d.valor,
+        valorRealizado: status==='realizado' ? d.valor : fator((valorRealizado||0) * d.valor / valor)
+      });
+      if(!(await insertVinculoCredito(parcial))){ ok = false; break; }
+      gravados++;
+    }
+    if(!ok && gravados) alert(`Atenção: o pedido foi vinculado a só ${gravados} de ${divisao.length} créditos. Confira em "Pedidos já vinculados".`);
+    if(gravados){ cancelEditVinculo(); await loadVinculosCredito(); renderCreditos(); }
+    return;
+  }
+  ok = editingVinculoId ? await updateVinculoCredito(editingVinculoId, payload) : await insertVinculoCredito(payload);
   if(ok){
     cancelEditVinculo();
     await loadVinculosCredito();
