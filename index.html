@@ -4139,6 +4139,7 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
       <div class="toolbar">
         <input type="text" id="cot-filterInsumo" placeholder="Filtrar por insumo...">
         <span class="count-badge" id="cot-countBadge">0 registros</span>
+        <button class="ghost pode-editar-cotacao-only" id="cot-btnUnificar" type="button" title="Junta nomes diferentes do mesmo insumo, unidade ou localidade (ex.: OLEO DIESEL B S 10 e DIESEL S10)">Unificar nomes</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -4148,6 +4149,24 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
         </thead>
         <tbody id="cot-tableBody"></tbody>
       </table>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="cot-modalUnificar">
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="cot-uniTitulo">
+      <h3 id="cot-uniTitulo">Unificar nomes</h3>
+      <p style="font-size:12.5px;color:var(--text-mut);margin:0 0 12px;line-height:1.5;">Marque os nomes que são a mesma coisa e escolha o nome que fica. Todos os registros com os nomes marcados passam a usar o nome escolhido — o dashboard, a série histórica e o menor preço do dia passam a juntar esses preços.</p>
+      <div class="form-grid">
+        <div class="form-field"><label for="cot-uniCampo">O que unificar</label>
+          <select id="cot-uniCampo"><option value="insumo">Insumo</option><option value="unidade">Unidade de medida</option><option value="local">Localidade de entrega</option></select></div>
+        <div class="form-field"><label for="cot-uniDestino">Nome que fica</label><input type="text" id="cot-uniDestino" list="cot-uniDl" placeholder="Ex.: DIESEL S10"></div>
+      </div>
+      <datalist id="cot-uniDl"></datalist>
+      <div id="cot-uniLista" style="max-height:340px;overflow:auto;margin-top:6px;"></div>
+      <span id="cot-uniMsg" style="font-size:12px;color:var(--bad);"></span>
+      <div class="modal-actions">
+        <button class="ghost" id="cot-btnUniCancelar" type="button">Cancelar</button>
+        <button class="primary" id="cot-btnUniAplicar" type="button">Unificar</button>
+      </div>
     </div>
   </div>
   <div class="modal-backdrop" id="cot-modalEditar">
@@ -12014,6 +12033,95 @@ function renderTiposTable(){
 
 // usado pela Cotação de Preços (certame) depois de registrar preços aqui
 window.COT_RECARREGAR = async function(){ await loadData(); renderAll(); };
+
+/* ---------- nomes equivalentes (insumo, unidade, localidade) ----------
+   Chave de comparação que ignora acento, maiúsculas, pontuação e o que
+   costuma variar entre o Sienge e o histórico: código no início
+   ("4699 - "), "ÓLEO", o "B" da mistura de biodiesel ("OLEO DIESEL B S 10"
+   = "DIESEL S10"), sinônimos de unidade (l/lt/litro) e a UF da localidade
+   ("Benevides/PA" = "BENEVIDES"). Usada pela unificação abaixo e pelo
+   registro de preços vindo do certame (cotacao-certame.js). */
+const semAcento = s => String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+const UNID_SIN = { L:'LITRO', LT:'LITRO', LTS:'LITRO', LITRO:'LITRO', LITROS:'LITRO', T:'TON', TN:'TON', TON:'TON', TONS:'TON', TONELADA:'TON', TONELADAS:'TON',
+  KG:'KG', KILO:'KG', QUILO:'KG', QUILOGRAMA:'KG', M3:'M3', UN:'UN', UND:'UN', UNID:'UN', UNIDADE:'UN' };
+window.COT_CHAVE = {
+  insumo: s => semAcento(s).replace(/^\d+\s*-\s*/,'').replace(/\b(OLEO|TIPO)\b/g,' ').replace(/\bB\b/g,' ').replace(/[^A-Z0-9]/g,''),
+  unidade: s => { const k = semAcento(s).replace(/[^A-Z0-9]/g,''); return UNID_SIN[k] || k; },
+  local: s => semAcento(s).split('/')[0].replace(/[^A-Z0-9]/g,'')
+};
+// devolve o nome já usado no histórico que equivale a "nome", ou null
+window.COT_EQUIVALENTE = function(campo, nome){
+  const f = window.COT_CHAVE[campo]; if(!f || !nome) return null;
+  const k = f(nome); if(!k) return null;
+  const cont = {};
+  records.forEach(r=>{ const v = r[campo]; if(v && f(v)===k) cont[v] = (cont[v]||0)+1; });
+  const lista = Object.keys(cont).sort((a,b)=>cont[b]-cont[a]);
+  return lista[0] || null;
+};
+
+const UNI_COLUNA = { insumo:'insumo', unidade:'unidade_medida', local:'localidade_entrega' };
+function abrirUnificar(){
+  document.getElementById('cot-uniMsg').textContent = '';
+  document.getElementById('cot-uniDestino').value = '';
+  renderUnificar();
+  document.getElementById('cot-modalUnificar').classList.add('open');
+}
+function fecharUnificar(){ document.getElementById('cot-modalUnificar').classList.remove('open'); }
+function renderUnificar(){
+  const campo = document.getElementById('cot-uniCampo').value;
+  const chave = window.COT_CHAVE[campo];
+  const cont = {};
+  records.forEach(r=>{ const v = r[campo]; if(v) cont[v] = (cont[v]||0)+1; });
+  const nomes = Object.keys(cont).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  document.getElementById('cot-uniDl').innerHTML = nomes.map(n=>`<option value="${escapeAttr(n)}">`).join('');
+  // grupos de nomes parecidos (mesma chave) primeiro, com atalho para marcar o grupo
+  const grupos = {};
+  nomes.forEach(n=>{ (grupos[chave(n)] = grupos[chave(n)] || []).push(n); });
+  const parecidos = Object.values(grupos).filter(g=>g.length>1);
+  const linha = n => `<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;cursor:pointer;">
+      <input type="checkbox" data-uni="${escapeAttr(n)}" style="width:auto;"> <span style="flex:1">${esc(n)}</span>
+      <span style="color:var(--text-faint);font-size:11.5px;">${cont[n]} registro${cont[n]===1?'':'s'}</span></label>`;
+  const el = document.getElementById('cot-uniLista');
+  el.innerHTML =
+    (parecidos.length ? `<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);font-weight:600;margin:6px 0;">Parecidos</div>` +
+      parecidos.map((g,i)=>`<div style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:8px;">${g.map(linha).join('')}
+        <button class="ghost" type="button" data-grupo="${i}" style="margin-top:4px;font-size:11.5px;padding:4px 10px;">Marcar este grupo</button></div>`).join('')
+      : `<div style="font-size:12px;color:var(--text-faint);margin:6px 0;">Nenhum nome parecido encontrado automaticamente — marque abaixo os que forem a mesma coisa.</div>`) +
+    `<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-mut);font-weight:600;margin:10px 0 6px;">Todos</div>` +
+    nomes.filter(n=>!parecidos.some(g=>g.includes(n))).map(linha).join('');
+  el.querySelectorAll('[data-grupo]').forEach(b=>b.addEventListener('click', ()=>{
+    const g = parecidos[Number(b.dataset.grupo)];
+    el.querySelectorAll('input[data-uni]').forEach(c=>{ c.checked = g.includes(c.dataset.uni); });
+    document.getElementById('cot-uniDestino').value = g.slice().sort((a,b)=>cont[b]-cont[a])[0];
+  }));
+}
+async function aplicarUnificar(){
+  const campo = document.getElementById('cot-uniCampo').value;
+  const destino = document.getElementById('cot-uniDestino').value.trim();
+  const msg = document.getElementById('cot-uniMsg');
+  const marcados = [...document.querySelectorAll('#cot-uniLista input[data-uni]:checked')].map(c=>c.dataset.uni).filter(n=>n!==destino);
+  if(!destino){ msg.textContent = 'Informe o nome que fica.'; return; }
+  if(!marcados.length){ msg.textContent = 'Marque pelo menos um nome diferente do nome que fica.'; return; }
+  const n = records.filter(r=>marcados.includes(r[campo])).length;
+  if(!confirm(`Trocar ${marcados.map(m=>'"'+m+'"').join(', ')} por "${destino}" em ${n} registro(s)?`)) return;
+  const btn = document.getElementById('cot-btnUniAplicar'); btn.disabled = true;
+  try{
+    const { data, error } = await window.SB.from('cotacoes').update({ [UNI_COLUNA[campo]]: destino }).in(UNI_COLUNA[campo], marcados).select('id');
+    if(error) throw error;
+    if(!data || !data.length) throw new Error('Nenhum registro alterado (sem permissão?).');
+    fecharUnificar();
+    await loadData(); renderAll();
+    alert(`${data.length} registro(s) unificado(s) em "${destino}".`);
+  }catch(e){
+    console.error('Falha ao unificar nomes:', e);
+    msg.textContent = 'Não foi possível unificar — apenas administradores, supervisores e operadores avançados podem editar preços. ' + describeSupabaseError(e);
+  }finally{ btn.disabled = false; }
+}
+document.getElementById('cot-btnUnificar').addEventListener('click', abrirUnificar);
+document.getElementById('cot-btnUniCancelar').addEventListener('click', fecharUnificar);
+document.getElementById('cot-btnUniAplicar').addEventListener('click', aplicarUnificar);
+document.getElementById('cot-uniCampo').addEventListener('change', ()=>{ document.getElementById('cot-uniDestino').value=''; renderUnificar(); });
+document.getElementById('cot-modalUnificar').addEventListener('click', e=>{ if(e.target.id==='cot-modalUnificar') fecharUnificar(); });
 
 function renderAll(){
   updateDatalists();

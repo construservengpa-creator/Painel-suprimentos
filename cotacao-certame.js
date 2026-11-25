@@ -873,8 +873,11 @@
         const hoje = new Date(); const iso = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
         const regs = A.itens.filter(i => res[i.id]).map(i => {
           const cv = m.conv.find(c => c.id === res[i.id].conv);
-          return { data: iso, fornecedor: fornecedorDe(cv).nome, insumo: i.insumo, unidade_medida: i.unidade || 'un',
-                   valor_unitario: res[i.id].v, frete_unitario: 0, localidade_entrega: p.localidade_entrega || '—' };
+          const eq = (campo, v) => (window.COT_EQUIVALENTE && window.COT_EQUIVALENTE(campo, v)) || null;
+          return { data: iso, fornecedor: fornecedorDe(cv).nome,
+                   insumo: eq('insumo', i.insumo) || String(i.insumo || '').replace(/^\s*\d+\s*-\s*/, '').trim(),
+                   unidade_medida: eq('unidade', i.unidade) || i.unidade || 'un',
+                   valor_unitario: res[i.id].v, frete_unitario: 0, localidade_entrega: eq('local', p.localidade_entrega) || p.localidade_entrega || '—' };
         });
         const { error: eh } = await SB().from('cotacoes').insert(regs);
         if (eh) erro(eh, 'Certame concluído, mas não consegui registrar no histórico de preços.');
@@ -895,7 +898,19 @@
   const NOMES_KEY = 'cert_nome_historico';
   const nomesSalvos = () => { try { return JSON.parse(localStorage.getItem(NOMES_KEY) || '{}') || {}; } catch (e) { return {}; } };
   const guardarNomes = o => { try { localStorage.setItem(NOMES_KEY, JSON.stringify(o)); } catch (e) { /* só conveniência */ } };
-  const nomeSugerido = i => nomesSalvos()[i.insumo] || String(i.insumo || '').replace(/^\s*\d+\s*-\s*/, '').trim();
+  // nome já usado no histórico que equivale a "nome" (mesma chave de COT_CHAVE, definida na aba de insumos críticos)
+  const equivalente = (campo, nome, lista) => {
+    const f = window.COT_CHAVE && window.COT_CHAVE[campo]; if (!f || !nome) return null;
+    const k = f(nome); if (!k) return null;
+    const cont = {}; lista.forEach(v => { if (v && f(v) === k) cont[v] = (cont[v] || 0) + 1; });
+    return Object.keys(cont).sort((a, b) => cont[b] - cont[a])[0] || null;
+  };
+  // ordem: o nome escolhido antes (se ainda existe no histórico) > nome equivalente do histórico > nome sem o código do Sienge
+  const nomeSugerido = (i, hist) => {
+    const nomes = hist.map(r => r.insumo), salvo = nomesSalvos()[i.insumo];
+    if (salvo && nomes.includes(salvo)) return salvo;
+    return equivalente('insumo', i.insumo, nomes) || String(i.insumo || '').replace(/^\s*\d+\s*-\s*/, '').trim();
+  };
   const ehCritico = i => (window.classificarMaterialCritico && window.classificarMaterialCritico(`${i.insumo || ''} ${i.detalhe || ''}`)) || '';
   const chaveHist = r => [r.data, String(r.fornecedor).trim().toLowerCase(), String(r.insumo).trim().toLowerCase(),
     Number(r.valor_unitario).toFixed(4), String(r.localidade_entrega).trim().toLowerCase()].join('|');
@@ -928,12 +943,13 @@
       <datalist id="crtDlIns">${nomesHist.map(n => `<option value="${h(n)}">`).join('')}</datalist>
       <datalist id="crtDlUn">${unidHist.map(n => `<option value="${h(n)}">`).join('')}</datalist>
       <datalist id="crtDlLoc">${locHist.map(n => `<option value="${h(n)}">`).join('')}</datalist>
-      <div class="ctr-frm"><label class="full">Localidade de entrega<input id="crtLocal" list="crtDlLoc" value="${h(p.localidade_entrega || '')}"></label></div>
+      <div class="ctr-frm"><label class="full">Localidade de entrega<input id="crtLocal" list="crtDlLoc" value="${h(equivalente('local', p.localidade_entrega, (hist || []).map(r => r.localidade_entrega)) || p.localidade_entrega || '')}"></label></div>
       <h4 style="margin:14px 0 6px;font:600 13px var(--font-body)">Como cada item aparece no histórico</h4>
+      <p class="ctr-note" style="margin:0 0 6px">Use o mesmo nome, unidade e localidade que já estão no histórico (ex.: DIESEL S10, Litro, BENEVIDES) — assim os preços entram na mesma série. Já vem sugerido o nome equivalente quando existe.</p>
       <div class="table-scroll"><table class="data"><thead><tr><th>Item do certame</th><th>Nome no histórico</th><th>Unidade</th></tr></thead><tbody>
         ${A.itens.map(i => `<tr><td class="wrap" style="min-width:180px">${h(i.insumo)}${ehCritico(i) ? ` <span class="badge critico">${h(ehCritico(i))}</span>` : ''}</td>
-          <td><input data-nome="${i.id}" list="crtDlIns" value="${h(nomeSugerido(i))}" style="min-width:180px"></td>
-          <td><input data-un="${i.id}" list="crtDlUn" value="${h(i.unidade || '')}" style="min-width:70px"></td></tr>`).join('')}
+          <td><input data-nome="${i.id}" list="crtDlIns" value="${h(nomeSugerido(i, hist || []))}" style="min-width:180px"></td>
+          <td><input data-un="${i.id}" list="crtDlUn" value="${h(equivalente('unidade', i.unidade, (hist || []).map(r => r.unidade_medida)) || i.unidade || '')}" style="min-width:70px"></td></tr>`).join('')}
       </tbody></table></div>
       <h4 style="margin:14px 0 6px;font:600 13px var(--font-body)">Preços recebidos</h4>
       <div class="table-scroll"><table class="data"><thead><tr><th><input type="checkbox" id="crtTodos" title="Marcar/desmarcar todos"></th><th>Fornecedor</th><th>Item</th><th class="num">Valor unit. (R$)</th><th>Frete unit. (R$)</th><th>Data</th><th></th></tr></thead><tbody>
