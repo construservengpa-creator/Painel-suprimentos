@@ -13470,11 +13470,39 @@ function populateCreditoDatalists(){
       if(vinculoEmEdicao && String(vinculoEmEdicao.creditoId)===String(c.id)) saldo += vinculoValorEfetivo(vinculoEmEdicao);
       return { c, saldo };
     }).filter(x=>x.saldo > 0.005);
-    selCredito.innerHTML = candidatos.length
-      ? candidatos.map(x=>`<option value="${x.c.id}">${esc(x.c.obra)} — saldo R$ ${fmtMoney(x.saldo)}</option>`).join('')
+    // Créditos da mesma obra aparecem unificados numa única opção, com o
+    // saldo somado; ao gravar, o vínculo vai para um dos créditos do grupo
+    // (ver escolherCreditoDoGrupo). O value é o id do primeiro crédito do
+    // grupo e data-ids guarda todos.
+    const grupos = new Map();
+    candidatos.forEach(x=>{
+      const chave = String(x.c.obra||'').trim().toUpperCase();
+      if(!grupos.has(chave)) grupos.set(chave, { obra:x.c.obra, ids:[], saldo:0 });
+      const g = grupos.get(chave);
+      g.ids.push(String(x.c.id)); g.saldo += x.saldo;
+    });
+    selCredito.innerHTML = grupos.size
+      ? [...grupos.values()].map(g=>`<option value="${esc(g.ids[0])}" data-ids="${esc(g.ids.join(','))}">${esc(g.obra)} — saldo R$ ${fmtMoney(g.saldo)}${g.ids.length>1 ? ` (${g.ids.length} créditos)` : ''}</option>`).join('')
       : '<option value="">Nenhum crédito com saldo disponível</option>';
-    if([...selCredito.options].some(o=>o.value===atual)) selCredito.value = atual;
+    selecionarCreditoNoForm(atual);
   }
+}
+
+// Seleciona no formulário de vínculo a opção (grupo de créditos da mesma
+// obra) que contém o crédito informado.
+function selecionarCreditoNoForm(creditoId){
+  const sel = document.getElementById('vinculo-fCredito');
+  if(!sel || !creditoId) return;
+  const opt = [...sel.options].find(o=>(o.dataset.ids||o.value).split(',').includes(String(creditoId)));
+  if(opt) sel.value = opt.value;
+}
+// Ids dos créditos unificados na opção selecionada.
+function creditosDoGrupoSelecionado(){
+  const sel = document.getElementById('vinculo-fCredito');
+  const opt = sel ? sel.selectedOptions[0] : null;
+  if(!opt || !opt.value) return [];
+  const ids = (opt.dataset.ids||opt.value).split(',');
+  return ids.map(id=>creditos.find(c=>String(c.id)===id)).filter(Boolean);
 }
 
 // Pedido de compra: só pode ser vinculado se pertencer à mesma "empresa" do
@@ -14221,9 +14249,8 @@ function startEditVinculo(id){
   if(!v) return;
   editingVinculoId = id;
   setCreditoTab('vincular');
-  document.getElementById('vinculo-fCredito').value = v.creditoId;
   populateCreditoDatalists();
-  document.getElementById('vinculo-fCredito').value = v.creditoId;
+  selecionarCreditoNoForm(v.creditoId);
   document.getElementById('vinculo-fPedido').value = v.numPedido;
   document.getElementById('vinculo-fValor').value = vinculoValorEfetivo(v);
   document.getElementById('vinculo-fData').value = v.dataVinculo;
@@ -14251,7 +14278,8 @@ function cancelEditVinculo(){
 async function addVinculoCredito(){
   const msg = document.getElementById('vinculo-formMsg');
   msg.textContent = '';
-  const creditoId = document.getElementById('vinculo-fCredito').value;
+  const grupoCreditos = creditosDoGrupoSelecionado();
+  let creditoId = document.getElementById('vinculo-fCredito').value;
   const numPedido = document.getElementById('vinculo-fPedido').value.trim();
   const valor = parseFloat(document.getElementById('vinculo-fValor').value);
   const data = document.getElementById('vinculo-fData').value;
@@ -14262,6 +14290,33 @@ async function addVinculoCredito(){
   if(!numPedido){ msg.textContent = 'Informe o número do pedido de compra.'; return; }
   if(!valor || valor<=0){ msg.textContent = 'Informe o valor a abater (maior que zero).'; return; }
   if(!data){ msg.textContent = 'Informe a data do vínculo.'; return; }
+
+  // Créditos da mesma obra são exibidos unificados: escolhe, dentro do
+  // grupo, o crédito que recebe o vínculo. Um pedido só pode ter um vínculo
+  // ativo, então o valor precisa caber no saldo de um único crédito. Na
+  // edição, mantém o crédito atual se ele ainda comportar o valor; senão,
+  // usa o primeiro (mais antigo na lista) com saldo suficiente.
+  const vinculoEditado = editingVinculoId ? vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId)) : null;
+  const saldoNoForm = c=>{
+    let s = creditoSaldo(c);
+    if(vinculoEditado && String(vinculoEditado.creditoId)===String(c.id)) s += vinculoValorEfetivo(vinculoEditado);
+    return s;
+  };
+  if(grupoCreditos.length > 1){
+    const ordenados = vinculoEditado
+      ? [...grupoCreditos].sort((a,b)=>(String(b.id)===String(vinculoEditado.creditoId)) - (String(a.id)===String(vinculoEditado.creditoId)))
+      : grupoCreditos;
+    const escolhido = ordenados.find(c=>valor <= saldoNoForm(c) + 0.005);
+    if(!escolhido){
+      const maior = Math.max(...grupoCreditos.map(saldoNoForm));
+      const soma = grupoCreditos.reduce((t,c)=>t+saldoNoForm(c),0);
+      msg.textContent = valor > soma + 0.005
+        ? `Valor maior que o saldo disponível (R$ ${fmtMoney(soma)}).`
+        : `Esta obra tem ${grupoCreditos.length} créditos somando R$ ${fmtMoney(soma)}, mas um pedido só pode abater de um crédito — o maior saldo individual é R$ ${fmtMoney(maior)}.`;
+      return;
+    }
+    creditoId = String(escolhido.id);
+  }
 
   const credito = creditos.find(c=>String(c.id)===String(creditoId));
   const pedido = getPedidosUnicos().find(p=>p.numPedido===numPedido);
