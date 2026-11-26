@@ -13286,7 +13286,7 @@ function imprimirRelatorioCreditos(){
         <td>${e(v.fornecedor)}${v.observacao?`<div class="mut">${e(v.observacao)}</div>`:''}</td>
         <td><span class="st ${stc}">${st}</span>${an?`<div class="mut"><i>Notas: só controle de saldo de NF (${pc(f, v.valorPrevisto)} recebido)</i></div>`:''}${sit?`<div class="mut">Sienge: ${e(sit)}</div>`:''}${ped&&ped.saldoPedido!=null?`<div class="mut">Saldo do pedido: ${m(ped.saldoPedido)}</div>`:''}</td>
         <td class="n">${m(v.valorPrevisto)}</td>
-        <td class="n">${nfs}</td>
+        <td class="n">${nfs}${!an && f>0.005 && ped && Math.abs((ped.valorTotal||0)-f)>0.005 ? `<div class="mut" title="Pedido dividido entre créditos: só esta parte das notas conta neste crédito">considerado neste crédito: <b>${m(f)}</b></div>`:''}</td>
         <td class="n">${an ? `<div class="mut"><i>${sNf>0.005?'NF a receber':'NF completa'}</i></div>${sNf>0.005?`<span class="mut">${m(sNf)}</span>`:''}` : r>0.005?m(r):'—'}</td>
         <td class="n"><b>${m(ef)}</b></td></tr>`;
     });
