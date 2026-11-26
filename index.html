@@ -13503,6 +13503,13 @@ function populateCreditoDatalists(){
   }
 }
 
+// Ordem de consumo dos créditos unificados: o mais antigo primeiro (data de
+// disponibilidade; empate ou sem data: o cadastrado antes).
+function compararCreditosMaisAntigoPrimeiro(a, b){
+  const da = a.dataDisponibilidade || '9999-12-31', db = b.dataDisponibilidade || '9999-12-31';
+  if(da !== db) return da < db ? -1 : 1;
+  return String(a.criadoEm||'').localeCompare(String(b.criadoEm||''));
+}
 // Seleciona no formulário de vínculo a opção (grupo de créditos da mesma
 // obra) que contém o crédito informado.
 function selecionarCreditoNoForm(creditoId){
@@ -14310,46 +14317,59 @@ async function addVinculoCredito(){
   if(!valor || valor<=0){ msg.textContent = 'Informe o valor a abater (maior que zero).'; return; }
   if(!data){ msg.textContent = 'Informe a data do vínculo.'; return; }
 
-  // Créditos da mesma obra são exibidos unificados: escolhe, dentro do
-  // grupo, o crédito que recebe o vínculo: o primeiro (na ordem da lista)
-  // com saldo suficiente — na edição, o crédito atual, se ainda comportar o
-  // valor. Se nenhum comportar sozinho, o vínculo novo é dividido.
+  // Créditos do mesmo credor e da mesma obra são exibidos unificados e
+  // consumidos do MAIS ANTIGO para o mais novo (data de disponibilidade):
+  // o pedido abate primeiro o saldo livre do crédito mais antigo e só o que
+  // não couber nele passa para o seguinte — dividindo o pedido em um vínculo
+  // por crédito quando preciso. Vale também na edição: salvar um vínculo
+  // existente redistribui o pedido se um crédito mais antigo tiver saldo.
   const vinculoEditado = editingVinculoId ? vinculosCredito.find(vv=>String(vv.id)===String(editingVinculoId)) : null;
   const saldoNoForm = c=>{
     let s = creditoSaldo(c);
     if(vinculoEditado && String(vinculoEditado.creditoId)===String(c.id)) s += vinculoValorEfetivo(vinculoEditado);
     return s;
   };
-  // Valor maior que o saldo de um crédito só: num vínculo novo, divide o
-  // pedido entre os créditos do grupo (um vínculo por crédito, na ordem da
-  // lista); na edição, a parte editada precisa caber num crédito só.
   let divisao = null;
   if(grupoCreditos.length > 1){
-    const ordenados = vinculoEditado
-      ? [...grupoCreditos].sort((a,b)=>(String(b.id)===String(vinculoEditado.creditoId)) - (String(a.id)===String(vinculoEditado.creditoId)))
-      : grupoCreditos;
-    const escolhido = ordenados.find(c=>valor <= saldoNoForm(c) + 0.005);
-    const soma = grupoCreditos.reduce((t,c)=>t+saldoNoForm(c),0);
-    if(escolhido){
-      creditoId = String(escolhido.id);
-    } else if(valor > soma + 0.005){
+    // Créditos que já têm outra parte deste mesmo pedido ficam de fora (um
+    // vínculo ativo por pedido em cada crédito); a parte deles não muda.
+    const comIrmao = new Set(vinculosCredito.filter(x=>
+      String(x.numPedido)===String(numPedido) && x.status!=='cancelado' &&
+      (!vinculoEditado || String(x.id)!==String(vinculoEditado.id))
+    ).map(x=>String(x.creditoId)));
+    const ordenados = grupoCreditos.filter(c=>!comIrmao.has(String(c.id))).sort(compararCreditosMaisAntigoPrimeiro);
+    const soma = ordenados.reduce((t,c)=>t+Math.max(0,saldoNoForm(c)),0);
+    if(!ordenados.length){
+      msg.textContent = `O pedido ${numPedido} já está vinculado a todos os créditos deste grupo. Edite os vínculos existentes.`;
+      return;
+    }
+    if(valor > soma + 0.005){
       msg.textContent = `Valor maior que o saldo disponível (R$ ${fmtMoney(soma)}).`;
       return;
-    } else if(vinculoEditado){
-      msg.textContent = `Na edição, o valor precisa caber no saldo de um crédito (maior saldo: R$ ${fmtMoney(Math.max(...grupoCreditos.map(saldoNoForm)))}). Para dividir entre créditos, exclua este vínculo e vincule o pedido de novo.`;
-      return;
+    }
+    const partes = [];
+    let resta = Math.round(valor*100)/100;
+    for(const c of ordenados){
+      if(resta <= 0.005) break;
+      const parte = Math.min(resta, Math.floor(saldoNoForm(c)*100)/100);
+      if(parte <= 0.005) continue;
+      partes.push({ creditoId:String(c.id), valor:parte });
+      resta = Math.round((resta-parte)*100)/100;
+    }
+    if(resta > 0.005 && partes.length) partes[partes.length-1].valor = Math.round((partes[partes.length-1].valor+resta)*100)/100;
+    if(!partes.length){ msg.textContent = 'Nenhum crédito do grupo tem saldo disponível.'; return; }
+    if(partes.length === 1){
+      creditoId = partes[0].creditoId;
     } else {
-      divisao = [];
-      let resta = Math.round(valor*100)/100;
-      for(const c of grupoCreditos){
-        if(resta <= 0.005) break;
-        const parte = Math.min(resta, Math.floor(saldoNoForm(c)*100)/100);
-        if(parte <= 0.005) continue;
-        divisao.push({ creditoId:String(c.id), valor:parte });
-        resta = Math.round((resta-parte)*100)/100;
-      }
-      if(resta > 0.005 && divisao.length) divisao[divisao.length-1].valor = Math.round((divisao[divisao.length-1].valor+resta)*100)/100;
-      creditoId = divisao[0].creditoId;
+      divisao = partes;
+      creditoId = partes[0].creditoId;
+      const rotulo = id=>{
+        const c = creditos.find(cc=>String(cc.id)===String(id));
+        if(!c) return 'crédito';
+        return `${c.descricao || c.obra}${c.dataDisponibilidade ? ` (disp. ${fmtBRDate(c.dataDisponibilidade)})` : ''}`;
+      };
+      const resumo = partes.map(d=>`• ${rotulo(d.creditoId)}: R$ ${fmtMoney(d.valor)}`).join('\n');
+      if(!confirm(`O pedido ${numPedido} (R$ ${fmtMoney(valor)}) será dividido entre os créditos, começando pelo mais antigo:\n\n${resumo}\n\nConfirmar?`)) return;
     }
   }
 
@@ -14417,20 +14437,32 @@ async function addVinculoCredito(){
   };
   let ok;
   if(divisao){
-    // Pedido dividido: um vínculo por crédito, cada um com a sua parte.
-    const fator = p => Math.round(p*100)/100;
+    // Pedido dividido: um vínculo por crédito, cada um com a sua parte
+    // (previsto e realizado repartidos na proporção de cada parte). Na
+    // edição, o vínculo editado fica com a parte do seu crédito (ou com a
+    // primeira, se o crédito dele saiu da divisão) e as demais viram
+    // vínculos novos.
+    const cent = p => Math.round(p*100)/100;
+    const partesGravar = divisao.map(d=>({ creditoId:d.creditoId, valorPrevisto:cent((valorPrevisto||0)*d.valor/valor), valorRealizado:cent((valorRealizado||0)*d.valor/valor) }));
+    const ult = partesGravar[partesGravar.length-1];
+    ult.valorPrevisto = cent((valorPrevisto||0) - partesGravar.slice(0,-1).reduce((t,d)=>t+d.valorPrevisto,0));
+    ult.valorRealizado = cent((valorRealizado||0) - partesGravar.slice(0,-1).reduce((t,d)=>t+d.valorRealizado,0));
+    let idxEditado = -1;
+    if(vinculoEditado){
+      idxEditado = partesGravar.findIndex(d=>String(d.creditoId)===String(vinculoEditado.creditoId));
+      if(idxEditado < 0) idxEditado = 0;
+    }
     ok = true;
     let gravados = 0;
-    for(const d of divisao){
-      const parcial = Object.assign({}, payload, {
-        creditoId: d.creditoId,
-        valorPrevisto: d.valor,
-        valorRealizado: status==='realizado' ? d.valor : fator((valorRealizado||0) * d.valor / valor)
-      });
-      if(!(await insertVinculoCredito(parcial))){ ok = false; break; }
+    // Primeiro reduz o vínculo editado (libera o saldo), depois cria os novos.
+    const ordem = idxEditado >= 0 ? [idxEditado, ...partesGravar.map((_,i)=>i).filter(i=>i!==idxEditado)] : partesGravar.map((_,i)=>i);
+    for(const i of ordem){
+      const parcial = Object.assign({}, payload, partesGravar[i]);
+      const r = i===idxEditado ? await updateVinculoCredito(editingVinculoId, parcial) : await insertVinculoCredito(parcial);
+      if(!r){ ok = false; break; }
       gravados++;
     }
-    if(!ok && gravados) alert(`Atenção: o pedido foi vinculado a só ${gravados} de ${divisao.length} créditos. Confira em "Pedidos já vinculados".`);
+    if(!ok && gravados) alert(`Atenção: o pedido foi gravado em só ${gravados} de ${partesGravar.length} créditos. Confira em "Pedidos já vinculados".`);
     if(gravados){ cancelEditVinculo(); await loadVinculosCredito(); renderCreditos(); }
     return;
   }
