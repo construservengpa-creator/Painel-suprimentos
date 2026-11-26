@@ -12948,48 +12948,12 @@ function creditoRealizadoAbatido(creditoId){
 function creditoPagoAntecipado(creditoId){
   return vinculosDoCredito(creditoId).filter(vinculoAntecipado).reduce((s,v)=>s+(v.valorPrevisto||0),0);
 }
-// Saldo do crédito sem considerar excedentes entre créditos.
+// Saldo livre do crédito: valor total menos o que os pedidos vinculados comprometem.
 function creditoSaldoBruto(c){
   return c.valorTotal - creditoAbatido(c.id);
 }
-// Excedente entre créditos do MESMO credor e da mesma obra: quando um
-// crédito fica negativo (notas faturadas acima do valor do crédito), o que
-// passou é cobrado dos créditos seguintes do grupo, do mais antigo para o
-// mais novo, até onde houver saldo livre. Devolve, para o crédito informado,
-// quanto ele recebeu de excedente de outros créditos e quanto repassou.
-function creditoExcedente(c){
-  const norm = t=>String(t||'').trim().toUpperCase();
-  const chave = x=>norm(x.empresaBeneficiaria)+'|'+norm(x.obra);
-  const k = chave(c);
-  const grupo = creditos.filter(x=>chave(x)===k).sort(compararCreditosMaisAntigoPrimeiro);
-  const r = { recebido:0, repassado:0 };
-  if(grupo.length < 2) return r;
-  const brutos = grupo.map(creditoSaldoBruto);
-  const recebido = grupo.map(()=>0), repassado = grupo.map(()=>0);
-  grupo.forEach((x,i)=>{
-    if(brutos[i] >= -0.005) return;
-    let falta = -brutos[i];
-    for(let j=i+1; j<grupo.length && falta>0.005; j++){
-      const livre = brutos[j] - recebido[j];
-      if(livre <= 0.005) continue;
-      const parte = Math.min(falta, livre);
-      recebido[j] += parte; repassado[i] += parte; falta -= parte;
-    }
-  });
-  const idx = grupo.findIndex(x=>String(x.id)===String(c.id));
-  if(idx >= 0){ r.recebido = recebido[idx]; r.repassado = repassado[idx]; }
-  return r;
-}
 function creditoSaldo(c){
-  const ex = creditoExcedente(c);
-  return creditoSaldoBruto(c) + ex.repassado - ex.recebido;
-}
-// Linhas de excedente entre créditos (para a coluna de utilização).
-function creditoExcedenteHtml(ex){
-  let h = '';
-  if(ex.recebido > 0.005) h += `<div class="cr-num" title="Notas faturadas acima do valor de um crédito mais antigo do mesmo credor/obra: o que passou é cobrado deste crédito"><span class="cr-dot fat"></span><span class="lbl">Excedente de crédito anterior</span> R$ ${fmtMoney(ex.recebido)}</div>`;
-  if(ex.repassado > 0.005) h += `<div class="cr-num" title="Notas faturadas acima do valor deste crédito: o que passou foi cobrado do(s) crédito(s) seguinte(s) do mesmo credor/obra"><span class="cr-dot liv"></span><span class="lbl">Excedente repassado</span> R$ ${fmtMoney(ex.repassado)}</div>`;
-  return h;
+  return creditoSaldoBruto(c);
 }
 
 // Identifica a "empresa" de uma obra a partir do código no início do nome
@@ -13301,7 +13265,7 @@ function imprimirRelatorioCreditos(){
   const pc = (v,t) => t>0 ? (v/t*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%' : '0%';
   let gT=0,gF=0,gR=0,gA=0;
   const blocos = lista.map(c=>{
-    const res = creditoReservado(c.id), abt = creditoRealizadoAbatido(c.id), ant = creditoPagoAntecipado(c.id), fat = abt - ant, exc = creditoExcedente(c), sal = c.valorTotal - res - abt + exc.repassado - exc.recebido;
+    const res = creditoReservado(c.id), abt = creditoRealizadoAbatido(c.id), ant = creditoPagoAntecipado(c.id), fat = abt - ant, sal = c.valorTotal - res - abt;
     gT += c.valorTotal; gF += fat; gR += res; gA += ant;
     const pf = c.valorTotal>0 ? Math.min(100, fat/c.valorTotal*100) : 0, pa = c.valorTotal>0 ? Math.min(100-pf, ant/c.valorTotal*100) : 0, pr = c.valorTotal>0 ? Math.min(100-pf-pa, res/c.valorTotal*100) : 0;
     const vs = vinculosDoCredito(c.id);
@@ -13333,7 +13297,7 @@ function imprimirRelatorioCreditos(){
         <div class="cv">${m(c.valorTotal)}</div>
       </div>
       <div class="bar"><i class="f" style="width:${pf}%"></i><i class="a" style="width:${pa}%"></i><i class="r" style="width:${pr}%"></i></div>
-      <div class="eq"><span><i class="d f"></i>Faturado <b>${m(fat)}</b> (${pc(fat,c.valorTotal)})</span>${ant>0.005?`<span><i class="d a"></i>Pago antecipado <b>${m(ant)}</b> (${pc(ant,c.valorTotal)})</span>`:''}<span><i class="d r"></i>Reservado <b>${m(res)}</b> (${pc(res,c.valorTotal)})</span>${exc.recebido>0.005?`<span><i class="d f"></i>Excedente de crédito anterior <b>${m(exc.recebido)}</b></span>`:''}${exc.repassado>0.005?`<span><i class="d l"></i>Excedente repassado <b>− ${m(exc.repassado)}</b></span>`:''}<span><i class="d l"></i>Saldo livre <b>${m(sal)}</b> (${pc(Math.max(0,sal),c.valorTotal)})</span></div>
+      <div class="eq"><span><i class="d f"></i>Faturado <b>${m(fat)}</b> (${pc(fat,c.valorTotal)})</span>${ant>0.005?`<span><i class="d a"></i>Pago antecipado <b>${m(ant)}</b> (${pc(ant,c.valorTotal)})</span>`:''}<span><i class="d r"></i>Reservado <b>${m(res)}</b> (${pc(res,c.valorTotal)})</span><span><i class="d l"></i>Saldo livre <b>${m(sal)}</b> (${pc(Math.max(0,sal),c.valorTotal)})</span></div>
       ${vs.length ? `<table><colgroup><col style="width:9.5%"><col style="width:16.5%"><col style="width:15%"><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:13%"></colgroup>
         <thead><tr><th>Pedido</th><th>Fornecedor / finalidade</th><th>Situação</th><th class="n">Previsto</th><th class="n">Faturado (notas)</th><th class="n">Reservado</th><th class="n">Conta no crédito</th></tr></thead>
         <tbody>${linhas.slice(0,-1).join('')}</tbody>
@@ -13811,13 +13775,12 @@ function renderCreditos(){
     const abatidoTot = creditoRealizadoAbatido(c.id);
     const antecipado = creditoPagoAntecipado(c.id);
     const faturado = abatidoTot - antecipado;   // só notas fiscais de pedidos normais
-    const excedente = creditoExcedente(c);
-    const saldo = c.valorTotal - reservado - abatidoTot + excedente.repassado - excedente.recebido;
+    const saldo = c.valorTotal - reservado - abatidoTot;
     const isOpen = creditoDetailOpen.has(String(c.id));
     const vinculos = vinculosDoCredito(c.id);
     const anexos = anexosDoCredito(c.id);
     const enviando = creditoAnexoEnviando.has(String(c.id));
-    const pf = Math.min(100, pct(faturado + excedente.recebido - excedente.repassado, c.valorTotal)), pa = Math.min(100-pf, pct(antecipado, c.valorTotal)), pr = Math.min(100-pf-pa, pct(reservado, c.valorTotal));
+    const pf = Math.min(100, pct(faturado, c.valorTotal)), pa = Math.min(100-pf, pct(antecipado, c.valorTotal)), pr = Math.min(100-pf-pa, pct(reservado, c.valorTotal));
     html += `<tr${sub?' class="cr-sub-row"':''}>
       <td class="no-print"><button class="credito-toggle" data-toggle="${c.id}" title="Ver pedidos vinculados">${isOpen?'▾':'▸'}</button></td>
       <td class="txt">
@@ -13832,7 +13795,6 @@ function renderCreditos(){
         <div class="cr-num"><span class="cr-dot fat"></span><span class="lbl">Faturado</span> R$ ${fmtMoney(faturado)} <span class="cr-pct">(${pctTxt(faturado,c.valorTotal)})</span></div>
         ${antecipado>0.005?`<div class="cr-num" title="Pedidos pagos antecipadamente: o valor pago já conta no crédito; as notas fiscais são só controle de saldo de NF"><span class="cr-dot ant"></span><span class="lbl">Pago antecipado</span> R$ ${fmtMoney(antecipado)} <span class="cr-pct">(${pctTxt(antecipado,c.valorTotal)})</span></div>`:''}
         <div class="cr-num"><span class="cr-dot res"></span><span class="lbl">Reservado</span> R$ ${fmtMoney(reservado)} <span class="cr-pct">(${pctTxt(reservado,c.valorTotal)})</span></div>
-        ${creditoExcedenteHtml(excedente)}
       </td>
       <td><span class="saldo-pill ${saldo>0.005?'pos':'zero'}">R$ ${fmtMoney(saldo)}</span><span class="cr-sub">${pctTxt(Math.max(0,saldo),c.valorTotal)} do crédito</span></td>
       <td>${c.dataDisponibilidade?fmtBRDate(c.dataDisponibilidade):'—'}</td>
@@ -13877,8 +13839,6 @@ function renderCreditos(){
         <span><span class="cr-dot fat"></span>faturado <b>R$ ${fmtMoney(faturado)}</b></span><span class="eq">+</span>
         ${antecipado>0.005?`<span><span class="cr-dot ant"></span>pago antecipado <b>R$ ${fmtMoney(antecipado)}</b></span><span class="eq">+</span>`:''}
         <span><span class="cr-dot res"></span>reservado <b>R$ ${fmtMoney(reservado)}</b></span><span class="eq">+</span>
-        ${excedente.recebido>0.005?`<span><span class="cr-dot fat"></span>excedente de crédito anterior <b>R$ ${fmtMoney(excedente.recebido)}</b></span><span class="eq">+</span>`:''}
-        ${excedente.repassado>0.005?`<span><span class="cr-dot liv"></span>excedente repassado <b>− R$ ${fmtMoney(excedente.repassado)}</b></span><span class="eq">+</span>`:''}
         <span><span class="cr-dot liv"></span>saldo livre <b>R$ ${fmtMoney(saldo)}</b></span>
       </div>
       ${vinculos.length ? `<table class="vinculos-mini"><thead><tr>
@@ -14395,7 +14355,7 @@ async function addVinculoCredito(){
     let resta = Math.round(valor*100)/100;
     for(const c of ordenados){
       if(resta <= 0.005) break;
-      const parte = Math.min(resta, Math.floor(saldoNoForm(c)*100)/100);
+      const parte = Math.min(resta, Math.floor(saldoNoForm(c)*100 + 1e-6)/100);
       if(parte <= 0.005) continue;
       partes.push({ creditoId:String(c.id), valor:parte });
       resta = Math.round((resta-parte)*100)/100;
