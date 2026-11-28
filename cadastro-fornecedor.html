@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ficha cadastral do fornecedor</title>
+<!--
+  Página do FORNECEDOR para preencher a ficha cadastral com as informações de IBS e CBS.
+  Chega pelo link enviado no WhatsApp: cadastro-fornecedor.html?t=<ficha_token do fornecedor>.
+  Não tem login: lê e grava só pelo token, nas funções fornecedor_ficha_obter / fornecedor_ficha_salvar
+  (supabase/fornecedores_ficha_ibs_cbs.sql). Os campos vêm de fornecedor-ficha.js (o mesmo do painel).
+-->
+<style>
+  :root{--bg:#F3F0EA;--card:#FFFFFF;--text:#1B2129;--dim:#5A6371;--line:rgba(27,33,41,.14);--acc:#A86200;--acc-bg:#F5C433;--ok:#0B7A0B;--bad:#C03030;--ff-line:rgba(27,33,41,.14)}
+  @media (prefers-color-scheme: dark){:root{--bg:#12151A;--card:#1A1E24;--text:#EDEFF2;--dim:#9AA3AE;--line:#333A44;--acc:#F5C433;--ok:#3CC63C;--bad:#F06060;--ff-line:#333A44}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:16px 16px 120px}
+  header.top{display:flex;align-items:center;gap:10px;margin:6px 0 14px}
+  header.top .logo{width:36px;height:36px;border-radius:9px;background:var(--acc-bg);display:grid;place-items:center;font-weight:800;color:#1A1E24}
+  h1{font-size:19px;margin:0}
+  .sub{color:var(--dim);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  .ff-sec{background:var(--card)}
+  .ff-sec legend{color:var(--text)}
+  input,textarea,select{width:100%;font:16px system-ui,sans-serif;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:8px;padding:10px}
+  select option{color:#1B2129}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--acc);border-color:transparent}
+  .ff-campo{color:var(--dim)}
+  .ff-chk{color:var(--text)}
+  .ff-btn,button{font:600 15px system-ui,sans-serif;border-radius:10px;padding:10px 14px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+  button.pri{background:var(--acc-bg);border-color:var(--acc-bg);color:#1A1E24}
+  button:disabled{opacity:.55}
+  .barra{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .barra .in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
+  .barra .in .sub{flex:1}
+  .msg{border-radius:10px;padding:12px;margin-bottom:12px;font-size:14px}
+  .msg.ok{border:1px solid var(--ok);color:var(--ok)}
+  .msg.bad{border:1px solid var(--bad);color:var(--bad)}
+  .msg.info{border:1px solid var(--line);color:var(--dim)}
+  .centro{text-align:center;padding:40px 10px;color:var(--dim)}
+  #aviso{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;max-width:92vw;background:var(--card);border:1px solid var(--acc);color:var(--text);padding:10px 14px;border-radius:10px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.25);display:none;z-index:9}
+</style>
+<style id="capivara-liga-desliga">
+/* Capivara: toda caixa de marcar aparece como botão liga/desliga. É o mesmo <input type="checkbox">
+   (mesmo clique, mesmo "checked", mesmos eventos) — só muda a aparência. Igual em todos os apps do Capivara. */
+input[type=checkbox]{
+  -webkit-appearance:none !important;appearance:none !important;
+  position:relative;display:inline-block;vertical-align:middle;box-sizing:border-box;
+  width:36px !important;height:20px !important;min-width:36px !important;max-width:36px !important;flex:0 0 36px !important;
+  padding:0 !important;border:0 !important;border-radius:999px !important;transform:none !important;
+  background:#A3ABB5 !important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);cursor:pointer;transition:background-color .15s;
+}
+input[type=checkbox]::before{
+  content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.35);transition:transform .15s;
+}
+input[type=checkbox]:checked{background:#22A35A !important}
+input[type=checkbox]:checked::before{transform:translateX(16px)}
+input[type=checkbox]:indeterminate{background:#7FBF97 !important}
+input[type=checkbox]:indeterminate::before{transform:translateX(8px)}
+input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed}
+input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){input[type=checkbox],input[type=checkbox]::before{transition:none}}
+</style>
+<script src="fornecedor-ficha.js"></script>
+</head>
+<body>
+<div class="wrap" id="app"><div class="centro">Carregando a ficha…</div></div>
+<div id="aviso"></div>
+<script>
+(function(){
+  'use strict';
+  var URL_SB = 'https://xuukjnpkltvgzjfgivnd.supabase.co';
+  var KEY = 'sb_publishable_67e6uHmdZJw2MU6QRht-gg_Qw6fioLY';
+  var F = window.FICHA_FORN;
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var app = document.getElementById('app');
+  var dados = null;
+  function h(s){ return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function dataHora(iso){ if (!iso) return '—'; var d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+  function avisar(m){
+    var a = document.getElementById('aviso'); a.textContent = m; a.style.display = 'block';
+    clearTimeout(avisar._t); avisar._t = setTimeout(function(){ a.style.display = 'none'; }, 6000);
+  }
+  function rpc(fn, body){
+    return fetch(URL_SB + '/rest/v1/rpc/' + fn, {
+      method: 'POST', headers: { 'apikey': KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function(r){
+      return r.json().then(function(j){ if (!r.ok) throw new Error((j && (j.message || j.hint)) || ('Erro ' + r.status)); return j; });
+    });
+  }
+
+  function carregar(){
+    if (!/^[0-9a-f-]{36}$/i.test(token)) { app.innerHTML = '<div class="centro">Link inválido. Confira o link recebido pelo WhatsApp.</div>'; return; }
+    rpc('fornecedor_ficha_obter', { p_token: token }).then(function(j){
+      if (j.erro) { app.innerHTML = '<div class="centro">' + h(j.erro) + '</div>'; return; }
+      dados = j.fornecedor; render();
+    }).catch(function(e){ app.innerHTML = '<div class="centro">Não foi possível abrir a ficha agora. Tente de novo em instantes.<br><small>' + h(e.message) + '</small></div>'; });
+  }
+
+  function render(msg){
+    var f = dados;
+    var html = '<header class="top"><div class="logo">✓</div><div><h1>Ficha cadastral do fornecedor</h1><div class="sub">' + h(f.nome) + '</div></div></header>';
+    if (msg) html += msg;
+    else if (f.ficha_atualizada_em) html += '<div class="msg ok">Ficha enviada em ' + dataHora(f.ficha_atualizada_em) + '. Se algo mudou (principalmente o regime tributário), corrija e envie de novo.</div>';
+    else html += '<div class="msg info">Com a reforma tributária, a nota fiscal passa a ter <b>IBS</b> e <b>CBS</b>. Precisamos destas informações para cadastrar a sua empresa e calcular corretamente os créditos. Leva uns 5 minutos — tenha o CNPJ em mãos (o botão “Buscar dados” preenche boa parte).</div>';
+    html += '<form id="ficha" novalidate>' + F.formHtml(f) + '</form>';
+    html += '<div style="text-align:center"><button type="button" id="imprimir">Imprimir / salvar em PDF</button></div>';
+    html += '<div class="barra"><div class="in"><div class="sub"><span class="ff-req">*</span> obrigatório</div><button class="pri" id="enviar" type="button">' + (f.ficha_atualizada_em ? 'Reenviar ficha' : 'Enviar ficha') + '</button></div></div>';
+    app.innerHTML = html;
+    var form = document.getElementById('ficha');
+    F.ligar(form, avisar);
+    document.getElementById('enviar').addEventListener('click', enviar);
+    document.getElementById('imprimir').addEventListener('click', function(){
+      var atual = F.ler(form), x = {}; Object.keys(dados).forEach(function(k){ x[k] = dados[k]; });
+      Object.keys(atual).forEach(function(k){ x[k] = atual[k]; });
+      F.imprimir(x);
+    });
+  }
+
+  function enviar(){
+    var form = document.getElementById('ficha'), d = F.ler(form);
+    var p = F.problemas(d);
+    F.marcar(form, p);
+    if (p.length) {
+      alert('Confira:\n' + p.slice(0, 8).map(function(x){ return '• ' + x.t + ' — ' + x.msg; }).join('\n') + (p.length > 8 ? '\n…e mais ' + (p.length - 8) : ''));
+      return;
+    }
+    var av = F.avisos(d);
+    if (av.length && !confirm('Atenção:\n' + av.join('\n') + '\n\nEnviar mesmo assim?')) return;
+    var btn = document.getElementById('enviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+    rpc('fornecedor_ficha_salvar', { p_token: token, p_dados: d }).then(function(j){
+      if (j.erro) { alert(j.erro); btn.disabled = false; btn.textContent = 'Enviar ficha'; return; }
+      return rpc('fornecedor_ficha_obter', { p_token: token }).then(function(n){
+        dados = n.fornecedor;
+        render('<div class="msg ok"><b>Ficha recebida!</b> Obrigado. Se o regime tributário da empresa mudar, use este mesmo link para atualizar.</div>');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }).catch(function(e){ alert('Não foi possível enviar agora. Verifique a internet e tente de novo.\n' + e.message); btn.disabled = false; btn.textContent = 'Enviar ficha'; });
+  }
+
+  F.instalarCss();
+  carregar();
+})();
+</script>
+</body>
+</html>

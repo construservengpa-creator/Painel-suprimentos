@@ -139,6 +139,12 @@
   #certModal input[type=checkbox]{width:auto}
   #certToast{position:fixed;right:18px;bottom:18px;z-index:90;background:var(--asphalt-2);border:1px solid var(--teal);border-left:4px solid var(--teal);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;box-shadow:0 6px 24px rgba(0,0,0,.35);display:none;max-width:340px}
   @media (max-width:640px){#tab-certames .ctr-frm{grid-template-columns:1fr}}
+  #certModal .ef-ficha{--ff-line:var(--line)}
+  #certModal .ef-ficha .ff-campo{color:var(--text-dim)}
+  #certModal .ef-ficha .ff-chk{color:var(--text)}
+  #certModal .ef-ficha input:not([type=checkbox]),#certModal .ef-ficha select,#certModal .ef-ficha textarea{background:var(--asphalt-2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:8px 10px;font:13px var(--font-body)}
+  #certModal .ef-ficha .ff-btn{background:var(--asphalt-2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:6px 10px;font:600 12px var(--font-body)}
+  #certModal .ef-ficha .ff-avisos{color:var(--text)}
   `;
 
   /* ---------------- utilidades de UI ---------------- */
@@ -783,18 +789,21 @@
     const A = S.atual, f = fornecedorDe(c);
     const r = id => A.respostas.find(x => x.convite_id === c.id && x.item_id === id) || {};
     const editando = c.status === 'respondido';
+    // sem resposta ainda: regime e alíquotas vêm da ficha cadastral do fornecedor
+    const regimeAtual = c.regime_tributario || (window.FICHA_FORN ? window.FICHA_FORN.regimeCotacao(f) : null);
+    const alqPadrao = (x, k) => x[k] != null ? pct(x[k]) : (!editando && f[k + '_padrao'] != null ? pct(f[k + '_padrao']) : '');
     const bd = modal(`${editando ? 'Editar resposta' : 'Lançar resposta'} — ${f.nome}`, `
       <p class="ctr-note" style="margin-top:0">${editando
         ? `Corrija o que for preciso. A alteração fica registrada com o seu nome${c.respondido_via === 'link' ? ' (a proposta original veio pelo link do fornecedor)' : ''}.`
         : 'Use quando o fornecedor responder por mensagem de texto, áudio ou e-mail. Deixe em branco o que ele não cotou.'}</p>
       <div class="ctr-frm" style="margin-bottom:10px"><label class="full">Regime tributário do fornecedor (IBS/CBS) <b style="color:var(--red)">*</b><select id="mlRegime">
-        <option value="">Selecione…</option>${Object.entries(REGIMES).map(([k, o]) => `<option value="${k}" ${c.regime_tributario === k ? 'selected' : ''}>${h(o.t)}</option>`).join('')}</select></label></div>
+        <option value="">Selecione…</option>${Object.entries(REGIMES).map(([k, o]) => `<option value="${k}" ${regimeAtual === k ? 'selected' : ''}>${h(o.t)}</option>`).join('')}</select>${!c.regime_tributario && regimeAtual ? '<span class="cert-sub">Preenchido pela ficha cadastral do fornecedor.</span>' : ''}</label></div>
       <p class="ctr-note" style="margin-top:0">Regime regular / Simples com IBS/CBS por fora: preço <b>sem</b> IBS/CBS e as alíquotas destacadas na nota. Simples Nacional: preço final e o percentual de CBS/IBS que sai na nota para crédito.</p>
       <div class="table-scroll"><table class="data"><thead><tr><th>Insumo</th><th class="num">Qtd.</th><th>Preço unitário (R$)</th><th>CBS (%)</th><th>IBS (%)</th><th>Marca</th><th>Não fornece</th></tr></thead><tbody>
       ${A.itens.map(i => { const x = r(i.id); return `<tr><td class="wrap" style="min-width:180px">${h(i.insumo)}<span class="cert-sub">${h(i.unidade || '')}</span></td><td class="num">${num(i.quantidade)}</td>
         <td><input data-v="${i.id}" inputmode="decimal" value="${x.valor_unitario != null ? money(x.valor_unitario) : ''}" style="min-width:110px"></td>
-        <td><input data-cbs="${i.id}" inputmode="decimal" value="${x.aliq_cbs != null ? pct(x.aliq_cbs) : ''}" placeholder="0,9" style="min-width:64px"></td>
-        <td><input data-ibs="${i.id}" inputmode="decimal" value="${x.aliq_ibs != null ? pct(x.aliq_ibs) : ''}" placeholder="0,1" style="min-width:64px"></td>
+        <td><input data-cbs="${i.id}" inputmode="decimal" value="${alqPadrao(x, 'aliq_cbs')}" placeholder="0,9" style="min-width:64px"></td>
+        <td><input data-ibs="${i.id}" inputmode="decimal" value="${alqPadrao(x, 'aliq_ibs')}" placeholder="0,1" style="min-width:64px"></td>
         <td><input data-m="${i.id}" value="${h(x.marca || '')}" style="min-width:100px"></td>
         <td style="text-align:center"><input type="checkbox" data-nd="${i.id}" ${x.disponivel === false ? 'checked' : ''}></td></tr>`; }).join('')}
       </tbody></table></div>
@@ -1072,58 +1081,119 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
-  /* ---------------- cadastro de fornecedores ---------------- */
+  /* ---------------- cadastro de fornecedores ----------------
+     Ficha cadastral com as informações de IBS/CBS (fornecedor-ficha.js). O comprador
+     preenche no painel ou envia ao fornecedor o link cadastro-fornecedor.html?t=<ficha_token>
+     pelo WhatsApp. Banco: supabase/fornecedores_ficha_ibs_cbs.sql. */
+  const FF = () => window.FICHA_FORN;
+  const REG_IBS_CURTO = { regular: 'Regular', simples: 'Simples (DAS)', simples_por_fora: 'Simples por fora', nao_contribuinte: 'Não contribuinte' };
+  function linkFicha(f){
+    const u = new URL('cadastro-fornecedor.html', location.href);
+    u.search = '?t=' + f.ficha_token; u.hash = '';
+    return u.href;
+  }
+  function mensagemFicha(f){
+    const P = window.PERFIL || {};
+    return [
+      `Olá${f.contato ? ', ' + f.contato : ''}! Tudo bem?`,
+      ``,
+      `Com a reforma tributária, a nota fiscal passa a ter *IBS* e *CBS*. Para manter a *${f.nome}* no nosso cadastro de fornecedores e calcular corretamente os créditos, pedimos que preencha a *ficha cadastral* (uns 5 minutos, com o CNPJ em mãos):`,
+      ``,
+      linkFicha(f),
+      ``,
+      `Se o regime tributário da empresa mudar, use o mesmo link para atualizar.`,
+      P.nome ? `\nObrigado! ${P.nome}` : `\nObrigado!`
+    ].join('\n');
+  }
   function renderFornecedores(corpo){
     const edita = podeLancar();
+    if (FF()) FF().instalarCss();
     corpo.innerHTML = `
       <div class="ctr-toolbar"><input type="text" id="cfBusca" placeholder="Buscar fornecedor, CNPJ, cidade, insumo…">
+        <select id="cfFicha" style="max-width:220px"><option value="">Todas as fichas</option><option value="pend">Ficha pendente / incompleta</option><option value="rev">Ficha a revisar</option><option value="ok">Ficha completa</option></select>
         <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--text-dim)"><input type="checkbox" id="cfInat" style="width:auto"> Mostrar inativos</label>
+        <button class="btn small" id="cfBranco" title="Ficha cadastral em branco para imprimir ou enviar em PDF">🖨 Ficha em branco</button>
         ${edita ? '<button class="btn primary small" id="cfNovo">+ Novo fornecedor</button>' : ''}</div>
-      <div class="table-scroll"><table class="data"><thead><tr><th>Fornecedor</th><th>CNPJ</th><th>Contato</th><th>WhatsApp</th><th>Cidade</th><th>Fornece</th><th>Situação</th><th></th></tr></thead><tbody id="cfTb"></tbody></table></div>`;
+      <p class="ctr-note" style="margin-top:0">A <b>ficha cadastral</b> traz os dados fiscais e o enquadramento no <b>IBS/CBS</b>. Use <b>📲 Ficha</b> para pedir que o próprio fornecedor preencha pelo WhatsApp; o regime informado já vem preenchido nas cotações.</p>
+      <div class="table-scroll"><table class="data"><thead><tr><th>Fornecedor</th><th>CNPJ</th><th>WhatsApp</th><th>Cidade/UF</th><th>IBS/CBS</th><th>Ficha</th><th>Fornece</th><th>Situação</th><th></th></tr></thead><tbody id="cfTb"></tbody></table></div>`;
+    const stFicha = f => FF() ? FF().status(f) : { t: '—', c: 'var(--text-dim)', completa: false };
     const pintar = () => {
-      const q = ($('#cfBusca').value || '').trim().toUpperCase(), inat = $('#cfInat').checked;
-      const rows = S.fornecedores.filter(f => (inat || f.ativo) && (!q || [f.nome, f.cnpj, f.cidade, f.insumos, f.contato].some(x => (x || '').toUpperCase().includes(q))));
-      $('#cfTb').innerHTML = rows.map(f => `<tr><td class="wrap" style="min-width:160px">${h(f.nome)}</td><td class="mono">${h(f.cnpj || '—')}</td><td>${h(f.contato || '—')}</td>
-        <td>${h(fmtFone(f.telefone))}</td><td>${h(f.cidade || '—')}</td><td class="wrap">${h(f.insumos || '—')}</td><td>${f.ativo ? pill({ t: 'Ativo', c: 'var(--teal)' }) : pill({ t: 'Inativo', c: 'var(--text-dim)' })}</td>
-        <td>${edita ? `<button class="btn small" data-ed="${f.id}">Editar</button>` : ''}</td></tr>`).join('') ||
-        `<tr><td colspan="8"><div class="cert-vazio">Nenhum fornecedor cadastrado. Cadastre com o número de WhatsApp para poder enviar as cotações.</div></td></tr>`;
-      $$('[data-ed]').forEach(b => b.addEventListener('click', () => editarFornecedor(S.fornecedores.find(f => f.id === Number(b.dataset.ed)), () => render())));
+      const q = ($('#cfBusca').value || '').trim().toUpperCase(), inat = $('#cfInat').checked, fil = $('#cfFicha').value;
+      const qd = soDigitos(q);
+      const rows = S.fornecedores.filter(f => {
+        if (!inat && !f.ativo) return false;
+        const st = stFicha(f);
+        if (fil === 'pend' && st.completa) return false;
+        if (fil === 'rev' && !(st.completa && /Revisar/.test(st.t))) return false;
+        if (fil === 'ok' && !(st.completa && !/Revisar/.test(st.t))) return false;
+        return !q || [f.nome, f.nome_fantasia, f.cnpj, f.cidade, f.insumos, f.contato].some(x => (x || '').toUpperCase().includes(q)) || (qd.length >= 4 && soDigitos(f.cnpj).includes(qd));
+      });
+      $('#cfTb').innerHTML = rows.map(f => { const st = stFicha(f); return `<tr><td class="wrap" style="min-width:160px">${h(f.nome)}${f.nome_fantasia ? `<span class="cert-sub">${h(f.nome_fantasia)}</span>` : ''}</td>
+        <td class="mono">${h(f.cnpj ? FF() ? FF().fmtDoc(f.cnpj) : f.cnpj : '—')}</td>
+        <td>${h(fmtFone(f.telefone))}</td><td>${h([f.cidade, f.uf].filter(Boolean).join('/') || '—')}</td>
+        <td>${f.regime_ibs_cbs ? h(REG_IBS_CURTO[f.regime_ibs_cbs] || f.regime_ibs_cbs) : '<span style="color:var(--text-faint)">—</span>'}</td>
+        <td>${pill(st)}${f.ficha_atualizada_em ? `<span class="cert-sub">${f.ficha_atualizada_via === 'link' ? 'pelo fornecedor' : 'no painel'} · ${fmtDataHora(f.ficha_atualizada_em)}</span>` : ''}</td>
+        <td class="wrap">${h(f.insumos || '—')}</td><td>${f.ativo ? pill({ t: 'Ativo', c: 'var(--teal)' }) : pill({ t: 'Inativo', c: 'var(--text-dim)' })}</td>
+        <td><div class="cert-acoes">${edita ? `<button class="btn small" data-ed="${f.id}">Editar</button>` : ''}
+          ${edita && f.ficha_token && f.ativo ? `<button class="btn small" data-fwa="${f.id}" title="Enviar o link da ficha cadastral pelo WhatsApp">📲 Ficha</button><button class="btn small" data-flk="${f.id}" title="Copiar o link da ficha cadastral">🔗</button>` : ''}
+          <button class="btn small" data-fpr="${f.id}" title="Imprimir a ficha cadastral">🖨</button></div></td></tr>`; }).join('') ||
+        `<tr><td colspan="9"><div class="cert-vazio">Nenhum fornecedor encontrado. Cadastre com o número de WhatsApp para poder enviar as cotações e a ficha cadastral.</div></td></tr>`;
+      const achar = el => S.fornecedores.find(f => f.id === Number(el));
+      $$('[data-ed]').forEach(b => b.addEventListener('click', () => editarFornecedor(achar(b.dataset.ed), () => render())));
+      $$('[data-fpr]').forEach(b => b.addEventListener('click', () => FF() && FF().imprimir(achar(b.dataset.fpr))));
+      $$('[data-fwa]').forEach(b => b.addEventListener('click', () => { const f = achar(b.dataset.fwa); abrirWhats(f.telefone, mensagemFicha(f)); }));
+      $$('[data-flk]').forEach(b => b.addEventListener('click', async () => {
+        const f = achar(b.dataset.flk);
+        try { await navigator.clipboard.writeText(linkFicha(f)); toast('Link da ficha copiado.'); }
+        catch (e) { prompt('Copie o link da ficha:', linkFicha(f)); }
+      }));
     };
     $('#cfBusca').addEventListener('input', pintar);
     $('#cfInat').addEventListener('change', pintar);
+    $('#cfFicha').addEventListener('change', pintar);
+    $('#cfBranco').addEventListener('click', () => FF() && FF().imprimir({}));
     const n = $('#cfNovo'); if (n) n.addEventListener('click', () => editarFornecedor(null, () => render()));
     if (!S.carregado) carregarLista().then(pintar).catch(e => erro(e, 'Não foi possível carregar os fornecedores.')); else pintar();
   }
   function editarFornecedor(f, depois){
     f = f || { ativo: true };
-    modal(f.id ? 'Editar fornecedor' : 'Novo fornecedor', `<div class="ctr-frm">
-      <label class="full">Razão social / nome<input id="efNome" value="${h(f.nome || '')}"></label>
-      <label>CNPJ<input id="efCnpj" value="${h(f.cnpj || '')}"></label>
-      <label>Contato (nome)<input id="efContato" value="${h(f.contato || '')}"></label>
-      <label>WhatsApp (com DDD)<input id="efFone" value="${h(f.telefone ? fmtFone(f.telefone) : '')}" placeholder="(91) 99999-9999"></label>
-      <label>E-mail<input id="efEmail" value="${h(f.email || '')}"></label>
-      <label>Cidade/UF<input id="efCidade" value="${h(f.cidade || '')}"></label>
-      <label>Insumos que fornece<input id="efIns" value="${h(f.insumos || '')}" placeholder="Ex.: brita, areia, CAP"></label>
-      <label class="full">Observação<textarea id="efObs">${h(f.observacao || '')}</textarea></label>
-      <label class="ctr-chk full"><input type="checkbox" id="efAtivo" ${f.ativo ? 'checked' : ''}> Ativo (aparece para convite)</label></div>`, [
+    if (!FF()) return alert('Não foi possível carregar a ficha cadastral (fornecedor-ficha.js). Recarregue a página.');
+    FF().instalarCss();
+    const st = f.id ? FF().status(f) : null;
+    const bd = modal(f.id ? 'Ficha do fornecedor — ' + f.nome : 'Novo fornecedor', `
+      ${st ? `<p class="ctr-note" style="margin-top:0">${pill(st)} ${f.ficha_atualizada_em ? `Última atualização ${f.ficha_atualizada_via === 'link' ? 'pelo fornecedor (link)' : 'no painel'}${f.ficha_atualizada_por_nome ? ' — ' + h(f.ficha_atualizada_por_nome) : ''} em ${fmtDataHora(f.ficha_atualizada_em)}.` : 'O fornecedor ainda não enviou a ficha.'}</p>` : `<p class="ctr-note" style="margin-top:0">Para salvar basta a razão social e o WhatsApp. O restante da ficha pode ser preenchido aqui ou pelo próprio fornecedor, pelo link enviado no WhatsApp.</p>`}
+      <div id="efFicha" class="ef-ficha">${FF().formHtml(f)}
+        <fieldset class="ff-sec"><legend>Uso interno</legend><div class="ff-grid">
+          <label class="ff-campo"><span>Insumos que fornece</span><input id="efIns" value="${h(f.insumos || '')}" placeholder="Ex.: brita, areia, CAP"></label>
+          <label class="ff-campo ff-chk" style="align-self:end"><input type="checkbox" id="efAtivo" ${f.ativo ? 'checked' : ''}><span>Ativo (aparece para convite)</span></label>
+          <label class="ff-campo ff-full"><span>Observação interna (o fornecedor não vê)</span><textarea id="efObs">${h(f.observacao || '')}</textarea></label>
+        </div></fieldset></div>`, [
       { t: 'Cancelar', cls: 'ghost' },
+      ...(f.id ? [{ t: '🖨 Imprimir', cls: 'ghost', fn: (bd) => FF().imprimir(Object.assign({}, f, FF().ler($('#efFicha', bd)))) }] : []),
       { t: 'Salvar', cls: 'primary', fn: async (bd) => {
-        const nome = $('#efNome', bd).value.trim(), fone = normFone($('#efFone', bd).value);
-        if (!nome) return alert('Informe o nome do fornecedor.');
-        if (fone.length < 12) return alert('Informe o WhatsApp com DDD (ex.: (91) 99999-9999).');
-        const row = { nome, telefone: fone, cnpj: $('#efCnpj', bd).value.trim() || null, contato: $('#efContato', bd).value.trim() || null,
-          email: $('#efEmail', bd).value.trim() || null, cidade: $('#efCidade', bd).value.trim() || null, insumos: $('#efIns', bd).value.trim() || null,
-          observacao: $('#efObs', bd).value.trim() || null, ativo: $('#efAtivo', bd).checked };
+        const raiz = $('#efFicha', bd), d = FF().ler(raiz);
+        if (!d.nome) { FF().marcar(raiz, [{ k: 'nome' }]); return alert('Informe a razão social do fornecedor.'); }
+        if (!d.telefone || d.telefone.length < 12) { FF().marcar(raiz, [{ k: 'telefone' }]); return alert('Informe o WhatsApp com DDD (ex.: (91) 99999-9999).'); }
+        const formato = FF().problemas(d, true);
+        if (formato.length) { FF().marcar(raiz, formato); return alert('Confira:\n' + formato.map(x => '• ' + x.t + ' — ' + x.msg).join('\n')); }
+        const row = Object.assign({}, d, { insumos: $('#efIns', bd).value.trim() || null, observacao: $('#efObs', bd).value.trim() || null, ativo: $('#efAtivo', bd).checked });
+        if (!row.cnpj) row.tipo_pessoa = f.tipo_pessoa || 'pj';
+        // carimbo da ficha só quando algum dado da ficha mudou
+        const nv = (v, c) => v == null || v === false || v === '' ? '' : String(c.tipo === 'num' ? Number(v) : c.mask === 'doc' ? soDigitos(v) : v);
+        const mudou = FF().CAMPOS.some(c => c.k !== 'nome' && c.k !== 'telefone' && nv(d[c.k], c) !== nv(f[c.k], c));
+        if (mudou) { const P = window.PERFIL || {}; Object.assign(row, { ficha_atualizada_em: new Date().toISOString(), ficha_atualizada_via: 'painel', ficha_atualizada_por_nome: P.nome || null }); }
         const q = f.id ? SB().from('cotacao_fornecedores').update(row).eq('id', f.id).select().single() : SB().from('cotacao_fornecedores').insert(row).select().single();
         const { data, error } = await q;
-        if (error) return erro(error, 'Não foi possível salvar o fornecedor.');
+        if (error) return erro(error, 'Não foi possível salvar o fornecedor.' + (/column|coluna/i.test(error.message || '') ? '\n(Rode supabase/fornecedores_ficha_ibs_cbs.sql no banco.)' : ''));
         const i = S.fornecedores.findIndex(x => x.id === data.id);
         if (i >= 0) S.fornecedores[i] = data; else S.fornecedores.push(data);
         S.fornecedores.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
         fecharModal(); toast('Fornecedor salvo.');
+        if (!f.id && data.ficha_token && !FF().status(data).completa && confirm('Fornecedor cadastrado. Enviar agora o link da ficha cadastral (IBS/CBS) pelo WhatsApp?')) abrirWhats(data.telefone, mensagemFicha(data));
         if (depois) depois(data);
       } }
     ]);
+    FF().ligar($('#efFicha', bd), m => toast(m));
   }
 
   /* ---------------- tempo real: resposta do fornecedor ---------------- */

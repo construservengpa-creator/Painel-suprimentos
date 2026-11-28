@@ -144,7 +144,11 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
       '<div>Comprador<b>' + h(p.comprador_nome || '—') + '</b></div></div>' +
       (p.observacao ? '<p class="sub" style="margin:10px 0 0;white-space:pre-wrap">' + h(p.observacao) + '</p>' : '') + '</div>';
 
-    var reg = c.regime_tributario || '';
+    // ainda sem resposta: regime e alíquotas vêm da ficha cadastral do fornecedor (cadastro-fornecedor.html)
+    var fr = dados.fornecedor || {};
+    var reg = c.regime_tributario || (REGIMES[fr.regime_ibs_cbs] ? fr.regime_ibs_cbs : '');
+    var semResp = c.status !== 'respondido';
+    function alq(v, k){ return v != null ? pct(v) : (semResp && fr[k] != null ? pct(fr[k]) : ''); }
     html += '<div class="card"><div style="font-weight:600;margin-bottom:4px">Tributação — IBS e CBS (reforma tributária)</div>' +
       '<label>Regime tributário da sua empresa <span class="req">*</span><select id="regime" ' + (aberto ? '' : 'disabled') + '>' +
       '<option value="">Selecione…</option>' +
@@ -157,8 +161,8 @@ input[type=checkbox]:focus-visible{outline:2px solid #22A35A;outline-offset:2px}
         '<div class="qtd">Quantidade: <b>' + num(i.quantidade) + ' ' + h(i.unidade || '') + '</b></div>' +
         '<div class="row"><label>Preço unitário (R$)<input inputmode="decimal" data-v="' + i.id + '" value="' + (i.valor_unitario != null ? money(i.valor_unitario) : '') + '" placeholder="0,00" ' + (aberto ? '' : 'disabled') + '></label>' +
         '<label>Marca / modelo<input data-m="' + i.id + '" value="' + h(i.marca || '') + '" ' + (aberto ? '' : 'disabled') + '></label></div>' +
-        '<div class="row" style="margin-top:8px"><label>CBS (%)<input inputmode="decimal" data-cbs="' + i.id + '" value="' + (i.aliq_cbs != null ? pct(i.aliq_cbs) : '') + '" placeholder="ex.: 0,9" ' + (aberto ? '' : 'disabled') + '></label>' +
-        '<label>IBS (%)<input inputmode="decimal" data-ibs="' + i.id + '" value="' + (i.aliq_ibs != null ? pct(i.aliq_ibs) : '') + '" placeholder="ex.: 0,1" ' + (aberto ? '' : 'disabled') + '></label></div>' +
+        '<div class="row" style="margin-top:8px"><label>CBS (%)<input inputmode="decimal" data-cbs="' + i.id + '" value="' + alq(i.aliq_cbs, 'aliq_cbs_padrao') + '" placeholder="ex.: 0,9" ' + (aberto ? '' : 'disabled') + '></label>' +
+        '<label>IBS (%)<input inputmode="decimal" data-ibs="' + i.id + '" value="' + alq(i.aliq_ibs, 'aliq_ibs_padrao') + '" placeholder="ex.: 0,1" ' + (aberto ? '' : 'disabled') + '></label></div>' +
         '<label class="chk"><input type="checkbox" data-nd="' + i.id + '" ' + (i.disponivel === false ? 'checked' : '') + ' ' + (aberto ? '' : 'disabled') + '>Não forneço este item</label>' +
         '<div class="tot" data-t="' + i.id + '"></div></div>';
     });
